@@ -44,12 +44,16 @@ export http_proxy=http://127.0.0.1:10808
 # Flutter/Dart 工具链会自动读取上述环境变量
 ```
 
+> **⚠️ 构建前必做**：`flutter build` / `flutter run` / `pub get` 前，先在当前 shell 导出上面的 `http_proxy` / `https_proxy`（即执行上方两行 export）。原因：Gradle daemon 的**环境变量快照**在启动时固化，不含后续 export 的代理变量；Gradle 自身的依赖下载走 `~/.gradle/gradle.properties` 的 `systemProp.*` 代理，但 **Flutter 工具侧**（engine 产物下载、pub、AOT 相关网络请求）只认 `http_proxy`/`https_proxy` 环境变量。不导出时，任何未缓存的产物直连 `dl.google.com` / `download.flutter.io` 会静默卡死（典型症状：`flutter build apk --release` 长时间停在 `Running Gradle task 'assembleRelease'...` 无任何输出）。
+
 注意：sdkmanager 等 Java 工具不读 `http_proxy` 环境变量，需用 `JAVA_OPTS`：
 ```bash
 export JAVA_OPTS="-Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=10808 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=10808"
 ```
 
 Gradle 依赖下载已在本机 `~/.gradle/gradle.properties` 配置代理（`systemProp.*.proxyHost`），对 Android 构建持久生效，无需每次设置。若代理失效，删掉该文件即可回退直连。
+
+> **⚠️ dl.google.com 必须直连（重要）**：本机 hiddify 代理（`127.0.0.1:10808`）到 `dl.google.com` 的路由是坏的（Connection reset / 超时），而该域名直连实测 0.5s 内可达。已在 `~/.gradle/gradle.properties` 的 `nonProxyHosts` 中加入 `dl.google.com` 强制直连。**若重建该文件或改代理配置，务必保留此例外**——否则 Gradle 下载 google() maven 依赖会无限重试，构建假死在 `Running Gradle task 'assembleRelease'`（症状：任务无输出、CPU 低、build/ 下无新产物；可用 `./gradlew :app:assembleRelease --info` 看到 `Connection reset ... Retrying` 刷屏）。
 
 **Gradle 发行版下载**（wrapper 阶段）不走 `gradle.properties`，若全新环境遇到卡在 `gradle-x.x-all.zip.part 0B`，改用国内镜像预下载：
 ```bash
