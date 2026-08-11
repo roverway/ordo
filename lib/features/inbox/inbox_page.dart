@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/db/database.dart';
+import '../../core/db/repositories/todo_repository.dart';
 import '../../core/db/tables.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/dates.dart';
+import '../../core/utils/tree.dart';
 import '../../shared/widgets/app_shell.dart';
 import '../projects/project_providers.dart';
 import '../tasks/task_providers.dart';
@@ -35,10 +37,11 @@ class InboxPage extends ConsumerWidget {
       child: tasksAsync.when(
         data: (tasks) {
           final rootTasks = tasks.where((t) => t.parentId == null).toList();
+          final childrenIndex = indexChildrenByParent(tasks);
           if (rootTasks.isEmpty) {
             return _buildEmptyState(context, l10n, ref);
           }
-          return _buildTaskList(context, l10n, ref, rootTasks);
+          return _buildTaskList(context, l10n, ref, rootTasks, childrenIndex);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text(e.toString())),
@@ -98,6 +101,7 @@ class InboxPage extends ConsumerWidget {
     AppLocalizations l10n,
     WidgetRef ref,
     List<Task> rootTasks,
+    Map<String?, List<Task>> childrenIndex,
   ) {
     return Stack(
       children: [
@@ -109,8 +113,11 @@ class InboxPage extends ConsumerWidget {
           itemCount: rootTasks.length,
           itemBuilder: (context, index) {
             final task = rootTasks[index];
+            final hasChildren =
+                (childrenIndex[task.id] ?? const <Task>[]).isNotEmpty;
             return _InboxTaskTile(
               task: task,
+              hasChildren: hasChildren,
               onToggleDone: (value) => _toggleDone(ref, task, value),
               onTap: () => context.push('/task/${task.id}'),
             );
@@ -132,8 +139,8 @@ class InboxPage extends ConsumerWidget {
   void _goNewTask(BuildContext context) {
     // Inbox tasks: no explicit projectId is needed since createTask defaults
     // to inboxProjectId when absent. But the task edit page requires projectId
-    // so we pass 'inbox' explicitly.
-    context.push('/task/new?projectId=inbox');
+    // so we pass inboxProjectId explicitly.
+    context.push('/task/new?projectId=$inboxProjectId');
   }
 
   Future<void> _toggleDone(WidgetRef ref, Task task, bool? value) async {
@@ -151,11 +158,13 @@ class InboxPage extends ConsumerWidget {
 class _InboxTaskTile extends StatelessWidget {
   const _InboxTaskTile({
     required this.task,
+    required this.hasChildren,
     required this.onToggleDone,
     required this.onTap,
   });
 
   final Task task;
+  final bool hasChildren;
   final ValueChanged<bool?> onToggleDone;
   final VoidCallback onTap;
 
@@ -183,7 +192,14 @@ class _InboxTaskTile extends StatelessWidget {
                 SizedBox(
                   width: AppTokens.touchTarget,
                   height: AppTokens.touchTarget,
-                  child: Checkbox(value: isDone, onChanged: onToggleDone),
+                  child: hasChildren
+                      ? Tooltip(
+                          message: AppLocalizations.of(
+                            context,
+                          ).statusDerivedFromChildren,
+                          child: Checkbox(value: isDone, onChanged: null),
+                        )
+                      : Checkbox(value: isDone, onChanged: onToggleDone),
                 ),
                 const SizedBox(width: AppTokens.spaceXs),
                 // Title + due date
@@ -218,7 +234,10 @@ class _InboxTaskTile extends StatelessWidget {
                               ),
                               const SizedBox(width: AppTokens.spaceXxs),
                               Text(
-                                formatDueDate(task.endAt!, AppLocalizations.of(context)),
+                                formatDueDate(
+                                  task.endAt!,
+                                  AppLocalizations.of(context),
+                                ),
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: _dueDateColor(
                                     task.endAt!,

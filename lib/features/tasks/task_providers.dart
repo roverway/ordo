@@ -22,9 +22,11 @@ final projectTasksProvider = StreamProvider.family<List<Task>, String>((
 /// 内置收件箱展示名（ARB 文案，随当前语言切换）。
 final inboxProjectNameProvider = Provider<String>((ref) {
   final locale = ref.watch(localeProvider);
-  return locale.languageCode == 'en'
-      ? AppLocalizationsEn().inbox
-      : AppLocalizationsZh().inbox;
+  // 显式枚举：en → 英文，其余（当前仅 zh）→ 中文。新增语言时在此扩展。
+  return switch (locale.languageCode) {
+    'en' => AppLocalizationsEn().inbox,
+    _ => AppLocalizationsZh().inbox,
+  };
 });
 
 /// 内置收件箱项目（确保存在后返回，幂等）。
@@ -152,7 +154,23 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
   }
 
   void setProjectAndParent(String projectId, String? parentId) {
-    state = state.copyWith(projectId: projectId, parentId: parentId);
+    // 注意：不能直接用 copyWith —— copyWith 对传 null 的字段会保留原值，
+    // 无法表达「清空 parentId」（切换项目时父任务不能跨项目）。
+    state = TaskFormState(
+      id: state.id,
+      projectId: projectId,
+      parentId: parentId,
+      title: state.title,
+      description: state.description,
+      notes: state.notes,
+      startAt: state.startAt,
+      endAt: state.endAt,
+      status: state.status,
+      existingTagIds: state.existingTagIds,
+      selectedTagIds: state.selectedTagIds,
+      isEditing: state.isEditing,
+      statusEnum: state.statusEnum,
+    );
   }
 
   /// 进入新建模式：重置表单状态，避免复用上一个已编辑任务的状态

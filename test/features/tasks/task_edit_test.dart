@@ -53,6 +53,7 @@ Future<void> _pumpEdit(
   String projectId = 'p1',
   String? parentId,
   List<Task> existingTasks = const [],
+  List<Project> extraProjects = const [],
   Size size = const Size(400, 800),
 }) async {
   tester.view.physicalSize = size;
@@ -76,6 +77,20 @@ Future<void> _pumpEdit(
           updatedAt: 0,
         ),
       );
+  for (final p in extraProjects) {
+    await db
+        .into(db.projects)
+        .insertOnConflictUpdate(
+          ProjectsCompanion.insert(
+            id: p.id,
+            name: p.name,
+            color: p.color,
+            sortOrder: p.sortOrder,
+            createdAt: p.createdAt,
+            updatedAt: p.updatedAt,
+          ),
+        );
+  }
 
   // 预插入测试数据。
   for (final task in existingTasks) {
@@ -109,6 +124,7 @@ Future<void> _pumpEdit(
           updatedAt: 0,
           deleted: 0,
         ),
+        ...extraProjects,
       ]),
     ),
     projectTasksProvider.overrideWith(
@@ -518,6 +534,50 @@ void main() {
       expect(notifier.state.title, '');
       expect(notifier.state.isEditing, isFalse);
       expect(notifier.state.projectId, 'p1');
+    });
+  });
+
+  // ────────────────────────────────────────
+  // 9. Bug #4 回归：切换项目清空 parentId
+  // ────────────────────────────────────────
+  group('Bug #4 回归：切换项目清空 parentId', () {
+    testWidgets('编辑有父任务的任务：切换项目后 parentId 清空、父任务行消失', (tester) async {
+      final tasks = [
+        _task('parent', title: '父任务'),
+        _task('child', parentId: 'parent', title: '子任务', sortOrder: 1),
+      ];
+      final p2 = Project(
+        id: 'p2',
+        name: '项目二',
+        color: 0xFF00AA55,
+        sortOrder: 1,
+        createdAt: 0,
+        updatedAt: 0,
+        deleted: 0,
+      );
+
+      await _pumpEdit(
+        tester,
+        taskId: 'child',
+        existingTasks: tasks,
+        extraProjects: [p2],
+      );
+
+      // 编辑有父任务的任务：父任务信息行可见。
+      expect(find.text('parent'), findsOneWidget);
+
+      // 切换项目到 p2。
+      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('项目二').last);
+      await tester.pumpAndSettle();
+
+      // parentId 被清空（父任务不能跨项目），父任务信息行消失。
+      final ctx = tester.element(find.byType(TaskEditPage));
+      final state = ProviderScope.containerOf(ctx).read(taskFormProvider);
+      expect(state.projectId, 'p2');
+      expect(state.parentId, isNull);
+      expect(find.text('parent'), findsNothing);
     });
   });
 }

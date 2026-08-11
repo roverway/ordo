@@ -295,9 +295,11 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
           ],
           onChanged: (value) {
             if (value != null) {
+              // 父任务不能跨项目：主动切换项目时清空 parentId，
+              // 否则保存时父任务校验会失败（父任务仍属于旧项目）。
               ref
                   .read(taskFormProvider.notifier)
-                  .setProjectAndParent(value, formState.parentId);
+                  .setProjectAndParent(value, null);
             }
           },
         );

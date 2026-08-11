@@ -25,7 +25,8 @@ abstract final class AppTokens {
   static const Color colorOverdue = Color(0xFFEF6B6B);
 
   /// Inbox project accent — warm violet.
-  static const Color colorInbox = Color(0xFF7C6FF7);
+  /// 与 todo_repository.dart 的 inboxProjectColor 保持一致（DB 实际写入值）。
+  static const Color colorInbox = Color(0xFF6C5CE7);
 
   /// Light theme background tint — very subtle blue-gray.
   static const Color bgTint = Color(0xFFF2F4F7);
