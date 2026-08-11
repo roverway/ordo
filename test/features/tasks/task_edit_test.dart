@@ -445,4 +445,79 @@ void main() {
       // reset 不在 copyWith 中，但验证空标题可被设置。
     });
   });
+
+  // ────────────────────────────────────────
+  // 8. Bug 1/2 回归：有子任务保存不传 status；新建模式表单复位
+  // ────────────────────────────────────────
+  group('Bug 1/2 回归', () {
+    test('编辑有子任务的任务：改标题保存成功（不传 status）', () async {
+      final db = openTestDatabase();
+      final repo = TodoRepository(database: db);
+      await db
+          .into(db.projects)
+          .insertOnConflictUpdate(
+            ProjectsCompanion.insert(
+              id: 'p1',
+              name: 'Test',
+              color: 0,
+              sortOrder: 0,
+              createdAt: 0,
+              updatedAt: 0,
+            ),
+          );
+      final parent = await repo.createTask(projectId: 'p1', title: '父');
+      await repo.createTask(projectId: 'p1', parentId: parent.id, title: '子');
+
+      final container = ProviderContainer(
+        overrides: [todoRepositoryProvider.overrideWithValue(repo)],
+      );
+      addTearDown(container.dispose);
+      final notifier = container.read(taskFormProvider.notifier);
+
+      await notifier.loadTask(parent.id);
+      notifier.updateTitle('父（改名）');
+
+      // Bug 1 修复前：有子任务时 updateTask 传 status 会抛
+      // RepositoryException，save() 返回错误；修复后应成功返回 null。
+      final error = await notifier.save();
+      expect(error, isNull);
+
+      final reloaded = await repo.tasks.getActiveById(parent.id);
+      expect(reloaded!.title, '父（改名）');
+    });
+
+    test('resetForNew 清空上一个任务的表单状态（Bug 2）', () async {
+      final db = openTestDatabase();
+      final repo = TodoRepository(database: db);
+      await db
+          .into(db.projects)
+          .insertOnConflictUpdate(
+            ProjectsCompanion.insert(
+              id: 'p1',
+              name: 'Test',
+              color: 0,
+              sortOrder: 0,
+              createdAt: 0,
+              updatedAt: 0,
+            ),
+          );
+      final t = await repo.createTask(projectId: 'p1', title: '旧任务');
+
+      final container = ProviderContainer(
+        overrides: [todoRepositoryProvider.overrideWithValue(repo)],
+      );
+      addTearDown(container.dispose);
+      final notifier = container.read(taskFormProvider.notifier);
+
+      await notifier.loadTask(t.id);
+      expect(notifier.state.title, '旧任务');
+
+      // 进入新建模式：表单应复位，不残留旧任务 id/标题。
+      notifier.resetForNew('p1', null);
+      expect(notifier.state.id, isNull);
+      expect(notifier.state.title, '');
+      expect(notifier.state.isEditing, isFalse);
+      expect(notifier.state.projectId, 'p1');
+    });
+  });
 }

@@ -6,14 +6,21 @@ import 'package:todo/core/db/tables.dart';
 import 'package:todo/core/utils/derived.dart';
 
 /// 构造测试用 Task。
-Task _task(String id, TaskStatus status, {int deleted = 0}) => Task(
+Task _task(
+  String id,
+  TaskStatus status, {
+  String? parentId,
+  int sortOrder = 0,
+  int deleted = 0,
+}) => Task(
   id: id,
   projectId: 'p1',
+  parentId: parentId,
   title: id,
   description: '',
   notes: '',
   status: status,
-  sortOrder: 0,
+  sortOrder: sortOrder,
   createdAt: 0,
   updatedAt: 0,
   deleted: deleted,
@@ -141,6 +148,49 @@ void main() {
         _task('c2', TaskStatus.done, deleted: 1),
       ];
       expect(progress(root, subtree), 0.0);
+    });
+  });
+
+  group('uncompletedCount（§6.1 派生口径，Bug 4 回归）', () {
+    test('父任务全部子任务完成时不再计入', () {
+      final count = uncompletedCount([
+        _task('parent', TaskStatus.todo),
+        _task('c1', TaskStatus.done, parentId: 'parent', sortOrder: 1),
+        _task('c2', TaskStatus.done, parentId: 'parent', sortOrder: 2),
+      ]);
+      // 父任务派生 done + 子任务 done → 0。
+      expect(count, 0);
+    });
+
+    test('父任务有未完成子任务时计入父与子', () {
+      final count = uncompletedCount([
+        _task('parent', TaskStatus.todo),
+        _task('c1', TaskStatus.done, parentId: 'parent', sortOrder: 1),
+        _task(
+          'c2',
+          TaskStatus.inProgress,
+          parentId: 'parent',
+          sortOrder: 2,
+        ),
+      ]);
+      // 父派生 inProgress（计入）+ c2（计入）→ 2。
+      expect(count, 2);
+    });
+
+    test('cancelled 任务不计入', () {
+      final count = uncompletedCount([
+        _task('t1', TaskStatus.cancelled),
+        _task('t2', TaskStatus.todo),
+      ]);
+      expect(count, 1);
+    });
+
+    test('deleted 任务不计入', () {
+      final count = uncompletedCount([
+        _task('t1', TaskStatus.todo, deleted: 1),
+        _task('t2', TaskStatus.todo),
+      ]);
+      expect(count, 1);
     });
   });
 }

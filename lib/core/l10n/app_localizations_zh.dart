@@ -222,6 +222,18 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get projectRequired => '请先选择所属项目';
+
+  @override
+  String get statusDerivedFromChildren => '状态由子任务派生';
+
+  @override
+  String get rowActions => '任务操作';
+
+  @override
+  String get dropToRoot => '拖到此处回到 1 级';
+
+  @override
   String get unsavedChanges => '有未保存的更改';
 
   @override

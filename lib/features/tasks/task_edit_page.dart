@@ -49,6 +49,7 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
     if (_initialized) return;
     _initialized = true;
 
+    final l10n = AppLocalizations.of(context);
     final notifier = ref.read(taskFormProvider.notifier);
 
     if (widget.taskId != null) {
@@ -68,8 +69,19 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
         setState(() => _hasChildren = children.isNotEmpty);
       }
     } else {
-      // 新建模式：设置 projectId 和 parentId。
-      notifier.setProjectAndParent(widget.projectId!, widget.parentId);
+      // 新建模式：重置表单（防止复用上一个任务的陈旧状态，审查发现 Bug 2），
+      // 再设置 projectId 和 parentId。
+      if (widget.projectId == null) {
+        // 深链兜底：/task/new 缺 projectId 时退回项目列表（审查发现 Bug 7）。
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.projectRequired)),
+          );
+          context.go('/projects');
+        }
+        return;
+      }
+      notifier.resetForNew(widget.projectId!, widget.parentId);
     }
   }
 
@@ -270,10 +282,10 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
           Padding(
             padding: const EdgeInsets.only(top: AppTokens.spaceXxs),
             child: Text(
-              l10n.statusInProgress,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: AppTokens.colorInProgress),
+              l10n.statusDerivedFromChildren,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
       ],

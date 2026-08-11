@@ -225,6 +225,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get projectRequired => 'Please select a project first';
+
+  @override
+  String get statusDerivedFromChildren => 'Status is derived from subtasks';
+
+  @override
+  String get rowActions => 'Task actions';
+
+  @override
+  String get dropToRoot => 'Drop here to move to top level';
+
+  @override
   String get unsavedChanges => 'Unsaved changes';
 
   @override

@@ -1,5 +1,6 @@
 import '../db/database.dart';
 import '../db/tables.dart';
+import 'tree.dart';
 
 /// 派生状态纯函数（docs/40-data-model.md §6）。
 ///
@@ -45,4 +46,23 @@ double progress(Task root, List<Task> subtree) {
     if (t.status == TaskStatus.done) done++;
   }
   return total == 0 ? 0.0 : done / total;
+}
+
+/// 未完成任务数（§6.1 派生口径，审查发现 Bug 4）。
+///
+/// 纯函数：父任务按**派生状态**计数——全部直接子任务均 done/cancelled 时
+/// 父任务视为完成，不再计入；叶子任务按其存储 status 计数。
+/// 必须单测。
+int uncompletedCount(List<Task> tasks) {
+  final childrenIndex = indexChildrenByParent(tasks);
+  var count = 0;
+  for (final t in tasks) {
+    if (t.deleted != 0) continue;
+    final children = childrenIndex[t.id] ?? const <Task>[];
+    final effective = derivedStatus(t, children);
+    if (effective != TaskStatus.done && effective != TaskStatus.cancelled) {
+      count++;
+    }
+  }
+  return count;
 }

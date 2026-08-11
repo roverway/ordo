@@ -125,6 +125,19 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
     state = state.copyWith(projectId: projectId, parentId: parentId);
   }
 
+  /// 进入新建模式：重置表单状态，避免复用上一个已编辑任务的状态
+  /// （审查发现 Bug 2：保存成功后不 reset 导致新建误改旧任务）。
+  void resetForNew(String projectId, String? parentId) {
+    _originalTitle = '';
+    _originalDescription = '';
+    _originalNotes = '';
+    _originalStartAt = null;
+    _originalEndAt = null;
+    _originalStatus = TaskStatus.todo;
+    _originalTagIds = [];
+    state = TaskFormState(projectId: projectId, parentId: parentId);
+  }
+
   void _captureOriginal() {
     _originalTitle = state.title;
     _originalDescription = state.description;
@@ -175,6 +188,12 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
     try {
       if (state.isEditing && state.id != null) {
         // 更新任务。
+        // 有子任务的任务状态由子任务派生（AGENTS.md §3-2），此时不传 status，
+        // 否则 Repository 会抛异常导致任何编辑都失败（审查发现 Bug 1）。
+        final children = await _repo.tasks.getDirectChildren(
+          state.projectId!,
+          state.id!,
+        );
         await _repo.updateTask(
           state.id!,
           title: state.title.trim(),
@@ -182,7 +201,7 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
           notes: state.notes,
           startAt: state.startAt,
           endAt: state.endAt,
-          status: state.status,
+          status: children.isEmpty ? state.status : null,
         );
         // 更新标签关联（全量替换）。
         await _repo.tags.setTaskTags(state.id!, state.selectedTagIds);
@@ -241,18 +260,17 @@ final taskFormProvider = NotifierProvider<TaskFormNotifier, TaskFormState>(
 );
 
 /// 项目未完成任务数 Provider。
+///
+/// 统计口径与 [projectProgressProvider] 一致：父任务按**派生状态**（§6.1）计数，
+/// 全部子任务均 done/cancelled 时父任务视为完成，不再计入（审查发现 Bug 4）。
+/// 计算逻辑见 [uncompletedCount]（纯函数，可单测）。
 final projectUncompletedCountProvider = Provider.family<int, String>((
   ref,
   projectId,
 ) {
   final tasksAsync = ref.watch(projectTasksProvider(projectId));
   return tasksAsync.when(
-    data: (tasks) => tasks
-        .where(
-          (t) =>
-              t.status != TaskStatus.done && t.status != TaskStatus.cancelled,
-        )
-        .length,
+    data: uncompletedCount,
     loading: () => 0,
     error: (_, _) => 0,
   );

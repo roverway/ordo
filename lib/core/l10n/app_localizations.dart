@@ -512,6 +512,30 @@ abstract class AppLocalizations {
   /// **'移动失败：{reason}'**
   String moveFailed(Object reason);
 
+  /// No description provided for @projectRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先选择所属项目'**
+  String get projectRequired;
+
+  /// No description provided for @statusDerivedFromChildren.
+  ///
+  /// In zh, this message translates to:
+  /// **'状态由子任务派生'**
+  String get statusDerivedFromChildren;
+
+  /// No description provided for @rowActions.
+  ///
+  /// In zh, this message translates to:
+  /// **'任务操作'**
+  String get rowActions;
+
+  /// No description provided for @dropToRoot.
+  ///
+  /// In zh, this message translates to:
+  /// **'拖到此处回到 1 级'**
+  String get dropToRoot;
+
   /// No description provided for @unsavedChanges.
   ///
   /// In zh, this message translates to:

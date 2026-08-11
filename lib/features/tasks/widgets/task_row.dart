@@ -25,6 +25,7 @@ class TaskRow extends StatelessWidget {
     this.isDragging = false,
     this.isDragTarget = false,
     this.isInvalidDragTarget = false,
+    this.dropAsChild = false,
   });
 
   final Task task;
@@ -41,6 +42,9 @@ class TaskRow extends StatelessWidget {
   final bool isDragging;
   final bool isDragTarget;
   final bool isInvalidDragTarget;
+
+  /// 拖拽悬停在下半（成为子级）时为 true，行尾显示"成为子级"提示图标。
+  final bool dropAsChild;
 
   /// 状态徽标颜色。
   Color _statusColor(TaskStatus status, ColorScheme colorScheme) =>
@@ -61,6 +65,7 @@ class TaskRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final effectiveStatus = derivedStatus ?? task.status;
@@ -251,14 +256,23 @@ class TaskRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                // 行尾菜单按钮。
+                // 行尾：成为子级提示 + 菜单按钮。
+                if (isDragTarget && dropAsChild && !isInvalidDragTarget)
+                  Padding(
+                    padding: const EdgeInsets.only(right: AppTokens.spaceXxs),
+                    child: Icon(
+                      Icons.subdirectory_arrow_right,
+                      size: 18,
+                      color: colorScheme.primary,
+                    ),
+                  ),
                 Semantics(
                   button: true,
-                  label: 'Actions',
+                  label: l10n.rowActions,
                   child: IconButton(
                     icon: const Icon(Icons.more_vert, size: 20),
                     onPressed: () => _showMenu(context),
-                    tooltip: 'Actions',
+                    tooltip: l10n.rowActions,
                     visualDensity: VisualDensity.compact,
                   ),
                 ),
