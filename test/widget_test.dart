@@ -9,9 +9,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:todo/app.dart';
 import 'package:todo/core/db/database.dart';
+import 'package:todo/features/calendar/calendar_providers.dart';
 import 'package:todo/features/projects/project_providers.dart';
 import 'package:todo/features/settings/settings_providers.dart';
+import 'package:todo/features/tags/tag_providers.dart';
 import 'package:todo/features/tasks/task_providers.dart';
+import 'package:todo/features/today/today_providers.dart';
 import 'helpers/db_test_setup.dart';
 
 /// Build and pump the app at a given logical size.
@@ -51,6 +54,15 @@ Future<void> pumpApp(
     overrides.addAll([
       inboxProjectProvider.overrideWithValue(AsyncData(dummyProject)),
       inboxTasksProvider.overrideWithValue(const AsyncData([])),
+      // M3 视图 provider：无真实 DB 时给空数据。否则落到真实仓库的流
+      // 在测试里不结束（loading 转圈），pumpAndSettle 超时。
+      todayViewProvider.overrideWithValue(
+        const AsyncData(TodayViewData(overdue: [], today: [])),
+      ),
+      tagsStreamProvider.overrideWithValue(const AsyncData(<Tag>[])),
+      calendarBucketsProvider.overrideWithValue(
+        const AsyncData(<DateTime, List<Task>>{}),
+      ),
     ]);
   }
 

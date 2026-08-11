@@ -55,6 +55,8 @@ Gradle 依赖下载已在本机 `~/.gradle/gradle.properties` 配置代理（`sy
 
 > **⚠️ dl.google.com 必须直连（重要）**：本机 hiddify 代理（`127.0.0.1:10808`）到 `dl.google.com` 的路由是坏的（Connection reset / 超时），而该域名直连实测 0.5s 内可达。已在 `~/.gradle/gradle.properties` 的 `nonProxyHosts` 中加入 `dl.google.com` 强制直连。**若重建该文件或改代理配置，务必保留此例外**——否则 Gradle 下载 google() maven 依赖会无限重试，构建假死在 `Running Gradle task 'assembleRelease'`（症状：任务无输出、CPU 低、build/ 下无新产物；可用 `./gradlew :app:assembleRelease --info` 看到 `Connection reset ... Retrying` 刷屏）。
 
+> **⚠️ `flutter test` 前必须 unset 代理**：测试框架的 VM-service 走 `http://127.0.0.1:<port>`，若 shell 里 export 了 `http_proxy`/`https_proxy`，该本地连接会被劫持到代理 → 所有测试文件加载失败（`HttpException: Connection closed before full header was received`）。测试不需网络，运行 `flutter test` 前执行 `unset http_proxy https_proxy`。
+
 **Gradle 发行版下载**（wrapper 阶段）不走 `gradle.properties`，若全新环境遇到卡在 `gradle-x.x-all.zip.part 0B`，改用国内镜像预下载：
 ```bash
 curl -s -o ~/.gradle/wrapper/dists/gradle-8.14-all/<hash>/gradle-8.14-all.zip \

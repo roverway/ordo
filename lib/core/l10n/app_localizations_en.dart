@@ -291,4 +291,79 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tomorrow => 'Tomorrow';
+
+  @override
+  String get overdue => 'Overdue';
+
+  @override
+  String get viewMonth => 'Month';
+
+  @override
+  String get viewWeek => 'Week';
+
+  @override
+  String get prevMonth => 'Previous month';
+
+  @override
+  String get nextMonth => 'Next month';
+
+  @override
+  String get newTag => 'New Tag';
+
+  @override
+  String get editTag => 'Edit Tag';
+
+  @override
+  String get tagName => 'Tag name';
+
+  @override
+  String get tagColor => 'Tag color';
+
+  @override
+  String get deleteTag => 'Delete Tag';
+
+  @override
+  String deleteTagConfirm(Object name) {
+    return 'Delete tag \"$name\"?';
+  }
+
+  @override
+  String get deleteTagWarning =>
+      'The tag will be removed from all tasks; the tasks themselves are not deleted.';
+
+  @override
+  String get searchHint => 'Search title, description, notes…';
+
+  @override
+  String get filter => 'Filter';
+
+  @override
+  String get filterStatus => 'Status';
+
+  @override
+  String get filterAll => 'All';
+
+  @override
+  String get filterTag => 'Tag';
+
+  @override
+  String get filterTimeRange => 'Time range';
+
+  @override
+  String get timeRangeAll => 'Any time';
+
+  @override
+  String get timeRangeToday => 'Today';
+
+  @override
+  String get timeRangeThisWeek => 'This week';
+
+  @override
+  String get timeRangeThisMonth => 'This month';
+
+  @override
+  String get clearFilter => 'Clear filter';
+
+  @override
+  String get tagNameDuplicate => 'Tag name already exists (case-insensitive)';
 }

@@ -34,3 +34,27 @@ String formatDateTime(int utcMs) {
   return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} '
       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 }
+
+/// Format an optional start/end UTC millisecond pair as a localized date range.
+///
+/// - Both null → empty string.
+/// - Only one set → delegate to [formatDueDate].
+/// - Same local day → show once (delegate to [formatDueDate]).
+/// - Otherwise → `"start – end"` (e.g. "Aug 1, 2026 – Aug 3, 2026").
+String formatDateRange(int? startAt, int? endAt, AppLocalizations l10n) {
+  if (startAt == null && endAt == null) return '';
+  if (startAt == null) return formatDueDate(endAt!, l10n);
+  if (endAt == null) return formatDueDate(startAt, l10n);
+
+  final start = DateTime.fromMillisecondsSinceEpoch(
+    startAt,
+    isUtc: true,
+  ).toLocal();
+  final end = DateTime.fromMillisecondsSinceEpoch(endAt, isUtc: true).toLocal();
+  final sameDay =
+      start.year == end.year &&
+      start.month == end.month &&
+      start.day == end.day;
+  if (sameDay) return formatDueDate(startAt, l10n);
+  return '${formatDueDate(startAt, l10n)} – ${formatDueDate(endAt, l10n)}';
+}

@@ -6,6 +6,7 @@ import 'features/projects/projects_page.dart';
 import 'features/search/search_page.dart';
 import 'features/settings/settings_page.dart';
 import 'features/tags/tags_page.dart';
+import 'features/tags/tags_detail_page.dart';
 import 'features/tasks/task_edit_page.dart';
 import 'features/today/today_page.dart';
 
@@ -35,11 +36,28 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(path: '/tags', builder: (context, state) => const TagsPage()),
     GoRoute(
+      path: '/tags/:id',
+      builder: (context, state) {
+        final id = state.pathParameters['id']!;
+        return TagsDetailPage(tagId: id);
+      },
+    ),
+    GoRoute(
       path: '/task/new',
       builder: (context, state) {
         final projectId = state.uri.queryParameters['projectId'];
         final parentId = state.uri.queryParameters['parentId'];
-        return TaskEditPage(projectId: projectId, parentId: parentId);
+        // 日历「点日期新建」等场景可预填起止时间（UTC 毫秒，M3）。
+        final startAt = int.tryParse(
+          state.uri.queryParameters['startAt'] ?? '',
+        );
+        final endAt = int.tryParse(state.uri.queryParameters['endAt'] ?? '');
+        return TaskEditPage(
+          projectId: projectId,
+          parentId: parentId,
+          initialStartAt: startAt,
+          initialEndAt: endAt,
+        );
       },
     ),
     GoRoute(

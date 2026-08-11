@@ -70,6 +70,24 @@ class TaskDao {
     return query.get();
   }
 
+  /// 全部未删除任务，按 `updatedAt` 降序（今日/日历/搜索/筛选用）。
+  ///
+  /// 返回扁平列表，视图层再各自排序/过滤（view_rules.dart）。
+  Stream<List<Task>> watchAllActive() {
+    return (_db.select(_db.tasks)
+          ..where((t) => t.deleted.equals(0))
+          ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
+        .watch();
+  }
+
+  /// 全部未删除任务（Future 版本），按 `updatedAt` 降序。
+  Future<List<Task>> getAllActive() async {
+    return (_db.select(_db.tasks)
+          ..where((t) => t.deleted.equals(0))
+          ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
+        .get();
+  }
+
   /// 插入，返回行 id。
   Future<int> insert(TasksCompanion entry) {
     return _db.into(_db.tasks).insert(entry);

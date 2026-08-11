@@ -287,4 +287,78 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get tomorrow => '明天';
+
+  @override
+  String get overdue => '已逾期';
+
+  @override
+  String get viewMonth => '月视图';
+
+  @override
+  String get viewWeek => '周视图';
+
+  @override
+  String get prevMonth => '上个月';
+
+  @override
+  String get nextMonth => '下个月';
+
+  @override
+  String get newTag => '新建标签';
+
+  @override
+  String get editTag => '编辑标签';
+
+  @override
+  String get tagName => '标签名称';
+
+  @override
+  String get tagColor => '标签颜色';
+
+  @override
+  String get deleteTag => '删除标签';
+
+  @override
+  String deleteTagConfirm(Object name) {
+    return '确定要删除标签「$name」吗？';
+  }
+
+  @override
+  String get deleteTagWarning => '该标签将从所有任务中移除，任务本身不会被删除。';
+
+  @override
+  String get searchHint => '搜索标题、描述、备注…';
+
+  @override
+  String get filter => '筛选';
+
+  @override
+  String get filterStatus => '状态';
+
+  @override
+  String get filterAll => '全部';
+
+  @override
+  String get filterTag => '标签';
+
+  @override
+  String get filterTimeRange => '时间段';
+
+  @override
+  String get timeRangeAll => '全部时间';
+
+  @override
+  String get timeRangeToday => '今天';
+
+  @override
+  String get timeRangeThisWeek => '本周';
+
+  @override
+  String get timeRangeThisMonth => '本月';
+
+  @override
+  String get clearFilter => '清除筛选';
+
+  @override
+  String get tagNameDuplicate => '标签名已存在（不区分大小写）';
 }

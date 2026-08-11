@@ -637,6 +637,150 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'明天'**
   String get tomorrow;
+
+  /// No description provided for @overdue.
+  ///
+  /// In zh, this message translates to:
+  /// **'已逾期'**
+  String get overdue;
+
+  /// No description provided for @viewMonth.
+  ///
+  /// In zh, this message translates to:
+  /// **'月视图'**
+  String get viewMonth;
+
+  /// No description provided for @viewWeek.
+  ///
+  /// In zh, this message translates to:
+  /// **'周视图'**
+  String get viewWeek;
+
+  /// No description provided for @prevMonth.
+  ///
+  /// In zh, this message translates to:
+  /// **'上个月'**
+  String get prevMonth;
+
+  /// No description provided for @nextMonth.
+  ///
+  /// In zh, this message translates to:
+  /// **'下个月'**
+  String get nextMonth;
+
+  /// No description provided for @newTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'新建标签'**
+  String get newTag;
+
+  /// No description provided for @editTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑标签'**
+  String get editTag;
+
+  /// No description provided for @tagName.
+  ///
+  /// In zh, this message translates to:
+  /// **'标签名称'**
+  String get tagName;
+
+  /// No description provided for @tagColor.
+  ///
+  /// In zh, this message translates to:
+  /// **'标签颜色'**
+  String get tagColor;
+
+  /// No description provided for @deleteTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除标签'**
+  String get deleteTag;
+
+  /// No description provided for @deleteTagConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'确定要删除标签「{name}」吗？'**
+  String deleteTagConfirm(Object name);
+
+  /// No description provided for @deleteTagWarning.
+  ///
+  /// In zh, this message translates to:
+  /// **'该标签将从所有任务中移除，任务本身不会被删除。'**
+  String get deleteTagWarning;
+
+  /// No description provided for @searchHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索标题、描述、备注…'**
+  String get searchHint;
+
+  /// No description provided for @filter.
+  ///
+  /// In zh, this message translates to:
+  /// **'筛选'**
+  String get filter;
+
+  /// No description provided for @filterStatus.
+  ///
+  /// In zh, this message translates to:
+  /// **'状态'**
+  String get filterStatus;
+
+  /// No description provided for @filterAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部'**
+  String get filterAll;
+
+  /// No description provided for @filterTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'标签'**
+  String get filterTag;
+
+  /// No description provided for @filterTimeRange.
+  ///
+  /// In zh, this message translates to:
+  /// **'时间段'**
+  String get filterTimeRange;
+
+  /// No description provided for @timeRangeAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部时间'**
+  String get timeRangeAll;
+
+  /// No description provided for @timeRangeToday.
+  ///
+  /// In zh, this message translates to:
+  /// **'今天'**
+  String get timeRangeToday;
+
+  /// No description provided for @timeRangeThisWeek.
+  ///
+  /// In zh, this message translates to:
+  /// **'本周'**
+  String get timeRangeThisWeek;
+
+  /// No description provided for @timeRangeThisMonth.
+  ///
+  /// In zh, this message translates to:
+  /// **'本月'**
+  String get timeRangeThisMonth;
+
+  /// No description provided for @clearFilter.
+  ///
+  /// In zh, this message translates to:
+  /// **'清除筛选'**
+  String get clearFilter;
+
+  /// No description provided for @tagNameDuplicate.
+  ///
+  /// In zh, this message translates to:
+  /// **'标签名已存在（不区分大小写）'**
+  String get tagNameDuplicate;
 }
 
 class _AppLocalizationsDelegate

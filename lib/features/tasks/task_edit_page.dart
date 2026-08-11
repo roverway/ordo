@@ -17,11 +17,22 @@ import 'task_providers.dart';
 /// Project selector is now interactive (was read-only). Status is disabled
 /// when the task has children (derived).
 class TaskEditPage extends ConsumerStatefulWidget {
-  const TaskEditPage({super.key, this.taskId, this.projectId, this.parentId});
+  const TaskEditPage({
+    super.key,
+    this.taskId,
+    this.projectId,
+    this.parentId,
+    this.initialStartAt,
+    this.initialEndAt,
+  });
 
   final String? taskId;
   final String? projectId;
   final String? parentId;
+
+  /// 预填开始/截止时间（UTC 毫秒，M3 日历「点日期新建」传入）。
+  final int? initialStartAt;
+  final int? initialEndAt;
 
   @override
   ConsumerState<TaskEditPage> createState() => _TaskEditPageState();
@@ -74,6 +85,12 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
         return;
       }
       notifier.resetForNew(widget.projectId!, widget.parentId);
+      if (widget.initialStartAt != null) {
+        notifier.updateStartAt(widget.initialStartAt);
+      }
+      if (widget.initialEndAt != null) {
+        notifier.updateEndAt(widget.initialEndAt);
+      }
     }
   }
 
