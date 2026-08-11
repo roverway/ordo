@@ -1,0 +1,39 @@
+# 通用
+*.log
+.DS_Store
+Thumbs.db
+
+# Flutter/Dart 构建产物
+.dart_tool/
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# IDE
+.idea/
+*.iml
+.vscode/
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# Android
+android/.gradle/
+android/local.properties
+android/app/debug/
+android/app/profile/
+android/app/release/
+*.keystore
+*.jks
+
+# 其他平台（后续启用时保留）
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/ephemeral/
+macos/Flutter/ephemeral/
+linux/flutter/ephemeral/
+windows/flutter/ephemeral/
+
+# 测试/覆盖率
+coverage/
