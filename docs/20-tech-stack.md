@@ -43,7 +43,11 @@
 | 包 | 基线（major 约束） | 备注 |
 |---|---|---|
 | flutter | 3.38.5 stable | Dart 3.10.4 |
-| drift | ^2.x | 含 `drift_flutter` 辅助（M1 引入） |
+| drift | 2.31.0 | 锁 2.31.0（2.32+ 需 Dart 3.11+）；含 `drift_flutter` 辅助（M1 引入） |
+| drift_flutter | 0.2.8 | 与 drift 2.31.0 配套（0.3.x 需 sqlite3 ^3.0.0，冲突） |
+| drift_dev | 2.31.0 | dev；与 drift 同版本配套 |
+| build_runner | ^2.15.1 | dev；构建需 `--force-jit`（sqlite3 2.x build hook 与 Dart 3.10 AOT 兼容问题） |
+| sqlite3 | ^2.9.4 | dev；仅测试用（原生库加载，见 test/helpers/db_test_setup.dart） |
 | flutter_riverpod | ^3.3.2 | 无 codegen（M0 已装，注意 3.x API） |
 | go_router | ^17.5.0 | M0 已装 |
 | flutter_localizations | 随 Flutter | M0 引入 |
@@ -52,8 +56,8 @@
 | webdav_client | 最新稳定 | M4 引入时锁定 |
 | s3_dart | 最新稳定 | M4 引入时锁定 |
 | flutter_secure_storage | 最新稳定 | M4 引入时锁定 |
-| uuid | ^4.x | M1 引入 |
-| path_provider | 随 Flutter | M1 引入 |
+| uuid | ^4.6.0 | M1 已装 |
+| path_provider | ^2.1.6 | M1 已装 |
 | archive | 最新稳定 | M4 引入时锁定 |
 
 **锁定流程**：M0 用 `flutter pub add <pkg>` 安装 → 记录 `pubspec.lock` → 回填本表 → 后续任何 `pub upgrade` 需用户批准。
