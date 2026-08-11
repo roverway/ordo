@@ -4,30 +4,32 @@ import 'package:go_router/go_router.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/utils/app_breakpoints.dart';
 
-/// 自适应导航骨架（30-architecture.md §5，50-ui-ux.md §4）。
+/// Adaptive navigation shell (30-architecture.md §5).
 ///
-/// - 窄屏（<600dp）：顶部 AppBar（标题 + 搜索/设置入口）+ 底部 NavigationBar；
-/// - 宽屏（≥600dp）：顶部 AppBar + 左侧 NavigationRail。
+/// - Narrow (<600dp): top AppBar (title + search/settings) + bottom NavigationBar
+/// - Wide (≥600dp): top AppBar + left NavigationRail
 ///
-/// 当前目的地高亮由路由路径推导；搜索/设置以 push 方式进入独立页面。
+/// 5 destinations: Inbox, Today, Calendar, Projects, Tags.
+/// Highlight derived from the current route path.
 class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.title, required this.child});
 
-  /// 页面标题（ARB 文案，由各 feature 页面传入）。
+  /// Page title (from ARB, passed by each feature page).
   final String title;
 
-  /// 页面内容。
+  /// Page body content.
   final Widget child;
 
-  /// 4 个一级目的地路径（与 router.dart 保持一致）。
+  /// 5 top-level destination paths (keep in sync with router.dart).
   static const List<String> _destinationPaths = [
-    '/',
+    '/inbox',
+    '/today',
     '/calendar',
     '/projects',
     '/tags',
   ];
 
-  /// 由当前路由路径推导目的地索引；未知路径（如搜索/设置）回退到今日。
+  /// Derive destination index from route path; fall back to 0 (inbox).
   static int _selectedIndex(String path) {
     final index = _destinationPaths.indexOf(path);
     return index == -1 ? 0 : index;
@@ -42,6 +44,11 @@ class AppShell extends StatelessWidget {
 
     final destinations =
         <({String label, IconData icon, IconData selectedIcon})>[
+          (
+            label: l10n.navInbox,
+            icon: Icons.inbox_outlined,
+            selectedIcon: Icons.inbox,
+          ),
           (
             label: l10n.navToday,
             icon: Icons.today_outlined,
@@ -70,12 +77,12 @@ class AppShell extends StatelessWidget {
         actions: [
           IconButton(
             tooltip: l10n.search,
-            icon: const Icon(Icons.search),
+            icon: const Icon(Icons.search, size: 22),
             onPressed: () => context.push('/search'),
           ),
           IconButton(
             tooltip: l10n.settings,
-            icon: const Icon(Icons.settings_outlined),
+            icon: const Icon(Icons.settings_outlined, size: 22),
             onPressed: () => context.push('/settings'),
           ),
         ],

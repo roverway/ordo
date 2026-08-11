@@ -15,6 +15,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get inbox => '收件箱';
 
   @override
+  String get navInbox => '收件箱';
+
+  @override
   String get navToday => '今日';
 
   @override
@@ -61,6 +64,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aboutVersion => '版本';
+
+  @override
+  String get emptyInbox => '收件箱是空的，去添加任务吧';
 
   @override
   String get emptyToday => '今天还没有任务';
@@ -119,10 +125,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get newTask => '新建任务';
 
   @override
+  String get addTask => '添加任务';
+
+  @override
   String get newSubtask => '新建子任务';
 
   @override
   String get taskTitle => '任务标题';
+
+  @override
+  String get taskTitleHint => '要做什么？';
 
   @override
   String get taskDescription => '描述';
@@ -260,4 +272,19 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get progress => '进度';
+
+  @override
+  String get noDueDate => '无截止日期';
+
+  @override
+  String get selectProject => '选择项目';
+
+  @override
+  String get done => '完成';
+
+  @override
+  String get today => '今天';
+
+  @override
+  String get tomorrow => '明天';
 }

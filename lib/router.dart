@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'features/calendar/calendar_page.dart';
+import 'features/inbox/inbox_page.dart';
 import 'features/projects/project_detail_page.dart';
 import 'features/projects/projects_page.dart';
 import 'features/search/search_page.dart';
@@ -8,14 +9,15 @@ import 'features/tags/tags_page.dart';
 import 'features/tasks/task_edit_page.dart';
 import 'features/today/today_page.dart';
 
-/// 全局路由表（唯一）—— 30-architecture.md §4。
+/// Global routing table — single source of truth (30-architecture.md §4).
 ///
-/// M0：4 个一级目的地 + 搜索 + 设置。
-/// M2：新增 /projects/:id、/task/:id、/task/new。
+/// 5 top-level destinations: Inbox, Today, Calendar, Projects, Tags.
+/// Inbox is the launch home (initialLocation).
 final GoRouter appRouter = GoRouter(
-  initialLocation: '/',
+  initialLocation: '/inbox',
   routes: [
-    GoRoute(path: '/', builder: (context, state) => const TodayPage()),
+    GoRoute(path: '/inbox', builder: (context, state) => const InboxPage()),
+    GoRoute(path: '/today', builder: (context, state) => const TodayPage()),
     GoRoute(
       path: '/calendar',
       builder: (context, state) => const CalendarPage(),
@@ -52,6 +54,5 @@ final GoRouter appRouter = GoRouter(
       path: '/settings',
       builder: (context, state) => const SettingsPage(),
     ),
-    // TODO(M4): /settings/sync 同步配置
   ],
 );

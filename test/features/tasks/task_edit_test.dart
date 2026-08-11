@@ -214,8 +214,8 @@ void main() {
     testWidgets('纯空格标题也显示验证错误', (tester) async {
       await _pumpEdit(tester, projectId: 'p1');
 
-      // 找到标题输入框并输入空格。
-      final titleField = find.widgetWithText(TextFormField, '任务标题 *');
+      // Find the title TextFormField (first one on the page).
+      final titleField = find.byType(TextFormField).first;
       await tester.enterText(titleField, '   ');
       await tester.tap(find.text('保存'));
       await tester.pumpAndSettle();

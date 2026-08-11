@@ -6,14 +6,16 @@ import '../../core/db/database.dart';
 import '../../core/db/tables.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/utils/dates.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import '../projects/project_providers.dart';
 import 'task_providers.dart';
 
-/// 任务编辑页（50-ui-ux.md §5.6）。
+/// Task edit page — card-based layout, TickTick/Microsoft To Do inspired.
 ///
-/// 字段：标题（必填）、描述、备注、开始时间、截止时间、状态、标签多选。
-/// 有子任务时状态控件禁用。
+/// Sections: Title, description, notes, dates, status, tags, project.
+/// Project selector is now interactive (was read-only). Status is disabled
+/// when the task has children (derived).
 class TaskEditPage extends ConsumerStatefulWidget {
   const TaskEditPage({super.key, this.taskId, this.projectId, this.parentId});
 
@@ -38,11 +40,7 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
     _titleController = TextEditingController();
     _descController = TextEditingController();
     _notesController = TextEditingController();
-
-    // 延迟加载，等 Provider 初始化完成。
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadData();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
   }
 
   Future<void> _loadData() async {
@@ -59,24 +57,18 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
       _descController.text = loadedState.description;
       _notesController.text = loadedState.notes;
 
-      // 检查是否有子任务。
       final repo = ref.read(todoRepositoryProvider);
       final children = await repo.tasks.getDirectChildren(
         loadedState.projectId!,
         widget.taskId,
       );
-      if (mounted) {
-        setState(() => _hasChildren = children.isNotEmpty);
-      }
+      if (mounted) setState(() => _hasChildren = children.isNotEmpty);
     } else {
-      // 新建模式：重置表单（防止复用上一个任务的陈旧状态，审查发现 Bug 2），
-      // 再设置 projectId 和 parentId。
       if (widget.projectId == null) {
-        // 深链兜底：/task/new 缺 projectId 时退回项目列表（审查发现 Bug 7）。
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.projectRequired)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.projectRequired)));
           context.go('/projects');
         }
         return;
@@ -97,11 +89,10 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final formState = ref.watch(taskFormProvider);
-    final tagsAsync = ref.watch(tagsStreamProvider);
     final isEditing = widget.taskId != null;
 
-    // PopScope 处理未保存返回提示（50-ui-ux.md §8）。
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -113,7 +104,7 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
             title: l10n.unsavedChanges,
             message: l10n.unsavedChangesConfirm,
             confirmLabel: l10n.discard,
-            confirmColor: theme.colorScheme.error,
+            confirmColor: colorScheme.error,
           );
           if (discard && context.mounted) {
             ref.read(taskFormProvider.notifier).reset();
@@ -126,77 +117,133 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(isEditing ? l10n.edit : l10n.newTask),
-          actions: [TextButton(onPressed: _save, child: Text(l10n.save))],
+          actions: [
+            TextButton.icon(
+              onPressed: _save,
+              icon: const Icon(Icons.check, size: 18),
+              label: Text(l10n.save),
+            ),
+          ],
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(AppTokens.spaceMd),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 标题（必填）。
-              TextFormField(
-                controller: _titleController,
-                decoration: InputDecoration(
-                  labelText: '${l10n.taskTitle} *',
-                  border: const OutlineInputBorder(),
-                ),
-                onChanged: (v) =>
-                    ref.read(taskFormProvider.notifier).updateTitle(v),
-                autofocus: true,
+              // ── Title ──
+              _SectionCard(
+                children: [
+                  TextFormField(
+                    controller: _titleController,
+                    decoration: InputDecoration(
+                      hintText: l10n.taskTitleHint,
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                    onChanged: (v) =>
+                        ref.read(taskFormProvider.notifier).updateTitle(v),
+                    autofocus: true,
+                  ),
+                ],
               ),
-              const SizedBox(height: AppTokens.spaceMd),
+              const SizedBox(height: AppTokens.spaceSm),
 
-              // 描述。
-              TextFormField(
-                controller: _descController,
-                decoration: InputDecoration(
-                  labelText: l10n.taskDescription,
-                  border: const OutlineInputBorder(),
-                ),
-                maxLines: 3,
-                onChanged: (v) =>
-                    ref.read(taskFormProvider.notifier).updateDescription(v),
+              // ── Project selector ──
+              _SectionCard(
+                children: [_buildProjectPicker(context, l10n, formState)],
               ),
-              const SizedBox(height: AppTokens.spaceMd),
+              const SizedBox(height: AppTokens.spaceSm),
 
-              // 备注。
-              TextFormField(
-                controller: _notesController,
-                decoration: InputDecoration(
-                  labelText: l10n.taskNotes,
-                  border: const OutlineInputBorder(),
-                ),
-                maxLines: 2,
-                onChanged: (v) =>
-                    ref.read(taskFormProvider.notifier).updateNotes(v),
+              // ── Description + Notes ──
+              _SectionCard(
+                children: [
+                  TextFormField(
+                    controller: _descController,
+                    decoration: InputDecoration(
+                      labelText: l10n.taskDescription,
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      floatingLabelBehavior: FloatingLabelBehavior.always,
+                    ),
+                    maxLines: 3,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: colorScheme.onSurface,
+                    ),
+                    onChanged: (v) => ref
+                        .read(taskFormProvider.notifier)
+                        .updateDescription(v),
+                  ),
+                  const Divider(),
+                  TextFormField(
+                    controller: _notesController,
+                    decoration: InputDecoration(
+                      labelText: l10n.taskNotes,
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      floatingLabelBehavior: FloatingLabelBehavior.always,
+                    ),
+                    maxLines: 2,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    onChanged: (v) =>
+                        ref.read(taskFormProvider.notifier).updateNotes(v),
+                  ),
+                ],
               ),
-              const SizedBox(height: AppTokens.spaceLg),
+              const SizedBox(height: AppTokens.spaceSm),
 
-              // 时间选择。
-              _buildTimeSection(context, l10n, formState),
-              const SizedBox(height: AppTokens.spaceLg),
+              // ── Dates ──
+              _SectionCard(
+                children: [
+                  _buildDateRow(
+                    context,
+                    l10n,
+                    formState.startAt,
+                    l10n.taskStartTime,
+                    Icons.play_arrow_outlined,
+                    isStart: true,
+                  ),
+                  const Divider(indent: 0),
+                  _buildDateRow(
+                    context,
+                    l10n,
+                    formState.endAt,
+                    l10n.taskEndTime,
+                    Icons.flag_outlined,
+                    isStart: false,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppTokens.spaceSm),
 
-              // 状态选择。
-              _buildStatusSection(context, l10n, formState),
-              const SizedBox(height: AppTokens.spaceLg),
+              // ── Status ──
+              _SectionCard(
+                children: [_buildStatusSection(context, l10n, formState)],
+              ),
+              const SizedBox(height: AppTokens.spaceSm),
 
-              // 标签多选。
-              _buildTagSection(context, l10n, formState, tagsAsync),
-              const SizedBox(height: AppTokens.spaceLg),
+              // ── Tags ──
+              _SectionCard(
+                children: [_buildTagSection(context, l10n, formState)],
+              ),
+              const SizedBox(height: AppTokens.spaceSm),
 
-              // 所属项目（只读）。
-              if (formState.projectId != null)
-                _buildInfoRow(
-                  context,
-                  l10n.taskProject,
-                  _getProjectName(ref, formState.projectId!),
-                ),
-
-              // 父任务（只读）。
+              // ── Parent (read-only, if exists) ──
               if (formState.parentId != null)
-                _buildInfoRow(context, l10n.taskParent, formState.parentId!),
-
-              const SizedBox(height: AppTokens.spaceXxl),
+                _SectionCard(
+                  children: [
+                    _buildInfoRow(
+                      context,
+                      l10n.taskParent,
+                      formState.parentId!,
+                    ),
+                  ],
+                ),
+              const SizedBox(height: AppTokens.spaceXxxl),
             ],
           ),
         ),
@@ -204,46 +251,121 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
     );
   }
 
-  Widget _buildTimeSection(
+  // ── Project picker ──
+
+  Widget _buildProjectPicker(
     BuildContext context,
     AppLocalizations l10n,
     TaskFormState formState,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(l10n.taskStartTime, style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: AppTokens.spaceXs),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _pickDateTime(context, isStart: true),
-                icon: const Icon(Icons.calendar_today, size: 18),
-                label: Text(
-                  formState.startAt != null
-                      ? _formatDateTime(formState.startAt!)
-                      : l10n.startDate,
+    final projectsAsync = ref.watch(projectsStreamProvider);
+
+    return projectsAsync.when(
+      data: (projects) {
+        return DropdownButtonFormField<String>(
+          initialValue: formState.projectId,
+          decoration: InputDecoration(
+            labelText: l10n.taskProject,
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.zero,
+            floatingLabelBehavior: FloatingLabelBehavior.always,
+          ),
+          isExpanded: true,
+          hint: Text(l10n.selectProject),
+          icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+          items: [
+            for (final p in projects)
+              DropdownMenuItem(
+                value: p.id,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: Color(p.color),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: AppTokens.spaceSm),
+                    Text(p.name),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(width: AppTokens.spaceSm),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _pickDateTime(context, isStart: false),
-                icon: const Icon(Icons.schedule, size: 18),
-                label: Text(
-                  formState.endAt != null
-                      ? _formatDateTime(formState.endAt!)
-                      : l10n.taskEndTime,
-                ),
-              ),
-            ),
           ],
+          onChanged: (value) {
+            if (value != null) {
+              ref
+                  .read(taskFormProvider.notifier)
+                  .setProjectAndParent(value, formState.parentId);
+            }
+          },
+        );
+      },
+      loading: () => const SizedBox(
+        height: 48,
+        child: Center(
+          child: SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
         ),
-      ],
+      ),
+      error: (e, _) => Text(e.toString()),
     );
   }
+
+  // ── Date row ──
+
+  Widget _buildDateRow(
+    BuildContext context,
+    AppLocalizations l10n,
+    int? value,
+    String label,
+    IconData icon, {
+    required bool isStart,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final hasValue = value != null;
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(
+        icon,
+        size: 20,
+        color: hasValue ? colorScheme.primary : colorScheme.outline,
+      ),
+      title: Text(
+        label,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: colorScheme.onSurfaceVariant,
+        ),
+      ),
+      subtitle: Text(
+        hasValue ? formatDateTime(value) : l10n.noDueDate,
+        style: theme.textTheme.bodyLarge?.copyWith(
+          color: hasValue ? colorScheme.onSurface : colorScheme.outline,
+        ),
+      ),
+      trailing: IconButton(
+        icon: Icon(hasValue ? Icons.close : Icons.edit_calendar, size: 20),
+        onPressed: hasValue
+            ? () {
+                if (isStart) {
+                  ref.read(taskFormProvider.notifier).updateStartAt(null);
+                } else {
+                  ref.read(taskFormProvider.notifier).updateEndAt(null);
+                }
+              }
+            : null,
+      ),
+      onTap: () => _pickDateTime(context, isStart: isStart),
+    );
+  }
+
+  // ── Status chips ──
 
   Widget _buildStatusSection(
     BuildContext context,
@@ -251,11 +373,20 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
     TaskFormState formState,
   ) {
     final isDisabled = _hasChildren;
+    final theme = Theme.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(l10n.taskStatus, style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: AppTokens.spaceXs),
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppTokens.spaceXs),
+          child: Text(
+            l10n.taskStatus,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
         AbsorbPointer(
           absorbing: isDisabled,
           child: Opacity(
@@ -273,6 +404,7 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
                       : (_) => ref
                             .read(taskFormProvider.notifier)
                             .updateStatus(status),
+                  visualDensity: VisualDensity.compact,
                 );
               }).toList(),
             ),
@@ -280,11 +412,11 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
         ),
         if (isDisabled)
           Padding(
-            padding: const EdgeInsets.only(top: AppTokens.spaceXxs),
+            padding: const EdgeInsets.only(top: AppTokens.spaceXs),
             child: Text(
               l10n.statusDerivedFromChildren,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -292,24 +424,35 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
     );
   }
 
+  // ── Tags ──
+
   Widget _buildTagSection(
     BuildContext context,
     AppLocalizations l10n,
     TaskFormState formState,
-    AsyncValue<List<Tag>> tagsAsync,
   ) {
+    final tagsAsync = ref.watch(tagsStreamProvider);
+    final theme = Theme.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(l10n.taskTags, style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: AppTokens.spaceXs),
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppTokens.spaceXs),
+          child: Text(
+            l10n.taskTags,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
         tagsAsync.when(
           data: (tags) {
             if (tags.isEmpty) {
               return Text(
                 l10n.noTags,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               );
             }
@@ -326,44 +469,60 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
                   avatar: isSelected
                       ? null
                       : Container(
-                          width: 12,
-                          height: 12,
+                          width: 10,
+                          height: 10,
                           decoration: BoxDecoration(
                             color: Color(tag.color),
                             shape: BoxShape.circle,
                           ),
                         ),
-                  selectedColor: Color(tag.color).withValues(alpha: 0.2),
+                  selectedColor: Color(tag.color).withValues(alpha: 0.15),
+                  visualDensity: VisualDensity.compact,
                 );
               }).toList(),
             );
           },
-          loading: () => const CircularProgressIndicator(),
+          loading: () => const SizedBox(
+            height: 32,
+            child: Center(
+              child: SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          ),
           error: (e, _) => Text(e.toString()),
         ),
       ],
     );
   }
 
+  // ── Info row ──
+
   Widget _buildInfoRow(BuildContext context, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppTokens.spaceSm),
-      child: Row(
-        children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
           ),
-          const SizedBox(width: AppTokens.spaceSm),
-          Expanded(
-            child: Text(value, style: Theme.of(context).textTheme.bodyMedium),
+        ),
+        const SizedBox(width: AppTokens.spaceSm),
+        Expanded(
+          child: Text(
+            value,
+            style: theme.textTheme.bodyLarge,
+            overflow: TextOverflow.ellipsis,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
+
+  // ── Helpers ──
 
   String _statusLabel(AppLocalizations l10n, TaskStatus status) =>
       switch (status) {
@@ -373,30 +532,11 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
         TaskStatus.cancelled => l10n.statusCancelled,
       };
 
-  String _formatDateTime(int ms) {
-    final dt = DateTime.fromMillisecondsSinceEpoch(ms, isUtc: true).toLocal();
-    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} '
-        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-  }
-
-  String _getProjectName(WidgetRef ref, String projectId) {
-    final projectsAsync = ref.read(projectsStreamProvider);
-    return projectsAsync.when(
-      data: (projects) {
-        final p = projects.where((p) => p.id == projectId).firstOrNull;
-        return p?.name ?? '';
-      },
-      loading: () => '',
-      error: (_, _) => '',
-    );
-  }
-
   Future<void> _pickDateTime(
     BuildContext context, {
     required bool isStart,
   }) async {
     final now = DateTime.now();
-
     final date = await showDatePicker(
       context: context,
       initialDate: now,
@@ -446,14 +586,35 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
       return;
     }
 
-    if (mounted) {
-      context.pop();
-    }
+    if (mounted) context.pop();
   }
 }
 
-/// 标签列表 StreamProvider（供任务编辑页使用）。
+/// Tags stream provider (needed by task edit page).
 final tagsStreamProvider = StreamProvider<List<Tag>>((ref) {
   final repo = ref.watch(todoRepositoryProvider);
   return repo.tags.watchAll();
 });
+
+/// Section card wrapper.
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTokens.spaceMd,
+          vertical: AppTokens.spaceSm,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: children,
+        ),
+      ),
+    );
+  }
+}

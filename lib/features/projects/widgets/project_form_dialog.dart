@@ -3,19 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 
-/// 预设色板（MIUI 风格鲜艳色彩）。
-const List<Color> kProjectColors = [
-  Color(0xFF3482FF), // 蓝
-  Color(0xFF4CAF50), // 绿
-  Color(0xFFFF9800), // 橙
-  Color(0xFFF44336), // 红
-  Color(0xFF9C27B0), // 紫
-  Color(0xFF00BCD4), // 青
-  Color(0xFFE91E63), // 粉
-  Color(0xFF607D8B), // 蓝灰
-];
+/// Preset color palette for projects.
+const List<Color> kProjectColors = AppTokens.presetColors;
 
-/// 新建/编辑项目对话框。
+/// Create/edit project dialog.
 Future<ProjectFormData?> showProjectFormDialog({
   required BuildContext context,
   String? initialName,
@@ -71,23 +62,24 @@ class _ProjectFormDialogState extends State<_ProjectFormDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final isEditing = widget.initialName != null;
+    final theme = Theme.of(context);
 
     return AlertDialog(
-      title: Text(isEditing ? l10n.editProject : l10n.newProject),
+      title: Text(
+        isEditing ? l10n.editProject : l10n.newProject,
+        style: theme.textTheme.titleLarge,
+      ),
       content: Form(
         key: _formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 项目名称。
+            // Project name.
             TextFormField(
               controller: _nameController,
               autofocus: true,
-              decoration: InputDecoration(
-                labelText: l10n.projectName,
-                border: const OutlineInputBorder(),
-              ),
+              decoration: InputDecoration(labelText: l10n.projectName),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return l10n.titleRequired;
@@ -96,11 +88,8 @@ class _ProjectFormDialogState extends State<_ProjectFormDialog> {
               },
             ),
             const SizedBox(height: AppTokens.spaceMd),
-            // 颜色选择。
-            Text(
-              l10n.projectColor,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            // Color picker.
+            Text(l10n.projectColor, style: theme.textTheme.bodySmall),
             const SizedBox(height: AppTokens.spaceXs),
             Wrap(
               spacing: AppTokens.spaceXs,
@@ -112,20 +101,20 @@ class _ProjectFormDialogState extends State<_ProjectFormDialog> {
                   onTap: () => setState(() => _selectedColor = color),
                   child: AnimatedContainer(
                     duration: AppTokens.motionFast,
-                    width: 36,
-                    height: 36,
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
                       color: color,
                       shape: BoxShape.circle,
                       border: isSelected
                           ? Border.all(
-                              color: Theme.of(context).colorScheme.onSurface,
+                              color: theme.colorScheme.onSurface,
                               width: 3,
                             )
                           : null,
                     ),
                     child: isSelected
-                        ? const Icon(Icons.check, color: Colors.white, size: 18)
+                        ? const Icon(Icons.check, color: Colors.white, size: 16)
                         : null,
                   ),
                 );

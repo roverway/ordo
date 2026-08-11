@@ -2,6 +2,7 @@
   "@@locale": "zh",
   "appTitle": "Todo",
   "inbox": "收件箱",
+  "navInbox": "收件箱",
   "navToday": "今日",
   "navCalendar": "日历",
   "navProjects": "项目",
@@ -18,6 +19,7 @@
   "languageEn": "English",
   "settingsSectionAbout": "关于",
   "aboutVersion": "版本",
+  "emptyInbox": "收件箱是空的，去添加任务吧",
   "emptyToday": "今天还没有任务",
   "emptyCalendar": "日历暂无安排",
   "emptyProjects": "还没有项目",
@@ -36,8 +38,10 @@
   "delete": "删除",
   "edit": "编辑",
   "newTask": "新建任务",
+  "addTask": "添加任务",
   "newSubtask": "新建子任务",
   "taskTitle": "任务标题",
+  "taskTitleHint": "要做什么？",
   "taskDescription": "描述",
   "taskNotes": "备注",
   "taskStartTime": "开始时间",
@@ -80,5 +84,10 @@
   "keepEditing": "继续编辑",
   "tasksCount": "{count} 个任务",
   "tasksRemaining": "{count} 个待完成",
-  "progress": "进度"
+  "progress": "进度",
+  "noDueDate": "无截止日期",
+  "selectProject": "选择项目",
+  "done": "完成",
+  "today": "今天",
+  "tomorrow": "明天"
 }

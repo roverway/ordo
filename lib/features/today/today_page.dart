@@ -4,7 +4,7 @@ import '../../core/l10n/app_localizations.dart';
 import '../../shared/widgets/app_shell.dart';
 import '../../shared/widgets/empty_state.dart';
 
-/// 今日视图（M0 骨架页，M3 实现任务分组/逾期标红等）。
+/// Today view — shows tasks due today (stub, M3+ implementation).
 class TodayPage extends StatelessWidget {
   const TodayPage({super.key});
 

@@ -15,6 +15,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inbox => 'Inbox';
 
   @override
+  String get navInbox => 'Inbox';
+
+  @override
   String get navToday => 'Today';
 
   @override
@@ -61,6 +64,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutVersion => 'Version';
+
+  @override
+  String get emptyInbox => 'All clear! Nothing in your inbox.';
 
   @override
   String get emptyToday => 'No tasks today';
@@ -120,10 +126,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get newTask => 'New Task';
 
   @override
+  String get addTask => 'Add a task';
+
+  @override
   String get newSubtask => 'New Subtask';
 
   @override
   String get taskTitle => 'Task title';
+
+  @override
+  String get taskTitleHint => 'What needs to be done?';
 
   @override
   String get taskDescription => 'Description';
@@ -264,4 +276,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get progress => 'Progress';
+
+  @override
+  String get noDueDate => 'No due date';
+
+  @override
+  String get selectProject => 'Select project';
+
+  @override
+  String get done => 'Done';
+
+  @override
+  String get today => 'Today';
+
+  @override
+  String get tomorrow => 'Tomorrow';
 }

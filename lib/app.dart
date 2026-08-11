@@ -8,10 +8,10 @@ import 'core/theme/app_theme.dart';
 import 'features/settings/settings_providers.dart';
 import 'router.dart';
 
-/// 应用根组件：MaterialApp.router 装配主题 + l10n + 路由（30-architecture.md §2）。
+/// Application root: assembles theme, l10n, and routing.
 ///
-/// 主题三模式（跟随系统/浅色/深色）与语言（zh/en）由设置页 Provider 驱动，
-/// 切换即时生效并持久化。
+/// Theme (light/dark/system) and language (zh/en) are driven by settings
+/// providers, persisted to SharedPreferences, and switch instantly.
 class TodoApp extends ConsumerWidget {
   const TodoApp({super.key});
 
@@ -20,7 +20,6 @@ class TodoApp extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
 
-    // 平台标题（任务切换器/窗口标题）：按当前语言取 ARB 文案。
     final appTitle = locale.languageCode == 'en'
         ? AppLocalizationsEn().appTitle
         : AppLocalizationsZh().appTitle;
@@ -28,8 +27,8 @@ class TodoApp extends ConsumerWidget {
     return MaterialApp.router(
       title: appTitle,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.build(ThemeMode.light),
-      darkTheme: AppTheme.build(ThemeMode.dark),
+      theme: AppTheme.build(Brightness.light),
+      darkTheme: AppTheme.build(Brightness.dark),
       themeMode: themeMode,
       locale: locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,

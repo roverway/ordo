@@ -9,6 +9,7 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/derived.dart';
 import '../../../core/utils/tree.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
+import '../../../shared/widgets/empty_state.dart';
 import '../../projects/project_providers.dart';
 import '../task_providers.dart';
 import 'task_row.dart';
@@ -66,8 +67,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
 
         return ListView.builder(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppTokens.spaceSm,
-            vertical: AppTokens.spaceXs,
+            horizontal: AppTokens.spaceMd,
+            vertical: AppTokens.spaceSm,
           ),
           itemCount: treeNodes.length + (_draggingTaskId != null ? 1 : 0),
           itemBuilder: (context, index) {
@@ -609,26 +610,9 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
   }
 
   Widget _buildEmptyState(BuildContext context, AppLocalizations l10n) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTokens.spaceXl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.checklist_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.outline,
-            ),
-            const SizedBox(height: AppTokens.spaceMd),
-            Text(
-              l10n.emptyProjectDetail,
-              style: Theme.of(context).textTheme.bodyLarge,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+    return EmptyState(
+      icon: Icons.checklist_outlined,
+      message: l10n.emptyProjectDetail,
     );
   }
 }

@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_tokens.dart';
 
-/// 空态组件（50-ui-ux.md §6.3）：图标 + 文案 + 可选主操作按钮。
+/// Empty state widget: icon + message + optional action button.
 ///
-/// 文案由调用方传入（必须来自 ARB，AGENTS.md §3-8）。
+/// Used across all feature pages. Design: generous spacing, subtle icon,
+/// clean typography. All text must come from ARB (AGENTS.md §3-8).
 class EmptyState extends StatelessWidget {
   const EmptyState({
     super.key,
@@ -13,17 +14,14 @@ class EmptyState extends StatelessWidget {
     this.action,
   });
 
-  /// 空态主图标。
+  /// Icon to display above the message.
   final IconData icon;
 
-  /// 空态文案（ARB）。
+  /// Message text (from ARB).
   final String message;
 
-  /// 可选主操作按钮（如「新建任务」）。
+  /// Optional primary action button.
   final Widget? action;
-
-  /// 空态主图标尺寸：48dp = spaceXxl × 2（由间距令牌推导，避免魔法值）。
-  static const double _iconSize = AppTokens.spaceXxl * 2;
 
   @override
   Widget build(BuildContext context) {
@@ -34,11 +32,17 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: _iconSize, color: theme.colorScheme.outline),
+            Icon(
+              icon,
+              size: AppTokens.emptyIconSize,
+              color: theme.colorScheme.outline.withValues(alpha: 0.5),
+            ),
             SizedBox(height: AppTokens.spaceMd),
             Text(
               message,
-              style: theme.textTheme.bodyLarge,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
               textAlign: TextAlign.center,
             ),
             if (action != null) ...[

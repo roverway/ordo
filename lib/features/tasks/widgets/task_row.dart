@@ -4,10 +4,12 @@ import '../../../core/db/database.dart';
 import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../core/utils/dates.dart';
 
-/// 任务行（50-ui-ux.md §5.3）：勾选、标题、标签 chips、时间、状态徽标。
+/// Task row — the core list item in project detail and task trees.
 ///
-/// 每行支持长按拖拽（50-ui-ux.md §6.1）。
+/// TickTick-inspired: clean checkbox, soft colors, subtle metadata row.
+/// Supports drag-target highlight states for tree reordering.
 class TaskRow extends StatelessWidget {
   const TaskRow({
     super.key,
@@ -43,10 +45,9 @@ class TaskRow extends StatelessWidget {
   final bool isDragTarget;
   final bool isInvalidDragTarget;
 
-  /// 拖拽悬停在下半（成为子级）时为 true，行尾显示"成为子级"提示图标。
+  /// When true, drop would make dragged task a child of this row.
   final bool dropAsChild;
 
-  /// 状态徽标颜色。
   Color _statusColor(TaskStatus status, ColorScheme colorScheme) =>
       switch (status) {
         TaskStatus.done => AppTokens.colorDone,
@@ -55,14 +56,6 @@ class TaskRow extends StatelessWidget {
         TaskStatus.todo => colorScheme.outline,
       };
 
-  /// 状态徽标图标。
-  IconData _statusIcon(TaskStatus status) => switch (status) {
-    TaskStatus.done => Icons.check_circle,
-    TaskStatus.inProgress => Icons.radio_button_checked,
-    TaskStatus.cancelled => Icons.cancel,
-    TaskStatus.todo => Icons.circle_outlined,
-  };
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -70,17 +63,18 @@ class TaskRow extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final effectiveStatus = derivedStatus ?? task.status;
     final hasDerived = derivedStatus != null;
-    final depthIndent = depth * 24.0;
+    final isDone = effectiveStatus == TaskStatus.done;
+    final indent = depth * AppTokens.treeIndent;
 
     return AnimatedContainer(
       duration: AppTokens.motionFast,
       decoration: BoxDecoration(
         color: isInvalidDragTarget
-            ? colorScheme.errorContainer.withValues(alpha: 0.5)
+            ? colorScheme.errorContainer.withValues(alpha: 0.4)
             : isDragTarget
-            ? colorScheme.primaryContainer.withValues(alpha: 0.3)
+            ? colorScheme.primaryContainer.withValues(alpha: 0.25)
             : isDragging
-            ? colorScheme.surface.withValues(alpha: 0.5)
+            ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
             : null,
         borderRadius: BorderRadius.circular(AppTokens.radiusList),
         border: isDragTarget
@@ -99,78 +93,85 @@ class TaskRow extends StatelessWidget {
           onTap: onTap,
           child: Padding(
             padding: EdgeInsets.only(
-              left: AppTokens.spaceMd + depthIndent,
-              right: AppTokens.spaceSm,
+              left: AppTokens.spaceSm + indent,
+              right: AppTokens.spaceXxs,
               top: AppTokens.spaceXs,
               bottom: AppTokens.spaceXs,
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // 展开/折叠箭头。
-                if (hasChildren)
-                  GestureDetector(
-                    onTap: onToggleExpand,
-                    child: AnimatedRotation(
-                      turns: isExpanded ? 0.25 : 0,
-                      duration: AppTokens.motionFast,
-                      child: Icon(
-                        Icons.arrow_right,
-                        size: 20,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  )
-                else
-                  const SizedBox(width: 20),
-                const SizedBox(width: AppTokens.spaceXs),
-                // 完成勾选。
+                // Expand/collapse arrow.
                 SizedBox(
-                  width: 44,
-                  height: 44,
+                  width: AppTokens.expandArrowSize + 8,
+                  height: AppTokens.expandArrowSize + 8,
+                  child: hasChildren
+                      ? GestureDetector(
+                          onTap: onToggleExpand,
+                          child: AnimatedRotation(
+                            turns: isExpanded ? 0.25 : 0,
+                            duration: AppTokens.motionFast,
+                            child: Icon(
+                              Icons.arrow_right,
+                              size: AppTokens.expandArrowSize,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        )
+                      : null,
+                ),
+                // Checkbox.
+                SizedBox(
+                  width: AppTokens.touchTarget,
+                  height: AppTokens.touchTarget,
                   child: Checkbox(
-                    value: effectiveStatus == TaskStatus.done,
+                    value: isDone,
                     onChanged: (!hasDerived || task.parentId == null)
                         ? onToggleDone
                         : null,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppTokens.spaceXs),
-                    ),
                   ),
                 ),
                 const SizedBox(width: AppTokens.spaceXs),
-                // 标题 + 标签 + 时间。
+                // Title + metadata.
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 标题行：标题 + 状态徽标。
                       Row(
                         children: [
                           Expanded(
                             child: Text(
                               task.title,
                               style: theme.textTheme.bodyLarge?.copyWith(
-                                decoration: effectiveStatus == TaskStatus.done
+                                decoration: isDone
                                     ? TextDecoration.lineThrough
                                     : null,
-                                color: effectiveStatus == TaskStatus.done
+                                color: isDone
                                     ? colorScheme.onSurfaceVariant
-                                    : null,
+                                    : colorScheme.onSurface,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          // 派生状态徽标。
+                          // Inline status icon (when derived).
                           if (hasDerived)
-                            Icon(
-                              _statusIcon(effectiveStatus),
-                              size: 16,
-                              color: _statusColor(effectiveStatus, colorScheme),
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                left: AppTokens.spaceXxs,
+                              ),
+                              child: Icon(
+                                _statusIcon(effectiveStatus, isDone),
+                                size: 14,
+                                color: _statusColor(
+                                  effectiveStatus,
+                                  colorScheme,
+                                ),
+                              ),
                             ),
                         ],
                       ),
-                      // 标签 chips + 时间 + 派生进度。
+                      // Metadata row: tags + due date + progress.
                       if (tags.isNotEmpty ||
                           task.endAt != null ||
                           (progressValue != null && hasChildren))
@@ -180,7 +181,7 @@ class TaskRow extends StatelessWidget {
                           ),
                           child: Row(
                             children: [
-                              // 标签 chips。
+                              // Tag chips (up to 2).
                               ...tags
                                   .take(2)
                                   .map(
@@ -196,7 +197,7 @@ class TaskRow extends StatelessWidget {
                                         decoration: BoxDecoration(
                                           color: Color(
                                             tag.color,
-                                          ).withValues(alpha: 0.15),
+                                          ).withValues(alpha: 0.12),
                                           borderRadius: BorderRadius.circular(
                                             AppTokens.radiusChip,
                                           ),
@@ -207,6 +208,7 @@ class TaskRow extends StatelessWidget {
                                               ?.copyWith(
                                                 color: Color(tag.color),
                                                 fontSize: 10,
+                                                fontWeight: FontWeight.w500,
                                               ),
                                         ),
                                       ),
@@ -221,14 +223,12 @@ class TaskRow extends StatelessWidget {
                                   ),
                                 ),
                               const Spacer(),
-                              // 派生进度条。
+                              // Progress bar.
                               if (progressValue != null && hasChildren)
                                 SizedBox(
-                                  width: 48,
+                                  width: 40,
                                   child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(
-                                      AppTokens.spaceXxs,
-                                    ),
+                                    borderRadius: BorderRadius.circular(2),
                                     child: LinearProgressIndicator(
                                       value: progressValue,
                                       minHeight: 3,
@@ -242,12 +242,21 @@ class TaskRow extends StatelessWidget {
                                     ),
                                   ),
                                 ),
+                              // Due date.
                               if (task.endAt != null) ...[
-                                const SizedBox(width: AppTokens.spaceXs),
+                                if (progressValue != null)
+                                  const SizedBox(width: AppTokens.spaceXs),
                                 Icon(
-                                  Icons.schedule,
-                                  size: 12,
+                                  Icons.calendar_today_outlined,
+                                  size: 11,
                                   color: colorScheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(width: AppTokens.spaceXxs),
+                                Text(
+                                  formatDueDate(task.endAt!, l10n),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
                                 ),
                               ],
                             ],
@@ -256,7 +265,7 @@ class TaskRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                // 行尾：成为子级提示 + 菜单按钮。
+                // Drop-as-child indicator.
                 if (isDragTarget && dropAsChild && !isInvalidDragTarget)
                   Padding(
                     padding: const EdgeInsets.only(right: AppTokens.spaceXxs),
@@ -266,14 +275,16 @@ class TaskRow extends StatelessWidget {
                       color: colorScheme.primary,
                     ),
                   ),
-                Semantics(
-                  button: true,
-                  label: l10n.rowActions,
-                  child: IconButton(
-                    icon: const Icon(Icons.more_vert, size: 20),
-                    onPressed: () => _showMenu(context),
-                    tooltip: l10n.rowActions,
-                    visualDensity: VisualDensity.compact,
+                // More menu.
+                IconButton(
+                  icon: const Icon(Icons.more_vert, size: 18),
+                  onPressed: () => _showMenu(context),
+                  tooltip: AppLocalizations.of(context).rowActions,
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: AppTokens.touchTarget,
+                    minHeight: AppTokens.touchTarget,
                   ),
                 ),
               ],
@@ -289,12 +300,18 @@ class TaskRow extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     showModalBottomSheet<void>(
       context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppTokens.radiusDialog),
+        ),
+      ),
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            const SizedBox(height: AppTokens.spaceXs),
             ListTile(
-              leading: const Icon(Icons.edit),
+              leading: const Icon(Icons.edit, size: 20),
               title: Text(l10n.edit),
               onTap: () {
                 Navigator.pop(context);
@@ -303,7 +320,7 @@ class TaskRow extends StatelessWidget {
             ),
             if (depth < 2)
               ListTile(
-                leading: const Icon(Icons.subdirectory_arrow_right),
+                leading: const Icon(Icons.subdirectory_arrow_right, size: 20),
                 title: Text(l10n.newSubtask),
                 onTap: () {
                   Navigator.pop(context);
@@ -311,7 +328,7 @@ class TaskRow extends StatelessWidget {
                 },
               ),
             ListTile(
-              leading: const Icon(Icons.arrow_upward),
+              leading: const Icon(Icons.arrow_upward, size: 20),
               title: Text(l10n.moveUp),
               onTap: () {
                 Navigator.pop(context);
@@ -319,7 +336,7 @@ class TaskRow extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.arrow_downward),
+              leading: const Icon(Icons.arrow_downward, size: 20),
               title: Text(l10n.moveDown),
               onTap: () {
                 Navigator.pop(context);
@@ -328,7 +345,7 @@ class TaskRow extends StatelessWidget {
             ),
             if (depth < 2)
               ListTile(
-                leading: const Icon(Icons.arrow_right),
+                leading: const Icon(Icons.arrow_right, size: 20),
                 title: Text(l10n.indent),
                 onTap: () {
                   Navigator.pop(context);
@@ -337,7 +354,7 @@ class TaskRow extends StatelessWidget {
               ),
             if (depth > 0)
               ListTile(
-                leading: const Icon(Icons.arrow_left),
+                leading: const Icon(Icons.arrow_left, size: 20),
                 title: Text(l10n.outdent),
                 onTap: () {
                   Navigator.pop(context);
@@ -346,7 +363,11 @@ class TaskRow extends StatelessWidget {
               ),
             const Divider(),
             ListTile(
-              leading: Icon(Icons.delete, color: colorScheme.error),
+              leading: Icon(
+                Icons.delete_outlined,
+                size: 20,
+                color: colorScheme.error,
+              ),
               title: Text(
                 l10n.delete,
                 style: TextStyle(color: colorScheme.error),
@@ -356,9 +377,17 @@ class TaskRow extends StatelessWidget {
                 onMenuAction('delete');
               },
             ),
+            const SizedBox(height: AppTokens.spaceXs),
           ],
         ),
       ),
     );
   }
+
+  IconData _statusIcon(TaskStatus status, bool isDone) => switch (status) {
+    TaskStatus.done => Icons.check_circle,
+    TaskStatus.inProgress => Icons.radio_button_checked,
+    TaskStatus.cancelled => Icons.cancel,
+    TaskStatus.todo => Icons.circle_outlined,
+  };
 }

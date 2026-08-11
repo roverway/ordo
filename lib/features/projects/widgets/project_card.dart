@@ -6,9 +6,7 @@ import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../tasks/task_providers.dart';
 
-/// 项目卡片（50-ui-ux.md §5.3）：颜色圆点 + 名称 + 未完成任务数 + 进度条。
-///
-/// MIUI/HyperOS 风格：squircle 圆角 + 弹簧动效。
+/// Project card — clean, minimal card with color dot, name, progress.
 class ProjectCard extends ConsumerWidget {
   const ProjectCard({super.key, required this.project, this.onTap});
 
@@ -19,6 +17,9 @@ class ProjectCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final projectColor = Color(project.color);
+
     final uncompleted = ref.watch(projectUncompletedCountProvider(project.id));
     final projectProgress = ref.watch(projectProgressProvider(project.id));
     final tasksAsync = ref.watch(projectTasksProvider(project.id));
@@ -28,83 +29,98 @@ class ProjectCard extends ConsumerWidget {
       error: (_, _) => 0,
     );
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(AppTokens.spaceMd),
-          child: Row(
-            children: [
-              // 颜色圆点。
-              Container(
-                width: AppTokens.spaceLg,
-                height: AppTokens.spaceLg,
-                decoration: BoxDecoration(
-                  color: Color(project.color),
-                  shape: BoxShape.circle,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppTokens.spaceSm),
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        surfaceTintColor: projectColor.withValues(alpha: 0.03),
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(AppTokens.spaceMd),
+            child: Row(
+              children: [
+                // Color indicator — soft dot.
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: projectColor,
+                    shape: BoxShape.circle,
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppTokens.spaceSm),
-              // 名称 + 进度信息。
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      project.name,
-                      style: theme.textTheme.titleMedium?.copyWith(
+                const SizedBox(width: AppTokens.spaceSm),
+                // Name + metadata.
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        project.name,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (totalCount > 0) ...[
+                        const SizedBox(height: AppTokens.spaceXxs),
+                        Text(
+                          l10n.tasksRemaining(uncompleted),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: AppTokens.spaceXs),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(
+                            AppTokens.spaceXxs,
+                          ),
+                          child: LinearProgressIndicator(
+                            value: projectProgress,
+                            minHeight: 3,
+                            backgroundColor:
+                                colorScheme.surfaceContainerHighest,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              projectProgress >= 1.0
+                                  ? AppTokens.colorDone
+                                  : projectColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                // Task count badge.
+                if (totalCount > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTokens.spaceXs,
+                      vertical: AppTokens.spaceXxs,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer.withValues(
+                        alpha: 0.4,
+                      ),
+                      borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                    ),
+                    child: Text(
+                      '$totalCount',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: AppTokens.spaceXxs),
-                    Text(
-                      l10n.tasksRemaining(uncompleted),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: AppTokens.spaceXs),
-                    // 进度条。
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(AppTokens.spaceXxs),
-                      child: LinearProgressIndicator(
-                        value: projectProgress,
-                        minHeight: 4,
-                        backgroundColor:
-                            theme.colorScheme.surfaceContainerHighest,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          projectProgress >= 1.0
-                              ? AppTokens.colorDone
-                              : AppTokens.colorInProgress,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
+                const SizedBox(width: AppTokens.spaceXs),
+                Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: colorScheme.outline.withValues(alpha: 0.3),
                 ),
-              ),
-              // 任务总数角标。
-              if (totalCount > 0)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppTokens.spaceXs,
-                    vertical: AppTokens.spaceXxs,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(AppTokens.radiusChip),
-                  ),
-                  child: Text(
-                    '$totalCount',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onPrimaryContainer,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

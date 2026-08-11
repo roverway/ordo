@@ -1,4 +1,6 @@
-// M0 骨架冒烟测试：应用启动、自适应导航、设置页主题/语言切换持久化。
+// Smoke tests: app launch, adaptive navigation, tab switch, settings.
+// Updated for M5 visual redesign: 5-tab navigation, inbox as home.
+// Default locale is zh (Chinese); tests reflect this.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,9 +14,7 @@ import 'package:todo/features/settings/settings_providers.dart';
 import 'package:todo/features/tasks/task_providers.dart';
 import 'helpers/db_test_setup.dart';
 
-/// 以指定逻辑尺寸（dp）构建应用。
-///
-/// [provideTestDatabase] 为 true 时，注入测试用内存数据库覆盖 [todoRepositoryProvider]。
+/// Build and pump the app at a given logical size.
 Future<void> pumpApp(
   WidgetTester tester,
   Size logicalSize, {
@@ -27,17 +27,31 @@ Future<void> pumpApp(
   final prefs = await SharedPreferences.getInstance();
   final overrides = [
     sharedPreferencesProvider.overrideWithValue(prefs),
-    // 提供不涉及 Drift stream 的 mock providers，
-    // 避免测试环境中 Drift stream cleanup timer 泄露。
     projectsStreamProvider.overrideWithValue(const AsyncData([])),
     projectTasksProvider.overrideWith(
       (ref, projectId) => const Stream<List<Task>>.empty(),
     ),
   ];
+
   if (provideTestDatabase) {
     final db = openTestDatabase();
     final repo = TodoRepository(database: db);
     overrides.add(todoRepositoryProvider.overrideWithValue(repo));
+  } else {
+    // Without a real DB, mock inbox providers so the app doesn't crash.
+    final dummyProject = Project(
+      id: 'inbox',
+      name: 'Inbox',
+      color: 0xFF7C6FF7,
+      sortOrder: 0,
+      createdAt: 0,
+      updatedAt: 0,
+      deleted: 0,
+    );
+    overrides.addAll([
+      inboxProjectProvider.overrideWithValue(AsyncData(dummyProject)),
+      inboxTasksProvider.overrideWithValue(const AsyncData([])),
+    ]);
   }
 
   await tester.pumpWidget(
@@ -48,48 +62,68 @@ Future<void> pumpApp(
 
 void main() {
   setUp(() {
+    // No locale set → defaults to zh (Chinese).
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('窄屏（<600dp）冒烟：默认今日页 + 底部 NavigationBar', (tester) async {
+  testWidgets('Narrow (<600dp) smoke: inbox home + bottom NavigationBar', (
+    tester,
+  ) async {
     await pumpApp(tester, const Size(400, 800));
 
-    expect(find.text('今日'), findsWidgets);
-    expect(find.text('今天还没有任务'), findsOneWidget);
+    // Inbox is the home; text in Chinese (default locale).
+    // The nav bar shows navInbox ("收件箱") and the page shows emptyInbox.
+    expect(find.text('收件箱'), findsWidgets);
+    expect(find.text('收件箱是空的，去添加任务吧'), findsOneWidget);
 
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.byType(NavigationRail), findsNothing);
   });
 
-  testWidgets('宽屏（≥600dp）冒烟：NavigationRail 替代底部导航', (tester) async {
+  testWidgets('Wide (≥600dp) smoke: NavigationRail replaces bottom nav', (
+    tester,
+  ) async {
     await pumpApp(tester, const Size(1000, 800));
 
     expect(find.byType(NavigationRail), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
   });
 
-  testWidgets('底部导航 4 tab 切换正常', (tester) async {
+  testWidgets('Bottom nav 5-tab switch works correctly', (tester) async {
     await pumpApp(tester, const Size(400, 800));
 
-    // 依次切换到日历/项目/标签，验证对应空态文案。
+    // Start on inbox (default locale: zh).
+    expect(find.text('收件箱是空的，去添加任务吧'), findsOneWidget);
+
+    // Switch to Today.
+    await tester.tap(find.text('今日'));
+    await tester.pumpAndSettle();
+    expect(find.text('今天还没有任务'), findsOneWidget);
+
+    // Switch to Calendar.
     await tester.tap(find.text('日历'));
     await tester.pumpAndSettle();
     expect(find.text('日历暂无安排'), findsOneWidget);
 
+    // Switch to Projects.
     await tester.tap(find.text('项目'));
     await tester.pumpAndSettle();
     expect(find.text('还没有项目'), findsOneWidget);
 
+    // Switch to Tags.
     await tester.tap(find.text('标签'));
     await tester.pumpAndSettle();
     expect(find.text('还没有标签'), findsOneWidget);
   });
 
-  testWidgets('设置页：主题模式与语言切换即时生效并持久化', (tester) async {
+  testWidgets('Settings: theme mode & language switch persist instantly', (
+    tester,
+  ) async {
     await pumpApp(tester, const Size(400, 800));
 
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
+    // Default locale is zh.
     expect(find.text('设置'), findsOneWidget);
 
     await tester.tap(find.text('深色'));

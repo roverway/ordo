@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../shared/widgets/empty_state.dart';
 
-/// 搜索页（M0 占位页，M3 实现搜索框 + 结果列表）。
+/// Search page — stubbed for M3+ (search bar + result list).
 class SearchPage extends StatelessWidget {
   const SearchPage({super.key});
 

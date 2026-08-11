@@ -110,6 +110,12 @@ abstract class AppLocalizations {
   /// **'收件箱'**
   String get inbox;
 
+  /// No description provided for @navInbox.
+  ///
+  /// In zh, this message translates to:
+  /// **'收件箱'**
+  String get navInbox;
+
   /// No description provided for @navToday.
   ///
   /// In zh, this message translates to:
@@ -205,6 +211,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'版本'**
   String get aboutVersion;
+
+  /// No description provided for @emptyInbox.
+  ///
+  /// In zh, this message translates to:
+  /// **'收件箱是空的，去添加任务吧'**
+  String get emptyInbox;
 
   /// No description provided for @emptyToday.
   ///
@@ -314,6 +326,12 @@ abstract class AppLocalizations {
   /// **'新建任务'**
   String get newTask;
 
+  /// No description provided for @addTask.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加任务'**
+  String get addTask;
+
   /// No description provided for @newSubtask.
   ///
   /// In zh, this message translates to:
@@ -325,6 +343,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'任务标题'**
   String get taskTitle;
+
+  /// No description provided for @taskTitleHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'要做什么？'**
+  String get taskTitleHint;
 
   /// No description provided for @taskDescription.
   ///
@@ -583,6 +607,36 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'进度'**
   String get progress;
+
+  /// No description provided for @noDueDate.
+  ///
+  /// In zh, this message translates to:
+  /// **'无截止日期'**
+  String get noDueDate;
+
+  /// No description provided for @selectProject.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择项目'**
+  String get selectProject;
+
+  /// No description provided for @done.
+  ///
+  /// In zh, this message translates to:
+  /// **'完成'**
+  String get done;
+
+  /// No description provided for @today.
+  ///
+  /// In zh, this message translates to:
+  /// **'今天'**
+  String get today;
+
+  /// No description provided for @tomorrow.
+  ///
+  /// In zh, this message translates to:
+  /// **'明天'**
+  String get tomorrow;
 }
 
 class _AppLocalizationsDelegate

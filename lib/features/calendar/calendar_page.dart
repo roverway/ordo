@@ -4,7 +4,7 @@ import '../../core/l10n/app_localizations.dart';
 import '../../shared/widgets/app_shell.dart';
 import '../../shared/widgets/empty_state.dart';
 
-/// 日历视图（M0 骨架页，M3 实现月/周视图）。
+/// Calendar view — stubbed for M3+ (month/week views).
 class CalendarPage extends StatelessWidget {
   const CalendarPage({super.key});
 

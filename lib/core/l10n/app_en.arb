@@ -2,6 +2,7 @@
   "@@locale": "en",
   "appTitle": "Todo",
   "inbox": "Inbox",
+  "navInbox": "Inbox",
   "navToday": "Today",
   "navCalendar": "Calendar",
   "navProjects": "Projects",
@@ -18,6 +19,7 @@
   "languageEn": "English",
   "settingsSectionAbout": "About",
   "aboutVersion": "Version",
+  "emptyInbox": "All clear! Nothing in your inbox.",
   "emptyToday": "No tasks today",
   "emptyCalendar": "Nothing scheduled",
   "emptyProjects": "No projects yet",
@@ -36,8 +38,10 @@
   "delete": "Delete",
   "edit": "Edit",
   "newTask": "New Task",
+  "addTask": "Add a task",
   "newSubtask": "New Subtask",
   "taskTitle": "Task title",
+  "taskTitleHint": "What needs to be done?",
   "taskDescription": "Description",
   "taskNotes": "Notes",
   "taskStartTime": "Start time",
@@ -80,5 +84,10 @@
   "keepEditing": "Keep Editing",
   "tasksCount": "{count} tasks",
   "tasksRemaining": "{count} remaining",
-  "progress": "Progress"
+  "progress": "Progress",
+  "noDueDate": "No due date",
+  "selectProject": "Select project",
+  "done": "Done",
+  "today": "Today",
+  "tomorrow": "Tomorrow"
 }
