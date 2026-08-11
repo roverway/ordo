@@ -35,15 +35,20 @@ TaskStatus derivedStatus(Task parent, List<Task> directChildren) {
 
 /// 完成度（§6.2，基于**整棵子树**，排除 cancelled 与 deleted）。
 ///
-/// [subtree] 应为根任务及其全部后代；total = 非 cancelled/deleted 数，
-/// done = 其中 done 数；total == 0 时返回 0.0。
+/// [subtree] 应为根任务及其全部后代。有直接子任务的任务按**派生状态**计
+/// （派生 cancelled 同样排除，与 [uncompletedCount] 口径一致），
+/// 无子任务（叶子）按其存储 status 计。total == 0 时返回 0.0。
 double progress(Task root, List<Task> subtree) {
+  final childrenIndex = indexChildrenByParent(subtree);
   var total = 0;
   var done = 0;
   for (final t in subtree) {
-    if (t.deleted != 0 || t.status == TaskStatus.cancelled) continue;
+    if (t.deleted != 0) continue;
+    final children = childrenIndex[t.id] ?? const <Task>[];
+    final effective = children.isEmpty ? t.status : derivedStatus(t, children);
+    if (effective == TaskStatus.cancelled) continue;
     total++;
-    if (t.status == TaskStatus.done) done++;
+    if (effective == TaskStatus.done) done++;
   }
   return total == 0 ? 0.0 : done / total;
 }

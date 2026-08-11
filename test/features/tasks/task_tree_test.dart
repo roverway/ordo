@@ -645,7 +645,7 @@ void main() {
       expect(find.text('缩出'), findsNothing); // depth=0，无缩出。
     });
 
-    testWidgets('子任务菜单显示 缩出/缩进 且无 新建子任务', (tester) async {
+    testWidgets('子任务菜单显示 缩出/缩进/新建子任务', (tester) async {
       await _pumpTree(tester, [
         _task('a', title: 'A', sortOrder: 0),
         _task('b', title: 'B', parentId: 'a', sortOrder: 0),
@@ -653,7 +653,7 @@ void main() {
       await openMenu(tester, 'B');
       expect(find.text('缩出'), findsOneWidget); // depth=1 > 0。
       expect(find.text('缩进'), findsOneWidget); // depth=1 < 2，仍可缩进。
-      expect(find.text('新建子任务'), findsNothing); // B 有 parent。
+      expect(find.text('新建子任务'), findsOneWidget); // depth=1 < 2，可新建子任务。
     });
 
     testWidgets('上移：C 前移一位（插到 B 前），父级保持 null', (tester) async {
@@ -731,6 +731,7 @@ void main() {
       await openMenu(tester, 'C');
       expect(find.text('缩出'), findsOneWidget); // 正向控制：菜单已打开。
       expect(find.text('缩进'), findsNothing);
+      expect(find.text('新建子任务'), findsNothing); // depth=2 已达最大深度。
 
       // 关闭菜单，验证第 2 层 B 缩进为合法 no-op：
       // B 是 A 的唯一子级（无前兄弟可缩入），点"缩进"后结构不变。

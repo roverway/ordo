@@ -104,6 +104,12 @@ abstract class AppLocalizations {
   /// **'Todo'**
   String get appTitle;
 
+  /// No description provided for @inbox.
+  ///
+  /// In zh, this message translates to:
+  /// **'收件箱'**
+  String get inbox;
+
   /// No description provided for @navToday.
   ///
   /// In zh, this message translates to:

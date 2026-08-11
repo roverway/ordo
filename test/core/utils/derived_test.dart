@@ -149,6 +149,28 @@ void main() {
       ];
       expect(progress(root, subtree), 0.0);
     });
+
+    test('全部直接子任务 done → 父任务进度 1.0（Bug 2 回归）', () {
+      final root = _task('r', TaskStatus.todo);
+      final subtree = [
+        root,
+        _task('c1', TaskStatus.done, parentId: 'r', sortOrder: 1),
+        _task('c2', TaskStatus.done, parentId: 'r', sortOrder: 2),
+      ];
+      // 父任务派生 done（计入 done），子任务 done → 3/3。
+      expect(progress(root, subtree), 1.0);
+    });
+
+    test('父 todo + 子 done/todo → 1/3（父按派生 todo 计入分母）', () {
+      final root = _task('r', TaskStatus.todo);
+      final subtree = [
+        root,
+        _task('c1', TaskStatus.done, parentId: 'r', sortOrder: 1),
+        _task('c2', TaskStatus.todo, parentId: 'r', sortOrder: 2),
+      ];
+      // 父派生 todo（计入分母）+ c1 done + c2 todo → done=1 / total=3。
+      expect(progress(root, subtree), closeTo(1 / 3, 1e-9));
+    });
   });
 
   group('uncompletedCount（§6.1 派生口径，Bug 4 回归）', () {
@@ -166,12 +188,7 @@ void main() {
       final count = uncompletedCount([
         _task('parent', TaskStatus.todo),
         _task('c1', TaskStatus.done, parentId: 'parent', sortOrder: 1),
-        _task(
-          'c2',
-          TaskStatus.inProgress,
-          parentId: 'parent',
-          sortOrder: 2,
-        ),
+        _task('c2', TaskStatus.inProgress, parentId: 'parent', sortOrder: 2),
       ]);
       // 父派生 inProgress（计入）+ c2（计入）→ 2。
       expect(count, 2);

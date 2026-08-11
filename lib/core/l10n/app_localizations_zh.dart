@@ -12,6 +12,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get appTitle => 'Todo';
 
   @override
+  String get inbox => '收件箱';
+
+  @override
   String get navToday => '今日';
 
   @override

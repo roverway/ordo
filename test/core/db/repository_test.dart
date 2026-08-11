@@ -3,6 +3,7 @@
 // 覆盖：CRUD、级联删除（任务/项目/标签）、移动防环/深度拒绝、排序重排、
 // updatedAt 统一刷新、派生状态约束。
 
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:todo/core/db/database.dart';
 import 'package:todo/core/db/repositories/todo_repository.dart';
@@ -376,6 +377,95 @@ void main() {
       for (var i = 0; i < all.length; i++) {
         expect(all[i].sortOrder, i);
       }
+    });
+  });
+
+  group('收件箱（Inbox）', () {
+    test('ensureInboxProject 幂等：重复调用只创建一条', () async {
+      final first = await repo.ensureInboxProject('收件箱');
+      expect(first.id, inboxProjectId);
+      expect(first.name, '收件箱');
+      expect(first.color, inboxProjectColor);
+      expect(first.deleted, 0);
+      expect(first.sortOrder, 0, reason: '收件箱 sortOrder 置 0（置顶）');
+
+      final second = await repo.ensureInboxProject('收件箱');
+      expect(second.id, inboxProjectId);
+
+      final all = await repo.projects.getAll();
+      expect(all.where((p) => p.id == inboxProjectId).length, 1);
+    });
+
+    test('ensureInboxProject 已存在时保留用户改名', () async {
+      await repo.ensureInboxProject('收件箱');
+      await repo.updateProject(inboxProjectId, name: '我的收件箱');
+
+      final again = await repo.ensureInboxProject('收件箱');
+      expect(again.name, '我的收件箱', reason: '改名不强制回退');
+    });
+
+    test('createTask 不带 projectId 默认落入收件箱', () async {
+      await repo.ensureInboxProject('收件箱');
+
+      final t = await repo.createTask(title: '待办');
+      expect(t.projectId, inboxProjectId);
+      expect(t.sortOrder, 0);
+
+      final roots = await repo.tasks.getDirectChildren(inboxProjectId, null);
+      expect(roots.map((r) => r.id), [t.id]);
+    });
+
+    test('createTask 不带 projectId 且收件箱缺失时自动创建', () async {
+      final t = await repo.createTask(title: '待办', inboxDisplayName: '收件箱');
+      expect(t.projectId, inboxProjectId);
+
+      final inbox = (await repo.projects.getById(inboxProjectId))!;
+      expect(inbox.deleted, 0);
+      expect(inbox.name, '收件箱');
+      expect(inbox.color, inboxProjectColor);
+    });
+
+    test('createTask 无 projectId、收件箱缺失且未传展示名时抛错', () async {
+      expect(
+        () => repo.createTask(title: '待办'),
+        throwsA(isA<RepositoryException>()),
+      );
+    });
+
+    test('watchInboxTasks 只返回收件箱项目任务', () async {
+      await repo.ensureInboxProject('收件箱');
+      final other = await repo.createProject(name: '工作', color: 0);
+
+      final inboxTask = await repo.createTask(title: '收件箱任务');
+      final inboxChild = await repo.createTask(
+        parentId: inboxTask.id,
+        title: '收件箱子任务',
+      );
+      await repo.createTask(projectId: other.id, title: '项目任务');
+
+      final tasks = await repo.watchInboxTasks().first;
+      expect(tasks.map((t) => t.id).toSet(), {inboxTask.id, inboxChild.id});
+      expect(tasks.every((t) => t.projectId == inboxProjectId), isTrue);
+      // 子树一并返回（扁平列表）。
+      expect(tasks.any((t) => t.id == inboxChild.id), isTrue);
+    });
+
+    test('收件箱墓碑行（deleted=1）时 ensure 恢复', () async {
+      await repo.ensureInboxProject('收件箱');
+      // 模拟同步产生的墓碑。
+      await repo.projects.updateById(
+        inboxProjectId,
+        ProjectsCompanion(
+          deleted: const Value(1),
+          updatedAt: Value(DateTime.now().toUtc().millisecondsSinceEpoch),
+        ),
+      );
+
+      final restored = await repo.ensureInboxProject('收件箱');
+      expect(restored.id, inboxProjectId);
+      expect(restored.deleted, 0);
+      expect(restored.name, '收件箱');
+      expect(restored.color, inboxProjectColor);
     });
   });
 }

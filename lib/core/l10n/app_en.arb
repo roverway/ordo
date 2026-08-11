@@ -1,6 +1,7 @@
 {
   "@@locale": "en",
   "appTitle": "Todo",
+  "inbox": "Inbox",
   "navToday": "Today",
   "navCalendar": "Calendar",
   "navProjects": "Projects",

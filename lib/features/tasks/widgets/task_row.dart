@@ -301,7 +301,7 @@ class TaskRow extends StatelessWidget {
                 onMenuAction('edit');
               },
             ),
-            if (task.parentId == null)
+            if (depth < 2)
               ListTile(
                 leading: const Icon(Icons.subdirectory_arrow_right),
                 title: Text(l10n.newSubtask),

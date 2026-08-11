@@ -12,6 +12,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'Todo';
 
   @override
+  String get inbox => 'Inbox';
+
+  @override
   String get navToday => 'Today';
 
   @override

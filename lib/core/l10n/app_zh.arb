@@ -1,6 +1,7 @@
 {
   "@@locale": "zh",
   "appTitle": "Todo",
+  "inbox": "收件箱",
   "navToday": "今日",
   "navCalendar": "日历",
   "navProjects": "项目",

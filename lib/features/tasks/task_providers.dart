@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/db/database.dart';
 import '../../core/db/repositories/todo_repository.dart';
 import '../../core/db/tables.dart';
+import '../../core/l10n/app_localizations_en.dart';
+import '../../core/l10n/app_localizations_zh.dart';
 import '../../core/utils/derived.dart';
 import '../../core/utils/tree.dart';
 import '../projects/project_providers.dart';
+import '../settings/settings_providers.dart';
 
 /// 某项目下全部任务（StreamProvider 自动刷新）。
 final projectTasksProvider = StreamProvider.family<List<Task>, String>((
@@ -14,6 +17,33 @@ final projectTasksProvider = StreamProvider.family<List<Task>, String>((
 ) {
   final repo = ref.watch(todoRepositoryProvider);
   return repo.tasks.watchByProject(projectId);
+});
+
+/// 内置收件箱展示名（ARB 文案，随当前语言切换）。
+final inboxProjectNameProvider = Provider<String>((ref) {
+  final locale = ref.watch(localeProvider);
+  return locale.languageCode == 'en'
+      ? AppLocalizationsEn().inbox
+      : AppLocalizationsZh().inbox;
+});
+
+/// 内置收件箱项目（确保存在后返回，幂等）。
+///
+/// 收件箱行已存在且未删除时 [ensureInboxProject] 直接返回，不改名；
+/// 缺失/墓碑时自动创建或恢复。
+final inboxProjectProvider = FutureProvider<Project>((ref) {
+  final repo = ref.watch(todoRepositoryProvider);
+  final name = ref.watch(inboxProjectNameProvider);
+  return repo.ensureInboxProject(name);
+});
+
+/// 收件箱任务列表（流式，自动刷新）。
+///
+/// 先确保收件箱项目存在，再订阅其任务流（扁平列表，UI 层按需取 1 级）。
+final inboxTasksProvider = StreamProvider<List<Task>>((ref) async* {
+  final repo = ref.watch(todoRepositoryProvider);
+  await ref.watch(inboxProjectProvider.future);
+  yield* repo.watchInboxTasks();
 });
 
 /// 任务表单保存状态（成功/失败/空闲）。
