@@ -42,19 +42,19 @@
 
 | 包 | 基线（major 约束） | 备注 |
 |---|---|---|
-| flutter | 3.x stable | Dart 3.x |
-| drift | ^2.x | 含 `drift_flutter` 辅助 |
-| flutter_riverpod | ^2.x | 无 codegen |
-| go_router | ^14.x | |
-| flutter_localizations | 随 Flutter | |
-| intl | 随 Flutter 锁定 | |
-| webdav_client | 最新稳定 | 实现时锁定具体版本 |
-| s3_dart | 最新稳定 | 实现时锁定具体版本 |
-| flutter_secure_storage | 最新稳定 | |
-| uuid | ^4.x | |
-| path_provider | 随 Flutter | |
-| shared_preferences | 最新稳定 | |
-| archive | 最新稳定 | |
+| flutter | 3.38.5 stable | Dart 3.10.4 |
+| drift | ^2.x | 含 `drift_flutter` 辅助（M1 引入） |
+| flutter_riverpod | ^3.3.2 | 无 codegen（M0 已装，注意 3.x API） |
+| go_router | ^17.5.0 | M0 已装 |
+| flutter_localizations | 随 Flutter | M0 引入 |
+| intl | 随 Flutter 锁定 | M0 引入 |
+| shared_preferences | ^2.5.5 | M0 已装（非敏感设置） |
+| webdav_client | 最新稳定 | M4 引入时锁定 |
+| s3_dart | 最新稳定 | M4 引入时锁定 |
+| flutter_secure_storage | 最新稳定 | M4 引入时锁定 |
+| uuid | ^4.x | M1 引入 |
+| path_provider | 随 Flutter | M1 引入 |
+| archive | 最新稳定 | M4 引入时锁定 |
 
 **锁定流程**：M0 用 `flutter pub add <pkg>` 安装 → 记录 `pubspec.lock` → 回填本表 → 后续任何 `pub upgrade` 需用户批准。
 
