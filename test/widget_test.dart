@@ -6,20 +6,42 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:todo/app.dart';
+import 'package:todo/core/db/database.dart';
+import 'package:todo/features/projects/project_providers.dart';
 import 'package:todo/features/settings/settings_providers.dart';
+import 'package:todo/features/tasks/task_providers.dart';
+import 'helpers/db_test_setup.dart';
 
 /// 以指定逻辑尺寸（dp）构建应用。
-Future<void> pumpApp(WidgetTester tester, Size logicalSize) async {
+///
+/// [provideTestDatabase] 为 true 时，注入测试用内存数据库覆盖 [todoRepositoryProvider]。
+Future<void> pumpApp(
+  WidgetTester tester,
+  Size logicalSize, {
+  bool provideTestDatabase = false,
+}) async {
   tester.view.physicalSize = logicalSize;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
 
   final prefs = await SharedPreferences.getInstance();
-  await tester.pumpWidget(
-    ProviderScope(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      child: const TodoApp(),
+  final overrides = [
+    sharedPreferencesProvider.overrideWithValue(prefs),
+    // 提供不涉及 Drift stream 的 mock providers，
+    // 避免测试环境中 Drift stream cleanup timer 泄露。
+    projectsStreamProvider.overrideWithValue(const AsyncData([])),
+    projectTasksProvider.overrideWith(
+      (ref, projectId) => const Stream<List<Task>>.empty(),
     ),
+  ];
+  if (provideTestDatabase) {
+    final db = openTestDatabase();
+    final repo = TodoRepository(database: db);
+    overrides.add(todoRepositoryProvider.overrideWithValue(repo));
+  }
+
+  await tester.pumpWidget(
+    ProviderScope(overrides: overrides, child: const TodoApp()),
   );
   await tester.pumpAndSettle();
 }
@@ -32,11 +54,9 @@ void main() {
   testWidgets('窄屏（<600dp）冒烟：默认今日页 + 底部 NavigationBar', (tester) async {
     await pumpApp(tester, const Size(400, 800));
 
-    // 默认目的地为今日，AppBar 标题与导航标签均显示「今日」。
     expect(find.text('今日'), findsWidgets);
     expect(find.text('今天还没有任务'), findsOneWidget);
 
-    // 窄屏使用底部 NavigationBar，无 NavigationRail。
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.byType(NavigationRail), findsNothing);
   });
@@ -68,12 +88,10 @@ void main() {
   testWidgets('设置页：主题模式与语言切换即时生效并持久化', (tester) async {
     await pumpApp(tester, const Size(400, 800));
 
-    // 进入设置页。
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
     expect(find.text('设置'), findsOneWidget);
 
-    // 切换深色主题。
     await tester.tap(find.text('深色'));
     await tester.pumpAndSettle();
 
@@ -82,12 +100,10 @@ void main() {
     final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(materialApp.themeMode, ThemeMode.dark);
 
-    // 切换英文语言。
     await tester.tap(find.text('English'));
     await tester.pumpAndSettle();
 
     expect(prefs.getString(localePrefKey), 'en');
-    // 设置页标题即时变为英文。
     expect(find.text('Settings'), findsOneWidget);
   });
 }

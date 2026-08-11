@@ -1,16 +1,17 @@
 import 'package:go_router/go_router.dart';
-
 import 'features/calendar/calendar_page.dart';
+import 'features/projects/project_detail_page.dart';
 import 'features/projects/projects_page.dart';
 import 'features/search/search_page.dart';
 import 'features/settings/settings_page.dart';
 import 'features/tags/tags_page.dart';
+import 'features/tasks/task_edit_page.dart';
 import 'features/today/today_page.dart';
 
 /// 全局路由表（唯一）—— 30-architecture.md §4。
 ///
-/// M0 阶段包含 4 个一级目的地 + 搜索 + 设置；
-/// M1+ 将追加 `/projects/:id`、`/tags/:id`、`/task/:id` 等详情路由。
+/// M0：4 个一级目的地 + 搜索 + 设置。
+/// M2：新增 /projects/:id、/task/:id、/task/new。
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
   routes: [
@@ -23,9 +24,29 @@ final GoRouter appRouter = GoRouter(
       path: '/projects',
       builder: (context, state) => const ProjectsPage(),
     ),
+    GoRoute(
+      path: '/projects/:id',
+      builder: (context, state) {
+        final id = state.pathParameters['id']!;
+        return ProjectDetailPage(projectId: id);
+      },
+    ),
     GoRoute(path: '/tags', builder: (context, state) => const TagsPage()),
-    // TODO(M1): /projects/:id 项目详情（任务树）、/tags/:id 标签任务列表、
-    //           /task/:id 任务编辑/详情
+    GoRoute(
+      path: '/task/new',
+      builder: (context, state) {
+        final projectId = state.uri.queryParameters['projectId'];
+        final parentId = state.uri.queryParameters['parentId'];
+        return TaskEditPage(projectId: projectId, parentId: parentId);
+      },
+    ),
+    GoRoute(
+      path: '/task/:id',
+      builder: (context, state) {
+        final id = state.pathParameters['id']!;
+        return TaskEditPage(taskId: id);
+      },
+    ),
     GoRoute(path: '/search', builder: (context, state) => const SearchPage()),
     GoRoute(
       path: '/settings',

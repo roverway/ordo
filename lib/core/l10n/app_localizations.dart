@@ -229,6 +229,330 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'未找到相关内容'**
   String get emptySearch;
+
+  /// No description provided for @newProject.
+  ///
+  /// In zh, this message translates to:
+  /// **'新建项目'**
+  String get newProject;
+
+  /// No description provided for @projectName.
+  ///
+  /// In zh, this message translates to:
+  /// **'项目名称'**
+  String get projectName;
+
+  /// No description provided for @projectColor.
+  ///
+  /// In zh, this message translates to:
+  /// **'项目颜色'**
+  String get projectColor;
+
+  /// No description provided for @editProject.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑项目'**
+  String get editProject;
+
+  /// No description provided for @deleteProject.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除项目'**
+  String get deleteProject;
+
+  /// No description provided for @deleteProjectConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'确定要删除项目「{name}」吗？'**
+  String deleteProjectConfirm(Object name);
+
+  /// No description provided for @deleteProjectWarning.
+  ///
+  /// In zh, this message translates to:
+  /// **'该项目下的所有任务也会被删除，此操作不可撤销。'**
+  String get deleteProjectWarning;
+
+  /// No description provided for @cancel.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消'**
+  String get cancel;
+
+  /// No description provided for @confirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'确认'**
+  String get confirm;
+
+  /// No description provided for @save.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存'**
+  String get save;
+
+  /// No description provided for @delete.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除'**
+  String get delete;
+
+  /// No description provided for @edit.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑'**
+  String get edit;
+
+  /// No description provided for @newTask.
+  ///
+  /// In zh, this message translates to:
+  /// **'新建任务'**
+  String get newTask;
+
+  /// No description provided for @newSubtask.
+  ///
+  /// In zh, this message translates to:
+  /// **'新建子任务'**
+  String get newSubtask;
+
+  /// No description provided for @taskTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'任务标题'**
+  String get taskTitle;
+
+  /// No description provided for @taskDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'描述'**
+  String get taskDescription;
+
+  /// No description provided for @taskNotes.
+  ///
+  /// In zh, this message translates to:
+  /// **'备注'**
+  String get taskNotes;
+
+  /// No description provided for @taskStartTime.
+  ///
+  /// In zh, this message translates to:
+  /// **'开始时间'**
+  String get taskStartTime;
+
+  /// No description provided for @taskEndTime.
+  ///
+  /// In zh, this message translates to:
+  /// **'截止时间'**
+  String get taskEndTime;
+
+  /// No description provided for @taskStatus.
+  ///
+  /// In zh, this message translates to:
+  /// **'状态'**
+  String get taskStatus;
+
+  /// No description provided for @taskTags.
+  ///
+  /// In zh, this message translates to:
+  /// **'标签'**
+  String get taskTags;
+
+  /// No description provided for @taskProject.
+  ///
+  /// In zh, this message translates to:
+  /// **'所属项目'**
+  String get taskProject;
+
+  /// No description provided for @taskParent.
+  ///
+  /// In zh, this message translates to:
+  /// **'父任务'**
+  String get taskParent;
+
+  /// No description provided for @statusTodo.
+  ///
+  /// In zh, this message translates to:
+  /// **'待办'**
+  String get statusTodo;
+
+  /// No description provided for @statusInProgress.
+  ///
+  /// In zh, this message translates to:
+  /// **'进行中'**
+  String get statusInProgress;
+
+  /// No description provided for @statusDone.
+  ///
+  /// In zh, this message translates to:
+  /// **'已完成'**
+  String get statusDone;
+
+  /// No description provided for @statusCancelled.
+  ///
+  /// In zh, this message translates to:
+  /// **'已取消'**
+  String get statusCancelled;
+
+  /// No description provided for @titleRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'标题不能为空'**
+  String get titleRequired;
+
+  /// No description provided for @endTimeBeforeStart.
+  ///
+  /// In zh, this message translates to:
+  /// **'截止时间不能早于开始时间'**
+  String get endTimeBeforeStart;
+
+  /// No description provided for @depthLimitExceeded.
+  ///
+  /// In zh, this message translates to:
+  /// **'已达到最大层级（3级），无法创建子任务'**
+  String get depthLimitExceeded;
+
+  /// No description provided for @moveDepthExceeded.
+  ///
+  /// In zh, this message translates to:
+  /// **'移动后层级超过上限'**
+  String get moveDepthExceeded;
+
+  /// No description provided for @cannotMoveToSelf.
+  ///
+  /// In zh, this message translates to:
+  /// **'不能移动到自身'**
+  String get cannotMoveToSelf;
+
+  /// No description provided for @cannotMoveToDescendant.
+  ///
+  /// In zh, this message translates to:
+  /// **'不能移动到自身的子任务下'**
+  String get cannotMoveToDescendant;
+
+  /// No description provided for @deleteTask.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除任务'**
+  String get deleteTask;
+
+  /// No description provided for @deleteTaskConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'确定要删除任务「{title}」吗？'**
+  String deleteTaskConfirm(Object title);
+
+  /// No description provided for @deleteTaskWarning.
+  ///
+  /// In zh, this message translates to:
+  /// **'该任务的子任务也会被删除，此操作不可撤销。'**
+  String get deleteTaskWarning;
+
+  /// No description provided for @emptyProjectDetail.
+  ///
+  /// In zh, this message translates to:
+  /// **'还没有任务，点击下方按钮新建'**
+  String get emptyProjectDetail;
+
+  /// No description provided for @moveUp.
+  ///
+  /// In zh, this message translates to:
+  /// **'上移'**
+  String get moveUp;
+
+  /// No description provided for @moveDown.
+  ///
+  /// In zh, this message translates to:
+  /// **'下移'**
+  String get moveDown;
+
+  /// No description provided for @indent.
+  ///
+  /// In zh, this message translates to:
+  /// **'缩进'**
+  String get indent;
+
+  /// No description provided for @outdent.
+  ///
+  /// In zh, this message translates to:
+  /// **'缩出'**
+  String get outdent;
+
+  /// No description provided for @dueDate.
+  ///
+  /// In zh, this message translates to:
+  /// **'截止日期'**
+  String get dueDate;
+
+  /// No description provided for @startDate.
+  ///
+  /// In zh, this message translates to:
+  /// **'开始日期'**
+  String get startDate;
+
+  /// No description provided for @noTags.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无标签'**
+  String get noTags;
+
+  /// No description provided for @pickDate.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择日期'**
+  String get pickDate;
+
+  /// No description provided for @pickTime.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择时间'**
+  String get pickTime;
+
+  /// No description provided for @moveFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'移动失败：{reason}'**
+  String moveFailed(Object reason);
+
+  /// No description provided for @unsavedChanges.
+  ///
+  /// In zh, this message translates to:
+  /// **'有未保存的更改'**
+  String get unsavedChanges;
+
+  /// No description provided for @unsavedChangesConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'确定要离开吗？未保存的更改将丢失。'**
+  String get unsavedChangesConfirm;
+
+  /// No description provided for @discard.
+  ///
+  /// In zh, this message translates to:
+  /// **'放弃'**
+  String get discard;
+
+  /// No description provided for @keepEditing.
+  ///
+  /// In zh, this message translates to:
+  /// **'继续编辑'**
+  String get keepEditing;
+
+  /// No description provided for @tasksCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 个任务'**
+  String tasksCount(Object count);
+
+  /// No description provided for @tasksRemaining.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 个待完成'**
+  String tasksRemaining(Object count);
+
+  /// No description provided for @progress.
+  ///
+  /// In zh, this message translates to:
+  /// **'进度'**
+  String get progress;
 }
 
 class _AppLocalizationsDelegate

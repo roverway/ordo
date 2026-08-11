@@ -73,4 +73,180 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get emptySearch => 'No results found';
+
+  @override
+  String get newProject => 'New Project';
+
+  @override
+  String get projectName => 'Project name';
+
+  @override
+  String get projectColor => 'Project color';
+
+  @override
+  String get editProject => 'Edit Project';
+
+  @override
+  String get deleteProject => 'Delete Project';
+
+  @override
+  String deleteProjectConfirm(Object name) {
+    return 'Delete project \"$name\"?';
+  }
+
+  @override
+  String get deleteProjectWarning =>
+      'All tasks in this project will also be deleted. This cannot be undone.';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get confirm => 'Confirm';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get newTask => 'New Task';
+
+  @override
+  String get newSubtask => 'New Subtask';
+
+  @override
+  String get taskTitle => 'Task title';
+
+  @override
+  String get taskDescription => 'Description';
+
+  @override
+  String get taskNotes => 'Notes';
+
+  @override
+  String get taskStartTime => 'Start time';
+
+  @override
+  String get taskEndTime => 'Due time';
+
+  @override
+  String get taskStatus => 'Status';
+
+  @override
+  String get taskTags => 'Tags';
+
+  @override
+  String get taskProject => 'Project';
+
+  @override
+  String get taskParent => 'Parent task';
+
+  @override
+  String get statusTodo => 'To Do';
+
+  @override
+  String get statusInProgress => 'In Progress';
+
+  @override
+  String get statusDone => 'Done';
+
+  @override
+  String get statusCancelled => 'Cancelled';
+
+  @override
+  String get titleRequired => 'Title cannot be empty';
+
+  @override
+  String get endTimeBeforeStart => 'Due time cannot be earlier than start time';
+
+  @override
+  String get depthLimitExceeded =>
+      'Maximum depth (3 levels) reached, cannot create subtask';
+
+  @override
+  String get moveDepthExceeded => 'Move would exceed depth limit';
+
+  @override
+  String get cannotMoveToSelf => 'Cannot move to itself';
+
+  @override
+  String get cannotMoveToDescendant => 'Cannot move to a descendant task';
+
+  @override
+  String get deleteTask => 'Delete Task';
+
+  @override
+  String deleteTaskConfirm(Object title) {
+    return 'Delete task \"$title\"?';
+  }
+
+  @override
+  String get deleteTaskWarning =>
+      'All subtasks will also be deleted. This cannot be undone.';
+
+  @override
+  String get emptyProjectDetail => 'No tasks yet, tap below to create one';
+
+  @override
+  String get moveUp => 'Move Up';
+
+  @override
+  String get moveDown => 'Move Down';
+
+  @override
+  String get indent => 'Indent';
+
+  @override
+  String get outdent => 'Outdent';
+
+  @override
+  String get dueDate => 'Due date';
+
+  @override
+  String get startDate => 'Start date';
+
+  @override
+  String get noTags => 'No tags';
+
+  @override
+  String get pickDate => 'Pick date';
+
+  @override
+  String get pickTime => 'Pick time';
+
+  @override
+  String moveFailed(Object reason) {
+    return 'Move failed: $reason';
+  }
+
+  @override
+  String get unsavedChanges => 'Unsaved changes';
+
+  @override
+  String get unsavedChangesConfirm =>
+      'Leave without saving? Your changes will be lost.';
+
+  @override
+  String get discard => 'Discard';
+
+  @override
+  String get keepEditing => 'Keep Editing';
+
+  @override
+  String tasksCount(Object count) {
+    return '$count tasks';
+  }
+
+  @override
+  String tasksRemaining(Object count) {
+    return '$count remaining';
+  }
+
+  @override
+  String get progress => 'Progress';
 }
