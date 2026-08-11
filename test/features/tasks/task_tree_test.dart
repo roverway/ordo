@@ -620,4 +620,129 @@ void main() {
       expect(after.firstWhere((t) => t.id == 'a').parentId, 'c'); // 未变。
     });
   });
+
+  group('行菜单（键盘兜底）', () {
+    /// 定位某任务行的 more_vert 菜单按钮。
+    Finder rowMenuButton(String title) => find.descendant(
+      of: find.ancestor(of: find.text(title), matching: find.byType(TaskRow)),
+      matching: find.byIcon(Icons.more_vert),
+    );
+
+    Future<void> openMenu(WidgetTester tester, String title) async {
+      await tester.tap(rowMenuButton(title));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('根级任务菜单显示 上移/下移/缩进 且不显示 缩出', (tester) async {
+      await _pumpTree(tester, [
+        _task('a', title: 'A', sortOrder: 0),
+        _task('b', title: 'B', sortOrder: 1),
+      ]);
+      await openMenu(tester, 'A');
+      expect(find.text('上移'), findsOneWidget);
+      expect(find.text('下移'), findsOneWidget);
+      expect(find.text('缩进'), findsOneWidget); // depth=0 < 2，可缩进。
+      expect(find.text('缩出'), findsNothing); // depth=0，无缩出。
+    });
+
+    testWidgets('子任务菜单显示 缩出/缩进 且无 新建子任务', (tester) async {
+      await _pumpTree(tester, [
+        _task('a', title: 'A', sortOrder: 0),
+        _task('b', title: 'B', parentId: 'a', sortOrder: 0),
+      ]);
+      await openMenu(tester, 'B');
+      expect(find.text('缩出'), findsOneWidget); // depth=1 > 0。
+      expect(find.text('缩进'), findsOneWidget); // depth=1 < 2，仍可缩进。
+      expect(find.text('新建子任务'), findsNothing); // B 有 parent。
+    });
+
+    testWidgets('上移：C 前移一位（插到 B 前），父级保持 null', (tester) async {
+      final repo = await _pumpTreeWithDb(tester, [
+        _task('a', title: 'A', sortOrder: 0),
+        _task('b', title: 'B', sortOrder: 1),
+        _task('c', title: 'C', sortOrder: 2),
+      ]);
+      await openMenu(tester, 'C');
+      await tester.tap(find.text('上移'));
+      await tester.pumpAndSettle();
+
+      final after = await repo.tasks.getByProject('p1');
+      final a = after.firstWhere((t) => t.id == 'a');
+      final b = after.firstWhere((t) => t.id == 'b');
+      final c = after.firstWhere((t) => t.id == 'c');
+      expect(c.parentId, isNull);
+      expect(c.sortOrder, greaterThan(a.sortOrder)); // 仍排在 A 之后。
+      expect(c.sortOrder, lessThan(b.sortOrder)); // 已插到 B 之前。
+    });
+
+    testWidgets('下移：A 后移一位，排在 B 后', (tester) async {
+      final repo = await _pumpTreeWithDb(tester, [
+        _task('a', title: 'A', sortOrder: 0),
+        _task('b', title: 'B', sortOrder: 1),
+        _task('c', title: 'C', sortOrder: 2),
+      ]);
+      await openMenu(tester, 'A');
+      await tester.tap(find.text('下移'));
+      await tester.pumpAndSettle();
+
+      final after = await repo.tasks.getByProject('p1');
+      final a = after.firstWhere((t) => t.id == 'a');
+      final b = after.firstWhere((t) => t.id == 'b');
+      expect(a.sortOrder, greaterThan(b.sortOrder));
+    });
+
+    testWidgets('缩进：B 成为 A 的子级', (tester) async {
+      final repo = await _pumpTreeWithDb(tester, [
+        _task('a', title: 'A', sortOrder: 0),
+        _task('b', title: 'B', sortOrder: 1),
+      ]);
+      await openMenu(tester, 'B');
+      await tester.tap(find.text('缩进'));
+      await tester.pumpAndSettle();
+
+      final after = await repo.tasks.getByProject('p1');
+      final b = after.firstWhere((t) => t.id == 'b');
+      expect(b.parentId, 'a');
+    });
+
+    testWidgets('缩出：子任务提升为 1 级并排在父级之后', (tester) async {
+      final repo = await _pumpTreeWithDb(tester, [
+        _task('a', title: 'A', sortOrder: 0),
+        _task('b', title: 'B', parentId: 'a', sortOrder: 0),
+      ]);
+      await openMenu(tester, 'B');
+      await tester.tap(find.text('缩出'));
+      await tester.pumpAndSettle();
+
+      final after = await repo.tasks.getByProject('p1');
+      final a = after.firstWhere((t) => t.id == 'a');
+      final b = after.firstWhere((t) => t.id == 'b');
+      expect(b.parentId, isNull);
+      expect(b.sortOrder, greaterThan(a.sortOrder));
+    });
+
+    testWidgets('深度守卫：第 3 级菜单不显示 缩进', (tester) async {
+      final repo = await _pumpTreeWithDb(tester, [
+        _task('a', title: 'A', sortOrder: 0),
+        _task('b', title: 'B', parentId: 'a', sortOrder: 0),
+        _task('c', title: 'C', parentId: 'b', sortOrder: 0),
+      ]);
+      // C 在第 3 层（depth=2）：菜单不显示"缩进"（UI 层守卫）。
+      await openMenu(tester, 'C');
+      expect(find.text('缩出'), findsOneWidget); // 正向控制：菜单已打开。
+      expect(find.text('缩进'), findsNothing);
+
+      // 关闭菜单，验证第 2 层 B 缩进为合法 no-op：
+      // B 是 A 的唯一子级（无前兄弟可缩入），点"缩进"后结构不变。
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+      await openMenu(tester, 'B');
+      await tester.tap(find.text('缩进'));
+      await tester.pumpAndSettle();
+
+      final after = await repo.tasks.getByProject('p1');
+      final b = after.firstWhere((t) => t.id == 'b');
+      expect(b.parentId, 'a');
+    });
+  });
 }
