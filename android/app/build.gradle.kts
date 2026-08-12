@@ -7,7 +7,9 @@ plugins {
 
 android {
     namespace = "com.example.todo"
-    compileSdk = flutter.compileSdkVersion
+    // flutter_secure_storage 11.x 要求 compileSdk 37（AGENTS.md §3-7 版本锁定配套），
+    // 不能跟随 flutter.compileSdkVersion（当前 36）。向后兼容，可放心锁高。
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
