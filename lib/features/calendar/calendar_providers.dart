@@ -71,15 +71,6 @@ final calendarStateProvider = NotifierProvider<CalendarNotifier, CalendarState>(
   CalendarNotifier.new,
 );
 
-/// 全部未删除任务流（updatedAt 降序）。
-///
-/// 单独成 provider 让 [calendarBucketsProvider] 与页面共用同一份流订阅
-/// （Riverpod 按 provider 去重，避免同一查询被订阅两次）。
-final allActiveTasksProvider = StreamProvider<List<Task>>((ref) {
-  final repo = ref.watch(todoRepositoryProvider);
-  return repo.tasks.watchAllActive();
-});
-
 /// 当前模式显示区间（本地时间，闭区间；起点为 DateOnly 00:00，
 /// 终点为当日 23:59:59.999）。
 ///

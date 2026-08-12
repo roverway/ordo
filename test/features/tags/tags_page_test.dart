@@ -31,6 +31,7 @@ import 'package:todo/features/settings/settings_providers.dart';
 import 'package:todo/features/tags/tag_providers.dart';
 import 'package:todo/features/tags/tags_detail_page.dart';
 import 'package:todo/features/tags/tags_page.dart';
+import 'package:todo/shared/widgets/simple_task_tile.dart';
 import '../../helpers/db_test_setup.dart';
 
 /// 构造测试用 Tag。
@@ -52,7 +53,8 @@ Future<TodoRepository> _openRepo() async {
 
 /// 统一 pump：ProviderScope（Repository + 流覆盖）+ GoRouter + 本地化。
 ///
-/// [tags] 为标签列表初始值（须已按名称排序）；[tagTasks] 为详情页某标签下的任务。
+/// [tags] 为标签列表初始值（须已按名称排序）；[tagTasks] 为详情页某标签下的任务；
+/// [allActiveTasks] 为全量未删除任务（详情页用它构建父子索引，含未打标签的任务）。
 /// 返回 [tagsStreamProvider] 的控制器，供测试在增删后推送更新。
 Future<StreamController<List<Tag>>> _pump(
   WidgetTester tester, {
@@ -60,6 +62,7 @@ Future<StreamController<List<Tag>>> _pump(
   required TodoRepository repo,
   List<Tag> tags = const [],
   Map<String, List<Task>> tagTasks = const {},
+  List<Task> allActiveTasks = const [],
 }) async {
   tester.view.physicalSize = const Size(400, 800);
   tester.view.devicePixelRatio = 1.0;
@@ -94,6 +97,9 @@ Future<StreamController<List<Tag>>> _pump(
         tagsStreamProvider.overrideWith((ref) => tagsController.stream),
         tagTasksProvider.overrideWith(
           (ref, tagId) async => tagTasks[tagId] ?? const <Task>[],
+        ),
+        allActiveTasksProvider.overrideWith(
+          (ref) => Stream.value(allActiveTasks),
         ),
       ],
       child: MaterialApp.router(
@@ -427,6 +433,51 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('task:${task.id}'), findsOneWidget);
+    });
+
+    testWidgets('被标记父任务（子任务未标记）：勾选禁用且按派生状态显示', (tester) async {
+      final repo = await _openRepo();
+      final project = await repo.createProject(name: '项目A', color: 0xFF4A6CF7);
+      final tag = await repo.createTag(name: 'Work', color: 0xFF4A6CF7);
+      // 父任务打标签，直接子任务不打（标签按任务关联，不传播到子树）。
+      final parent = await repo.createTask(
+        projectId: project.id,
+        title: '父任务',
+        status: TaskStatus.todo,
+      );
+      final child = await repo.createTask(
+        projectId: project.id,
+        parentId: parent.id,
+        title: '子任务',
+        status: TaskStatus.done,
+      );
+      await repo.tags.setTaskTags(parent.id, [tag.id]);
+
+      await _pump(
+        tester,
+        initialLocation: '/tags/${tag.id}',
+        repo: repo,
+        tags: await _sortedTags(repo),
+        // tagTasks 仅含父任务（子任务未打标签）；allActiveTasks 含父子，
+        // 供详情页用全量流构建 children 索引。
+        tagTasks: {tag.id: [parent]},
+        allActiveTasks: [parent, child],
+      );
+
+      // 父任务显示；未打标签的子任务不显示。
+      expect(find.text('父任务'), findsOneWidget);
+      expect(find.text('子任务'), findsNothing);
+
+      // 父任务有子任务 → 勾选禁用（Checkbox onChanged == null）。
+      final checkbox = tester.widget<Checkbox>(
+        find.descendant(
+          of: find.byType(SimpleTaskTile),
+          matching: find.byType(Checkbox),
+        ),
+      );
+      expect(checkbox.onChanged, isNull);
+      // 子任务全 done → 父任务按派生状态显示为已完成（isDone=true）。
+      expect(checkbox.value, isTrue);
     });
   });
 }

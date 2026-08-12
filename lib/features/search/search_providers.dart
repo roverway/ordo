@@ -156,13 +156,6 @@ final searchFilterProvider =
       SearchFilterNotifier.new,
     );
 
-/// 全部未删除任务（DAO 已按 updatedAt 降序，直接满足 FR-VIEW-05
-/// 「结果按最近更新排序」；扁平列表，视图层再过滤）。
-final allActiveTasksProvider = StreamProvider<List<Task>>((ref) {
-  final repo = ref.watch(todoRepositoryProvider);
-  return repo.tasks.watchAllActive();
-});
-
 /// 计算扁平任务列表的派生状态映射（id → 派生后状态）。
 ///
 /// 有直接子任务的任务状态由子任务派生（AGENTS.md §3-2），叶子任务返回自身

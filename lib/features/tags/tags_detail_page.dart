@@ -54,11 +54,20 @@ class _TagsDetailPageState extends ConsumerState<TagsDetailPage> {
         return AppShell(
           title: tag.name,
           child: ref
-              .watch(tagTasksProvider(widget.tagId))
+              .watch(allActiveTasksProvider)
               .when(
-                data: (tasks) => _buildTaskList(context, l10n, tasks),
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Center(child: Text(e.toString())),
+                data: (allTasks) => ref
+                    .watch(tagTasksProvider(widget.tagId))
+                    .when(
+                      data: (tasks) =>
+                          _buildTaskList(context, l10n, tasks, allTasks),
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (e, _) => Center(child: Text(e.toString())),
+                    ),
               ),
         );
       },
@@ -76,14 +85,18 @@ class _TagsDetailPageState extends ConsumerState<TagsDetailPage> {
   Widget _buildTaskList(
     BuildContext context,
     AppLocalizations l10n,
-    List<Task> tasks,
+    List<Task> tasks, // 该标签下任务（展示列表）。
+    List<Task> allTasks, // 全量未删除任务（构建父子索引）。
   ) {
-    final childrenIndex = indexChildrenByParent(tasks);
+    // 用全量任务构建 children 索引：父任务即使其直接子任务未打该标签，
+    // 也被正确识别为有子任务（审查发现 Bug：受限子集把带标签父任务当叶子，
+    // 导致勾选被误启用并直接写 status，违反 AGENTS.md §3-2 派生状态约束）。
+    final childrenIndex = indexChildrenByParent(allTasks);
 
     // 派生状态映射：有直接子任务的任务用 derivedStatus 计算
     // （参照 task_tree.dart 用法，AGENTS.md §3-2）。
     final effectiveStatuses = <String, TaskStatus>{
-      for (final t in tasks)
+      for (final t in allTasks)
         if ((childrenIndex[t.id] ?? const <Task>[]).isNotEmpty)
           t.id: derivedStatus(t, childrenIndex[t.id]!),
     };
