@@ -183,9 +183,11 @@ abstract final class AppTheme {
       ),
 
       // ── Divider ──
+      // 深色下 outlineVariant 偏暗，提高不透明度保证卡片内分隔线可辨
+      //（M5 任务 2 深色细节，Material 3 惯例；颜色仍由 colorScheme 派生）。
       dividerTheme: DividerThemeData(
         thickness: 0.5,
-        color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+        color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.7 : 0.5),
         space: 1,
       ),
 

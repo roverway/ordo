@@ -460,7 +460,9 @@ void main() {
         tags: await _sortedTags(repo),
         // tagTasks 仅含父任务（子任务未打标签）；allActiveTasks 含父子，
         // 供详情页用全量流构建 children 索引。
-        tagTasks: {tag.id: [parent]},
+        tagTasks: {
+          tag.id: [parent],
+        },
         allActiveTasks: [parent, child],
       );
 

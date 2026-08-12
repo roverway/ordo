@@ -16,6 +16,8 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/utils/derived.dart';
 import '../../core/utils/tree.dart';
 import '../../shared/widgets/empty_state.dart';
+import '../../shared/widgets/error_view.dart';
+import '../../shared/widgets/loading_view.dart';
 import '../../shared/widgets/simple_task_tile.dart';
 import '../../shared/widgets/task_filter_bar.dart';
 import '../projects/project_providers.dart';
@@ -98,8 +100,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 results,
                 allAsync.value ?? const <Task>[],
               ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text(e.toString())),
+              loading: () => const LoadingView(),
+              error: (e, st) {
+                logAsyncError(e, st);
+                return ErrorView(
+                  onRetry: () => ref.invalidate(searchResultsProvider),
+                );
+              },
             ),
           ),
         ],

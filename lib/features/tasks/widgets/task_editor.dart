@@ -651,17 +651,30 @@ class _SubtaskRowTile extends StatelessWidget {
             onChanged: (_) => onChanged(),
           ),
         ),
-        // 拖拽排序把手。
-        ReorderableDragStartListener(
-          index: index,
-          child: const Padding(
-            padding: EdgeInsets.all(AppTokens.spaceXs),
-            child: Icon(Icons.drag_handle, size: 18),
+        // 拖拽排序把手（无障碍：语义标签 + 扩大按压区，NFR-06）。
+        Semantics(
+          button: true,
+          label: l10n.dragReorder,
+          child: ReorderableDragStartListener(
+            index: index,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTokens.spaceSm,
+                vertical: AppTokens.spaceXxs,
+              ),
+              child: const Icon(Icons.drag_handle, size: 18),
+            ),
           ),
         ),
         IconButton(
           icon: const Icon(Icons.close, size: 18),
           visualDensity: VisualDensity.compact,
+          // 触控目标 ≥48dp（NFR-06），与行菜单按钮一致。
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(
+            minWidth: AppTokens.touchTarget,
+            minHeight: AppTokens.touchTarget,
+          ),
           onPressed: onRemove,
         ),
       ],

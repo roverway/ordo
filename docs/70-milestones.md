@@ -158,9 +158,9 @@
 - **批 2-A 移动端侧边栏抽屉（已完成 2026-08）**：`10-requirements.md` FR-NAV-01 + `50-ui-ux.md` §4 已同步；AppShell 抽屉（系统组 + 项目组 + 新建项目）、窄屏底部 NavigationBar 精简为 3 入口、宽屏 Rail 5 目的地不变、AppBar 汉堡入口；`widget_test.dart` 同步新 IA（3 tab + 抽屉导航断言）。`flutter analyze` 0 error；`flutter test` 230 全绿。
 - **统一任务页 TaskListPage（已完成 2026-08，`docs/56-task-scope-page.md`）**：今日/收件箱/项目三作用域统一渲染（AppShell 壳内，修复项目页无汉堡/底栏）；`initialLocation` 改 `/today`；项目编辑/删除入 AppBar、删除后跳 `/today`；FAB 统一走滴答式弹窗；`ProjectDetailPage`/`TodayPage`/`InboxPage` 废弃（逻辑并入）；`InboxTaskTile` 提升为共享组件；文档 FR-NAV/FR-VIEW/50-ui-ux §4/§5 同步。`flutter analyze` 0 error；`flutter test` 257 全绿。
 - **精简窄屏底栏（已完成 2026-08，`docs/57-task-page-polish.md` 批 1）**：底栏 3 → 2 项（今日/日历，标签移入抽屉）；自绘 `CompactBottomBar`（高 56dp，明显矮于标准 NavigationBar 80dp；`selectedIndex = -1` 天然无选中；列表渲染可扩展）；令牌 `bottomBarHeight`/`bottomBarIconSize`/`bottomBarLabelSize`；FR-NAV-01 + 50-ui-ux §4 同步；`widget_test` 更新（2-tab 切换、紧凑高度断言）。`flutter analyze` 0 error；`flutter test` 257 全绿。
-- **批 2 交互层（待做）**：FAB + 新建底部弹窗（自动保存 + 清单切换 + 日期/优先级/标签）；进度环（有子任务任务）；同步状态图标（依赖 M4）。
-- **项目任务卡片化（待做，`docs/57-task-page-polish.md` 批 2）**：一级任务卡片 + 内部子任务紧凑行（拖拽/菜单/校验保留）。
-- **任务编辑界面优化（待做，`docs/59-task-editor-optimization.md`）**：统一编辑器（新建弹窗与编辑页共用共享「任务编辑器」组件，仅呈现容器不同，D1）；设置项移入底部工具栏（日期/状态/标签/优先级 + 附件占位禁用，D5）；编辑页子任务管理（新增/删除/拖拽排序，D3）+ ⋯ 菜单删除入口（D4）；编辑页显式保存 + 未保存离开提示保留（D2）。`50-ui-ux.md` §5.6 已同步。
+- **批 2 交互层（已完成 2026-08）**：FAB + 新建底部弹窗（`task_create_sheet.dart`，自动保存 + 清单切换 + 日期/优先级/标签）；进度环（`task_progress_ring.dart`，有子任务任务）；同步状态图标（设置页 `_syncStatusIcon`，依赖 M4 已完成）。
+- **项目任务卡片化（已完成 2026-08，`docs/57-task-page-polish.md` 批 2）**：一级任务卡片 + 内部子任务紧凑行（拖拽/菜单/校验保留）。
+- **任务编辑界面优化（已完成 2026-08，`docs/59-task-editor-optimization.md`）**：统一编辑器（新建弹窗与编辑页共用共享「任务编辑器」组件，仅呈现容器不同，D1）；设置项移入底部工具栏（日期/状态/标签/优先级 + 附件占位禁用，D5）；编辑页子任务管理（新增/删除/拖拽排序，D3）+ ⋯ 菜单删除入口（D4）；编辑页显式保存 + 未保存离开提示保留（D2）。`50-ui-ux.md` §5.6 已同步。
 
 **DoD**：
 - [ ] NFR-01~09 全部满足（`10-requirements.md` §11）
@@ -168,6 +168,12 @@
 - [ ] 批 2 交互层验收：新建弹窗全流程、进度环正确（抽屉已随批 2-A 验收）
 - [ ] `flutter analyze` 0 error；`flutter test` 全绿；`dart format` 通过
 - [ ] 文档与实现一致（改代码必改文档）
+
+> ✅ M5 安卓端打磨完成（2026-08）：统一 LoadingView/ErrorView 全页面覆盖（重试=ref.invalidate）；
+> 快照 ≥256KB 走 compute isolate 解析（NFR-02）；无障碍（触控目标≥48dp、语义标签/Tooltip、深色对比度、
+> 字体缩放 1.3–2.0 不溢出）；Android 生命周期触发同步（LifecycleSyncListener + SyncTriggers.runOnResume，
+> resumed → 自动同步，受 enabled+wifiOnly 约束）；深色分隔线可辨（alpha 0.5→0.7）。`flutter test` 423 全绿。
+> ⏳ Windows 窗口尺寸/DPI 延期（用户决定先集中安卓端）。待手工回归项见 DoD 未勾选项。
 
 ---
 

@@ -87,6 +87,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emptySearch => 'No results found';
 
   @override
+  String get loading => 'Loading…';
+
+  @override
+  String get errorLoadFailed => 'Failed to load. Please try again.';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
   String get newProject => 'New Project';
 
   @override
@@ -289,6 +298,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get progress => 'Progress';
 
   @override
+  String progressPercent(Object percent) {
+    return 'Progress $percent%';
+  }
+
+  @override
   String get noDueDate => 'No due date';
 
   @override
@@ -416,6 +430,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get collapse => 'Collapse';
+
+  @override
+  String get expand => 'Expand';
+
+  @override
+  String get dragReorder => 'Drag to reorder';
 
   @override
   String get subtasks => 'Subtasks';

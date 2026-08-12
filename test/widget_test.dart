@@ -416,7 +416,7 @@ void main() {
     expect(find.text('Settings'), findsOneWidget);
   });
 
-  testWidgets('Settings: sync entry navigates to /settings/sync', (
+  testWidgets('Settings: sync entry navigates to /settings/sync and back', (
     tester,
   ) async {
     await pumpApp(tester, const Size(400, 800));
@@ -424,12 +424,19 @@ void main() {
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
 
-    // 同步分组入口存在（go 跳转，替换设置页栈）。
+    // 同步分组入口存在（go 跳转；/settings/sync 为 /settings 子路由，
+    // 栈为 root→settings→sync，AppBar 自动出现返回箭头）。
     await tester.tap(find.text('同步设置'));
     await tester.pumpAndSettle();
 
-    // 同步配置页打开：AppBar 标题 + 启用开关。
+    // 同步配置页打开：AppBar 标题 + 启用开关 + 返回箭头（Bug 1 回归）。
     expect(find.text('同步设置'), findsOneWidget);
     expect(find.text('启用同步'), findsOneWidget);
+    expect(find.byType(BackButton), findsOneWidget);
+
+    // 点返回箭头回到设置页（AppBar 标题「设置」）。
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('设置'), findsOneWidget);
   });
 }

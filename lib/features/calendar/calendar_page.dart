@@ -12,6 +12,8 @@ import '../../core/utils/tree.dart';
 import '../../core/utils/view_rules.dart' as view_rules;
 import '../../shared/widgets/app_shell.dart';
 import '../../shared/widgets/empty_state.dart';
+import '../../shared/widgets/error_view.dart';
+import '../../shared/widgets/loading_view.dart';
 import '../../shared/widgets/simple_task_tile.dart';
 import '../projects/project_providers.dart';
 import '../tasks/task_providers.dart';
@@ -55,8 +57,13 @@ class CalendarPage extends ConsumerWidget {
                     ? _buildMonthGrid(context, ref, buckets, allTasks, state)
                     : _buildWeekList(context, ref, buckets, allTasks, state);
               },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text(e.toString())),
+              loading: () => const LoadingView(),
+              error: (e, st) {
+                logAsyncError(e, st);
+                return ErrorView(
+                  onRetry: () => ref.invalidate(calendarBucketsProvider),
+                );
+              },
             ),
           ),
         ],

@@ -254,6 +254,24 @@ abstract class AppLocalizations {
   /// **'未找到相关内容'**
   String get emptySearch;
 
+  /// No description provided for @loading.
+  ///
+  /// In zh, this message translates to:
+  /// **'加载中…'**
+  String get loading;
+
+  /// No description provided for @errorLoadFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'加载失败，请稍后重试'**
+  String get errorLoadFailed;
+
+  /// No description provided for @retry.
+  ///
+  /// In zh, this message translates to:
+  /// **'重试'**
+  String get retry;
+
   /// No description provided for @newProject.
   ///
   /// In zh, this message translates to:
@@ -626,6 +644,12 @@ abstract class AppLocalizations {
   /// **'进度'**
   String get progress;
 
+  /// No description provided for @progressPercent.
+  ///
+  /// In zh, this message translates to:
+  /// **'进度 {percent}%'**
+  String progressPercent(Object percent);
+
   /// No description provided for @noDueDate.
   ///
   /// In zh, this message translates to:
@@ -877,6 +901,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'收起'**
   String get collapse;
+
+  /// No description provided for @expand.
+  ///
+  /// In zh, this message translates to:
+  /// **'展开'**
+  String get expand;
+
+  /// No description provided for @dragReorder.
+  ///
+  /// In zh, this message translates to:
+  /// **'拖拽排序'**
+  String get dragReorder;
 
   /// No description provided for @subtasks.
   ///

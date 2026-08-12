@@ -11,6 +11,8 @@ import '../../core/utils/tree.dart';
 import '../../core/utils/view_rules.dart';
 import '../../shared/widgets/app_shell.dart';
 import '../../shared/widgets/empty_state.dart';
+import '../../shared/widgets/error_view.dart';
+import '../../shared/widgets/loading_view.dart';
 import '../../shared/widgets/simple_task_tile.dart';
 import '../projects/project_providers.dart';
 import 'tag_providers.dart';
@@ -56,28 +58,38 @@ class _TagsDetailPageState extends ConsumerState<TagsDetailPage> {
           child: ref
               .watch(allActiveTasksProvider)
               .when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text(e.toString())),
+                loading: () => const LoadingView(),
+                error: (e, st) {
+                  logAsyncError(e, st);
+                  return ErrorView(
+                    onRetry: () => ref.invalidate(allActiveTasksProvider),
+                  );
+                },
                 data: (allTasks) => ref
                     .watch(tagTasksProvider(widget.tagId))
                     .when(
                       data: (tasks) =>
                           _buildTaskList(context, l10n, tasks, allTasks),
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
-                      error: (e, _) => Center(child: Text(e.toString())),
+                      loading: () => const LoadingView(),
+                      error: (e, st) {
+                        logAsyncError(e, st);
+                        return ErrorView(
+                          onRetry: () =>
+                              ref.invalidate(tagTasksProvider(widget.tagId)),
+                        );
+                      },
                     ),
               ),
         );
       },
-      loading: () => AppShell(
-        title: l10n.navTags,
-        child: const Center(child: CircularProgressIndicator()),
-      ),
-      error: (e, _) => AppShell(
-        title: l10n.navTags,
-        child: Center(child: Text(e.toString())),
-      ),
+      loading: () => AppShell(title: l10n.navTags, child: const LoadingView()),
+      error: (e, st) {
+        logAsyncError(e, st);
+        return AppShell(
+          title: l10n.navTags,
+          child: ErrorView(onRetry: () => ref.invalidate(tagsStreamProvider)),
+        );
+      },
     );
   }
 

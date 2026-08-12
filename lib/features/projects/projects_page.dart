@@ -6,6 +6,8 @@ import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../shared/widgets/app_shell.dart';
 import '../../shared/widgets/empty_state.dart';
+import '../../shared/widgets/error_view.dart';
+import '../../shared/widgets/loading_view.dart';
 import 'project_providers.dart';
 import 'widgets/project_card.dart';
 import 'widgets/project_form_dialog.dart';
@@ -65,8 +67,13 @@ class ProjectsPage extends ConsumerWidget {
             ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(e.toString())),
+        loading: () => const LoadingView(),
+        error: (e, st) {
+          logAsyncError(e, st);
+          return ErrorView(
+            onRetry: () => ref.invalidate(projectsStreamProvider),
+          );
+        },
       ),
     );
   }

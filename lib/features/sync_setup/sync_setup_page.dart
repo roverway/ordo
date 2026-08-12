@@ -21,6 +21,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/l10n/app_localizations.dart';
+import '../../core/security/secure_store.dart';
 import '../../core/sync/sync_config.dart';
 import '../../core/sync/sync_engine.dart';
 import '../../core/theme/app_tokens.dart';
@@ -110,7 +111,7 @@ class _SyncSetupPageState extends ConsumerState<SyncSetupPage> {
     return confirmed ?? false;
   }
 
-  /// 用当前配置预填表单（同步状态切换时切换远端类型对应字段）。
+  /// 用当前配置预填表单（仅填充当前类型适用字段，另一类型字段清空）。
   void _applyConfig(SyncConfig config) {
     setState(() {
       _type = config.type;
@@ -118,13 +119,50 @@ class _SyncSetupPageState extends ConsumerState<SyncSetupPage> {
       _autoOnStart = config.autoOnStart;
       _autoOnEdit = config.autoOnEdit;
       _wifiOnly = config.wifiOnly;
-      _serverUrl.text = config.serverUrl ?? '';
-      _username.text = config.username ?? '';
-      _secret.text = config.secret ?? '';
-      _bucket.text = config.bucket ?? '';
-      _region.text = config.region ?? '';
-      _prefix.text = config.prefix ?? '';
+      _fillTypeFields(config.type, config);
     });
+  }
+
+  /// 按 [type] 的字段集填充表单（从 [creds] 取已存值，无则清空）。
+  ///
+  /// 每类型字段集（docs/60-sync-design.md §10.1，SecureStore key 按类型隔离）：
+  /// - WebDAV：serverUrl / username / secret（bucket/region/prefix 不适用）；
+  /// - S3：serverUrl(=endpoint) / username(=accessKey) / secret(=secretKey)
+  ///   / bucket / region / prefix。
+  ///
+  /// 切换类型时另一类型的字段一律清空，防止残留值在保存时写入错误 key
+  /// （用户实测 bug：WebDAV 参数原样残留在 S3 输入框）。
+  void _fillTypeFields(RemoteType type, SyncConfig creds) {
+    _serverUrl.text = creds.serverUrl ?? '';
+    _username.text = creds.username ?? '';
+    _secret.text = creds.secret ?? '';
+    final isS3 = type == RemoteType.s3;
+    _bucket.text = isS3 ? (creds.bucket ?? '') : '';
+    _region.text = isS3 ? (creds.region ?? '') : '';
+    _prefix.text = isS3 ? (creds.prefix ?? '') : '';
+  }
+
+  /// 切换远端类型：先同步清空全部字段，再异步重载新类型已存凭据。
+  ///
+  /// 凭据按类型独立 key（`sync_<type>_<field>`），切换时必须重载而非保留。
+  /// 时序：清空是同步的（立即可见），readCreds 是异步的——结果返回时若
+  /// 用户已再次切换（_type 变化）则丢弃旧结果；读取失败保持清空（可安全
+  /// 重填，不打断输入）。
+  Future<void> _onTypeChanged(RemoteType newType) async {
+    if (newType == _type) return;
+    setState(() {
+      _type = newType;
+      _fillTypeFields(newType, const SyncConfig());
+    });
+    final store = ref.read(secureStoreProvider);
+    SyncConfig? creds;
+    try {
+      creds = await store.readCreds(newType);
+    } on SecureStoreException {
+      creds = null; // 读取失败 → 保持清空。
+    }
+    if (!mounted || _type != newType) return;
+    setState(() => _fillTypeFields(newType, creds ?? const SyncConfig()));
   }
 
   /// 表单 → SyncConfig。
@@ -272,7 +310,7 @@ class _SyncSetupPageState extends ConsumerState<SyncSetupPage> {
                   ],
                   selected: {_type},
                   onSelectionChanged: (selection) =>
-                      setState(() => _type = selection.first),
+                      unawaited(_onTypeChanged(selection.first)),
                 ),
               ),
             ),
@@ -477,7 +515,8 @@ class _SyncSetupPageState extends ConsumerState<SyncSetupPage> {
         padding: const EdgeInsets.all(AppTokens.spaceMd),
         child: Row(
           children: [
-            icon,
+            // 图标为装饰性：状态信息由相邻标题/副标题文本承载，读屏不重复播报。
+            ExcludeSemantics(child: icon),
             const SizedBox(width: AppTokens.spaceMd),
             Expanded(
               child: Column(

@@ -211,6 +211,23 @@ abstract final class AppTokens {
   /// Empty state icon size.
   static const double emptyIconSize = 56;
 
+  // ── 状态反馈（M5 任务 1，50-ui-ux.md §6.3）──
+
+  /// 统一加载指示器尺寸（LoadingView）。
+  static const double loadingIndicatorSize = 32;
+
+  /// 紧凑加载指示器尺寸（列表行内/抽屉内联加载）。
+  static const double loadingIndicatorSizeCompact = 20;
+
+  /// 加载指示器描边宽度。
+  static const double loadingStrokeWidth = 3;
+
+  /// 错误态图标尺寸（ErrorView）。
+  static const double errorIconSize = 56;
+
+  /// 错误态紧凑图标尺寸（列表行内联错误，如抽屉项目组）。
+  static const double errorIconSizeCompact = 20;
+
   // ── Preset Colors (project palette) ──
 
   /// TickTick-inspired soft palette for project colors.

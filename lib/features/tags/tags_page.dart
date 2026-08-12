@@ -9,6 +9,8 @@ import '../../core/theme/app_tokens.dart';
 import '../../shared/widgets/app_shell.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import '../../shared/widgets/empty_state.dart';
+import '../../shared/widgets/error_view.dart';
+import '../../shared/widgets/loading_view.dart';
 import '../projects/project_providers.dart';
 import 'tag_providers.dart';
 
@@ -70,8 +72,11 @@ class TagsPage extends ConsumerWidget {
             ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(e.toString())),
+        loading: () => const LoadingView(),
+        error: (e, st) {
+          logAsyncError(e, st);
+          return ErrorView(onRetry: () => ref.invalidate(tagsStreamProvider));
+        },
       ),
     );
   }

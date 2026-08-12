@@ -56,6 +56,18 @@ class SyncTriggers {
     await _engine.run();
   }
 
+  /// 应用回到前台（AppLifecycleState.resumed）自动同步（M5 生命周期触发）。
+  ///
+  /// 语义：**不受 autoOnStart 限制**（回到前台 ≠ 首次启动，用户回到应用
+  /// 期望拿到最新数据）；受 enabled + wifiOnly 约束（属自动同步）。
+  /// 由 `LifecycleSyncListener`（app 层）在 resumed 时调用，fire-and-forget。
+  Future<void> runOnResume() async {
+    final config = await _engine.loadSettingsConfig();
+    if (!config.enabled) return;
+    if (!await _allowAuto(config)) return;
+    await _engine.run();
+  }
+
   /// 编辑自动同步：防抖 2s（多次写操作合并为一次）+ 可关（autoOnEdit）。
   ///
   /// 受 wifiOnly 约束（§10.3）。这是编辑自动同步的唯一防抖入口（SyncEngine

@@ -112,6 +112,115 @@ void main() {
     expect(find.text('Bucket'), findsOneWidget);
   });
 
+  testWidgets('切换类型清空另一类型字段（WebDAV 参数不残留到 S3）', (tester) async {
+    final db = AppDatabase.forTesting();
+    addTearDown(db.close);
+    final repo = TodoRepository(database: db);
+    final secureStore = SecureStore(backend: _MemorySecureBackend());
+    await _pumpSyncPage(tester, repo: repo, secureStore: secureStore);
+
+    // Bug 2 场景：先在 WebDAV 填服务器地址，再切到 S3。
+    await tester.enterText(
+      find.byType(TextField).first,
+      'https://dav.example.com/todo/',
+    );
+    await tester.tap(find.text('S3 兼容桶'));
+    await tester.pumpAndSettle();
+
+    // S3 表单出现，且 WebDAV 的服务器地址被清空（不残留）。
+    expect(find.text('Endpoint'), findsOneWidget);
+    expect(find.text('Bucket'), findsOneWidget);
+    expect(
+      find.widgetWithText(TextField, 'https://dav.example.com/todo/'),
+      findsNothing,
+      reason: '切到 S3 后 WebDAV 服务器地址不得残留到 Endpoint 输入框',
+    );
+  });
+
+  testWidgets('切换类型重载该类型已存凭据（S3 ↔ WebDAV 各自独立）', (tester) async {
+    final db = AppDatabase.forTesting();
+    addTearDown(db.close);
+    final repo = TodoRepository(database: db);
+    final backend = _MemorySecureBackend();
+    // WebDAV 已存凭据。
+    await backend.write(
+      'sync_webdav_serverUrl',
+      'https://dav.example.com/todo/',
+    );
+    await backend.write('sync_webdav_username', 'dav-user');
+    await backend.write('sync_webdav_secret', 'dav-pass');
+    // S3 已存凭据。
+    await backend.write('sync_s3_serverUrl', 'https://s3.example.com');
+    await backend.write('sync_s3_accessKey', 's3-access');
+    await backend.write('sync_s3_secretKey', 's3-secret');
+    await backend.write('sync_s3_bucket', 'my-bucket');
+    final secureStore = SecureStore(backend: backend);
+    await _pumpSyncPage(tester, repo: repo, secureStore: secureStore);
+
+    // 默认 WebDAV：预填该类型已存凭据。
+    expect(
+      find.widgetWithText(TextField, 'https://dav.example.com/todo/'),
+      findsOneWidget,
+    );
+
+    // 切到 S3：清空 WebDAV 字段，重载 S3 已存凭据。
+    await tester.tap(find.text('S3 兼容桶'));
+    await tester.pumpAndSettle();
+    expect(find.text('Endpoint'), findsOneWidget);
+    expect(
+      find.widgetWithText(TextField, 'https://s3.example.com'),
+      findsOneWidget,
+    );
+    expect(find.widgetWithText(TextField, 'my-bucket'), findsOneWidget);
+    expect(
+      find.widgetWithText(TextField, 'https://dav.example.com/todo/'),
+      findsNothing,
+      reason: 'S3 表单不得残留 WebDAV 服务器地址',
+    );
+
+    // 切回 WebDAV：清空 S3 字段，重载 WebDAV 已存凭据。
+    await tester.tap(find.text('WebDAV'));
+    await tester.pumpAndSettle();
+    expect(find.text('Bucket'), findsNothing);
+    expect(
+      find.widgetWithText(TextField, 'https://dav.example.com/todo/'),
+      findsOneWidget,
+      reason: '切回 WebDAV 应重载其已存凭据',
+    );
+  });
+
+  testWidgets('首次预填仅按当前类型填充（type=s3 时不预填 WebDAV 字段）', (tester) async {
+    final db = AppDatabase.forTesting();
+    addTearDown(db.close);
+    final repo = TodoRepository(database: db);
+    // 配置类型为 S3（settings 表）；两种类型的凭据都预置。
+    await repo.settings.set('sync_type', 's3');
+    final backend = _MemorySecureBackend();
+    await backend.write(
+      'sync_webdav_serverUrl',
+      'https://dav.example.com/todo/',
+    );
+    await backend.write('sync_s3_serverUrl', 'https://s3.example.com');
+    await backend.write('sync_s3_accessKey', 's3-access');
+    await backend.write('sync_s3_secretKey', 's3-secret');
+    await backend.write('sync_s3_bucket', 'my-bucket');
+    final secureStore = SecureStore(backend: backend);
+    await _pumpSyncPage(tester, repo: repo, secureStore: secureStore);
+
+    // 首屏即 S3：Endpoint/Bucket 预填 S3 值，WebDAV 值不出现。
+    expect(find.text('Endpoint'), findsOneWidget);
+    expect(
+      find.widgetWithText(TextField, 'https://s3.example.com'),
+      findsOneWidget,
+    );
+    expect(find.widgetWithText(TextField, 'my-bucket'), findsOneWidget);
+    expect(
+      find.widgetWithText(TextField, 'https://dav.example.com/todo/'),
+      findsNothing,
+      reason: 'type=s3 时不得预填 WebDAV 凭据',
+    );
+  });
+
   testWidgets('保存：非敏感项写入 settings 表，凭据写入 secure storage', (tester) async {
     final db = AppDatabase.forTesting();
     addTearDown(db.close);

@@ -7,6 +7,7 @@ import 'core/l10n/app_localizations_zh.dart';
 import 'core/theme/app_theme.dart';
 import 'features/settings/settings_providers.dart';
 import 'router.dart';
+import 'shared/widgets/lifecycle_sync_listener.dart';
 
 /// Application root: assembles theme, l10n, and routing.
 ///
@@ -24,16 +25,18 @@ class TodoApp extends ConsumerWidget {
         ? AppLocalizationsEn().appTitle
         : AppLocalizationsZh().appTitle;
 
-    return MaterialApp.router(
-      title: appTitle,
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.build(Brightness.light),
-      darkTheme: AppTheme.build(Brightness.dark),
-      themeMode: themeMode,
-      locale: locale,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      routerConfig: appRouter,
+    return LifecycleSyncListener(
+      child: MaterialApp.router(
+        title: appTitle,
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.build(Brightness.light),
+        darkTheme: AppTheme.build(Brightness.dark),
+        themeMode: themeMode,
+        locale: locale,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        routerConfig: appRouter,
+      ),
     );
   }
 }

@@ -169,30 +169,41 @@ class _TaskRowState extends State<TaskRow> {
                     width: AppTokens.expandArrowSize + 8,
                     height: AppTokens.expandArrowSize + 8,
                     child: widget.hasChildren
-                        ? GestureDetector(
-                            onTap: widget.onToggleExpand,
-                            child: AnimatedRotation(
-                              turns: widget.isExpanded ? 0.25 : 0,
-                              duration: AppTokens.motionFast,
-                              child: Icon(
-                                Icons.arrow_right,
-                                size: AppTokens.expandArrowSize,
-                                color: colorScheme.onSurfaceVariant,
+                        ? Semantics(
+                            // 无障碍（NFR-06）：纯图标按钮补语义标签（展开/收起）。
+                            button: true,
+                            label: widget.isExpanded
+                                ? l10n.collapse
+                                : l10n.expand,
+                            child: GestureDetector(
+                              onTap: widget.onToggleExpand,
+                              child: AnimatedRotation(
+                                turns: widget.isExpanded ? 0.25 : 0,
+                                duration: AppTokens.motionFast,
+                                child: Icon(
+                                  Icons.arrow_right,
+                                  size: AppTokens.expandArrowSize,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
                               ),
                             ),
                           )
                         : null,
                   ),
-                  // Checkbox.
+                  // Checkbox（有子任务的子任务行禁用：状态由父任务派生，
+                  // Tooltip 解释原因，AGENTS.md §3-2 + NFR-06 语义）。
                   SizedBox(
                     width: AppTokens.touchTarget,
                     height: AppTokens.touchTarget,
-                    child: Checkbox(
-                      value: isDone,
-                      onChanged: (!hasDerived || widget.task.parentId == null)
-                          ? widget.onToggleDone
-                          : null,
-                    ),
+                    child: (!hasDerived || widget.task.parentId == null)
+                        ? Checkbox(
+                            value: isDone,
+                            onChanged: widget.onToggleDone,
+                          )
+                        : Tooltip(
+                            message: l10n.statusDerivedFromChildren,
+                            child: Checkbox(value: isDone, onChanged: null),
+                          ),
                   ),
                   const SizedBox(width: AppTokens.spaceXs),
                   // Title + metadata.
@@ -245,45 +256,67 @@ class _TaskRowState extends State<TaskRow> {
                             ),
                             child: Row(
                               children: [
-                                // Tag chips (up to 2).
-                                ...widget.tags
-                                    .take(2)
-                                    .map(
-                                      (tag) => Padding(
-                                        padding: const EdgeInsets.only(
-                                          right: AppTokens.spaceXxs,
-                                        ),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: AppTokens.spaceXs,
-                                            vertical: 2,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Color(
-                                              tag.color,
-                                            ).withValues(alpha: 0.12),
-                                            borderRadius: BorderRadius.circular(
-                                              AppTokens.radiusChip,
+                                // Tag chips (up to 2)。Flexible + maxLines 兜底：
+                                // 系统字体缩放（NFR-06）下标签组可收缩而非溢出。
+                                if (widget.tags.isNotEmpty)
+                                  Flexible(
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        ...widget.tags
+                                            .take(2)
+                                            .map(
+                                              (tag) => Padding(
+                                                padding: const EdgeInsets.only(
+                                                  right: AppTokens.spaceXxs,
+                                                ),
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal:
+                                                            AppTokens.spaceXs,
+                                                        vertical: 2,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: Color(
+                                                      tag.color,
+                                                    ).withValues(alpha: 0.12),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          AppTokens.radiusChip,
+                                                        ),
+                                                  ),
+                                                  child: Text(
+                                                    tag.name,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: theme
+                                                        .textTheme
+                                                        .bodySmall
+                                                        ?.copyWith(
+                                                          color: Color(
+                                                            tag.color,
+                                                          ),
+                                                          fontSize: 10,
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                        ),
+                                                  ),
+                                                ),
+                                              ),
                                             ),
-                                          ),
-                                          child: Text(
-                                            tag.name,
+                                        if (widget.tags.length > 2)
+                                          Text(
+                                            '+${widget.tags.length - 2}',
                                             style: theme.textTheme.bodySmall
                                                 ?.copyWith(
-                                                  color: Color(tag.color),
+                                                  color: colorScheme
+                                                      .onSurfaceVariant,
                                                   fontSize: 10,
-                                                  fontWeight: FontWeight.w500,
                                                 ),
                                           ),
-                                        ),
-                                      ),
-                                    ),
-                                if (widget.tags.length > 2)
-                                  Text(
-                                    '+${widget.tags.length - 2}',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: colorScheme.onSurfaceVariant,
-                                      fontSize: 10,
+                                      ],
                                     ),
                                   ),
                                 const Spacer(),

@@ -118,7 +118,12 @@ class SettingsPage extends ConsumerWidget {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _syncStatusIcon(syncState, syncConfigAsync, colorScheme),
+                    _syncStatusIcon(
+                      context,
+                      syncState,
+                      syncConfigAsync,
+                      colorScheme,
+                    ),
                     const SizedBox(width: AppTokens.spaceXs),
                     const Icon(Icons.chevron_right),
                   ],
@@ -167,28 +172,35 @@ class SettingsPage extends ConsumerWidget {
   }
 
   /// 同步入口状态小图标：error → 红色感叹；enabled 且最近成功 → 绿色勾；
-  /// 未启用/读取失败 → 灰色云朵。
+  /// 未启用/读取失败 → 灰色云朵。无障碍：纯图标补语义标签（NFR-06）。
   Widget _syncStatusIcon(
+    BuildContext context,
     SyncState syncState,
     AsyncValue<SyncConfig> configAsync,
     ColorScheme colorScheme,
   ) {
-    if (syncState.status == SyncStateStatus.error) {
-      return Icon(Icons.error_outline, color: colorScheme.error, size: 22);
-    }
-    final config = configAsync.value;
-    if (config != null && config.enabled && config.lastSyncedAt != null) {
-      return const Icon(
-        Icons.check_circle,
-        color: AppTokens.colorDone,
-        size: 22,
-      );
-    }
-    return Icon(
-      Icons.cloud_outlined,
-      color: colorScheme.onSurfaceVariant,
-      size: 22,
-    );
+    final (icon, label) = switch (syncState.status) {
+      SyncStateStatus.error => (
+        Icon(Icons.error_outline, color: colorScheme.error, size: 22),
+        AppLocalizations.of(context).syncStatusError,
+      ),
+      _
+          when configAsync.value?.enabled == true &&
+              configAsync.value?.lastSyncedAt != null =>
+        (
+          const Icon(Icons.check_circle, color: AppTokens.colorDone, size: 22),
+          AppLocalizations.of(context).syncStatusSuccess,
+        ),
+      _ => (
+        Icon(
+          Icons.cloud_outlined,
+          color: colorScheme.onSurfaceVariant,
+          size: 22,
+        ),
+        AppLocalizations.of(context).syncStatusIdle,
+      ),
+    };
+    return Semantics(label: label, child: icon);
   }
 }
 

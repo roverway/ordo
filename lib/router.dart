@@ -74,10 +74,16 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/settings',
       builder: (context, state) => const SettingsPage(),
-    ),
-    GoRoute(
-      path: '/settings/sync',
-      builder: (context, state) => const SyncSetupPage(),
+      routes: [
+        // 同步配置页是设置页的**子路由**（绝对路径仍为 /settings/sync）。
+        // 从设置页 `go('/settings/sync')` 时导航栈为 root→settings→sync，
+        // sync 页 AppBar 自动出现返回箭头回设置页（go 会重建祖先链，
+        // 平级顶层路由时 /settings 会被丢弃导致无法返回 —— 用户实测 bug）。
+        GoRoute(
+          path: 'sync',
+          builder: (context, state) => const SyncSetupPage(),
+        ),
+      ],
     ),
   ],
 );

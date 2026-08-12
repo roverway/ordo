@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 同步引擎需要网络（WebDAV/S3，docs/60-sync-design.md §13）。
+         Flutter 默认仅 debug/profile manifest 带 INTERNET；release 主 manifest
+         必须显式声明，否则所有同步请求失败（Android release 打包后网络权限缺失）。 -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="todo"
         android:name="${applicationName}"

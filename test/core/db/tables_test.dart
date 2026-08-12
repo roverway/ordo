@@ -15,7 +15,10 @@ void main() {
     test('合法值域 0–3 往返一致', () {
       for (var i = 0; i < TaskPriority.values.length; i++) {
         final value = TaskPriority.values[i];
-        expect(priorityConverter.fromSql(priorityConverter.toSql(value)), value);
+        expect(
+          priorityConverter.fromSql(priorityConverter.toSql(value)),
+          value,
+        );
       }
     });
 

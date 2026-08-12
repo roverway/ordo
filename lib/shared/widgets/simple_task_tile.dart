@@ -126,12 +126,19 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                     SizedBox(
                       width: AppTokens.touchTarget,
                       height: AppTokens.touchTarget,
-                      child: Checkbox(
-                        value: widget.isDone,
-                        onChanged: widget.hasChildren
-                            ? null
-                            : widget.onToggleDone,
-                      ),
+                      child: widget.hasChildren
+                          ? Tooltip(
+                              // 无障碍（NFR-06）：禁用原因走 ARB 文案。
+                              message: l10n.statusDerivedFromChildren,
+                              child: Checkbox(
+                                value: widget.isDone,
+                                onChanged: null,
+                              ),
+                            )
+                          : Checkbox(
+                              value: widget.isDone,
+                              onChanged: widget.onToggleDone,
+                            ),
                     ),
                     const SizedBox(width: AppTokens.spaceSm),
                     Expanded(
@@ -197,47 +204,71 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                               ),
                               child: Row(
                                 children: [
-                                  ...widget.tags
-                                      .take(2)
-                                      .map(
-                                        (tag) => Padding(
-                                          padding: const EdgeInsets.only(
-                                            right: AppTokens.spaceXxs,
-                                          ),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: AppTokens.spaceXs,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Color(
-                                                tag.color,
-                                              ).withValues(alpha: 0.12),
-                                              borderRadius:
-                                                  BorderRadius.circular(
-                                                    AppTokens.radiusChip,
+                                  // 标签 chips（≤2）。Flexible + maxLines 兜底：
+                                  // 系统字体缩放（NFR-06）下标签组可收缩而非溢出。
+                                  if (widget.tags.isNotEmpty)
+                                    Flexible(
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          ...widget.tags
+                                              .take(2)
+                                              .map(
+                                                (tag) => Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        right:
+                                                            AppTokens.spaceXxs,
+                                                      ),
+                                                  child: Container(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal:
+                                                              AppTokens.spaceXs,
+                                                          vertical: 2,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color: Color(
+                                                        tag.color,
+                                                      ).withValues(alpha: 0.12),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            AppTokens
+                                                                .radiusChip,
+                                                          ),
+                                                    ),
+                                                    child: Text(
+                                                      tag.name,
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: theme
+                                                          .textTheme
+                                                          .bodySmall
+                                                          ?.copyWith(
+                                                            color: Color(
+                                                              tag.color,
+                                                            ),
+                                                            fontSize: 10,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
+                                                    ),
                                                   ),
-                                            ),
-                                            child: Text(
-                                              tag.name,
+                                                ),
+                                              ),
+                                          if (widget.tags.length > 2)
+                                            Text(
+                                              '+${widget.tags.length - 2}',
                                               style: theme.textTheme.bodySmall
                                                   ?.copyWith(
-                                                    color: Color(tag.color),
+                                                    color: colorScheme
+                                                        .onSurfaceVariant,
                                                     fontSize: 10,
-                                                    fontWeight: FontWeight.w500,
                                                   ),
                                             ),
-                                          ),
-                                        ),
+                                        ],
                                       ),
-                                  if (widget.tags.length > 2)
-                                    Text(
-                                      '+${widget.tags.length - 2}',
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: colorScheme.onSurfaceVariant,
-                                            fontSize: 10,
-                                          ),
                                     ),
                                   const Spacer(),
                                   // 进度环 + 百分比（有子任务任务的派生完成度）。

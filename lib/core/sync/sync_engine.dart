@@ -24,7 +24,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/foundation.dart' show compute, debugPrint;
 
 import '../db/database.dart' show Project, Tag, Task;
 import '../db/repositories/todo_repository.dart';
@@ -135,6 +135,15 @@ const int _kTombstoneRetentionMs = 90 * 24 * 60 * 60 * 1000;
 
 /// 读改写最大重试次数（§6：最多重试 2 次）。
 const int _kMaxReadModifyWriteRetries = 2;
+
+/// 快照 isolate 解析阈值（NFR-02，§9）：gzip 字节数 ≥ 此值才走 compute
+/// （isolate）解析，小快照直接同步解析。
+///
+/// 理由：isolate 往返（spawn + 参数/结果拷贝）有固定开销，几 KB~几十 KB 的
+/// 普通快照用 isolate 反而比直接解析更慢；仅大快照（几 MB）的解析耗时值得
+/// 隔离。同时同步路径保证单测用固定逻辑（现有 sync_engine 测试快照均远低于
+/// 此阈值，恒走同步解析）。
+const int _kIsolateDecodeThresholdBytes = 256 * 1024;
 
 /// 时钟偏差被拒（中止本次同步，不 merge 不写库）。
 class _ClockSkewRejected implements Exception {
@@ -507,8 +516,23 @@ class SyncEngine {
   ///   不覆盖远端）；
   /// - 时钟偏差 >5min → 调 confirmClockSkew()；false/null → 抛
   ///   [_ClockSkewRejected] 中止（不 merge 不写库）。
+  ///
+  /// NFR-02（§9）：快照解析在 isolate 中执行，不阻塞 UI。
+  /// - [decodeSnapshot] 是顶层纯函数（不捕获外层上下文、无平台通道/Flutter
+  ///   依赖，只依赖 dart:convert / dart:io / dart:typed_data），可安全跨
+  ///   isolate；`compute` 内部即 `Isolate.run`；
+  /// - 异常透传：`compute`/`Isolate.run` 对**可发送**的异常对象会以**原类型**
+  ///   从 Future 重新抛出（Dart SDK isolate.dart：`_RemoteRunner._run` 将
+  ///   `[error, StackTrace]` 经 `Isolate.exit` 发送，接收端走 typed-error
+  ///   分支 `completeError(error, stack)`）。`FormatException`（message/
+  ///   source/offset）与 `SnapshotSchemaException`（actual/expected）字段全为
+  ///   String/int，均可发送 → 原类型冒泡，外层 §12 catch 分支不感知是否隔离；
+  /// - 阈值：bytes ≥ [_kIsolateDecodeThresholdBytes]（256KB）才走 isolate，
+  ///   小快照同步解析（isolate 往返开销大于收益，且便于单测用固定逻辑）。
   Future<SnapshotData> _decodeAndVerify(Uint8List bytes) async {
-    final remote = decodeSnapshot(bytes);
+    final remote = bytes.length >= _kIsolateDecodeThresholdBytes
+        ? await compute(decodeSnapshot, bytes)
+        : decodeSnapshot(bytes);
     final nowMs = _now().toUtc().millisecondsSinceEpoch;
     if ((remote.exportedAt - nowMs).abs() > _kClockSkewToleranceMs) {
       final confirmed = _confirmClockSkew != null && await _confirmClockSkew();

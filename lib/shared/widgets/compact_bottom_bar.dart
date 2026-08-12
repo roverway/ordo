@@ -80,24 +80,29 @@ class _CompactBarItem extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final color = selected ? colorScheme.primary : colorScheme.onSurfaceVariant;
 
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: AppTokens.bottomBarIconSize, color: color),
-          const SizedBox(height: AppTokens.spaceXxs),
-          Text(
-            label,
-            style: textTheme.bodySmall?.copyWith(
-              fontSize: AppTokens.bottomBarLabelSize,
-              fontWeight: selected
-                  ? AppTokens.textTitleWeight
-                  : AppTokens.textBodyWeight,
-              color: color,
+    return Semantics(
+      // 无障碍（NFR-06）：标记为按钮 + 选中态；label 由内部 Text 自动合并。
+      button: true,
+      selected: selected,
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: AppTokens.bottomBarIconSize, color: color),
+            const SizedBox(height: AppTokens.spaceXxs),
+            Text(
+              label,
+              style: textTheme.bodySmall?.copyWith(
+                fontSize: AppTokens.bottomBarLabelSize,
+                fontWeight: selected
+                    ? AppTokens.textTitleWeight
+                    : AppTokens.textBodyWeight,
+                color: color,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

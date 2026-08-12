@@ -87,6 +87,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get emptySearch => '未找到相关内容';
 
   @override
+  String get loading => '加载中…';
+
+  @override
+  String get errorLoadFailed => '加载失败，请稍后重试';
+
+  @override
+  String get retry => '重试';
+
+  @override
   String get newProject => '新建项目';
 
   @override
@@ -285,6 +294,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get progress => '进度';
 
   @override
+  String progressPercent(Object percent) {
+    return '进度 $percent%';
+  }
+
+  @override
   String get noDueDate => '无截止日期';
 
   @override
@@ -411,6 +425,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get collapse => '收起';
+
+  @override
+  String get expand => '展开';
+
+  @override
+  String get dragReorder => '拖拽排序';
 
   @override
   String get subtasks => '子任务';

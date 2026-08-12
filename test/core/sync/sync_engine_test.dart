@@ -21,6 +21,7 @@
 //       时钟偏差被拒本地库不变、未启用 → skipped。
 
 import 'dart:async';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -182,6 +183,7 @@ TaskRecord taskRec({
   required String id,
   String projectId = '',
   String title = 'T',
+  String description = '',
   int updatedAt = 100,
   int createdAt = 1,
   bool deleted = false,
@@ -191,6 +193,7 @@ TaskRecord taskRec({
     id: id,
     projectId: projectId,
     title: title,
+    description: description,
     sortOrder: 0,
     createdAt: createdAt,
     updatedAt: updatedAt,
@@ -215,6 +218,20 @@ TagRecord tagRec({
     updatedAt: updatedAt,
     deleted: deleted,
   );
+}
+
+/// 生成低压缩率随机串（固定种子，确定性）：
+/// 随机字母数字在 gzip 下几乎不压缩（≈ 原始体积），用于构造 gzip 后
+/// ≥256KB 的大快照，确保走 NFR-02 的 isolate 解析路径。
+String _lowCompressString(int length) {
+  const alphabet =
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  final rand = Random(42);
+  final sb = StringBuffer();
+  for (var i = 0; i < length; i++) {
+    sb.write(alphabet[rand.nextInt(alphabet.length)]);
+  }
+  return sb.toString();
 }
 
 // ─────────────────────────── 测试主体 ───────────────────────────
@@ -558,6 +575,119 @@ void main() {
       expect(remote.remoteBytes, corrupt);
       expect((await repo.projects.getById(p.id))!.name, 'P');
     });
+  });
+
+  group('NFR-02：大快照（≥256KB）走 isolate 解析', () {
+    // sync_engine.dart 的 _kIsolateDecodeThresholdBytes = 256KB。既有测试
+    // （场景 1–10）快照均低于阈值，恒走同步解析路径；本组专测 isolate 路径
+    // （compute → Isolate.run）的解析成功与异常原类型冒泡。
+    const isolateThresholdBytes = 256 * 1024;
+
+    late Uint8List largeBytes;
+    late String bigDesc;
+
+    setUp(() {
+      // ~512KB 低压缩率描述 → gzip 后 ≥256KB，确保到达 isolate 阈值。
+      bigDesc = _lowCompressString(512 * 1024);
+      largeBytes = encode(
+        remoteSnapshot(
+          projects: [projectRec(id: 'p-big', name: '大快照项目')],
+          tasks: [
+            taskRec(
+              id: 't-big',
+              projectId: 'p-big',
+              title: '大快照任务',
+              description: bigDesc,
+            ),
+          ],
+        ),
+      );
+    });
+
+    test('大快照在 isolate 中解析成功并应用', () async {
+      expect(
+        largeBytes.length,
+        greaterThanOrEqualTo(isolateThresholdBytes),
+        reason: '用例前置：快照字节数必须达到 isolate 阈值',
+      );
+      await enableSync(repo);
+      remote.simulateExternalUpload(largeBytes);
+
+      final engine = await buildEngine();
+      final result = await engine.run();
+
+      expect(result.ok, isTrue);
+      expect(engine.state.status, SyncStateStatus.success);
+      final localT = (await repo.tasks.getById('t-big'))!;
+      expect(localT.title, '大快照任务');
+      expect(localT.description, bigDesc, reason: 'isolate 解析内容应完整落库');
+      // 本地空 → 分支 A，不上传。
+      expect(remote.uploadCount, 0);
+    });
+
+    test('大快照损坏：FormatException 跨 isolate 原类型冒泡 → snapshotCorrupt', () async {
+      await enableSync(repo);
+      // 翻转 gzip 中间字节 → GZipCodec.decode 在 isolate 内抛 FormatException。
+      final corrupt = Uint8List.fromList(largeBytes);
+      corrupt[corrupt.length ~/ 2] ^= 0xFF;
+      remote.simulateExternalUpload(corrupt);
+
+      final engine = await buildEngine();
+      final result = await engine.run();
+
+      expect(result.ok, isFalse);
+      expect(result.retryable, isTrue);
+      expect(
+        result.errorCode,
+        SyncErrorCode.snapshotCorrupt,
+        reason: 'compute 抛出的 FormatException 应以原类型命中 §12 catch',
+      );
+      expect(engine.state.errorCode, SyncErrorCode.snapshotCorrupt);
+      expect(remote.uploadCount, 0, reason: '损坏快照不得被覆盖');
+    });
+
+    test(
+      '大快照 schemaVersion 不匹配：SnapshotSchemaException 跨 isolate 原类型冒泡 → schemaMismatch',
+      () async {
+        await enableSync(repo);
+        await repo.createProject(name: 'P', color: 0); // 本地非空 → 分支 C。
+        final badBytes = encode(
+          SnapshotData(
+            schemaVersion: 99,
+            deviceId: 'remote',
+            exportedAt: DateTime.now().toUtc().millisecondsSinceEpoch,
+            projects: [projectRec(id: 'p-big', name: '大快照项目')],
+            tasks: [
+              taskRec(id: 't-big', projectId: 'p-big', description: bigDesc),
+            ],
+          ),
+        );
+        expect(
+          badBytes.length,
+          greaterThanOrEqualTo(isolateThresholdBytes),
+          reason: '用例前置：快照字节数必须达到 isolate 阈值',
+        );
+        remote.simulateExternalUpload(badBytes);
+
+        final engine = await buildEngine();
+        final result = await engine.run();
+
+        expect(result.ok, isFalse);
+        expect(result.retryable, isFalse);
+        expect(
+          result.errorCode,
+          SyncErrorCode.schemaMismatch,
+          reason: 'compute 抛出的 SnapshotSchemaException 应以原类型命中 §12 catch',
+        );
+        expect(engine.state.errorCode, SyncErrorCode.schemaMismatch);
+        expect(remote.uploadCount, 0, reason: 'schema 不匹配不得覆盖远端');
+        expect(
+          (await repo.projects.getById('p-big')),
+          isNull,
+          reason: '本地库不变（大快照未应用）',
+        );
+      },
+    );
   });
 
   group('额外', () {

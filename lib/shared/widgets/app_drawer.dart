@@ -7,6 +7,8 @@ import '../../core/theme/app_tokens.dart';
 import '../../features/projects/project_providers.dart';
 import '../../features/projects/widgets/project_form_dialog.dart';
 import '../../features/tasks/task_providers.dart';
+import 'error_view.dart';
+import 'loading_view.dart';
 
 /// 移动端侧边栏抽屉（55-ui-redesign-proposal.md §3.1，D1，批 2-A）。
 ///
@@ -126,29 +128,23 @@ class AppDrawer extends ConsumerWidget {
                         ],
                         loading: () => const [
                           Padding(
-                            padding: EdgeInsets.all(AppTokens.spaceMd),
-                            child: Center(
-                              child: SizedBox(
-                                width: AppTokens.checkboxSize,
-                                height: AppTokens.checkboxSize,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: AppTokens.progressRingWidth,
-                                ),
-                              ),
-                            ),
+                            padding: EdgeInsets.all(AppTokens.spaceXs),
+                            child: LoadingView(compact: true),
                           ),
                         ],
-                        error: (e, _) => [
-                          Padding(
-                            padding: const EdgeInsets.all(AppTokens.spaceMd),
-                            child: Text(
-                              e.toString(),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.error,
+                        error: (e, st) {
+                          logAsyncError(e, st);
+                          return [
+                            Padding(
+                              padding: const EdgeInsets.all(AppTokens.spaceXs),
+                              child: ErrorView(
+                                compact: true,
+                                onRetry: () =>
+                                    ref.invalidate(projectsStreamProvider),
                               ),
                             ),
-                          ),
-                        ],
+                          ];
+                        },
                       ),
                 ],
               ),
