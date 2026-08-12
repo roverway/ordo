@@ -19,12 +19,12 @@
 | `go_router` | 路由 | state-driven 路由；集中路由表；支持深链参数 |
 | `flutter_localizations` + `intl` | 国际化 | ARB 文件 + `flutter gen-l10n` 生成 |
 | `webdav_client` | WebDAV 同步 | pub.dev 高信誉；PUT/GET/HEAD、认证、目录操作 |
-| `s3_dart` | S3 同步 | 支持自定义 endpoint（AWS/R2/MinIO/Wasabi）、SigV4、region 检测 |
+| `minio` | S3 同步 | **3.5.8**（2026-08 选定）：支持自定义 endpoint（AWS/R2/MinIO/Wasabi）、SigV4 库内建、pathStyle 默认 true。替代已调研失败的 `s3_dart`（其 getRequestUrl 会把自定义 endpoint 重写为 `s3.<region>.<endpoint>` 导致 NXDOMAIN，R2/MinIO 不可用） |
 | `flutter_secure_storage` | 凭据存储 | Android Keystore / Windows DPAPI；**禁止**明文存 shared_preferences |
 | `uuid` | UUID v4 生成 | 所有记录主键 |
 | `path_provider` | 应用目录 | 数据库文件位置 |
 | `shared_preferences` | 非敏感设置 | 主题/语言/同步开关等非敏感偏好（凭据除外） |
-| `archive` | gzip 压缩 | 快照压缩（同步） |
+| `dart:io` GZipCodec | gzip 压缩 | 快照压缩（同步）；标准库自带，零第三方依赖，isolate 可用（`archive` 不再引入） |
 
 ## 3. UI 风格选型（重要决策）
 
@@ -53,12 +53,11 @@
 | flutter_localizations | 随 Flutter | M0 引入 |
 | intl | 随 Flutter 锁定 | M0 引入 |
 | shared_preferences | ^2.5.5 | M0 已装（非敏感设置） |
-| webdav_client | 最新稳定 | M4 引入时锁定 |
-| s3_dart | 最新稳定 | M4 引入时锁定 |
-| flutter_secure_storage | 最新稳定 | M4 引入时锁定 |
+| webdav_client | 1.2.2 | M4 引入（2026-08 锁定） |
+| minio | 3.5.8 | M4 引入（2026-08 锁定；替代 s3_dart，勿用 3.5.1 撤回版） |
+| flutter_secure_storage | 11.0.0 | M4 引入（2026-08 锁定） |
 | uuid | ^4.6.0 | M1 已装 |
 | path_provider | ^2.1.6 | M1 已装 |
-| archive | 最新稳定 | M4 引入时锁定 |
 
 **锁定流程**：M0 用 `flutter pub add <pkg>` 安装 → 记录 `pubspec.lock` → 回填本表 → 后续任何 `pub upgrade` 需用户批准。
 

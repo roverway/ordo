@@ -415,4 +415,21 @@ void main() {
     expect(prefs.getString(localePrefKey), 'en');
     expect(find.text('Settings'), findsOneWidget);
   });
+
+  testWidgets('Settings: sync entry navigates to /settings/sync', (
+    tester,
+  ) async {
+    await pumpApp(tester, const Size(400, 800));
+
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+
+    // 同步分组入口存在（go 跳转，替换设置页栈）。
+    await tester.tap(find.text('同步设置'));
+    await tester.pumpAndSettle();
+
+    // 同步配置页打开：AppBar 标题 + 启用开关。
+    expect(find.text('同步设置'), findsOneWidget);
+    expect(find.text('启用同步'), findsOneWidget);
+  });
 }

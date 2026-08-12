@@ -907,6 +907,294 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'附件功能即将推出'**
   String get attachmentComingSoon;
+
+  /// No description provided for @sync.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步'**
+  String get sync;
+
+  /// No description provided for @syncSettings.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步设置'**
+  String get syncSettings;
+
+  /// No description provided for @syncType.
+  ///
+  /// In zh, this message translates to:
+  /// **'远端类型'**
+  String get syncType;
+
+  /// No description provided for @syncTypeWebdav.
+  ///
+  /// In zh, this message translates to:
+  /// **'WebDAV'**
+  String get syncTypeWebdav;
+
+  /// No description provided for @syncTypeS3.
+  ///
+  /// In zh, this message translates to:
+  /// **'S3 兼容桶'**
+  String get syncTypeS3;
+
+  /// No description provided for @syncEnabled.
+  ///
+  /// In zh, this message translates to:
+  /// **'启用同步'**
+  String get syncEnabled;
+
+  /// No description provided for @syncServerUrl.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务器地址'**
+  String get syncServerUrl;
+
+  /// No description provided for @syncServerUrlHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'如 https://dav.example.com/todo/'**
+  String get syncServerUrlHint;
+
+  /// No description provided for @syncEndpoint.
+  ///
+  /// In zh, this message translates to:
+  /// **'Endpoint'**
+  String get syncEndpoint;
+
+  /// No description provided for @syncEndpointHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'如 https://<bucket>.r2.cloudflarestorage.com'**
+  String get syncEndpointHint;
+
+  /// No description provided for @syncUsername.
+  ///
+  /// In zh, this message translates to:
+  /// **'用户名'**
+  String get syncUsername;
+
+  /// No description provided for @syncPassword.
+  ///
+  /// In zh, this message translates to:
+  /// **'密码'**
+  String get syncPassword;
+
+  /// No description provided for @syncAccessKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'Access Key'**
+  String get syncAccessKey;
+
+  /// No description provided for @syncSecretKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'Secret Key'**
+  String get syncSecretKey;
+
+  /// No description provided for @syncBucket.
+  ///
+  /// In zh, this message translates to:
+  /// **'Bucket'**
+  String get syncBucket;
+
+  /// No description provided for @syncRegion.
+  ///
+  /// In zh, this message translates to:
+  /// **'Region'**
+  String get syncRegion;
+
+  /// No description provided for @syncRegionHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'us-east-1 / auto'**
+  String get syncRegionHint;
+
+  /// No description provided for @syncPrefix.
+  ///
+  /// In zh, this message translates to:
+  /// **'Prefix'**
+  String get syncPrefix;
+
+  /// No description provided for @syncPrefixHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'默认 todo/'**
+  String get syncPrefixHint;
+
+  /// No description provided for @syncAutoOnStart.
+  ///
+  /// In zh, this message translates to:
+  /// **'启动时自动同步'**
+  String get syncAutoOnStart;
+
+  /// No description provided for @syncAutoOnEdit.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑后自动同步'**
+  String get syncAutoOnEdit;
+
+  /// No description provided for @syncWifiOnly.
+  ///
+  /// In zh, this message translates to:
+  /// **'仅 WiFi 时自动同步'**
+  String get syncWifiOnly;
+
+  /// No description provided for @syncTestConnection.
+  ///
+  /// In zh, this message translates to:
+  /// **'测试连接'**
+  String get syncTestConnection;
+
+  /// No description provided for @syncNow.
+  ///
+  /// In zh, this message translates to:
+  /// **'立即同步'**
+  String get syncNow;
+
+  /// No description provided for @syncSave.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存'**
+  String get syncSave;
+
+  /// No description provided for @syncStatusIdle.
+  ///
+  /// In zh, this message translates to:
+  /// **'未同步'**
+  String get syncStatusIdle;
+
+  /// No description provided for @syncStatusSyncing.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步中…'**
+  String get syncStatusSyncing;
+
+  /// No description provided for @syncStatusSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'已同步'**
+  String get syncStatusSuccess;
+
+  /// No description provided for @syncStatusError.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步失败'**
+  String get syncStatusError;
+
+  /// No description provided for @syncLastSyncedAt.
+  ///
+  /// In zh, this message translates to:
+  /// **'上次同步：{time}'**
+  String syncLastSyncedAt(Object time);
+
+  /// No description provided for @syncTestOk.
+  ///
+  /// In zh, this message translates to:
+  /// **'连接成功'**
+  String get syncTestOk;
+
+  /// No description provided for @syncTestFail.
+  ///
+  /// In zh, this message translates to:
+  /// **'连接失败：{reason}'**
+  String syncTestFail(Object reason);
+
+  /// No description provided for @syncConfigIncomplete.
+  ///
+  /// In zh, this message translates to:
+  /// **'请填写完整的连接信息'**
+  String get syncConfigIncomplete;
+
+  /// No description provided for @syncClockSkewTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'时间偏差提醒'**
+  String get syncClockSkewTitle;
+
+  /// No description provided for @syncClockSkewBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'远端时间与本地相差较大，是否继续同步？'**
+  String get syncClockSkewBody;
+
+  /// No description provided for @syncCredsSaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'已保存'**
+  String get syncCredsSaved;
+
+  /// No description provided for @syncSaveFail.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存失败'**
+  String get syncSaveFail;
+
+  /// No description provided for @syncNotConfigured.
+  ///
+  /// In zh, this message translates to:
+  /// **'尚未配置同步'**
+  String get syncNotConfigured;
+
+  /// No description provided for @syncRetryable.
+  ///
+  /// In zh, this message translates to:
+  /// **'将自动重试'**
+  String get syncRetryable;
+
+  /// No description provided for @syncErrSkippedRunning.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步进行中，本次触发已跳过'**
+  String get syncErrSkippedRunning;
+
+  /// No description provided for @syncErrClockSkew.
+  ///
+  /// In zh, this message translates to:
+  /// **'检测到设备时间偏差，请校准后重试'**
+  String get syncErrClockSkew;
+
+  /// No description provided for @syncErrAuth.
+  ///
+  /// In zh, this message translates to:
+  /// **'认证失败，请检查账号与密码'**
+  String get syncErrAuth;
+
+  /// No description provided for @syncErrNetwork.
+  ///
+  /// In zh, this message translates to:
+  /// **'网络连接失败或超时'**
+  String get syncErrNetwork;
+
+  /// No description provided for @syncErrRemote.
+  ///
+  /// In zh, this message translates to:
+  /// **'远端服务器错误，请稍后重试'**
+  String get syncErrRemote;
+
+  /// No description provided for @syncErrConfig.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步配置无效，请检查设置'**
+  String get syncErrConfig;
+
+  /// No description provided for @syncErrSchemaMismatch.
+  ///
+  /// In zh, this message translates to:
+  /// **'远端数据版本不兼容，请升级应用'**
+  String get syncErrSchemaMismatch;
+
+  /// No description provided for @syncErrSnapshotCorrupt.
+  ///
+  /// In zh, this message translates to:
+  /// **'远端数据异常，已保留原文件'**
+  String get syncErrSnapshotCorrupt;
+
+  /// No description provided for @syncErrUnknown.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步失败，请重试'**
+  String get syncErrUnknown;
 }
 
 class _AppLocalizationsDelegate

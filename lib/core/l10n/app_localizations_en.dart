@@ -431,4 +431,158 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get attachmentComingSoon => 'Attachments coming soon';
+
+  @override
+  String get sync => 'Sync';
+
+  @override
+  String get syncSettings => 'Sync settings';
+
+  @override
+  String get syncType => 'Remote type';
+
+  @override
+  String get syncTypeWebdav => 'WebDAV';
+
+  @override
+  String get syncTypeS3 => 'S3-compatible bucket';
+
+  @override
+  String get syncEnabled => 'Enable sync';
+
+  @override
+  String get syncServerUrl => 'Server URL';
+
+  @override
+  String get syncServerUrlHint => 'e.g. https://dav.example.com/todo/';
+
+  @override
+  String get syncEndpoint => 'Endpoint';
+
+  @override
+  String get syncEndpointHint =>
+      'e.g. https://<bucket>.r2.cloudflarestorage.com';
+
+  @override
+  String get syncUsername => 'Username';
+
+  @override
+  String get syncPassword => 'Password';
+
+  @override
+  String get syncAccessKey => 'Access Key';
+
+  @override
+  String get syncSecretKey => 'Secret Key';
+
+  @override
+  String get syncBucket => 'Bucket';
+
+  @override
+  String get syncRegion => 'Region';
+
+  @override
+  String get syncRegionHint => 'us-east-1 / auto';
+
+  @override
+  String get syncPrefix => 'Prefix';
+
+  @override
+  String get syncPrefixHint => 'Default: todo/';
+
+  @override
+  String get syncAutoOnStart => 'Sync on app start';
+
+  @override
+  String get syncAutoOnEdit => 'Sync after edits';
+
+  @override
+  String get syncWifiOnly => 'Auto-sync on WiFi only';
+
+  @override
+  String get syncTestConnection => 'Test connection';
+
+  @override
+  String get syncNow => 'Sync now';
+
+  @override
+  String get syncSave => 'Save';
+
+  @override
+  String get syncStatusIdle => 'Not synced';
+
+  @override
+  String get syncStatusSyncing => 'Syncing…';
+
+  @override
+  String get syncStatusSuccess => 'Synced';
+
+  @override
+  String get syncStatusError => 'Sync failed';
+
+  @override
+  String syncLastSyncedAt(Object time) {
+    return 'Last synced: $time';
+  }
+
+  @override
+  String get syncTestOk => 'Connection successful';
+
+  @override
+  String syncTestFail(Object reason) {
+    return 'Connection failed: $reason';
+  }
+
+  @override
+  String get syncConfigIncomplete => 'Please fill in the connection details';
+
+  @override
+  String get syncClockSkewTitle => 'Clock skew warning';
+
+  @override
+  String get syncClockSkewBody =>
+      'The remote clock differs significantly from yours. Continue?';
+
+  @override
+  String get syncCredsSaved => 'Saved';
+
+  @override
+  String get syncSaveFail => 'Save failed';
+
+  @override
+  String get syncNotConfigured => 'Sync not configured';
+
+  @override
+  String get syncRetryable => 'Will retry automatically';
+
+  @override
+  String get syncErrSkippedRunning => 'Sync already in progress';
+
+  @override
+  String get syncErrClockSkew =>
+      'Device clock skew detected, please calibrate and retry';
+
+  @override
+  String get syncErrAuth =>
+      'Authentication failed, please check your credentials';
+
+  @override
+  String get syncErrNetwork => 'Network error or timeout';
+
+  @override
+  String get syncErrRemote => 'Remote server error, please retry later';
+
+  @override
+  String get syncErrConfig => 'Invalid sync configuration';
+
+  @override
+  String get syncErrSchemaMismatch =>
+      'Remote data version incompatible, please update the app';
+
+  @override
+  String get syncErrSnapshotCorrupt =>
+      'Remote data corrupted, original file kept';
+
+  @override
+  String get syncErrUnknown => 'Sync failed, please retry';
 }

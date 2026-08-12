@@ -426,4 +426,152 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get attachmentComingSoon => '附件功能即将推出';
+
+  @override
+  String get sync => '同步';
+
+  @override
+  String get syncSettings => '同步设置';
+
+  @override
+  String get syncType => '远端类型';
+
+  @override
+  String get syncTypeWebdav => 'WebDAV';
+
+  @override
+  String get syncTypeS3 => 'S3 兼容桶';
+
+  @override
+  String get syncEnabled => '启用同步';
+
+  @override
+  String get syncServerUrl => '服务器地址';
+
+  @override
+  String get syncServerUrlHint => '如 https://dav.example.com/todo/';
+
+  @override
+  String get syncEndpoint => 'Endpoint';
+
+  @override
+  String get syncEndpointHint => '如 https://<bucket>.r2.cloudflarestorage.com';
+
+  @override
+  String get syncUsername => '用户名';
+
+  @override
+  String get syncPassword => '密码';
+
+  @override
+  String get syncAccessKey => 'Access Key';
+
+  @override
+  String get syncSecretKey => 'Secret Key';
+
+  @override
+  String get syncBucket => 'Bucket';
+
+  @override
+  String get syncRegion => 'Region';
+
+  @override
+  String get syncRegionHint => 'us-east-1 / auto';
+
+  @override
+  String get syncPrefix => 'Prefix';
+
+  @override
+  String get syncPrefixHint => '默认 todo/';
+
+  @override
+  String get syncAutoOnStart => '启动时自动同步';
+
+  @override
+  String get syncAutoOnEdit => '编辑后自动同步';
+
+  @override
+  String get syncWifiOnly => '仅 WiFi 时自动同步';
+
+  @override
+  String get syncTestConnection => '测试连接';
+
+  @override
+  String get syncNow => '立即同步';
+
+  @override
+  String get syncSave => '保存';
+
+  @override
+  String get syncStatusIdle => '未同步';
+
+  @override
+  String get syncStatusSyncing => '同步中…';
+
+  @override
+  String get syncStatusSuccess => '已同步';
+
+  @override
+  String get syncStatusError => '同步失败';
+
+  @override
+  String syncLastSyncedAt(Object time) {
+    return '上次同步：$time';
+  }
+
+  @override
+  String get syncTestOk => '连接成功';
+
+  @override
+  String syncTestFail(Object reason) {
+    return '连接失败：$reason';
+  }
+
+  @override
+  String get syncConfigIncomplete => '请填写完整的连接信息';
+
+  @override
+  String get syncClockSkewTitle => '时间偏差提醒';
+
+  @override
+  String get syncClockSkewBody => '远端时间与本地相差较大，是否继续同步？';
+
+  @override
+  String get syncCredsSaved => '已保存';
+
+  @override
+  String get syncSaveFail => '保存失败';
+
+  @override
+  String get syncNotConfigured => '尚未配置同步';
+
+  @override
+  String get syncRetryable => '将自动重试';
+
+  @override
+  String get syncErrSkippedRunning => '同步进行中，本次触发已跳过';
+
+  @override
+  String get syncErrClockSkew => '检测到设备时间偏差，请校准后重试';
+
+  @override
+  String get syncErrAuth => '认证失败，请检查账号与密码';
+
+  @override
+  String get syncErrNetwork => '网络连接失败或超时';
+
+  @override
+  String get syncErrRemote => '远端服务器错误，请稍后重试';
+
+  @override
+  String get syncErrConfig => '同步配置无效，请检查设置';
+
+  @override
+  String get syncErrSchemaMismatch => '远端数据版本不兼容，请升级应用';
+
+  @override
+  String get syncErrSnapshotCorrupt => '远端数据异常，已保留原文件';
+
+  @override
+  String get syncErrUnknown => '同步失败，请重试';
 }

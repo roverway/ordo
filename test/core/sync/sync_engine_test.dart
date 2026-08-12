@@ -1,0 +1,775 @@
+// SyncEngine 集成测试（docs/60-sync-design.md §14 场景 1–10 + 额外）。
+//
+// 架构（docs/30-architecture.md §8）：FakeRemoteStore（implements RemoteStore）
+// + 真实 MergeEngine + 内存 DB（NativeDatabase.memory），SecureStore 用内存
+// Fake 后端（secure_store_test.dart 同款注入方式），RemoteStoreFactory 用
+// Fake 工厂（implements 返回 FakeRemoteStore），SyncConfig 直接构造写入
+// settings + 凭据，不依赖真实网络。
+//
+// 覆盖：
+//   1  本地新增 → 远端快照含新记录
+//   2  远端新增 → 本地出现新记录
+//   3  两端改同一 id → 取 updatedAt 大者
+//   4  一端删除 → 墓碑传播（远端含 deleted=true；另一端同步后本地删除）
+//   5  首次同步：本地空+远端有 → 下载
+//   6  首次同步：本地有+远端空 → 上传
+//   7  schemaVersion 不匹配 → 拒绝 + 错误态
+//   8  标签删除后合并 → tagIds 悬空引用清理
+//   9  并发：upload 前远端被改 → 重新下载合并后上传
+//   10 快照损坏（decode 抛 FormatException）→ 不覆盖远端，错误可重试
+// 额外：上传优化（内容无变化跳过 upload）、认证失败不重试、
+//       时钟偏差被拒本地库不变、未启用 → skipped。
+
+import 'dart:async';
+import 'dart:typed_data';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:todo/core/db/database.dart';
+import 'package:todo/core/db/repositories/todo_repository.dart';
+import 'package:todo/core/security/secure_store.dart';
+import 'package:todo/core/sync/content_hash.dart';
+import 'package:todo/core/sync/remote_store.dart';
+import 'package:todo/core/sync/remote_store_factory.dart';
+import 'package:todo/core/sync/snapshot.dart';
+import 'package:todo/core/sync/snapshot_codec.dart';
+import 'package:todo/core/sync/sync_config.dart';
+import 'package:todo/core/sync/sync_engine.dart';
+import 'package:todo/core/sync/sync_exceptions.dart';
+
+import '../../helpers/db_test_setup.dart';
+
+// ─────────────────────────── Fake RemoteStore ───────────────────────────
+
+/// 内存 Fake 远端存储：upload/download/exists/lastModified/contentHash 全在
+/// 内存完成，支持错误注入与并发写入钩子。
+class FakeRemoteStore implements RemoteStore {
+  Uint8List? remoteBytes;
+  DateTime? remoteModifiedAt;
+  String? _lastUploadHash;
+
+  int uploadCount = 0;
+  int downloadCount = 0;
+  int existsCount = 0;
+  int lastModifiedCount = 0;
+
+  Exception? existsError;
+  Exception? downloadError;
+  Exception? uploadError;
+
+  /// 每次 lastModified() 调用前触发（测试注入并发写入）。
+  Future<void> Function()? onBeforeLastModified;
+
+  @override
+  Future<bool> exists() async {
+    existsCount++;
+    if (existsError != null) throw existsError!;
+    return remoteBytes != null;
+  }
+
+  @override
+  Future<Uint8List?> download() async {
+    downloadCount++;
+    if (downloadError != null) throw downloadError!;
+    return remoteBytes;
+  }
+
+  @override
+  Future<void> upload(Uint8List data) async {
+    if (uploadError != null) throw uploadError!;
+    uploadCount++;
+    simulateExternalUpload(data);
+  }
+
+  @override
+  Future<DateTime?> lastModified() async {
+    lastModifiedCount++;
+    if (onBeforeLastModified != null) await onBeforeLastModified!();
+    return remoteModifiedAt;
+  }
+
+  @override
+  Future<String?> contentHash() async => _lastUploadHash;
+
+  /// 模拟另一设备并发上传（不计数 [uploadCount]）。
+  void simulateExternalUpload(Uint8List data) {
+    remoteBytes = data;
+    remoteModifiedAt = DateTime.now().toUtc();
+    _lastUploadHash = fnv1a64Hex(data);
+  }
+}
+
+/// Fake 工厂：无论配置返回同一个 [FakeRemoteStore]。
+class FakeRemoteStoreFactory implements RemoteStoreFactory {
+  FakeRemoteStoreFactory(this.store);
+
+  final FakeRemoteStore store;
+
+  @override
+  RemoteStore create(SyncConfig config) => store;
+}
+
+/// Fake 工厂：create 时抛 [SyncConfigException]（模拟本地配置无效 §9.3）。
+class _ConfigErrorFactory implements RemoteStoreFactory {
+  @override
+  RemoteStore create(SyncConfig config) =>
+      throw const SyncConfigException('WebDAV 配置缺少服务器地址');
+}
+
+/// 内存安全存储后端（同 secure_store_test.dart 注入方式）。
+class _InMemoryBackend implements SecureKeyValueStore {
+  final Map<String, String> store = {};
+
+  @override
+  Future<String?> read(String key) async => store[key];
+
+  @override
+  Future<void> write(String key, String value) async {
+    store[key] = value;
+  }
+
+  @override
+  Future<void> delete(String key) async {
+    store.remove(key);
+  }
+}
+
+// ─────────────────────────── 快照构造辅助 ───────────────────────────
+
+SnapshotData remoteSnapshot({
+  String deviceId = 'remote-device',
+  int? exportedAt,
+  List<ProjectRecord> projects = const [],
+  List<TaskRecord> tasks = const [],
+  List<TagRecord> tags = const [],
+}) {
+  return SnapshotData(
+    schemaVersion: kSnapshotSchemaVersion,
+    deviceId: deviceId,
+    exportedAt: exportedAt ?? DateTime.now().toUtc().millisecondsSinceEpoch,
+    projects: projects,
+    tasks: tasks,
+    tags: tags,
+  );
+}
+
+ProjectRecord projectRec({
+  required String id,
+  String name = 'P',
+  int color = 0,
+  int updatedAt = 100,
+  int createdAt = 1,
+  bool deleted = false,
+}) {
+  return ProjectRecord(
+    id: id,
+    name: name,
+    color: color,
+    sortOrder: 0,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+    deleted: deleted,
+  );
+}
+
+TaskRecord taskRec({
+  required String id,
+  String projectId = '',
+  String title = 'T',
+  int updatedAt = 100,
+  int createdAt = 1,
+  bool deleted = false,
+  List<String> tagIds = const [],
+}) {
+  return TaskRecord(
+    id: id,
+    projectId: projectId,
+    title: title,
+    sortOrder: 0,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+    deleted: deleted,
+    tagIds: tagIds,
+  );
+}
+
+TagRecord tagRec({
+  required String id,
+  String name = 'TAG',
+  int updatedAt = 100,
+  int createdAt = 1,
+  bool deleted = false,
+}) {
+  return TagRecord(
+    id: id,
+    name: name,
+    color: 0,
+    sortOrder: 0,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+    deleted: deleted,
+  );
+}
+
+// ─────────────────────────── 测试主体 ───────────────────────────
+
+void main() {
+  late AppDatabase db;
+  late TodoRepository repo;
+  late _InMemoryBackend secureBackend;
+  late SecureStore secureStore;
+  late FakeRemoteStore remote;
+  late List<SyncState> stateLog;
+  late int fixedNowMs;
+
+  setUp(() {
+    db = openTestDatabase();
+    repo = TodoRepository(database: db);
+    secureBackend = _InMemoryBackend();
+    secureStore = SecureStore(backend: secureBackend);
+    remote = FakeRemoteStore();
+    stateLog = [];
+    fixedNowMs = 0; // 0 → 真实时钟；非 0 → 固定时钟（上传优化测试用）。
+  });
+
+  tearDown(() async {
+    await db.close();
+  });
+
+  /// 构造 SyncEngine（可指定独立设备 DB 模拟另一端）。
+  Future<SyncEngine> buildEngine({
+    TodoRepository? repository,
+    Future<bool> Function()? confirmClockSkew,
+  }) async {
+    return SyncEngine(
+      repository: repository ?? repo,
+      secureStore: secureStore,
+      remoteStoreFactory: FakeRemoteStoreFactory(remote),
+      confirmClockSkew: confirmClockSkew,
+      onStateChanged: stateLog.add,
+      now: () => DateTime.fromMillisecondsSinceEpoch(
+        fixedNowMs == 0 ? DateTime.now().millisecondsSinceEpoch : fixedNowMs,
+        isUtc: true,
+      ),
+    );
+  }
+
+  /// 启用 webdav 同步（settings 非敏感项 + 安全存储凭据）。
+  Future<void> enableSync(TodoRepository r) async {
+    await r.settings.set(SyncSettingsKeys.type, 'webdav');
+    await r.settings.set(SyncSettingsKeys.enabled, '1');
+    await secureStore.writeCreds(
+      const SyncConfig(
+        type: RemoteType.webdav,
+        serverUrl: 'https://dav.example.com/todo/',
+        username: 'user',
+        secret: 'pass',
+      ),
+    );
+  }
+
+  /// 注入远端快照（同时更新 lastModified，保证读改写判定稳定）。
+  void seedRemote(SnapshotData snap) {
+    remote.simulateExternalUpload(encodeSnapshot(snap));
+  }
+
+  Uint8List encode(SnapshotData snap) => encodeSnapshot(snap);
+
+  SnapshotData decode(Uint8List bytes) => decodeSnapshot(bytes);
+
+  group('§14 场景 1/2：单侧新增', () {
+    test('场景 1：本地新增 → 同步 → 远端快照含新记录', () async {
+      await enableSync(repo);
+      final p = await repo.createProject(name: '项目', color: 0xFF0000);
+      final t = await repo.createTask(projectId: p.id, title: '任务');
+
+      final engine = await buildEngine();
+      final result = await engine.run();
+
+      expect(result.ok, isTrue);
+      expect(remote.uploadCount, 1);
+      final snap = decode(remote.remoteBytes!);
+      expect(snap.projects.map((x) => x.id), [p.id]);
+      expect(snap.tasks.map((x) => x.id), [t.id]);
+      expect(snap.tasks.single.title, '任务');
+      expect(snap.projects.single.deleted, isFalse);
+      // 成功路径：errorCode 为空。
+      expect(result.errorCode, isNull);
+      expect(engine.state.errorCode, isNull);
+      // 成功写 lastSyncedAt + 状态回调。
+      expect(await repo.settings.get(SyncSettingsKeys.lastSyncedAt), isNotNull);
+      expect(stateLog.last.status, SyncStateStatus.success);
+    });
+
+    test('场景 2：远端新增 → 同步 → 本地出现新记录', () async {
+      await enableSync(repo);
+      seedRemote(
+        remoteSnapshot(
+          projects: [projectRec(id: 'p-remote', name: '远端项目')],
+          tasks: [
+            taskRec(id: 't-remote', projectId: 'p-remote', title: '远端任务'),
+          ],
+        ),
+      );
+
+      final engine = await buildEngine();
+      final result = await engine.run();
+
+      expect(result.ok, isTrue);
+      final localP = (await repo.projects.getById('p-remote'))!;
+      expect(localP.name, '远端项目');
+      final localT = (await repo.tasks.getById('t-remote'))!;
+      expect(localT.title, '远端任务');
+      expect(remote.downloadCount, 1);
+      // 本地空 → 分支 A，不上传。
+      expect(remote.uploadCount, 0);
+    });
+  });
+
+  group('§14 场景 3：两端改同一 id', () {
+    test('场景 3：取 updatedAt 大者（远端更新更晚 → 远端胜）', () async {
+      await enableSync(repo);
+      final p = await repo.createProject(name: '本地名', color: 0);
+      seedRemote(
+        remoteSnapshot(
+          projects: [
+            projectRec(
+              id: p.id,
+              name: '远端名',
+              updatedAt: p.updatedAt + 5000,
+              createdAt: p.createdAt,
+            ),
+          ],
+        ),
+      );
+
+      final engine = await buildEngine();
+      final result = await engine.run();
+
+      expect(result.ok, isTrue);
+      final localP = (await repo.projects.getById(p.id))!;
+      expect(localP.name, '远端名');
+      expect(localP.updatedAt, p.updatedAt + 5000);
+      // 合并结果上传回远端。
+      expect(decode(remote.remoteBytes!).projects.single.name, '远端名');
+    });
+  });
+
+  group('§14 场景 4：一端删除 → 墓碑传播', () {
+    test('场景 4：墓碑传播到远端快照，另一端同步后本地删除', () async {
+      await enableSync(repo);
+      final p = await repo.createProject(name: 'P', color: 0);
+      final t = await repo.createTask(projectId: p.id, title: 'T');
+
+      // 设备 A 首次同步（上传任务）。
+      final engineA = await buildEngine();
+      await engineA.run();
+      expect(decode(remote.remoteBytes!).tasks.single.deleted, isFalse);
+
+      // 设备 B：独立 DB，首次同步下载任务。
+      final dbB = openTestDatabase();
+      addTearDown(dbB.close);
+      final repoB = TodoRepository(database: dbB);
+      await enableSync(repoB);
+      final engineB = await buildEngine(repository: repoB);
+      await engineB.run();
+      expect((await repoB.tasks.getById(t.id))!.title, 'T');
+
+      // 设备 A 删除任务 → 墓碑 → 再同步（远端快照含 deleted=true）。
+      await repo.deleteTask(t.id);
+      await engineA.run();
+      final remoteTomb = decode(
+        remote.remoteBytes!,
+      ).tasks.singleWhere((x) => x.id == t.id);
+      expect(remoteTomb.deleted, isTrue);
+
+      // 设备 B 再同步 → 本地硬删该任务。
+      await engineB.run();
+      expect(await repoB.tasks.getById(t.id), isNull);
+      // 墓碑保留在 B 的本地墓碑集合（要传播给远端，D1）。
+      final tomsB = await repoB.readTombstones();
+      expect(tomsB.any((e) => e.type == 'task' && e.id == t.id), isTrue);
+    });
+  });
+
+  group('§14 场景 5/6：首次同步分支', () {
+    test('场景 5：本地空 + 远端有 → 下载应用', () async {
+      await enableSync(repo);
+      seedRemote(
+        remoteSnapshot(
+          projects: [projectRec(id: 'p1', name: '远端项目')],
+        ),
+      );
+
+      final engine = await buildEngine();
+      final result = await engine.run();
+
+      expect(result.ok, isTrue);
+      expect(remote.downloadCount, 1);
+      expect(remote.uploadCount, 0);
+      expect((await repo.projects.getById('p1'))!.name, '远端项目');
+    });
+
+    test('场景 6：本地有 + 远端空 → 上传', () async {
+      await enableSync(repo);
+      final p = await repo.createProject(name: 'P', color: 0);
+
+      final engine = await buildEngine();
+      final result = await engine.run();
+
+      expect(result.ok, isTrue);
+      expect(remote.uploadCount, 1);
+      expect(remote.downloadCount, 0);
+      expect(decode(remote.remoteBytes!).projects.single.id, p.id);
+    });
+  });
+
+  group('§14 场景 7：schemaVersion 不匹配', () {
+    test('场景 7：拒绝 + 错误态，不覆盖远端、本地库不变', () async {
+      await enableSync(repo);
+      final p = await repo.createProject(name: 'P', color: 0);
+      seedRemote(
+        SnapshotData(
+          schemaVersion: 99,
+          deviceId: 'remote',
+          exportedAt: DateTime.now().toUtc().millisecondsSinceEpoch,
+        ),
+      );
+
+      final engine = await buildEngine();
+      final result = await engine.run();
+
+      expect(result.ok, isFalse);
+      expect(result.retryable, isFalse);
+      expect(engine.state.status, SyncStateStatus.error);
+      expect(result.errorCode, SyncErrorCode.schemaMismatch);
+      expect(engine.state.errorCode, SyncErrorCode.schemaMismatch);
+      expect(engine.state.errorMessage, contains('版本'));
+      expect(remote.uploadCount, 0, reason: 'schema 不匹配不得覆盖远端');
+      expect(remote.remoteBytes, isNotNull);
+      expect((await repo.projects.getById(p.id))!.name, 'P');
+    });
+  });
+
+  group('§14 场景 8：标签删除后合并 → tagIds 悬空引用清理', () {
+    test('场景 8：悬空引用被清理，标签硬删，任务保留', () async {
+      await enableSync(repo);
+      final tag = await repo.createTag(name: '标签', color: 0);
+      final p = await repo.createProject(name: 'P', color: 0);
+      final t = await repo.createTask(projectId: p.id, title: 'T');
+      await repo.tags.setTaskTags(t.id, [tag.id]);
+      expect(await repo.tags.tagIdsForTask(t.id), [tag.id]);
+
+      // 设备 A 同步上传。
+      final engineA = await buildEngine();
+      await engineA.run();
+
+      // 设备 B 首次同步下载（任务+标签+关联）。
+      final dbB = openTestDatabase();
+      addTearDown(dbB.close);
+      final repoB = TodoRepository(database: dbB);
+      await enableSync(repoB);
+      final engineB = await buildEngine(repository: repoB);
+      await engineB.run();
+      expect((await repoB.tags.getById(tag.id))!.name, '标签');
+      expect(await repoB.tags.tagIdsForTask(t.id), [tag.id]);
+
+      // 设备 A 删除标签 → 墓碑 → 同步。
+      await repo.deleteTag(tag.id);
+      await engineA.run();
+
+      // 设备 B 再同步 → 标签硬删、任务的 tagIds 悬空引用被清理。
+      await engineB.run();
+      expect(await repoB.tags.getById(tag.id), isNull);
+      expect(await repoB.tags.tagIdsForTask(t.id), isEmpty);
+      expect((await repoB.tasks.getById(t.id))!.title, 'T');
+    });
+  });
+
+  group('§14 场景 9：并发（读改写）', () {
+    test('场景 9：upload 前远端被改 → 重新下载合并后上传', () async {
+      await enableSync(repo);
+      final p = await repo.createProject(name: 'P', color: 0);
+      final engine = await buildEngine();
+
+      // 第一次同步：远端空 → 上传本地。
+      await engine.run();
+      expect(remote.uploadCount, 1);
+      expect(remote.downloadCount, 0);
+
+      // 第二次同步（分支 C）：在 upload 前的 lastModified 检查时注入并发写。
+      var lmCalls = 0;
+      remote.onBeforeLastModified = () async {
+        lmCalls++;
+        if (lmCalls == 2) {
+          // 模拟另一设备恰在此时上传了新快照。
+          remote.simulateExternalUpload(
+            encode(
+              remoteSnapshot(
+                deviceId: 'other-device',
+                projects: [projectRec(id: 'p-other', name: '另一设备项目')],
+              ),
+            ),
+          );
+        }
+      };
+
+      final result = await engine.run();
+
+      expect(result.ok, isTrue);
+      // 并发写被检出 → 重新下载合并（≥2 次下载）。
+      expect(remote.downloadCount, greaterThanOrEqualTo(2));
+      expect(remote.uploadCount, greaterThan(1), reason: '并发写后应重新上传');
+      // 最终远端同时包含两端记录。
+      final finalSnap = decode(remote.remoteBytes!);
+      expect(
+        finalSnap.projects.map((x) => x.id),
+        containsAll(['p-other', p.id]),
+      );
+      // 本地也获得远端记录。
+      expect((await repo.projects.getById('p-other'))!.name, '另一设备项目');
+    });
+  });
+
+  group('§14 场景 10：快照损坏', () {
+    test('场景 10：不覆盖远端，错误可重试，本地库不变', () async {
+      await enableSync(repo);
+      final p = await repo.createProject(name: 'P', color: 0);
+      // 非法 gzip 字节。
+      final corrupt = Uint8List.fromList([1, 2, 3, 4, 5]);
+      remote.simulateExternalUpload(corrupt);
+
+      final engine = await buildEngine();
+      final result = await engine.run();
+
+      expect(result.ok, isFalse);
+      expect(result.retryable, isTrue);
+      expect(engine.state.status, SyncStateStatus.error);
+      expect(result.errorCode, SyncErrorCode.snapshotCorrupt);
+      expect(engine.state.errorCode, SyncErrorCode.snapshotCorrupt);
+      expect(engine.state.errorMessage, contains('远端数据异常'));
+      expect(remote.uploadCount, 0, reason: '损坏快照不得被覆盖');
+      expect(remote.remoteBytes, corrupt);
+      expect((await repo.projects.getById(p.id))!.name, 'P');
+    });
+  });
+
+  group('额外', () {
+    test('上传优化：内容无变化 → 跳过 upload（上传次数不增）', () async {
+      await enableSync(repo);
+      final p = await repo.createProject(name: 'P', color: 0);
+      // 固定时钟：两次导出 exportedAt 相同 → payload 逐字节一致。
+      fixedNowMs = DateTime.now().millisecondsSinceEpoch;
+      final engine = await buildEngine();
+
+      final r1 = await engine.run();
+      expect(r1.ok, isTrue);
+      expect(remote.uploadCount, 1);
+
+      // 无本地改动，再次同步 → 内容一致 → 跳过上传。
+      final r2 = await engine.run();
+      expect(r2.ok, isTrue);
+      expect(remote.uploadCount, 1, reason: '内容无变化应跳过 upload');
+      // 仍记成功（lastSyncedAt 更新），本地数据完好。
+      expect(await repo.settings.get(SyncSettingsKeys.lastSyncedAt), isNotNull);
+      expect((await repo.projects.getById(p.id))!.name, 'P');
+    });
+
+    test('认证失败 → 不重试（retryable=false），错误态', () async {
+      await enableSync(repo);
+      await repo.createProject(name: 'P', color: 0);
+      remote.uploadError = const SyncAuthException('认证失败，请检查账号与密码');
+
+      final engine = await buildEngine();
+      final result = await engine.run();
+
+      expect(result.ok, isFalse);
+      expect(result.retryable, isFalse);
+      expect(engine.state.status, SyncStateStatus.error);
+      expect(result.errorCode, SyncErrorCode.auth);
+      expect(engine.state.errorCode, SyncErrorCode.auth);
+      expect(engine.state.errorMessage, contains('认证'));
+      // 本地库不变、lastSyncedAt 不丢（未成功过则保持 null）。
+      expect(await repo.settings.get(SyncSettingsKeys.lastSyncedAt), isNull);
+    });
+
+    test('网络失败 → network 错误码，可重试', () async {
+      await enableSync(repo);
+      await repo.createProject(name: 'P', color: 0);
+      remote.existsError = const SyncNetworkException('网络连接失败或超时');
+
+      final engine = await buildEngine();
+      final result = await engine.run();
+
+      expect(result.ok, isFalse);
+      expect(result.retryable, isTrue);
+      expect(result.errorCode, SyncErrorCode.network);
+      expect(engine.state.status, SyncStateStatus.error);
+      expect(engine.state.errorCode, SyncErrorCode.network);
+      expect(await repo.settings.get(SyncSettingsKeys.lastSyncedAt), isNull);
+    });
+
+    test('远端 HTTP 错误 → remote 错误码，可重试', () async {
+      await enableSync(repo);
+      await repo.createProject(name: 'P', color: 0);
+      remote.existsError = const SyncRemoteException('远端返回 HTTP 500');
+
+      final engine = await buildEngine();
+      final result = await engine.run();
+
+      expect(result.ok, isFalse);
+      expect(result.retryable, isTrue);
+      expect(result.errorCode, SyncErrorCode.remote);
+      expect(engine.state.status, SyncStateStatus.error);
+      expect(engine.state.errorCode, SyncErrorCode.remote);
+    });
+
+    test('本地配置无效 → config 错误码，不重试', () async {
+      await enableSync(repo);
+      await repo.createProject(name: 'P', color: 0);
+
+      final engine = SyncEngine(
+        repository: repo,
+        secureStore: secureStore,
+        remoteStoreFactory: _ConfigErrorFactory(),
+        onStateChanged: stateLog.add,
+        now: () => DateTime.now().toUtc(),
+      );
+      final result = await engine.run();
+
+      expect(result.ok, isFalse);
+      expect(result.retryable, isFalse);
+      expect(result.errorCode, SyncErrorCode.config);
+      expect(engine.state.status, SyncStateStatus.error);
+      expect(engine.state.errorCode, SyncErrorCode.config);
+      expect(await repo.settings.get(SyncSettingsKeys.lastSyncedAt), isNull);
+    });
+
+    test('未预期异常 → unknown 错误码，不重试', () async {
+      await enableSync(repo);
+      await repo.createProject(name: 'P', color: 0);
+      remote.existsError = Exception('unexpected boom');
+
+      final engine = await buildEngine();
+      final result = await engine.run();
+
+      expect(result.ok, isFalse);
+      expect(result.retryable, isFalse);
+      expect(result.errorCode, SyncErrorCode.unknown);
+      expect(engine.state.status, SyncStateStatus.error);
+      expect(engine.state.errorCode, SyncErrorCode.unknown);
+      expect(await repo.settings.get(SyncSettingsKeys.lastSyncedAt), isNull);
+    });
+
+    test('时钟偏差被拒 → 中止，本地库不变', () async {
+      await enableSync(repo);
+      final p = await repo.createProject(name: 'P', color: 0);
+      // 远端 exportedAt 距现在 >5min（未来 10 分钟）。
+      final farFuture = DateTime.now().toUtc().add(const Duration(minutes: 10));
+      seedRemote(
+        SnapshotData(
+          schemaVersion: kSnapshotSchemaVersion,
+          deviceId: 'remote',
+          exportedAt: farFuture.millisecondsSinceEpoch,
+        ),
+      );
+
+      var confirmed = false;
+      final engine = await buildEngine(
+        confirmClockSkew: () async {
+          confirmed = true;
+          return false; // 用户拒绝校准。
+        },
+      );
+
+      final result = await engine.run();
+
+      expect(confirmed, isTrue);
+      expect(result.ok, isFalse);
+      expect(engine.state.status, SyncStateStatus.error);
+      expect(result.errorCode, SyncErrorCode.clockSkew);
+      expect(engine.state.errorCode, SyncErrorCode.clockSkew);
+      expect(engine.state.errorMessage, contains('时钟偏差'));
+      expect(remote.uploadCount, 0);
+      expect((await repo.projects.getById(p.id))!.name, 'P');
+      expect(await repo.settings.get(SyncSettingsKeys.lastSyncedAt), isNull);
+    });
+
+    test('时钟偏差且 UI 未提供确认回调（null）→ 直接拒绝', () async {
+      await enableSync(repo);
+      final p = await repo.createProject(name: 'P', color: 0);
+      final farPast = DateTime.now().toUtc().subtract(
+        const Duration(minutes: 30),
+      );
+      seedRemote(
+        SnapshotData(
+          schemaVersion: kSnapshotSchemaVersion,
+          deviceId: 'remote',
+          exportedAt: farPast.millisecondsSinceEpoch,
+        ),
+      );
+
+      final engine = await buildEngine(); // confirmClockSkew == null
+      final result = await engine.run();
+
+      expect(result.ok, isFalse);
+      expect(engine.state.status, SyncStateStatus.error);
+      expect(result.errorCode, SyncErrorCode.clockSkew);
+      expect(engine.state.errorCode, SyncErrorCode.clockSkew);
+      expect((await repo.projects.getById(p.id))!.name, 'P');
+    });
+
+    test('未启用同步 → skipped（不联网、不写库）', () async {
+      // 不调用 enableSync：enabled=0。
+      await repo.createProject(name: 'P', color: 0);
+      final engine = await buildEngine();
+      final result = await engine.run();
+
+      expect(result.ok, isFalse);
+      expect(result.skipped, isTrue);
+      expect(remote.existsCount, 0, reason: '未启用不得触碰远端');
+      expect(await repo.settings.get(SyncSettingsKeys.lastSyncedAt), isNull);
+    });
+
+    test('防重入：同步进行中再次 run() → 直接返回 skipped', () async {
+      await enableSync(repo);
+      await repo.createProject(name: 'P', color: 0);
+      // 远端有数据 → 首次 run 走分支 C（读改写），可阻塞在 lastModified。
+      seedRemote(remoteSnapshot(projects: [projectRec(id: 'p-remote')]));
+      final engine = await buildEngine();
+
+      // 首次 run 阻塞在第一次 lastModified 调用，模拟长时间同步。
+      final gate = Completer<void>();
+      var blockNext = true;
+      remote.onBeforeLastModified = () async {
+        if (blockNext) {
+          blockNext = false;
+          await gate.future;
+        }
+      };
+
+      final first = engine.run();
+      // 轮询等待首次 run 进入 syncing 且已停在 lastModified（读改写起点）。
+      for (
+        var i = 0;
+        i < 100 &&
+            (engine.state.status != SyncStateStatus.syncing ||
+                remote.lastModifiedCount < 1);
+        i++
+      ) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+      expect(engine.state.status, SyncStateStatus.syncing);
+      expect(remote.lastModifiedCount, 1, reason: '首次 run 应已停在 lastModified');
+
+      // 重入 → 直接返回 skipped（不等待、不排队）。
+      final second = await engine.run();
+      expect(second.ok, isFalse);
+      expect(second.skipped, isTrue, reason: '重入应直接返回');
+      expect(second.errorCode, SyncErrorCode.skippedRunning);
+
+      gate.complete();
+      final firstResult = await first;
+      expect(firstResult.ok, isTrue);
+    });
+  });
+}

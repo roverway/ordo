@@ -122,12 +122,22 @@
 7. 上传优化：hash 跳过 + gzip。
 
 **DoD**：
-- [ ] `60-sync-design.md` §14 场景 1–10 全部单测/集成测试通过（FakeRemoteStore）
-- [ ] 真实 WebDAV（如坚果云/NAS）手工跑通场景 1–6
-- [ ] 真实 S3（如 R2/MinIO）手工跑通场景 1–6
-- [ ] 凭据仅存 secure storage，日志无密钥
-- [ ] 失败场景（断网/认证错/坏快照）不破坏本地库且可重试
-- [ ] `flutter analyze` 0 error；`flutter test` 全绿
+- [x] `60-sync-design.md` §14 场景 1–10 全部单测/集成测试通过（FakeRemoteStore）
+- [x] 真实 WebDAV（如坚果云/NAS）手工跑通场景 1–6（2026-08 坚果云实测通过）
+- [ ] 真实 S3（如 R2/MinIO）手工跑通场景 1–6（待用户手工验证）
+- [x] 凭据仅存 secure storage，日志无密钥
+- [x] 失败场景（断网/认证错/坏快照）不破坏本地库且可重试
+- [x] `flutter analyze` 0 error；`flutter test` 全绿
+
+> ✅ M4 代码实现完成（2026-08）：RemoteStore 抽象 + WebDAV（webdav_client 1.2.2）+ S3（minio 3.5.8，
+> 替代对 R2/MinIO 不可用的 s3_dart）+ snapshot_codec/merge_engine 纯函数 + SyncEngine（串行队列/读改写/
+> 时钟偏差/错误退避/上传 hash 跳过）+ SyncTriggers（手动/启动/编辑防抖 2s/WiFi-only）+ 同步配置页
+> （`/settings/sync`，凭据走 secure storage）+ SyncErrorCode → ARB i18n。`flutter test` 413 全绿。
+> ✅ 真实 WebDAV 验证通过（2026-08，坚果云 `dav.jianguoyun.com`）：`test/core/sync/webdav_live_smoke_test.dart`
+> 覆盖 §14 场景 1–6（凭据经环境变量注入，未设置时跳过）；期间修复两个真实环境 bug：
+> ① WebDavRemoteStore 传相对 key 而非完整 URL（webdav_client mkdirAll 的 409 分支会拆坏 `https://` 前缀 → 400）；
+> ② `_isNotFound` 兼容 409（坚果云对父目录不存在的 PROPFIND/GET 返回 409 而非 404）。
+> 待手工验证项：真实 S3（用户手工测试）。
 
 ---
 

@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:drift/drift.dart';
 
 import '../daos/project_dao.dart';
@@ -23,6 +26,114 @@ class RepositoryException implements Exception {
 
   @override
   String toString() => message;
+}
+
+// ─────────────────────────── 墓碑（40-data-model §7 / 60-sync-design §8） ─────
+//
+// 本地 DB 不保留已删行（删除即物理硬删），删除通过**墓碑集合**传播到远端：
+// - 墓碑集合持久化在 settings 表，key = `sync_tombstones`（值 = JSON 数组）；
+// - 条目格式 `{"type":"project"|"task"|"tag","id":"...","updatedAt":<UTC ms>}`，
+//   与 lib/core/sync 侧（SyncSettingsKeys.tombstones）约定一致；
+// - Repository 层不 import lib/core/sync/（避免反向依赖，docs/30-architecture
+//   §1），故此处用私有常量维护 key 字符串（值必须与 SyncSettingsKeys.tombstones
+//   相同）；SyncEngine 导出快照时把墓碑并入为 deleted=true 记录（D1）。
+
+/// 墓碑集合 settings key（与 SyncSettingsKeys.tombstones 约定一致）。
+const String _kSyncTombstonesKey = 'sync_tombstones';
+
+/// 墓碑条目类型（快照层字段 type 的取值）。
+const String _kTombstoneTypeProject = 'project';
+const String _kTombstoneTypeTask = 'task';
+const String _kTombstoneTypeTag = 'tag';
+
+/// 墓碑条目（docs/40-data-model.md §7 / 60-sync-design.md §8）。
+///
+/// type ∈ project/task/tag；id 为被删记录 UUID；updatedAt 为删除时刻
+/// （UTC 毫秒，LWW 依据）。序列化格式与 SyncEngine 侧约定一致。
+class TombstoneEntry {
+  const TombstoneEntry({
+    required this.type,
+    required this.id,
+    required this.updatedAt,
+  });
+
+  /// 类型：project / task / tag。
+  final String type;
+
+  /// 被删记录 UUID。
+  final String id;
+
+  /// 删除时刻（UTC 毫秒）。
+  final int updatedAt;
+
+  Map<String, dynamic> toJson() => {
+    'type': type,
+    'id': id,
+    'updatedAt': updatedAt,
+  };
+
+  /// 崩溃安全解析：类型异常字段回退默认值。
+  factory TombstoneEntry.fromJson(Map<String, dynamic> json) {
+    return TombstoneEntry(
+      type: json['type'] is String ? json['type'] as String : '',
+      id: json['id'] is String ? json['id'] as String : '',
+      updatedAt: json['updatedAt'] is num
+          ? (json['updatedAt'] as num).toInt()
+          : 0,
+    );
+  }
+}
+
+/// 全量导出数据（DB 活跃行，docs/60-sync-design.md §3 快照来源）。
+///
+/// Repository 层只暴露纯 DB 数据类型，由 SyncEngine 组装 SnapshotData
+/// （D2：Repository 不 import lib/core/sync/）。
+class RepositoryExportData {
+  const RepositoryExportData({
+    this.projects = const [],
+    this.tasks = const [],
+    this.tags = const [],
+    this.taskTagIds = const {},
+  });
+
+  /// 全部活跃项目（deleted=0）。
+  final List<Project> projects;
+
+  /// 全部活跃任务（deleted=0）。
+  final List<Task> tasks;
+
+  /// 全部活跃标签（deleted=0）。
+  final List<Tag> tags;
+
+  /// 每任务当前关联的 tagId 列表（task_tags 联表，不参与同步、快照内嵌）。
+  final Map<String, List<String>> taskTagIds;
+}
+
+/// 合并结果应用操作（docs/60-sync-design.md §4 应用规则 / D2）。
+///
+/// 单事务内应用：deleted=true → 物理硬删（DB 本就不保留墓碑行，这里兜底）；
+/// 其余 → upsert（快照 updatedAt 为权威值，不覆盖为当前时间）；taskTagIds
+/// 全量重建 task_tags 联表。
+class MergedApplyOperation {
+  const MergedApplyOperation({
+    this.upsertProjects = const [],
+    this.upsertTasks = const [],
+    this.upsertTags = const [],
+    this.hardDeleteProjectIds = const [],
+    this.hardDeleteTaskIds = const [],
+    this.hardDeleteTagIds = const [],
+    this.taskTagLinks = const {},
+  });
+
+  final List<Project> upsertProjects;
+  final List<Task> upsertTasks;
+  final List<Tag> upsertTags;
+  final List<String> hardDeleteProjectIds;
+  final List<String> hardDeleteTaskIds;
+  final List<String> hardDeleteTagIds;
+
+  /// taskId → tagId 列表，全量重建（先删该 task 的所有关联再批量插入）。
+  final Map<String, List<String>> taskTagLinks;
 }
 
 /// 当前 UTC 毫秒（docs/40-data-model.md §4）。
@@ -151,6 +262,9 @@ class TodoRepository {
   }
 
   /// 删除项目：级联硬删其下全部任务（含子树）与关联 task_tags，同一事务。
+  ///
+  /// 同步行为（40-data-model.md §7）：被删项目与其下每任务各写一条墓碑
+  /// （settings `sync_tombstones`），供快照导出传播删除。
   Future<void> deleteProject(String id) async {
     await database.transaction(() async {
       final existing = await projects.getById(id);
@@ -161,6 +275,13 @@ class TodoRepository {
       await tags.deleteTaskTagsForTasks(ids);
       await tasks.deleteManyByIds(ids);
       await projects.deleteById(id);
+
+      final now = _nowMs();
+      await _appendTombstones([
+        TombstoneEntry(type: _kTombstoneTypeProject, id: id, updatedAt: now),
+        for (final t in allTasks)
+          TombstoneEntry(type: _kTombstoneTypeTask, id: t.id, updatedAt: now),
+      ]);
     });
   }
 
@@ -398,6 +519,8 @@ class TodoRepository {
   Stream<List<Task>> watchInboxTasks() => tasks.watchByProject(inboxProjectId);
 
   /// 删除任务：级联硬删所有后代（含自身）+ 关联 task_tags，同一事务。
+  ///
+  /// 同步行为（40-data-model.md §7）：被删任务（含后代）各写一条墓碑。
   Future<void> deleteTask(String taskId) async {
     await database.transaction(() async {
       final task = await tasks.getActiveById(taskId);
@@ -416,6 +539,12 @@ class TodoRepository {
       collect(taskId);
       await tags.deleteTaskTagsForTasks(subtreeIds);
       await tasks.deleteManyByIds(subtreeIds);
+
+      final now = _nowMs();
+      await _appendTombstones([
+        for (final id in subtreeIds)
+          TombstoneEntry(type: _kTombstoneTypeTask, id: id, updatedAt: now),
+      ]);
     });
   }
 
@@ -462,13 +591,195 @@ class TodoRepository {
   }
 
   /// 删除标签：硬删标签 + 删除 task_tags 引用行（任务保留，§7）。
+  ///
+  /// 同步行为（40-data-model.md §7）：写标签墓碑；合并后 reconciliation
+  /// 清理悬空 tagIds（60-sync-design.md §7）。
   Future<void> deleteTag(String id) async {
     await database.transaction(() async {
       final existing = await tags.getById(id);
       if (existing == null) throw RepositoryException('标签不存在：$id');
       await tags.deleteTaskTagsForTag(id);
       await tags.deleteById(id);
+      await _appendTombstones([
+        TombstoneEntry(type: _kTombstoneTypeTag, id: id, updatedAt: _nowMs()),
+      ]);
     });
+  }
+
+  // ───────────────────────── 墓碑集合（同步引擎 D1/D2） ───────────────────────
+
+  /// 读取墓碑集合（settings `sync_tombstones`，崩溃安全：非 JSON/损坏视为空）。
+  Future<List<TombstoneEntry>> readTombstones() async {
+    final raw = await settings.get(_kSyncTombstonesKey);
+    if (raw == null || raw.isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return const [];
+      return decoded
+          .whereType<Map<String, dynamic>>()
+          .map(TombstoneEntry.fromJson)
+          .where((e) => e.id.isNotEmpty)
+          .toList();
+    } on FormatException {
+      return const [];
+    }
+  }
+
+  /// 合并墓碑条目（(type,id) 去重、取最大 updatedAt），幂等。事务内完成。
+  ///
+  /// 供 SyncEngine 应用合并结果后调用：merge 结果中 deleted=true 的墓碑
+  /// 保留/更新进本地墓碑集合（要传播给远端，D1）。
+  Future<void> mergeTombstones(Iterable<TombstoneEntry> entries) async {
+    await database.transaction(() async {
+      await _mergeTombstonesInner(entries);
+    });
+  }
+
+  /// 清理 updatedAt 早于 [olderThan]（UTC 毫秒）的墓碑（60-sync-design §8：
+  /// >90 天清理；清理仅影响墓碑集合，不影响本地 DB 与远端）。
+  Future<void> pruneTombstones(int olderThan) async {
+    await database.transaction(() async {
+      final kept = (await readTombstones())
+          .where((e) => e.updatedAt >= olderThan)
+          .toList();
+      await _writeTombstones(kept);
+    });
+  }
+
+  /// 全量导出活跃数据（docs/60-sync-design.md §3 / D2）。
+  ///
+  /// 返回全部活跃（deleted=0）projects/tasks/tags + 每 task 的 tagIds 映射；
+  /// 由 SyncEngine 组装 SnapshotData（含墓碑集合并入）。Repository 层不
+  /// import lib/core/sync/，此处只暴露纯 DB 数据类型。
+  Future<RepositoryExportData> exportAll() async {
+    final projects = await this.projects.getAll();
+    final tasks = await this.tasks.getAllActive();
+    final tags = await this.tags.getAll();
+    final taskTagIds = <String, List<String>>{};
+    for (final t in tasks) {
+      taskTagIds[t.id] = await this.tags.tagIdsForTask(t.id);
+    }
+    return RepositoryExportData(
+      projects: projects,
+      tasks: tasks,
+      tags: tags,
+      taskTagIds: taskTagIds,
+    );
+  }
+
+  /// 单事务应用合并结果（docs/60-sync-design.md §4 应用规则 / D2）。
+  ///
+  /// - upsert：按 id 存在则更新、不存在则插入；**updatedAt 以快照值为权威**，
+  ///   绝不覆盖为当前时间（LWW 依赖，40-data-model.md §4）；
+  /// - hardDelete：物理删除兜底（DB 本就不保留墓碑行）；
+  /// - taskTagLinks：先删该 task 的全部关联再批量插入（全量重建）。
+  ///
+  /// 防御性过滤：引用已删/不存在项目或标签的悬空记录在事务内剔除
+  /// （reconcileTagIds 只清理 tagIds，不清理 projectId，见 60-sync-design §7）。
+  Future<void> applyMerged(MergedApplyOperation ops) async {
+    await database.transaction(() async {
+      // 1. 项目/标签先写（task 与 task_tags 有外键依赖）。
+      for (final p in ops.upsertProjects) {
+        await database
+            .into(database.projects)
+            .insertOnConflictUpdate(p.toCompanion(false));
+      }
+      for (final t in ops.upsertTags) {
+        await database
+            .into(database.tags)
+            .insertOnConflictUpdate(t.toCompanion(false));
+      }
+
+      // 2. 有效项目集合（upsert 的 + 库中已有的）→ 过滤悬空任务的 projectId。
+      final validProjectIds = <String>{
+        for (final p in ops.upsertProjects) p.id,
+        for (final p in await projects.getAll()) p.id,
+      };
+      // 3. 有效标签集合（upsert 的 + 库中已有的）→ 过滤悬空 tagId 引用。
+      final validTagIds = <String>{
+        for (final t in ops.upsertTags) t.id,
+        for (final t in await tags.getAll()) t.id,
+      };
+
+      for (final t in ops.upsertTasks) {
+        if (!validProjectIds.contains(t.projectId)) {
+          // 项目已被删除（LWW 墓碑胜）而任务被另一端更晚修改的边缘情形：
+          // 项目删除语义级联其下任务，故丢弃该悬空任务而非插入触发外键失败。
+          debugPrint('sync: 丢弃悬空任务 ${t.id}（项目 ${t.projectId} 不存在）');
+          continue;
+        }
+        await database
+            .into(database.tasks)
+            .insertOnConflictUpdate(t.toCompanion(false));
+      }
+
+      // 4. task_tags 全量重建（仅对实际 upsert 的任务；tagId 过滤悬空引用）。
+      final upsertedTaskIds = <String>{
+        for (final t in ops.upsertTasks)
+          if (validProjectIds.contains(t.projectId)) t.id,
+      };
+      for (final entry in ops.taskTagLinks.entries) {
+        if (!upsertedTaskIds.contains(entry.key)) continue;
+        await (database.delete(
+          database.taskTags,
+        )..where((tt) => tt.taskId.equals(entry.key))).go();
+        final tagIds = entry.value.where(validTagIds.contains).toList();
+        if (tagIds.isEmpty) continue;
+        await database.batch((b) {
+          b.insertAll(database.taskTags, [
+            for (final tagId in tagIds)
+              TaskTagsCompanion.insert(taskId: entry.key, tagId: tagId),
+          ]);
+        });
+      }
+
+      // 5. 物理硬删（先解除联表引用，再删行，顺序满足外键约束）。
+      await tags.deleteTaskTagsForTasks(ops.hardDeleteTaskIds);
+      await tasks.deleteManyByIds(ops.hardDeleteTaskIds);
+      for (final tagId in ops.hardDeleteTagIds) {
+        await tags.deleteTaskTagsForTag(tagId);
+        await tags.deleteById(tagId);
+      }
+      for (final projectId in ops.hardDeleteProjectIds) {
+        // 项目删除级联其下任务（40-data-model §7）：先清其任务与联表引用，
+        // 否则 projects 外键约束会阻止删除。
+        final tasksInProject = await tasks.getAllByProject(projectId);
+        final ids = tasksInProject.map((t) => t.id).toList();
+        await tags.deleteTaskTagsForTasks(ids);
+        await tasks.deleteManyByIds(ids);
+        await projects.deleteById(projectId);
+      }
+    });
+  }
+
+  /// 追加墓碑条目（(type,id) 去重、取最大 updatedAt）。事务内调用。
+  Future<void> _appendTombstones(Iterable<TombstoneEntry> entries) =>
+      _mergeTombstonesInner(entries);
+
+  /// 合并墓碑条目核心实现（假定已在事务内）。
+  Future<void> _mergeTombstonesInner(Iterable<TombstoneEntry> entries) async {
+    final list = entries.toList();
+    if (list.isEmpty) return;
+    final existing = await readTombstones();
+    final map = <String, TombstoneEntry>{
+      for (final e in existing) '${e.type}:${e.id}': e,
+    };
+    for (final e in list) {
+      final key = '${e.type}:${e.id}';
+      final current = map[key];
+      if (current == null || e.updatedAt > current.updatedAt) {
+        map[key] = e;
+      }
+    }
+    await _writeTombstones(map.values);
+  }
+
+  /// 整体覆盖墓碑集合。
+  Future<void> _writeTombstones(Iterable<TombstoneEntry> entries) {
+    return settings.set(
+      _kSyncTombstonesKey,
+      jsonEncode([for (final e in entries) e.toJson()]),
+    );
   }
 
   // ───────────────────────────── 校验辅助 ─────────────────────────────

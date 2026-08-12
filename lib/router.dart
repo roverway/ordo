@@ -3,6 +3,7 @@ import 'features/calendar/calendar_page.dart';
 import 'features/projects/projects_page.dart';
 import 'features/search/search_page.dart';
 import 'features/settings/settings_page.dart';
+import 'features/sync_setup/sync_setup_page.dart';
 import 'features/tags/tags_page.dart';
 import 'features/tags/tags_detail_page.dart';
 import 'features/tasks/task_edit_page.dart';
@@ -73,6 +74,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/settings',
       builder: (context, state) => const SettingsPage(),
+    ),
+    GoRoute(
+      path: '/settings/sync',
+      builder: (context, state) => const SyncSetupPage(),
     ),
   ],
 );

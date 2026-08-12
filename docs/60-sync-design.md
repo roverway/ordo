@@ -119,9 +119,9 @@ abstract class RemoteStore {
 
 ### 9.2 S3 实现（`remote_store_s3.dart`）
 
-- 依赖：`s3_dart`。
-- 配置：`endpoint`（AWS/R2/MinIO/Wasabi 均可）、`region`、`bucket`、`prefix`（默认 `todo/`）、`accessKey`、`secretKey`。
-- 操作：`statObject`（exists/lastModified）、`getObject`（download）、`putObject`（upload）。
+- 依赖：`minio 3.5.8`（2026-08 选定；替代 `s3_dart`——其 `getRequestUrl` 会把自定义 endpoint 重写为 `s3.<region>.<endpoint>` 导致 R2/MinIO 不可用，见 `20-tech-stack.md` §4 备注）。
+- 配置：`endpoint`（AWS/R2/MinIO/Wasabi 均可）、`region`（可选；R2 用 `auto`）、`bucket`、`prefix`（默认 `todo/`）、`accessKey`、`secretKey`。
+- 操作：`statObject`（exists/lastModified，**必须传 `retrieveAcls: false`**——否则连带 `GET ?acl`，MinIO/R2 返回非标准 XML 抛 XmlParserException）、`getObject`（download）、`putObject`（upload）。
 - 对象键：`{prefix}data.json.gz`。
 
 ### 9.3 工厂

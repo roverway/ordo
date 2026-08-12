@@ -37,3 +37,7 @@ windows/flutter/ephemeral/
 
 # 测试/覆盖率
 coverage/
+
+# 本地工具产物（不进版本库）
+.codegraph/
+ux-ui-agent-skills/
