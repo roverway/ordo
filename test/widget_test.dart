@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:todo/app.dart';
 import 'package:todo/core/db/database.dart';
+import 'package:todo/core/db/repositories/todo_repository.dart';
 import 'package:todo/core/theme/app_tokens.dart';
 import 'package:todo/features/calendar/calendar_providers.dart';
 import 'package:todo/features/projects/project_providers.dart';
@@ -48,7 +49,43 @@ Future<void> pumpApp(
   if (provideTestDatabase) {
     final db = openTestDatabase();
     final repo = TodoRepository(database: db);
+    // 预置固定 id 项目（删除/编辑用例需要，跳过 UUID 生成）。
+    for (final p in projects ?? const <Project>[]) {
+      await db
+          .into(db.projects)
+          .insertOnConflictUpdate(
+            ProjectsCompanion.insert(
+              id: p.id,
+              name: p.name,
+              color: p.color,
+              sortOrder: p.sortOrder,
+              createdAt: p.createdAt,
+              updatedAt: p.updatedAt,
+            ),
+          );
+    }
     overrides.add(todoRepositoryProvider.overrideWithValue(repo));
+    // 视图 provider 一律覆盖，避免真实 drift 流残留 Timer
+    //（widget 测试只关心导航壳与项目 CRUD，不依赖真实视图计算）。
+    overrides.addAll([
+      todayViewProvider.overrideWithValue(
+        const AsyncData(TodayViewData(overdue: [], today: [])),
+      ),
+      inboxProjectProvider.overrideWithValue(
+        AsyncData(
+          Project(
+            id: inboxProjectId,
+            name: '收件箱',
+            color: inboxProjectColor,
+            sortOrder: 0,
+            createdAt: 0,
+            updatedAt: 0,
+            deleted: 0,
+          ),
+        ),
+      ),
+      inboxTasksProvider.overrideWithValue(const AsyncData([])),
+    ]);
   } else {
     // Without a real DB, mock inbox providers so the app doesn't crash.
     final dummyProject = Project(
@@ -75,10 +112,9 @@ Future<void> pumpApp(
     ]);
   }
 
-  // appRouter 是进程级单例，测试之间会残留上次导航位置
-  //（如上一测试跳到 /projects/:id 的独立页，无 AppShell 汉堡/设置图标）。
-  // 每次 pump 前重置回首页，与 initialLocation 一致。
-  appRouter.go('/inbox');
+  // appRouter 是进程级单例，测试之间会残留上次导航位置。
+  // 每次 pump 前重置回首页 /today（D3，与 initialLocation 一致）。
+  appRouter.go('/today');
 
   await tester.pumpWidget(
     ProviderScope(overrides: overrides, child: const TodoApp()),
@@ -92,13 +128,13 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('Narrow (<600dp) smoke: inbox home + hamburger + 3-tab bar', (
+  testWidgets('Narrow (<600dp) smoke: today home + hamburger + 3-tab bar', (
     tester,
   ) async {
     await pumpApp(tester, const Size(400, 800));
 
-    // Inbox is the home; text in Chinese (default locale).
-    expect(find.text('收件箱是空的，去添加任务吧'), findsOneWidget);
+    // 启动默认页为 /today（D3，56-task-scope-page.md §1.2）；中文文案。
+    expect(find.text('今天还没有任务'), findsOneWidget);
 
     // 底部 NavigationBar 精简为 3 个系统入口（今日/日历/标签），
     // 收集箱与项目移入抽屉（55-ui-redesign §3.1）。
@@ -132,13 +168,11 @@ void main() {
     expect(find.byIcon(Icons.menu), findsOneWidget);
     expect(find.byType(Drawer), findsNothing);
 
-    // 评审回归断言：inbox（默认首页）不在底栏 3 入口中，底栏必须「无选中」——
-    // 局部 Theme 将 indicator 置透明（不允许误亮「今日」，Flutter 断言
-    // selectedIndex 必须合法，故无法用非法 index 表达无选中）。
+    // 今日页命中底栏路由 → 「今日」正常选中（indicator 非透明）。
     final navTheme = Theme.of(
       tester.element(find.byType(NavigationBar)),
     ).navigationBarTheme;
-    expect(navTheme.indicatorColor, Colors.transparent);
+    expect(navTheme.indicatorColor, isNot(Colors.transparent));
   });
 
   testWidgets(
@@ -167,19 +201,10 @@ void main() {
   testWidgets('Bottom nav 3-tab switch works correctly', (tester) async {
     await pumpApp(tester, const Size(400, 800));
 
-    // Start on inbox (default locale: zh).
-    expect(find.text('收件箱是空的，去添加任务吧'), findsOneWidget);
-
-    // Switch to Today.
-    await tester.tap(find.text('今日'));
-    await tester.pumpAndSettle();
+    // Start on today (D3 default home; zh locale).
     expect(find.text('今天还没有任务'), findsOneWidget);
-    // 命中底栏路由后「无选中」Theme 覆盖解除（indicator 恢复非透明）。
-    final todayNavTheme = Theme.of(
-      tester.element(find.byType(NavigationBar)),
-    ).navigationBarTheme;
-    expect(todayNavTheme.indicatorColor, isNot(Colors.transparent));
 
+    // Switch to Today (already there — 今日 tab 选中态已由 smoke 覆盖)。
     // Switch to Calendar.
     await tester.tap(find.text('日历'));
     await tester.pumpAndSettle();
@@ -213,6 +238,21 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('今天还没有任务'), findsOneWidget);
     expect(find.byType(Drawer), findsNothing); // 点击后抽屉自动关闭。
+
+    // 系统组：收件箱 → 收件箱作用域（AppShell 壳内），底栏「无选中」
+    //（收件箱不在 3 入口中，评审问题 1 回归断言）。
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: find.byType(Drawer), matching: find.text('收件箱')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(Drawer), findsNothing);
+    expect(find.byIcon(Icons.menu), findsOneWidget); // 壳内汉堡常驻
+    final inboxNavTheme = Theme.of(
+      tester.element(find.byType(NavigationBar)),
+    ).navigationBarTheme;
+    expect(inboxNavTheme.indicatorColor, Colors.transparent);
 
     // 再次打开，点遮罩（屏宽 400，抽屉宽 312，x>312 为 scrim）关闭。
     await tester.tap(find.byIcon(Icons.menu));
@@ -250,13 +290,58 @@ void main() {
       findsOneWidget,
     );
 
-    // 点击项目 → /projects/:id（AppBar 标题 = 项目名）。
+    // 点击项目 → /projects/:id。
     await tester.tap(
       find.descendant(of: find.byType(Drawer), matching: find.text('工作')),
     );
     await tester.pumpAndSettle();
     expect(find.byType(Drawer), findsNothing);
-    expect(find.text('工作'), findsOneWidget);
+    expect(find.text('工作'), findsOneWidget); // AppBar 标题 = 项目名
+
+    // 需求 2 修复验收：项目作用域渲染在 AppShell 壳内，
+    // 汉堡/底栏常驻（此前 ProjectDetailPage 自带 Scaffold 导致消失）。
+    expect(find.byIcon(Icons.menu), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
+    // 项目作用域 AppBar：默认搜索/设置 + 编辑/删除（D2）。
+    expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.delete_outlined), findsOneWidget);
+  });
+
+  testWidgets('Project scope: delete project navigates to /today (D5)', (
+    tester,
+  ) async {
+    final project = Project(
+      id: 'p1',
+      name: '工作',
+      color: 0xFF4A6CF7,
+      sortOrder: 0,
+      createdAt: 0,
+      updatedAt: 0,
+      deleted: 0,
+    );
+    // 真实 DB：删除需落库（pumpApp 会把 projects 预置进内存库）。
+    await pumpApp(
+      tester,
+      const Size(400, 800),
+      provideTestDatabase: true,
+      projects: [project],
+    );
+
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: find.byType(Drawer), matching: find.text('工作')),
+    );
+    await tester.pumpAndSettle();
+
+    // AppBar 删除 → 确认对话框 → 确认后跳转 /today（新首页）。
+    await tester.tap(find.byIcon(Icons.delete_outlined));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget);
+    await tester.tap(find.text('删除'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('今天还没有任务'), findsOneWidget);
   });
 
   testWidgets('Drawer: add project opens the form dialog', (tester) async {

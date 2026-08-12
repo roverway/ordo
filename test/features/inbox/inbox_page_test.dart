@@ -13,7 +13,7 @@ import 'package:todo/core/db/database.dart';
 import 'package:todo/core/db/repositories/todo_repository.dart';
 import 'package:todo/core/db/tables.dart';
 import 'package:todo/core/l10n/app_localizations.dart';
-import 'package:todo/features/inbox/inbox_page.dart';
+import 'package:todo/features/tasks/task_list_page.dart';
 import 'package:todo/features/projects/project_providers.dart';
 import 'package:todo/features/settings/settings_providers.dart';
 import 'package:todo/features/tags/tag_providers.dart';
@@ -71,7 +71,10 @@ Future<void> _pumpInbox(
   final router = GoRouter(
     initialLocation: '/inbox',
     routes: [
-      GoRoute(path: '/inbox', builder: (_, _) => const InboxPage()),
+      GoRoute(
+        path: '/inbox',
+        builder: (_, _) => const TaskListPage(scope: InboxTaskScope()),
+      ),
       GoRoute(
         path: '/task/new',
         builder: (_, state) => Scaffold(

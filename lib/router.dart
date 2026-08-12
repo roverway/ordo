@@ -1,24 +1,28 @@
 import 'package:go_router/go_router.dart';
 import 'features/calendar/calendar_page.dart';
-import 'features/inbox/inbox_page.dart';
-import 'features/projects/project_detail_page.dart';
 import 'features/projects/projects_page.dart';
 import 'features/search/search_page.dart';
 import 'features/settings/settings_page.dart';
 import 'features/tags/tags_page.dart';
 import 'features/tags/tags_detail_page.dart';
 import 'features/tasks/task_edit_page.dart';
-import 'features/today/today_page.dart';
+import 'features/tasks/task_list_page.dart';
 
 /// Global routing table — single source of truth (30-architecture.md §4).
 ///
-/// 5 top-level destinations: Inbox, Today, Calendar, Projects, Tags.
-/// Inbox is the launch home (initialLocation).
+/// 任务类入口（今日/收件箱/项目）统一渲染 `TaskListPage`（作用域驱动，
+/// 56-task-scope-page.md §3.1）；今日为启动默认页（D3）。
 final GoRouter appRouter = GoRouter(
-  initialLocation: '/inbox',
+  initialLocation: '/today',
   routes: [
-    GoRoute(path: '/inbox', builder: (context, state) => const InboxPage()),
-    GoRoute(path: '/today', builder: (context, state) => const TodayPage()),
+    GoRoute(
+      path: '/inbox',
+      builder: (context, state) => const TaskListPage(scope: InboxTaskScope()),
+    ),
+    GoRoute(
+      path: '/today',
+      builder: (context, state) => const TaskListPage(scope: TodayTaskScope()),
+    ),
     GoRoute(
       path: '/calendar',
       builder: (context, state) => const CalendarPage(),
@@ -29,10 +33,8 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/projects/:id',
-      builder: (context, state) {
-        final id = state.pathParameters['id']!;
-        return ProjectDetailPage(projectId: id);
-      },
+      builder: (context, state) =>
+          TaskListPage(scope: ProjectTaskScope(state.pathParameters['id']!)),
     ),
     GoRoute(path: '/tags', builder: (context, state) => const TagsPage()),
     GoRoute(

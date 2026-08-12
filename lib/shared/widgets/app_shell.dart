@@ -14,13 +14,22 @@ import 'app_drawer.dart';
 ///
 /// 抽屉选中态由当前路由路径推导；路由表不变，仅入口位置变化。
 class AppShell extends StatelessWidget {
-  const AppShell({super.key, required this.title, required this.child});
+  const AppShell({
+    super.key,
+    required this.title,
+    required this.child,
+    this.actions,
+  });
 
   /// Page title (from ARB, passed by each feature page).
   final String title;
 
   /// Page body content.
   final Widget child;
+
+  /// 追加在搜索/设置图标**之后**的 AppBar actions（如项目作用域的编辑/删除）。
+  /// null = 仅默认搜索/设置（现有调用方兼容，56-task-scope-page.md §3.3）。
+  final List<Widget>? actions;
 
   /// 宽屏 NavigationRail 5 个目的地（keep in sync with router.dart）。
   static const List<String> _railPaths = [
@@ -128,6 +137,8 @@ class AppShell extends StatelessWidget {
             icon: const Icon(Icons.settings_outlined, size: 22),
             onPressed: () => context.push('/settings'),
           ),
+          // 作用域专属操作（追加在尾部）。
+          ...?actions,
         ],
       ),
       body: narrow

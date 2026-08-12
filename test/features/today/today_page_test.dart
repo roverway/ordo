@@ -28,7 +28,7 @@ import 'package:todo/features/settings/settings_providers.dart';
 import 'package:todo/features/tags/tag_providers.dart';
 import 'package:todo/features/tasks/task_providers.dart';
 import 'package:todo/features/tasks/widgets/task_create_sheet.dart';
-import 'package:todo/features/today/today_page.dart';
+import 'package:todo/features/tasks/task_list_page.dart';
 import 'package:todo/features/today/today_providers.dart';
 import 'package:todo/shared/widgets/empty_state.dart';
 import 'package:todo/shared/widgets/simple_task_tile.dart';
@@ -186,7 +186,10 @@ Future<TodoRepository> _pumpToday(
   final router = GoRouter(
     initialLocation: '/today',
     routes: [
-      GoRoute(path: '/today', builder: (_, _) => const TodayPage()),
+      GoRoute(
+        path: '/today',
+        builder: (_, _) => const TaskListPage(scope: TodayTaskScope()),
+      ),
       GoRoute(
         path: '/task/:id',
         builder: (_, state) =>

@@ -12,8 +12,8 @@ import 'package:todo/core/db/database.dart';
 import 'package:todo/core/l10n/app_localizations.dart';
 import 'package:todo/features/projects/project_providers.dart';
 import 'package:todo/features/projects/projects_page.dart';
-import 'package:todo/features/projects/project_detail_page.dart';
 import 'package:todo/features/settings/settings_providers.dart';
+import 'package:todo/features/tasks/task_list_page.dart';
 import 'package:todo/features/tasks/task_providers.dart';
 import '../../helpers/db_test_setup.dart';
 
@@ -233,9 +233,9 @@ void main() {
   });
 
   // ────────────────────────────────────────
-  // 2. 项目详情页（ProjectDetailPage）
+  // 2. 项目作用域（TaskListPage(ProjectTaskScope)，56-task-scope-page §4 批 2）
   // ────────────────────────────────────────
-  group('ProjectDetailPage', () {
+  group('TaskListPage(project)', () {
     testWidgets('项目不存在时显示空态', (tester) async {
       await _pump(
         tester,
@@ -243,8 +243,9 @@ void main() {
         routes: [
           GoRoute(
             path: '/projects/:id',
-            builder: (_, state) =>
-                ProjectDetailPage(projectId: state.pathParameters['id']!),
+            builder: (_, state) => TaskListPage(
+              scope: ProjectTaskScope(state.pathParameters['id']!),
+            ),
           ),
           GoRoute(path: '/projects', builder: (_, _) => const Scaffold()),
         ],
@@ -262,8 +263,9 @@ void main() {
         routes: [
           GoRoute(
             path: '/projects/:id',
-            builder: (_, state) =>
-                ProjectDetailPage(projectId: state.pathParameters['id']!),
+            builder: (_, state) => TaskListPage(
+              scope: ProjectTaskScope(state.pathParameters['id']!),
+            ),
           ),
           GoRoute(path: '/projects', builder: (_, _) => const Scaffold()),
           GoRoute(path: '/task/new', builder: (_, _) => const Scaffold()),
@@ -285,8 +287,9 @@ void main() {
         routes: [
           GoRoute(
             path: '/projects/:id',
-            builder: (_, state) =>
-                ProjectDetailPage(projectId: state.pathParameters['id']!),
+            builder: (_, state) => TaskListPage(
+              scope: ProjectTaskScope(state.pathParameters['id']!),
+            ),
           ),
           GoRoute(path: '/projects', builder: (_, _) => const Scaffold()),
         ],
@@ -305,8 +308,9 @@ void main() {
         routes: [
           GoRoute(
             path: '/projects/:id',
-            builder: (_, state) =>
-                ProjectDetailPage(projectId: state.pathParameters['id']!),
+            builder: (_, state) => TaskListPage(
+              scope: ProjectTaskScope(state.pathParameters['id']!),
+            ),
           ),
           GoRoute(path: '/projects', builder: (_, _) => const Scaffold()),
         ],
@@ -326,8 +330,9 @@ void main() {
         routes: [
           GoRoute(
             path: '/projects/:id',
-            builder: (_, state) =>
-                ProjectDetailPage(projectId: state.pathParameters['id']!),
+            builder: (_, state) => TaskListPage(
+              scope: ProjectTaskScope(state.pathParameters['id']!),
+            ),
           ),
           GoRoute(path: '/projects', builder: (_, _) => const Scaffold()),
         ],
@@ -350,8 +355,9 @@ void main() {
         routes: [
           GoRoute(
             path: '/projects/:id',
-            builder: (_, state) =>
-                ProjectDetailPage(projectId: state.pathParameters['id']!),
+            builder: (_, state) => TaskListPage(
+              scope: ProjectTaskScope(state.pathParameters['id']!),
+            ),
           ),
           GoRoute(path: '/projects', builder: (_, _) => const Scaffold()),
         ],
@@ -367,6 +373,38 @@ void main() {
       // 对话框关闭，仍在项目详情页。
       expect(find.byType(AlertDialog), findsNothing);
       expect(find.text('工作'), findsOneWidget);
+    });
+
+    testWidgets('删除确认后跳转 /today（D5）', (tester) async {
+      final projects = [_project('p1', '工作')];
+
+      await _pump(
+        tester,
+        initialLocation: '/projects/p1',
+        routes: [
+          GoRoute(
+            path: '/projects/:id',
+            builder: (_, state) => TaskListPage(
+              scope: ProjectTaskScope(state.pathParameters['id']!),
+            ),
+          ),
+          // 新默认首页（D3：initialLocation 改 /today）。
+          GoRoute(
+            path: '/today',
+            builder: (_, _) => const Scaffold(body: Text('今日页')),
+          ),
+          GoRoute(path: '/projects', builder: (_, _) => const Scaffold()),
+        ],
+        projects: projects,
+      );
+
+      await tester.tap(find.byIcon(Icons.delete_outlined));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('删除'));
+      await tester.pumpAndSettle();
+
+      // 删除成功后跳转 /today（D5，而非旧 /projects）。
+      expect(find.text('今日页'), findsOneWidget);
     });
   });
 }
