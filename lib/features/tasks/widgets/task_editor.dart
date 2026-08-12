@@ -5,7 +5,7 @@
 //
 //   顶部栏：[项目图标] 项目名 [下拉双箭头]      [⋯ 三点菜单]
 //   内容区：① 任务标题（titleLarge，无边框，自动聚焦）
-//           ② 描述/备注：⋯ 菜单开关后内联展开（默认隐藏，D8/D9）
+//           ② 描述：默认内联展示；备注：⋯ 菜单开关（D8）
 //           ③ 子任务列表：○ 圆形复选框 + 文字 + ≡ 拖拽 + 删除按钮
 //   底部工具栏：[日期] [状态] [标签] [优先级] [附件占位禁用]（D5/D6/D7）
 //
@@ -77,8 +77,7 @@ class TaskEditorController extends ChangeNotifier {
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
 
-  /// 描述/备注显示开关（⋯ 菜单控制，默认隐藏，D8/D9）。
-  bool showDescription = false;
+  /// 备注显示开关（⋯ 菜单控制，默认隐藏，D8）；描述默认内联展示（59 讨论定稿）。
   bool showNotes = false;
 
   /// 子任务行（列表顺序即最终排序顺序）。
@@ -138,11 +137,6 @@ class TaskEditorController extends ChangeNotifier {
       for (final row in subtaskRows)
         if (row.id != null) row.id!: row.controller.text.trim(),
     };
-    notifyListeners();
-  }
-
-  void toggleDescription() {
-    showDescription = !showDescription;
     notifyListeners();
   }
 
@@ -275,12 +269,9 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
         ],
         // ① 任务标题：大号加粗（titleLarge）、无边框、自动聚焦。
         _buildTitleField(context, l10n),
-        // ② 描述/备注：⋯ 菜单开关后内联展开（默认隐藏，D8/D9）。
-        if (widget.controller.showDescription ||
-            widget.controller.showNotes) ...[
-          const SizedBox(height: AppTokens.spaceSm),
-          _buildDescriptionNotes(context, l10n),
-        ],
+        // ② 描述：默认内联展示（59 讨论定稿，替代 ⋯ 菜单开关）；备注仍由 ⋯ 菜单开关（D8）。
+        const SizedBox(height: AppTokens.spaceSm),
+        _buildDescriptionNotes(context, l10n),
         // ③ 子任务列表（仅 1 级任务展示）。
         if (widget.showSubtasks) ...[
           const SizedBox(height: AppTokens.spaceXs),
@@ -331,19 +322,18 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
     );
   }
 
-  // ── 描述/备注（⋯ 菜单开关）───────────────────────────────────────
+  // ── 描述（默认内联展示）/ 备注（⋯ 菜单开关，D8）──────────────────
 
   Widget _buildDescriptionNotes(BuildContext context, AppLocalizations l10n) {
     return Column(
       children: [
-        if (widget.controller.showDescription)
-          TextField(
-            controller: widget.controller.descriptionController,
-            maxLines: 3,
-            decoration: InputDecoration(labelText: l10n.taskDescription),
-            onChanged: (v) =>
-                ref.read(taskFormProvider.notifier).updateDescription(v),
-          ),
+        TextField(
+          controller: widget.controller.descriptionController,
+          maxLines: 3,
+          decoration: InputDecoration(labelText: l10n.taskDescription),
+          onChanged: (v) =>
+              ref.read(taskFormProvider.notifier).updateDescription(v),
+        ),
         if (widget.controller.showNotes) ...[
           const SizedBox(height: AppTokens.spaceSm),
           TextField(
@@ -579,7 +569,7 @@ class TaskProjectSwitcher extends ConsumerWidget {
   }
 }
 
-/// ⋯ 菜单：描述/备注开关；编辑态含删除（D4/D8/D9）。
+/// ⋯ 菜单：备注开关；编辑态含删除（D4/D8）。描述默认内联展示，无需开关。
 class TaskEditorMenuButton extends StatelessWidget {
   const TaskEditorMenuButton({
     super.key,
@@ -598,8 +588,6 @@ class TaskEditorMenuButton extends StatelessWidget {
       tooltip: l10n.rowActions,
       onSelected: (value) {
         switch (value) {
-          case 'description':
-            controller.toggleDescription();
           case 'notes':
             controller.toggleNotes();
           case 'delete':
@@ -607,7 +595,6 @@ class TaskEditorMenuButton extends StatelessWidget {
         }
       },
       itemBuilder: (context) => [
-        PopupMenuItem(value: 'description', child: Text(l10n.taskDescription)),
         PopupMenuItem(value: 'notes', child: Text(l10n.taskNotes)),
         if (onDeleteRequested != null)
           PopupMenuItem(value: 'delete', child: Text(l10n.delete)),
