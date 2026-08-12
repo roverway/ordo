@@ -151,6 +151,9 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
         }
       },
       child: Scaffold(
+        // 显式声明：body 高度会扣除键盘 inset（Scaffold contentBottom），
+        // 底部工具栏随 body 上移，键盘弹出时不遮挡（59 修复）。
+        resizeToAvoidBottomInset: true,
         // AppBar：返回（自动 leading）+ 项目名 + 下拉双箭头 + 保存 + ⋯ 菜单。
         appBar: AppBar(
           titleSpacing: AppTokens.spaceXs,
@@ -169,35 +172,42 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
             ),
           ],
         ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppTokens.spaceMd),
-          child: TaskEditor(
-            controller: _editorController,
-            showTopBar: false,
-            showToolbar: false,
-            // 编辑态：子任务区按自身深度（<3 展示，方案 B）；新建态维持「仅 1 级任务」。
-            showSubtasks: _isEditing
-                ? _showSubtasks
-                : formState.parentId == null,
-            hasExistingChildren: _hasChildren,
-            onDeleteRequested: _isEditing ? _confirmDeleteTask : null,
-          ),
-        ),
-        // 底部工具栏常驻（键盘弹出时随 viewInsets 上移）。
-        bottomNavigationBar: ListenableBuilder(
-          listenable: _editorController,
-          builder: (context, _) => SafeArea(
-            top: false,
-            child: Material(
-              color: colorScheme.surface,
-              elevation: AppTokens.elevationCard,
-              child: TaskEditorToolbar(
-                // 已有子任务或待保存的新建子任务行 → 状态由子任务派生，禁用。
-                statusDisabled:
-                    _hasChildren || _editorController.hasPendingNewSubtasks,
+        body: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppTokens.spaceMd),
+                child: TaskEditor(
+                  controller: _editorController,
+                  showTopBar: false,
+                  showToolbar: false,
+                  // 编辑态：子任务区按自身深度（<3 展示，方案 B）；新建态维持「仅 1 级任务」。
+                  showSubtasks: _isEditing
+                      ? _showSubtasks
+                      : formState.parentId == null,
+                  hasExistingChildren: _hasChildren,
+                  onDeleteRequested: _isEditing ? _confirmDeleteTask : null,
+                ),
               ),
             ),
-          ),
+            // 底部工具栏常驻：作为 body 的一部分（body 高度已扣键盘 inset），
+            // 键盘弹出时随 body 上移——不依赖窗口 resize（59 修复，弹窗同机制）。
+            ListenableBuilder(
+              listenable: _editorController,
+              builder: (context, _) => SafeArea(
+                top: false,
+                child: Material(
+                  color: colorScheme.surface,
+                  elevation: AppTokens.elevationCard,
+                  child: TaskEditorToolbar(
+                    // 已有子任务或待保存的新建子任务行 → 状态由子任务派生，禁用。
+                    statusDisabled:
+                        _hasChildren || _editorController.hasPendingNewSubtasks,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

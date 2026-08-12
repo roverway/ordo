@@ -753,4 +753,29 @@ void main() {
       expect(find.text('添加子任务'), findsNothing);
     });
   });
+
+  // ────────────────────────────────────────
+  // 12. 键盘弹出时底部工具栏上移（59 修复）
+  // ────────────────────────────────────────
+  group('键盘弹出时底部工具栏保持在键盘上方', () {
+    testWidgets('设置 viewInsets 后工具栏底边不越过键盘顶边', (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      // 模拟键盘弹出（底部 viewInsets 300，屏高 800 → 键盘顶边在 y=500）。
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      addTearDown(tester.view.resetViewInsets);
+
+      final tasks = [_task('t1', title: '任务一')];
+      await _pumpEdit(tester, taskId: 't1', existingTasks: tasks);
+      await tester.pumpAndSettle();
+
+      final toolbarRect = tester.getRect(find.byType(TaskEditorToolbar));
+      // 工具栏底边 ≤ 键盘顶边（修复前工具栏在 bottomNavigationBar，
+      // 不随 viewInsets 上移，会位于 y≈800 被键盘遮挡）。
+      expect(toolbarRect.bottom, lessThanOrEqualTo(500));
+      // 工具栏仍完整可见。
+      expect(toolbarRect.top, greaterThan(0));
+    });
+  });
 }
