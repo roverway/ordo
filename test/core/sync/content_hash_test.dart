@@ -1,9 +1,11 @@
 // FNV-1a 64 内容 hash 单元测试（docs/60-sync-design.md §10.3 上传优化）。
 //
-// 标准测试向量（与 remote_store_webdav_test.dart 的 contentHash 测试一致）：
+// 标准测试向量：
 // - 空内容 → `cbf29ce484222325`
 // - 单字节 'a' → `af63dc4c8601ec8c`
 // 额外：确定性、异内容不同 hash、长内容不崩溃。
+//
+// 使用方：SyncEngine._businessHash（上传无变化跳过判定，sync_engine.dart）。
 
 import 'dart:convert';
 

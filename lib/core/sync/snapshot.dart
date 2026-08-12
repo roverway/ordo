@@ -75,6 +75,29 @@ class SnapshotData {
       'tags': tags.map((r) => r.toJson()).toList(),
     };
   }
+
+  /// 业务内容 JSON（§10.3 上传优化用）：与 [toJson] 唯一区别是 `exportedAt`
+  /// 与 `deviceId` 归一为固定值（0 / ''）。
+  ///
+  /// 用途：SyncEngine 计算「业务内容 hash」判断上传是否可跳过——
+  /// - `exportedAt` 每次导出都取当前时间，天然易变，必须排除（否则内容
+  ///   未变但重新导出的 payload 字节必然不同，跳过优化永不生效）；
+  /// - `deviceId` 排除：合并结果要与**任意设备**写入的远端快照比较业务内容
+  ///   （跨设备内容一致时应跳过上传，否则两台内容相同的设备会互相触发
+  ///   冗余上传 ping-pong）。设备 ID 只用于 LWW tie-break（由引擎显式传入
+  ///   [merge] 参数），快照内该字段不参与内容判定。
+  ///
+  /// 返回的 Map 字段顺序固定，序列化结果逐字节确定。
+  Map<String, dynamic> businessToJson() {
+    return {
+      'schemaVersion': schemaVersion,
+      'deviceId': '',
+      'exportedAt': 0,
+      'projects': projects.map((r) => r.toJson()).toList(),
+      'tasks': tasks.map((r) => r.toJson()).toList(),
+      'tags': tags.map((r) => r.toJson()).toList(),
+    };
+  }
 }
 
 /// 项目记录（docs/40-data-model.md §2.1，快照字段见 §3）。

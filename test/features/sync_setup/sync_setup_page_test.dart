@@ -13,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:todo/core/db/database.dart';
 import 'package:todo/core/l10n/app_localizations.dart';
 import 'package:todo/core/security/secure_store.dart';
+import 'package:todo/core/sync/sync_config.dart';
 import 'package:todo/core/sync/sync_engine.dart';
 import 'package:todo/features/projects/project_providers.dart';
 import 'package:todo/features/sync_setup/sync_setup_page.dart';
@@ -32,6 +33,19 @@ class _MemorySecureBackend implements SecureKeyValueStore {
 
   @override
   Future<void> delete(String key) async => _store.remove(key);
+}
+
+/// 写操作抛 [SecureStoreException] 的后端（模拟安全存储故障，验证保存顺序）。
+class _FailingWriteBackend implements SecureKeyValueStore {
+  @override
+  Future<String?> read(String key) async => null;
+
+  @override
+  Future<void> write(String key, String value) async =>
+      throw SecureStoreException('模拟安全存储写入故障');
+
+  @override
+  Future<void> delete(String key) async {}
 }
 
 /// 固定错误态 Notifier（errorCode=network，验证 UI 按错误码映射 ARB 文案，
@@ -123,6 +137,40 @@ void main() {
       await backend.read('sync_webdav_serverUrl'),
       'https://dav.example.com/todo/',
     );
+
+    // 走完 SnackBar 自动消失计时器，避免测试结束挂起 Timer。
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('凭据写入失败 → enabled 开关不落盘（无半应用状态）', (tester) async {
+    final db = AppDatabase.forTesting();
+    addTearDown(db.close);
+    final repo = TodoRepository(database: db);
+    final failingStore = SecureStore(backend: _FailingWriteBackend());
+    await _pumpSyncPage(tester, repo: repo, secureStore: failingStore);
+
+    // 启用同步 + 填服务器地址 → 保存（凭据写失败 → 整次保存报错）。
+    await tester.tap(find.text('启用同步'));
+    await tester.pump();
+    await tester.enterText(
+      find.byType(TextField).first,
+      'https://dav.example.com/todo/',
+    );
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+    expect(find.text('保存失败'), findsOneWidget);
+
+    // 非启用类 settings 已落盘（type），但 enabled 保持旧值（未被置 1）。
+    final settings = await repo.settings.getAll();
+    expect(settings['sync_type'], 'webdav');
+    expect(
+      settings['sync_enabled'],
+      isNot('1'),
+      reason: '凭据失败时 enabled 不得被置 1（防半应用状态）',
+    );
+    // 凭据未写入。
+    expect(await failingStore.readCreds(RemoteType.webdav), isNull);
 
     // 走完 SnackBar 自动消失计时器，避免测试结束挂起 Timer。
     await tester.pump(const Duration(seconds: 5));

@@ -1,14 +1,16 @@
 // 同步引擎编排层（docs/60-sync-design.md §5/§6/§11/§12，docs/30-architecture §6.2）。
 //
 // 职责：
-// - 触发统一入口 run()（串行防重入）+ runAfterEdit()（编辑防抖，可关）；
+// - 触发统一入口 run()（串行防重入）；编辑防抖由触发层 sync_triggers.dart
+//   负责（SyncTriggers.onEdit，本类不再提供 runAfterEdit，避免双套防抖）；
 // - 读取配置（settings 非敏感项 + SecureStore 凭据）与设备 ID（首次生成持久化）；
 // - 首次同步四分支（§5）：本地空+远端有 → 下载应用；本地有+远端空 → 上传；
 //   都有 → 读改写（§6）；schemaVersion 不匹配 → 拒绝；
 // - 时钟偏差检测（§11）：|remote.exportedAt - now| > 5min → 用户确认，否则中止；
 // - 应用合并（§4/D1）：deleted=true → 本地硬删 + 墓碑保留进本地墓碑集合；
 //   其余 → upsert；task_tags 按合并结果全量重建；
-// - 上传优化（§10.3）：内容 hash 与上次上传一致则跳过 upload（仍记成功）；
+// - 上传优化（§10.3）：比较「本次合并/导出结果」与「本次下载到的远端快照」
+//   的业务内容 hash，无差异则跳过 upload（仍记成功）；不比较本进程上传历史；
 // - 读改写（§6）：upload 前比对 lastModified，变化则重新 download+merge，最多 2 次；
 // - 错误处理（§12）：分类 → SyncState.error + SyncResult（retryable 标注），
 //   指数退避由触发层（sync_triggers.dart）调度；
@@ -19,6 +21,7 @@
 // TodoRepository.exportAll()/applyMerged()/墓碑方法交换纯 DB 数据类型。
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show debugPrint;
@@ -179,12 +182,6 @@ class SyncEngine {
 
   bool _running = false;
 
-  Timer? _editDebounceTimer;
-  Completer<void>? _pendingEdit;
-
-  /// 编辑防抖时长（§10.2：2s）。
-  static const Duration editDebounce = Duration(seconds: 2);
-
   // ─────────────────────────── 触发入口 ───────────────────────────
 
   /// 手动/触发统一入口（§6 串行队列）。
@@ -211,35 +208,26 @@ class SyncEngine {
     }
   }
 
-  /// 编辑防抖入口（§10.2：内部 debounce 2s + autoOnEdit 可关判断）。
+  /// 编辑防抖入口已移除（M4 评审缺陷 2）：曾与本类 [run] 并存的
+  /// `runAfterEdit` 是死代码且与 SyncTriggers.onEdit 形成双套防抖 Timer。
+  /// 现统一由 SyncTriggers.onEdit 负责（已含 autoOnEdit 开关 + wifiOnly 约束），
+  /// Repository 用户写方法经 `onDataChanged` 回调接线到触发层。
   ///
-  /// 多次调用合并为一次（Timer 取消重建，旧调用的 Future 立即完成，避免
-  /// 调用方挂起）；触发时读取配置，autoOnEdit 关闭或同步未启用则静默跳过。
-  Future<void> runAfterEdit() {
-    _editDebounceTimer?.cancel();
-    _pendingEdit?.complete();
-    final completer = Completer<void>();
-    _pendingEdit = completer;
-    _editDebounceTimer = Timer(editDebounce, () async {
-      try {
-        final config = await loadSettingsConfig();
-        if (config.enabled && config.autoOnEdit) {
-          await run();
-        }
-      } finally {
-        if (identical(_pendingEdit, completer)) _pendingEdit = null;
-        if (!completer.isCompleted) completer.complete();
-      }
-    });
-    return completer.future;
-  }
+  /// 本类保持唯一触发入口 [run]。
 
   /// 读取完整同步配置（settings 非敏感项 + SecureStore 凭据）。
   ///
-  /// 凭据缺失时仅返回非敏感项（hasCredentials=false，run() 将跳过）。
+  /// 凭据缺失时仅返回非敏感项（hasCredentials=false，run() 将跳过）；
+  /// 安全存储读取失败（[SecureStoreException]）归一为 [SyncConfigException]
+  /// → 外层映射 [SyncErrorCode.config]（本地安全存储问题属配置类，非远端）。
   Future<SyncConfig> loadConfig() async {
     final config = await loadSettingsConfig();
-    final creds = await _secureStore.readCreds(config.type);
+    SyncConfig? creds;
+    try {
+      creds = await _secureStore.readCreds(config.type);
+    } on SecureStoreException catch (e) {
+      throw SyncConfigException('安全存储读取失败', cause: e);
+    }
     if (creds == null) return config;
     return config.copyWith(
       serverUrl: creds.serverUrl,
@@ -288,10 +276,9 @@ class SyncEngine {
       if (!remoteExists) {
         // 分支 B（§5）：本地有 + 远端空 → 上传（两端都空也走此路径，
         // 上传空快照无害）；或竞态下远端被删，退化为上传。
-        final payload = encodeSnapshot(
-          _buildExportSnapshot(data, tombstones, deviceId),
-        );
-        await _uploadIfChanged(store, payload);
+        // 远端为空 → 无下载快照可比较 → 必须上传（remoteBusinessHash=null）。
+        final export = _buildExportSnapshot(data, tombstones, deviceId);
+        await _uploadIfChanged(store, export, null);
         return await _finishSuccess();
       }
 
@@ -457,17 +444,22 @@ class SyncEngine {
     for (var attempt = 0; ; attempt++) {
       final bytes = await store.download();
       if (bytes == null) {
-        // 竞态：远端被删除 → 退化为上传本地快照。
+        // 竞态：远端被删除 → 退化为上传本地快照（无远端内容可比较 → 必上传）。
         final data = await _repository.exportAll();
         final toms = await _repository.readTombstones();
-        final payload = encodeSnapshot(
+        await _uploadIfChanged(
+          store,
           _buildExportSnapshot(data, toms, deviceId),
+          null,
         );
-        await _uploadIfChanged(store, payload);
         return;
       }
 
       final remote = await _decodeAndVerify(bytes);
+      // §10.3 上传优化：比较基准为「本次下载到的远端业务内容」而非本进程
+      // 上传历史——合并/导出结果与之无差异说明没有需要传播的变更，跳过上传
+      // 仍记成功；若远端被外部设备改写为不同内容，hash 必然变化 → 正常上传。
+      final remoteBusinessHash = _businessHash(remote);
       final localData = await _repository.exportAll();
       final localToms = await _repository.readTombstones();
       final local = _buildExportSnapshot(localData, localToms, deviceId);
@@ -482,18 +474,16 @@ class SyncEngine {
       // 应用后重新导出（含更新后的墓碑集合），并编码为待上传 payload。
       final data = await _repository.exportAll();
       final toms = await _repository.readTombstones();
-      final payload = encodeSnapshot(
-        _buildExportSnapshot(data, toms, deviceId),
-      );
+      final export = _buildExportSnapshot(data, toms, deviceId);
 
       if (attempt >= _kMaxReadModifyWriteRetries) {
         // 已重试 2 次仍被修改 → 接受最后读取结果上传（§6 上限）。
-        await _uploadIfChanged(store, payload);
+        await _uploadIfChanged(store, export, remoteBusinessHash);
         return;
       }
       final lmNow = await store.lastModified();
       if (lmNow == lastModifiedBefore) {
-        await _uploadIfChanged(store, payload);
+        await _uploadIfChanged(store, export, remoteBusinessHash);
         return;
       }
       // 远端被其他设备修改 → 重新 download + merge 再上传（§6）。
@@ -530,17 +520,33 @@ class SyncEngine {
     return remote;
   }
 
-  /// 上传优化（§10.3）：payload 内容 hash 与 remoteStore.contentHash()
-  /// （本进程内最近一次成功上传）一致 → 跳过 upload（仍记成功）。
-  Future<void> _uploadIfChanged(RemoteStore store, Uint8List payload) async {
-    final hash = fnv1a64Hex(payload);
-    final remoteHash = await store.contentHash();
-    if (remoteHash != null && remoteHash == hash) {
+  /// 上传优化（§10.3）：比较「本次合并/导出的业务内容」与「本次下载到的
+  /// 远端快照业务内容」的 hash——无差异说明本地没有需要传播的变更，
+  /// 跳过 upload（仍记成功）。
+  ///
+  /// [remoteBusinessHash] 为下载远端快照后算出的业务 hash；null（远端为空
+  /// /被删）时**必须上传**（首次上传分支）。hash 只覆盖业务内容
+  /// （[SnapshotData.businessToJson]，exportedAt/deviceId 不参与），
+  /// 不比较本进程上传历史（remoteStore.contentHash 语义已废弃移除）。
+  Future<void> _uploadIfChanged(
+    RemoteStore store,
+    SnapshotData export,
+    String? remoteBusinessHash,
+  ) async {
+    if (remoteBusinessHash != null &&
+        remoteBusinessHash == _businessHash(export)) {
       debugPrint('sync: 内容无变化，跳过上传');
       return;
     }
-    await store.upload(payload);
+    await store.upload(encodeSnapshot(export));
   }
+
+  /// 业务内容 hash（§10.3）：exportedAt/deviceId 归一后序列化求 FNV-1a 64。
+  ///
+  /// 与 [encodeSnapshot] 相同算法（[fnv1a64Hex]），仅作「内容无变化」判定，
+  /// 非密码学用途。
+  String _businessHash(SnapshotData snap) =>
+      fnv1a64Hex(utf8.encode(jsonEncode(snap.businessToJson())));
 
   /// 成功收尾：写 lastSyncedAt → onStateChanged(success)。
   Future<SyncResult> _finishSuccess() async {
@@ -799,13 +805,5 @@ class SyncEngine {
   void _setState(SyncState state) {
     _state = state;
     _onStateChanged?.call(state);
-  }
-
-  /// 释放内部 Timer（应用生命周期内可调用；编辑防抖入口终止）。
-  void dispose() {
-    _editDebounceTimer?.cancel();
-    _editDebounceTimer = null;
-    _pendingEdit?.complete();
-    _pendingEdit = null;
   }
 }

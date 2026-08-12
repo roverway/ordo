@@ -33,15 +33,4 @@ abstract class RemoteStore {
 
   /// 远端对象最后修改时间（UTC）；对象不存在返回 null。
   Future<DateTime?> lastModified();
-
-  /// 本进程内「最近一次成功上传内容」的 hash（§10.3 无变化跳过优化）。
-  ///
-  /// - 未上传过返回 null（进程重启后也为 null，sync_engine 会退化为
-  ///   用 lastModified 判定或直接上传）；
-  /// - hash 仅用于「远端是否与我上次上传一致」的变化判定，
-  ///   非密码学用途，不保证防碰撞安全。
-  ///
-  /// 实现约定：upload() 成功后内部记录本次字节的 hash，contentHash()
-  /// 原样返回；不做任何网络请求。
-  Future<String?> contentHash();
 }

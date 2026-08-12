@@ -155,6 +155,18 @@ class TodoRepository {
   late final TagDao tags = TagDao(database);
   late final SettingsDao settings = SettingsDao(database);
 
+  /// 数据变更回调（编辑自动同步接线，FR-SYNC-02 / docs/60-sync-design.md §10.2）。
+  ///
+  /// - **仅用户写操作**触发（create/update/move/delete 各实体）；同步内部写入
+  ///   （applyMerged / mergeTombstones / pruneTombstones）**绝不**触发
+  ///   （避免 同步→编辑→同步 死循环）；
+  /// - 非 final 可变字段：由装配层（main.dart）在 ProviderContainer 创建后
+  ///   手工赋值 `onDataChanged = syncTriggers.onEdit`，避免 Repository ↔
+  ///   sync 层 Provider 循环依赖（docs/30-architecture §1：Repository 不
+  ///   import lib/core/sync/，本回调只是普通函数类型）；
+  /// - 写方法在**事务提交后** await 回调（不阻塞事务本身）。
+  Future<void> Function()? onDataChanged;
+
   // ─────────────────────────── Projects ───────────────────────────
 
   /// 新建项目（name 1–100 字符；description 最多 500 字符；sortOrder 自动追加到末尾）。
@@ -176,6 +188,7 @@ class TodoRepository {
       updatedAt: now,
     );
     await projects.insert(project);
+    await onDataChanged?.call();
     return (await projects.getById(project.id.value))!;
   }
 
@@ -199,6 +212,7 @@ class TodoRepository {
       updatedAt: Value(_nowMs()),
     );
     await projects.updateById(id, entry);
+    await onDataChanged?.call();
   }
 
   /// 项目排序移动：[newIndex] 为最终列表中的位置（0-based）。
@@ -220,6 +234,7 @@ class TodoRepository {
         );
       }
     });
+    await onDataChanged?.call();
   }
 
   /// 确保内置收件箱项目存在（幂等，产品决策 #3）。
@@ -246,6 +261,7 @@ class TodoRepository {
           updatedAt: now,
         ),
       );
+      await onDataChanged?.call();
     } else if (existing.deleted != 0) {
       // 同步墓碑恢复：仅当行被标记删除时重建展示内容，保留 sortOrder。
       await projects.updateById(
@@ -257,6 +273,7 @@ class TodoRepository {
           updatedAt: Value(now),
         ),
       );
+      await onDataChanged?.call();
     }
     return (await projects.getById(inboxProjectId))!;
   }
@@ -283,6 +300,7 @@ class TodoRepository {
           TombstoneEntry(type: _kTombstoneTypeTask, id: t.id, updatedAt: now),
       ]);
     });
+    await onDataChanged?.call();
   }
 
   // ───────────────────────────── Tasks ─────────────────────────────
@@ -355,6 +373,7 @@ class TodoRepository {
         updatedAt: now,
       );
       await tasks.insert(task);
+      await onDataChanged?.call();
       return (await tasks.getById(task.id.value))!;
     }
 
@@ -375,6 +394,7 @@ class TodoRepository {
       updatedAt: now,
     );
     await tasks.insert(task);
+    await onDataChanged?.call();
     return (await tasks.getById(task.id.value))!;
   }
 
@@ -419,6 +439,7 @@ class TodoRepository {
       updatedAt: Value(_nowMs()),
     );
     await tasks.updateById(id, entry);
+    await onDataChanged?.call();
   }
 
   /// 移动任务：[newParentId] 为 null 表示提升为 1 级任务。
@@ -510,6 +531,7 @@ class TodoRepository {
         }
       }
     });
+    await onDataChanged?.call();
   }
 
   /// 收件箱项目下全部未删除任务（扁平列表，含 1 级与子树），按 sortOrder 升序。
@@ -546,6 +568,7 @@ class TodoRepository {
           TombstoneEntry(type: _kTombstoneTypeTask, id: id, updatedAt: now),
       ]);
     });
+    await onDataChanged?.call();
   }
 
   // ────────────────────────────── Tags ──────────────────────────────
@@ -566,6 +589,7 @@ class TodoRepository {
       updatedAt: now,
     );
     await tags.insert(tag);
+    await onDataChanged?.call();
     return (await tags.getById(tag.id.value))!;
   }
 
@@ -588,6 +612,7 @@ class TodoRepository {
         updatedAt: Value(_nowMs()),
       ),
     );
+    await onDataChanged?.call();
   }
 
   /// 删除标签：硬删标签 + 删除 task_tags 引用行（任务保留，§7）。
@@ -604,6 +629,7 @@ class TodoRepository {
         TombstoneEntry(type: _kTombstoneTypeTag, id: id, updatedAt: _nowMs()),
       ]);
     });
+    await onDataChanged?.call();
   }
 
   // ───────────────────────── 墓碑集合（同步引擎 D1/D2） ───────────────────────

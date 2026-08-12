@@ -7,8 +7,9 @@
 // - syncConfigProvider：读取当前配置（settings 非敏感项 + SecureStore 凭据），
 //   供配置页表单预填。**凭据从安全存储读出后仅在本 Provider 作用域内使用，
 //   禁止写入日志**（60-sync-design.md §13）；
-// - saveSyncConfig / testSyncConnection / onEditSync：保存 / 测试连接 / 编辑触发
-//   辅助（供页面或未来写操作接线调用）。
+// - saveSyncConfig / testSyncConnection：保存 / 测试连接辅助（供页面调用）。
+//   编辑自动同步（onEditSync）已移除：统一经 TodoRepository.onDataChanged
+//   回调接线到 SyncTriggers.onEdit（装配在 main.dart）。
 //
 // 分层约束（30-architecture §1）：本文件只依赖 core/sync 与 Repository 抽象，
 // 不反向依赖 UI。
@@ -102,14 +103,27 @@ final syncConfigProvider = FutureProvider<SyncConfig>((ref) {
 /// - 非敏感项：经 `config.toMap()`（仅 6 项，绝不含凭据）逐条 `settings.set`；
 /// - 凭据：经 `secureStore.writeCreds`（仅写非 null 字段）。
 ///
+/// **写入顺序（防半应用状态，M4 评审缺陷 4）**：
+/// 1. 先写**非启用类** settings（type/autoOnStart/autoOnEdit/wifiOnly/
+///    lastSyncedAt）——不依赖凭据，先落盘无风险；
+/// 2. 再写凭据（writeCreds）——凭据失败 → settings 中 enabled 保持旧值，
+///    不会出现「enabled=true 但无凭据」的半应用态；
+/// 3. 最后写 enabled——它是「凭据已就绪」的前置门。
+/// 残余风险（注释）：凭据已写而最后一步 settings 写入失败（概率低）会留下
+/// 「凭据已更新但开关未更新」的状态；下次保存幂等重写凭据，无安全影响。
+///
 /// 成功后由调用方 `ref.invalidate(syncConfigProvider)` 刷新表单预填。
 Future<void> saveSyncConfig(WidgetRef ref, SyncConfig config) async {
   final repo = ref.read(todoRepositoryProvider);
   final store = ref.read(secureStoreProvider);
-  for (final entry in config.toMap().entries) {
+  final settings = config.toMap();
+  final enabled = settings[SyncSettingsKeys.enabled]!;
+  for (final entry in settings.entries) {
+    if (entry.key == SyncSettingsKeys.enabled) continue;
     await repo.settings.set(entry.key, entry.value);
   }
   await store.writeCreds(config);
+  await repo.settings.set(SyncSettingsKeys.enabled, enabled);
 }
 
 /// 测试远端连接：用 [config] 构造 RemoteStore 并调 `exists()`。
@@ -138,10 +152,3 @@ Future<({bool ok, SyncErrorCode? errorCode})> testSyncConnection(
     return (ok: false, errorCode: SyncErrorCode.unknown);
   }
 }
-
-/// 编辑自动同步辅助：调 `SyncTriggers.onEdit()`（防抖 2s + autoOnEdit 可关）。
-///
-/// 供未来 UI 写操作路径接线；本任务不触碰 Repository 写方法（避免大范围
-/// 回归），仅提供入口装配。
-Future<void> onEditSync(WidgetRef ref) =>
-    ref.read(syncTriggersProvider).onEdit();

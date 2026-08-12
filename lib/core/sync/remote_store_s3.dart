@@ -27,11 +27,6 @@
 //
 // 可测试性：对 Minio 包一层薄适配器 [S3Ops]，测试注入 Fake 实现
 // （模拟 404/403/网络错误），无需真实网络与 mockito。
-//
-// 上传 hash：接口见 RemoteStore.contentHash()（§10.3 无变化跳过）。
-// 复用共享 lib/core/sync/content_hash.dart 的 fnv1a64Hex（FNV-1a 64，
-// 与 remote_store_webdav.dart 内联实现算法一致，offset basis
-// 0xcbf29ce484222325、prime 0x100000001b3、按 byte 计算、16 位小写十六进制）。
 
 import 'dart:async';
 import 'dart:io';
@@ -46,7 +41,6 @@ import 'package:http/http.dart' as http;
 import 'package:minio/minio.dart';
 import 'package:minio/models.dart';
 
-import 'content_hash.dart';
 import 'remote_store.dart';
 import 'sync_exceptions.dart';
 
@@ -174,9 +168,6 @@ class S3RemoteStore implements RemoteStore {
   /// 完整对象键（`{prefix}data.json.gz`）。
   final String _objectKey;
 
-  /// 最近一次成功上传内容的 hash（§10.3）。
-  String? _lastUploadHash;
-
   @override
   Future<bool> exists() async {
     try {
@@ -237,7 +228,6 @@ class S3RemoteStore implements RemoteStore {
     } on http.ClientException catch (e) {
       throw _classifyNetwork(e);
     }
-    _lastUploadHash = fnv1a64Hex(bytes);
   }
 
   @override
@@ -265,9 +255,6 @@ class S3RemoteStore implements RemoteStore {
       throw _classifyNetwork(e);
     }
   }
-
-  @override
-  Future<String?> contentHash() async => _lastUploadHash;
 
   /// 是否为「对象不存在」（NoSuchKey/NotFound/HTTP 404）。
   bool _isNotFound(MinioS3Error e) {

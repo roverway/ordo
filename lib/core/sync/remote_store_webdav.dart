@@ -24,10 +24,6 @@
 //
 // 可测试性：对 webdav_client.Client 包一层薄适配器 [WebDavClientLike]，
 // 测试注入 Fake 实现（模拟 404/401/超时/本地时区 mTime），无需 mockito。
-//
-// 上传 hash：接口见 RemoteStore.contentHash()（§10.3 无变化跳过）。
-// 项目未直接依赖 crypto（见 snapshot_codec.dart 注释，仅传递依赖，禁止
-// 新增 pub 依赖），故内联实现 FNV-1a 64 —— 仅用于变化判定，非密码学用途。
 
 import 'dart:typed_data';
 
@@ -123,9 +119,6 @@ class WebDavRemoteStore implements RemoteStore {
   /// 传给 readProps/read/write 的相对路径（仅 key，如 `data.json.gz`）。
   final String _path;
 
-  /// 最近一次成功上传内容的 hash（§10.3）。
-  String? _lastUploadedHash;
-
   @override
   Future<bool> exists() async {
     try {
@@ -157,7 +150,6 @@ class WebDavRemoteStore implements RemoteStore {
       // 不是「对象不存在」；upload 不经过 _isNotFound，保持 §12 分类语义。
       throw _classify(e);
     }
-    _lastUploadedHash = _fnv1a64Hex(bytes);
   }
 
   @override
@@ -175,9 +167,6 @@ class WebDavRemoteStore implements RemoteStore {
       throw _classify(e);
     }
   }
-
-  @override
-  Future<String?> contentHash() async => _lastUploadedHash;
 
   /// 是否为「对象不存在」。
   ///
@@ -209,27 +198,4 @@ class WebDavRemoteStore implements RemoteStore {
     }
     return SyncRemoteException('远端返回 HTTP $status', cause: e);
   }
-}
-
-/// FNV-1a 64 十六进制字符串（16 位）。
-///
-/// 仅用于「上传内容无变化跳过」判定（§10.3），非密码学用途；
-/// 确定性、低成本，满足同内容同 hash、不同内容大概率不同 hash。
-String _fnv1a64Hex(Uint8List bytes) {
-  const int offsetBasis = 0xcbf29ce484222325;
-  const int prime = 0x100000001b3;
-  const int mask64 = 0xffffffffffffffff;
-  var hash = offsetBasis;
-  for (final b in bytes) {
-    hash ^= b;
-    // Dart VM int 为 64 位有符号、溢出按模 2^64 回绕；掩码保证后续
-    // setUint64 写出低 64 位原文。
-    hash = (hash * prime) & mask64;
-  }
-  final bd = ByteData(8)..setUint64(0, hash);
-  final sb = StringBuffer();
-  for (var i = 0; i < 8; i++) {
-    sb.write(bd.getUint8(i).toRadixString(16).padLeft(2, '0'));
-  }
-  return sb.toString();
 }

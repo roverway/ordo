@@ -492,4 +492,83 @@ void main() {
       expect(restored.color, inboxProjectColor);
     });
   });
+
+  group('onDataChanged（编辑自动同步回调，FR-SYNC-02）', () {
+    test('用户写操作依次触发回调（create/update/move/delete）', () async {
+      var calls = 0;
+      repo.onDataChanged = () async => calls++;
+
+      final p = await repo.createProject(name: 'P', color: 0);
+      expect(calls, 1, reason: 'createProject 触发');
+      await repo.updateProject(p.id, name: 'P2');
+      expect(calls, 2, reason: 'updateProject 触发');
+      await repo.moveProject(p.id, 0);
+      expect(calls, 3, reason: 'moveProject 触发');
+
+      final t = await repo.createTask(projectId: p.id, title: 'T');
+      expect(calls, 4, reason: 'createTask 触发');
+      await repo.updateTask(t.id, title: 'T2');
+      expect(calls, 5, reason: 'updateTask 触发');
+      await repo.moveTask(t.id, newParentId: null, newIndex: 0);
+      expect(calls, 6, reason: 'moveTask 触发');
+
+      final tag = await repo.createTag(name: 'tag', color: 0);
+      expect(calls, 7, reason: 'createTag 触发');
+      await repo.updateTag(tag.id, name: 'tag2');
+      expect(calls, 8, reason: 'updateTag 触发');
+
+      await repo.deleteTask(t.id);
+      expect(calls, 9, reason: 'deleteTask 触发');
+      await repo.deleteTag(tag.id);
+      expect(calls, 10, reason: 'deleteTag 触发');
+      await repo.deleteProject(p.id);
+      expect(calls, 11, reason: 'deleteProject 触发');
+    });
+
+    test('同步内部写入（applyMerged/mergeTombstones/pruneTombstones）不触发回调', () async {
+      var calls = 0;
+      repo.onDataChanged = () async => calls++;
+
+      await repo.createProject(name: 'P', color: 0);
+      expect(calls, 1);
+
+      // 同步应用合并结果：不得触发（否则 同步→编辑→同步 死循环）。
+      await repo.applyMerged(
+        const MergedApplyOperation(
+          upsertProjects: [
+            Project(
+              id: 'p-sync',
+              name: 'P-sync',
+              color: 0,
+              description: '',
+              sortOrder: 0,
+              createdAt: 1,
+              updatedAt: 1,
+              deleted: 0,
+            ),
+          ],
+        ),
+      );
+      expect(calls, 1, reason: 'applyMerged 是同步内部写入，不得触发回调');
+
+      await repo.mergeTombstones([
+        const TombstoneEntry(type: 'project', id: 'p-sync', updatedAt: 2),
+      ]);
+      expect(calls, 1, reason: 'mergeTombstones 不得触发回调');
+
+      await repo.pruneTombstones(1);
+      expect(calls, 1, reason: 'pruneTombstones 不得触发回调');
+    });
+
+    test('ensureInboxProject 实际写入时触发；已存在未删除时静默跳过', () async {
+      var calls = 0;
+      repo.onDataChanged = () async => calls++;
+
+      await repo.ensureInboxProject('收件箱'); // 新建 → 触发
+      expect(calls, 1);
+
+      await repo.ensureInboxProject('收件箱'); // 已存在 → 不触发
+      expect(calls, 1);
+    });
+  });
 }

@@ -210,10 +210,11 @@ class _SyncSetupPageState extends ConsumerState<SyncSetupPage> {
       if (mounted) setState(() => _lastErrorRetryable = false);
       return;
     }
-    // §12：失败 → 记录是否可重试；可重试错误交给触发层指数退避调度。
+    // §12：失败 → 记录是否可重试；可重试错误交给触发层指数退避调度
+    // （不再立即重跑，按 1/2/4/8/16s 退避，最多 5 次）。
     if (mounted) setState(() => _lastErrorRetryable = result.retryable);
     if (result.retryable) {
-      unawaited(triggers.maybeRetry());
+      unawaited(triggers.scheduleRetryIfNeeded(result));
     }
   }
 

@@ -27,7 +27,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:todo/core/db/database.dart';
 import 'package:todo/core/db/repositories/todo_repository.dart';
 import 'package:todo/core/security/secure_store.dart';
-import 'package:todo/core/sync/content_hash.dart';
 import 'package:todo/core/sync/remote_store.dart';
 import 'package:todo/core/sync/remote_store_factory.dart';
 import 'package:todo/core/sync/snapshot.dart';
@@ -40,12 +39,11 @@ import '../../helpers/db_test_setup.dart';
 
 // ─────────────────────────── Fake RemoteStore ───────────────────────────
 
-/// 内存 Fake 远端存储：upload/download/exists/lastModified/contentHash 全在
-/// 内存完成，支持错误注入与并发写入钩子。
+/// 内存 Fake 远端存储：upload/download/exists/lastModified 全在内存完成，
+/// 支持错误注入与并发写入钩子。
 class FakeRemoteStore implements RemoteStore {
   Uint8List? remoteBytes;
   DateTime? remoteModifiedAt;
-  String? _lastUploadHash;
 
   int uploadCount = 0;
   int downloadCount = 0;
@@ -87,14 +85,10 @@ class FakeRemoteStore implements RemoteStore {
     return remoteModifiedAt;
   }
 
-  @override
-  Future<String?> contentHash() async => _lastUploadHash;
-
   /// 模拟另一设备并发上传（不计数 [uploadCount]）。
   void simulateExternalUpload(Uint8List data) {
     remoteBytes = data;
     remoteModifiedAt = DateTime.now().toUtc();
-    _lastUploadHash = fnv1a64Hex(data);
   }
 }
 
@@ -131,6 +125,19 @@ class _InMemoryBackend implements SecureKeyValueStore {
   Future<void> delete(String key) async {
     store.remove(key);
   }
+}
+
+/// 读操作抛 [SecureStoreException] 的后端（模拟安全存储故障，§12 配置类）。
+class _ThrowingReadBackend implements SecureKeyValueStore {
+  @override
+  Future<String?> read(String key) async =>
+      throw SecureStoreException('模拟安全存储读取故障');
+
+  @override
+  Future<void> write(String key, String value) async {}
+
+  @override
+  Future<void> delete(String key) async {}
 }
 
 // ─────────────────────────── 快照构造辅助 ───────────────────────────
@@ -554,24 +561,73 @@ void main() {
   });
 
   group('额外', () {
-    test('上传优化：内容无变化 → 跳过 upload（上传次数不增）', () async {
+    test('上传优化：业务内容无变化 → 跳过 upload（上传次数不增）', () async {
       await enableSync(repo);
       final p = await repo.createProject(name: 'P', color: 0);
-      // 固定时钟：两次导出 exportedAt 相同 → payload 逐字节一致。
-      fixedNowMs = DateTime.now().millisecondsSinceEpoch;
+      // 真实时钟：两次 run 的 exportedAt 必然不同，但业务 hash 排除
+      // exportedAt/deviceId → 内容无变化时应跳过上传（此前旧用例只能靠
+      // 固定时钟通过，正是评审缺陷 1 的根因）。
       final engine = await buildEngine();
 
       final r1 = await engine.run();
       expect(r1.ok, isTrue);
       expect(remote.uploadCount, 1);
 
-      // 无本地改动，再次同步 → 内容一致 → 跳过上传。
+      // 无本地改动，再次同步 → 业务内容一致 → 跳过上传。
       final r2 = await engine.run();
       expect(r2.ok, isTrue);
-      expect(remote.uploadCount, 1, reason: '内容无变化应跳过 upload');
+      expect(remote.uploadCount, 1, reason: '业务内容无变化应跳过 upload');
       // 仍记成功（lastSyncedAt 更新），本地数据完好。
       expect(await repo.settings.get(SyncSettingsKeys.lastSyncedAt), isNotNull);
       expect((await repo.projects.getById(p.id))!.name, 'P');
+    });
+
+    test('上传优化：有业务变更 → 正常上传（不错误跳过）', () async {
+      await enableSync(repo);
+      await repo.createProject(name: 'P', color: 0);
+      final engine = await buildEngine();
+      await engine.run();
+      expect(remote.uploadCount, 1);
+
+      // 本地新增项目（业务变更）→ 再次同步必须上传。
+      final p2 = await repo.createProject(name: 'P2', color: 0xFF0000);
+      final r2 = await engine.run();
+      expect(r2.ok, isTrue);
+      expect(remote.uploadCount, 2, reason: '业务变更必须上传');
+      expect(
+        decode(remote.remoteBytes!).projects.map((x) => x.id),
+        contains(p2.id),
+      );
+    });
+
+    test('上传优化：远端被外部设备改写 → 业务 hash 变化 → 正常上传', () async {
+      await enableSync(repo);
+      final p = await repo.createProject(name: 'P', color: 0);
+      final engine = await buildEngine();
+      await engine.run();
+      expect(remote.uploadCount, 1);
+
+      // 另一设备改写远端快照（新增项目 p-other，deviceId 不同）。
+      remote.simulateExternalUpload(
+        encode(
+          remoteSnapshot(
+            deviceId: 'other-device',
+            projects: [projectRec(id: 'p-other', name: '另一设备项目')],
+          ),
+        ),
+      );
+
+      final r2 = await engine.run();
+      expect(r2.ok, isTrue);
+      // 合并后本地内容与远端不同 → 必须上传（不得错误跳过）。
+      expect(remote.uploadCount, 2, reason: '远端被改写应重新上传');
+      final finalSnap = decode(remote.remoteBytes!);
+      expect(
+        finalSnap.projects.map((x) => x.id),
+        containsAll([p.id, 'p-other']),
+      );
+      // 本地也获得远端记录。
+      expect((await repo.projects.getById('p-other'))!.name, '另一设备项目');
     });
 
     test('认证失败 → 不重试（retryable=false），错误态', () async {
@@ -641,6 +697,29 @@ void main() {
       expect(result.errorCode, SyncErrorCode.config);
       expect(engine.state.status, SyncStateStatus.error);
       expect(engine.state.errorCode, SyncErrorCode.config);
+      expect(await repo.settings.get(SyncSettingsKeys.lastSyncedAt), isNull);
+    });
+
+    test('安全存储读取失败 → config 错误码（本地配置类，不重试）', () async {
+      await enableSync(repo); // 凭据先正常写入（仅让 read 抛错）。
+      await repo.createProject(name: 'P', color: 0);
+
+      final engine = SyncEngine(
+        repository: repo,
+        secureStore: SecureStore(backend: _ThrowingReadBackend()),
+        remoteStoreFactory: FakeRemoteStoreFactory(remote),
+        onStateChanged: stateLog.add,
+        now: () => DateTime.now().toUtc(),
+      );
+      final result = await engine.run();
+
+      // SecureStoreException 必须映射为 config（而非 unknown 兜底）。
+      expect(result.ok, isFalse);
+      expect(result.retryable, isFalse);
+      expect(result.errorCode, SyncErrorCode.config);
+      expect(engine.state.status, SyncStateStatus.error);
+      expect(engine.state.errorCode, SyncErrorCode.config);
+      expect(remote.existsCount, 0, reason: '配置错误不应触碰远端');
       expect(await repo.settings.get(SyncSettingsKeys.lastSyncedAt), isNull);
     });
 

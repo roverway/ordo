@@ -11,8 +11,11 @@
 // - read 转 Uint8List、write 传入正确路径与字节；
 // - §12 错误分类：401 → SyncAuthException、超时/连接错误 → SyncNetworkException、
 //   其他 HTTP → SyncRemoteException；
-// - contentHash（§10.3）：上传后记录、确定性、不同内容不同；
 // - 工厂：webdav 配置有效/无效；s3 分支见 remote_store_s3_test.dart。
+//
+// 注：上传内容 hash（§10.3 无变化跳过）已不在本层实现——判定改为
+// SyncEngine 比较「合并/导出结果 vs 下载到的远端快照」的业务内容 hash，
+// RemoteStore.contentHash 已移除（见 sync_engine.dart 上传优化注释）。
 
 import 'dart:typed_data';
 
@@ -299,72 +302,6 @@ void main() {
         t.store.upload(Uint8List(0)),
         throwsA(isA<SyncRemoteException>()),
       );
-    });
-  });
-
-  group('contentHash（§10.3 无变化跳过优化）', () {
-    test('未上传返回 null，上传后返回 16 位十六进制', () async {
-      final t = _build();
-      t.fake.onWrite = (_, _) async {};
-
-      expect(await t.store.contentHash(), isNull);
-
-      await t.store.upload(Uint8List.fromList([104, 105])); // 'hi'
-      final hash = await t.store.contentHash();
-      expect(hash, isNotNull);
-      expect(hash, matches(RegExp(r'^[0-9a-f]{16}$')));
-    });
-
-    test('FNV-1a 64 标准测试向量：空内容与 "a"', () async {
-      final t = _build();
-      t.fake.onWrite = (_, _) async {};
-
-      await t.store.upload(Uint8List(0));
-      expect(await t.store.contentHash(), 'cbf29ce484222325');
-
-      await t.store.upload(Uint8List.fromList([0x61])); // 'a'
-      expect(await t.store.contentHash(), 'af63dc4c8601ec8c');
-    });
-
-    test('相同内容 hash 一致，不同内容 hash 不同', () async {
-      final t = _build();
-      t.fake.onWrite = (_, _) async {};
-      final a = Uint8List.fromList(List.filled(100, 7));
-      final b = Uint8List.fromList(List.filled(100, 8));
-
-      await t.store.upload(a);
-      final hashA = await t.store.contentHash();
-      await t.store.upload(a);
-      expect(await t.store.contentHash(), hashA, reason: '同内容 hash 稳定');
-
-      await t.store.upload(b);
-      expect(await t.store.contentHash(), isNot(hashA), reason: '异内容 hash 不同');
-    });
-
-    test('上传失败不记录 hash（保持上一次成功值）', () async {
-      final t = _build();
-      var fail = true;
-      t.fake.onWrite = (_, _) async {
-        if (fail) throw _dioWithStatus(500);
-      };
-
-      await expectLater(
-        t.store.upload(Uint8List(0)),
-        throwsA(isA<SyncRemoteException>()),
-      );
-      expect(await t.store.contentHash(), isNull);
-
-      fail = false;
-      await t.store.upload(Uint8List.fromList([1]));
-      final hash = await t.store.contentHash();
-      expect(hash, isNotNull);
-
-      fail = true;
-      await expectLater(
-        t.store.upload(Uint8List.fromList([2])),
-        throwsA(isA<SyncRemoteException>()),
-      );
-      expect(await t.store.contentHash(), hash, reason: '失败的上传不应覆盖已记录 hash');
     });
   });
 
