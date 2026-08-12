@@ -486,7 +486,11 @@ class TaskEditorToolbar extends ConsumerWidget {
 
 /// 顶部栏项目切换：[项目图标] 项目名 [下拉双箭头]（编辑中直接切换所属项目）。
 class TaskProjectSwitcher extends ConsumerWidget {
-  const TaskProjectSwitcher({super.key});
+  const TaskProjectSwitcher({super.key, this.interactive = true});
+
+  /// 编辑已有任务时传 false：仅展示项目名（跨项目移动未实现，编辑态隐藏
+  /// 误导性切换入口；新建态保留切换，59 讨论定稿）。
+  final bool interactive;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -498,49 +502,53 @@ class TaskProjectSwitcher extends ConsumerWidget {
         .where((p) => p.id == formState.projectId)
         .firstOrNull;
 
+    final content = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 项目图标：彩色圆点（与清单选择器一致的设计语言）。
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: project != null
+                ? Color(project.color)
+                : AppTokens.colorCancelled,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: AppTokens.spaceXs),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 200),
+          child: Text(
+            project?.name ?? '',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: AppTokens.textTitleWeight,
+            ),
+          ),
+        ),
+        if (interactive) ...[
+          const SizedBox(width: AppTokens.spaceXxs),
+          Icon(
+            Icons.keyboard_arrow_down,
+            size: 18,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ],
+      ],
+    );
+
+    final padding = const EdgeInsets.symmetric(
+      vertical: AppTokens.spaceXs,
+      horizontal: AppTokens.spaceXxs,
+    );
+    if (!interactive) return Padding(padding: padding, child: content);
+
     return InkWell(
       borderRadius: BorderRadius.circular(AppTokens.radiusButton),
       onTap: () => _pickProject(context, ref),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          vertical: AppTokens.spaceXs,
-          horizontal: AppTokens.spaceXxs,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 项目图标：彩色圆点（与清单选择器一致的设计语言）。
-            Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(
-                color: project != null
-                    ? Color(project.color)
-                    : AppTokens.colorCancelled,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: AppTokens.spaceXs),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 200),
-              child: Text(
-                project?.name ?? '',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: AppTokens.textTitleWeight,
-                ),
-              ),
-            ),
-            const SizedBox(width: AppTokens.spaceXxs),
-            Icon(
-              Icons.keyboard_arrow_down,
-              size: 18,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ],
-        ),
-      ),
+      child: Padding(padding: padding, child: content),
     );
   }
 

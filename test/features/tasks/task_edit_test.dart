@@ -553,11 +553,10 @@ void main() {
   // 9. Bug #4 回归：切换项目清空 parentId
   // ────────────────────────────────────────
   group('Bug #4 回归：切换项目清空 parentId', () {
-    testWidgets('编辑有父任务的任务：切换项目后 parentId 清空、父任务行消失', (tester) async {
-      final tasks = [
-        _task('parent', title: '父任务标题'),
-        _task('child', parentId: 'parent', title: '子任务', sortOrder: 1),
-      ];
+    testWidgets('新建子任务时切换项目 → parentId 清空、父任务行消失', (tester) async {
+      // 编辑态项目切换入口已隐藏（跨项目移动未实现，59 讨论定稿，见
+      // 「编辑态项目切换入口只读」组）；Bug #4 的表单行为在新建态仍生效，走新建态验证。
+      final tasks = [_task('parent', title: '父任务标题')];
       final p2 = Project(
         id: 'p2',
         name: '项目二',
@@ -571,12 +570,13 @@ void main() {
 
       await _pumpEdit(
         tester,
-        taskId: 'child',
+        projectId: 'p1',
+        parentId: 'parent',
         existingTasks: tasks,
         extraProjects: [p2],
       );
 
-      // 编辑有父任务的任务：父任务只读行可见（显示父任务标题）。
+      // 新建子任务：父任务只读行可见（显示父任务标题）。
       expect(find.text('父任务标题'), findsOneWidget);
 
       // 切换项目到 p2（AppBar 的 TaskProjectSwitcher → 项目选择弹层）。
@@ -591,6 +591,24 @@ void main() {
       expect(state.projectId, 'p2');
       expect(state.parentId, isNull);
       expect(find.text('父任务标题'), findsNothing);
+    });
+  });
+
+  // ────────────────────────────────────────
+  // 9b. 编辑态项目切换入口只读（59 讨论定稿）
+  // ────────────────────────────────────────
+  group('编辑态项目切换入口只读', () {
+    testWidgets('编辑已有任务：切换入口只读（无下拉箭头）', (tester) async {
+      final tasks = [_task('t1', title: '任务一')];
+      await _pumpEdit(tester, taskId: 't1', existingTasks: tasks);
+      await tester.pumpAndSettle();
+
+      final switcher = tester.widget<TaskProjectSwitcher>(
+        find.byType(TaskProjectSwitcher),
+      );
+      expect(switcher.interactive, isFalse);
+      // 无下拉箭头 → 无切换入口（跨项目移动未实现，避免误导）。
+      expect(find.byIcon(Icons.keyboard_arrow_down), findsNothing);
     });
   });
 

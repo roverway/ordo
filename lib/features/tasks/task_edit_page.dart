@@ -154,7 +154,9 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
         // AppBar：返回（自动 leading）+ 项目名 + 下拉双箭头 + 保存 + ⋯ 菜单。
         appBar: AppBar(
           titleSpacing: AppTokens.spaceXs,
-          title: const TaskProjectSwitcher(),
+          // 编辑已有任务：项目切换不落库（跨项目移动未实现），仅展示项目名；
+          // 新建态保留切换入口（59 讨论定稿，消除误导）。
+          title: TaskProjectSwitcher(interactive: !_isEditing),
           actions: [
             TextButton.icon(
               onPressed: _save,
