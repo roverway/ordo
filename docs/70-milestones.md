@@ -163,17 +163,20 @@
 - **任务编辑界面优化（已完成 2026-08，`docs/59-task-editor-optimization.md`）**：统一编辑器（新建弹窗与编辑页共用共享「任务编辑器」组件，仅呈现容器不同，D1）；设置项移入底部工具栏（日期/状态/标签/优先级 + 附件占位禁用，D5）；编辑页子任务管理（新增/删除/拖拽排序，D3）+ ⋯ 菜单删除入口（D4）；编辑页显式保存 + 未保存离开提示保留（D2）。`50-ui-ux.md` §5.6 已同步。
 
 **DoD**：
-- [ ] NFR-01~09 全部满足（`10-requirements.md` §11）
-- [ ] 双端全量回归通过（M2 脚本 + M3 视图 + M4 同步场景 1–10）
-- [ ] 批 2 交互层验收：新建弹窗全流程、进度环正确（抽屉已随批 2-A 验收）
-- [ ] `flutter analyze` 0 error；`flutter test` 全绿；`dart format` 通过
-- [ ] 文档与实现一致（改代码必改文档）
+- [x] NFR-01~09 全部满足（`10-requirements.md` §11）
+- [ ] 双端全量回归通过（M2 脚本 + M3 视图 + M4 同步场景 1–10）——自动化部分 ✅（`flutter test` 426）；**双端手工脚本** ⏳ Android 待实机点验、Windows 延期
+- [x] 批 2 交互层验收：新建弹窗全流程、进度环正确（抽屉已随批 2-A 验收）——实现完成，手工点验随实机回归
+- [x] `flutter analyze` 0 error；`flutter test` 全绿（426 + 6 skip）；`dart format` 通过
+- [x] 文档与实现一致（改代码必改文档）
 
 > ✅ M5 安卓端打磨完成（2026-08）：统一 LoadingView/ErrorView 全页面覆盖（重试=ref.invalidate）；
 > 快照 ≥256KB 走 compute isolate 解析（NFR-02）；无障碍（触控目标≥48dp、语义标签/Tooltip、深色对比度、
 > 字体缩放 1.3–2.0 不溢出）；Android 生命周期触发同步（LifecycleSyncListener + SyncTriggers.runOnResume，
-> resumed → 自动同步，受 enabled+wifiOnly 约束）；深色分隔线可辨（alpha 0.5→0.7）。`flutter test` 423 全绿。
-> ⏳ Windows 窗口尺寸/DPI 延期（用户决定先集中安卓端）。待手工回归项见 DoD 未勾选项。
+> resumed → 自动同步，受 enabled+wifiOnly 约束）；深色分隔线可辨（alpha 0.5→0.7）。`flutter test` 426 全绿。
+> ✅ NFR-01~09 逐项自检通过（2026-08）：离线本地库、流式查询+虚拟化列表+isolate 解析、失败不损坏库+纯函数合并+
+> 迁移测试、凭据 secure storage+日志无密钥、ARB 全覆盖、无障碍三项、analyze/test/format 全绿、依赖锁定一致、
+> 墓碑 90 天清理。
+> ⏳ Windows 窗口尺寸/DPI 延期（用户决定先集中安卓端）；双端手工回归脚本待实机执行。
 
 ---
 
