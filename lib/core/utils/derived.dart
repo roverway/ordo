@@ -71,3 +71,26 @@ int uncompletedCount(List<Task> tasks) {
   }
   return count;
 }
+
+/// 有直接子任务的任务的完成度（UI 进度环用，55-ui-redesign §5 progressRing）。
+///
+/// [allTasks] 为该任务所属项目的完整任务列表（含任务自身与全部后代）。
+/// 内部复用 [progress]（§6.2 整棵子树口径）；无直接子任务时返回 null
+/// （叶子任务不显示进度环，状态手动可改）。
+double? taskProgress(Task task, List<Task> allTasks) {
+  final childrenIndex = indexChildrenByParent(allTasks);
+  if ((childrenIndex[task.id] ?? const <Task>[]).isEmpty) return null;
+  final byId = indexTasksById(allTasks);
+  final subtree = <Task>[];
+  void collect(String id) {
+    final t = byId[id];
+    if (t == null) return;
+    subtree.add(t);
+    for (final child in childrenIndex[id] ?? const <Task>[]) {
+      collect(child.id);
+    }
+  }
+
+  collect(task.id);
+  return progress(task, subtree);
+}

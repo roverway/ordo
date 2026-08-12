@@ -13,6 +13,7 @@ import '../../core/db/database.dart';
 import '../../core/db/tables.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/utils/derived.dart';
 import '../../core/utils/tree.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/simple_task_tile.dart';
@@ -142,6 +143,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           task: task,
           hasChildren: hasChildren,
           isDone: isDone,
+          progressValue: taskProgress(task, allTasks),
           onTap: () => context.push('/task/${task.id}'),
           onToggleDone: hasChildren
               ? null

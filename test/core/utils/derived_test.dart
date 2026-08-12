@@ -20,6 +20,7 @@ Task _task(
   description: '',
   notes: '',
   status: status,
+  priority: TaskPriority.none,
   sortOrder: sortOrder,
   createdAt: 0,
   updatedAt: 0,
@@ -208,6 +209,55 @@ void main() {
         _task('t2', TaskStatus.todo),
       ]);
       expect(count, 1);
+    });
+  });
+
+  group('taskProgress（§6.2，UI 进度环）', () {
+    test('无直接子任务 → null（叶子任务不显示进度环）', () {
+      final root = _task('r', TaskStatus.todo);
+      final all = [root];
+      expect(taskProgress(root, all), isNull);
+    });
+
+    test('有直接子任务 → 按整棵子树统计', () {
+      final root = _task('r', TaskStatus.todo);
+      final c1 = _task('c1', TaskStatus.done, parentId: 'r', sortOrder: 1);
+      final c2 = _task(
+        'c2',
+        TaskStatus.inProgress,
+        parentId: 'r',
+        sortOrder: 2,
+      );
+      final all = [root, c1, c2];
+      // 整棵子树 3 个节点，done=1 → 1/3。
+      expect(taskProgress(root, all), closeTo(1 / 3, 1e-9));
+    });
+
+    test('统计到孙级（子树整棵，非仅直接子级）', () {
+      final root = _task('r', TaskStatus.todo);
+      final c1 = _task('c1', TaskStatus.todo, parentId: 'r', sortOrder: 1);
+      final gc = _task('gc', TaskStatus.done, parentId: 'c1', sortOrder: 1);
+      final all = [root, c1, gc];
+      // total=3（root 派生 todo + c1 派生 done + gc done），done=2 → 2/3。
+      expect(taskProgress(root, all), closeTo(2 / 3, 1e-9));
+    });
+
+    test('全部子任务 done → 1.0（父任务派生 done 计入完成）', () {
+      final root = _task('r', TaskStatus.todo);
+      final c1 = _task('c1', TaskStatus.done, parentId: 'r', sortOrder: 1);
+      final c2 = _task('c2', TaskStatus.done, parentId: 'r', sortOrder: 2);
+      final all = [root, c1, c2];
+      expect(taskProgress(root, all), 1.0);
+    });
+
+    test('任务列表无关行不影响结果（按 id 索引子树）', () {
+      final root = _task('r', TaskStatus.todo);
+      final c1 = _task('c1', TaskStatus.done, parentId: 'r', sortOrder: 1);
+      final other = _task('other', TaskStatus.todo); // 无关行
+      final all = [other, c1, root];
+      // 子树 = root + c1（root 派生 done + c1 done）→ 1.0；
+      // 若无关行被误计入子树，则 done=1 / total=3 → 1/3。
+      expect(taskProgress(root, all), 1.0);
     });
   });
 }

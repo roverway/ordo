@@ -55,6 +55,7 @@ Task _task(
   startAt: startAt,
   endAt: endAt,
   sortOrder: 0,
+  priority: TaskPriority.none,
   createdAt: 0,
   updatedAt: updatedAt,
   deleted: 0,

@@ -40,7 +40,8 @@ tasks    1 ──── N tasks     （parentId 自引用，最多 3 级）
 | notes | TEXT | NOT NULL DEFAULT '' | 备注（纯文本 v1） |
 | startAt | INTEGER | NULL | 开始时间（UTC 毫秒） |
 | endAt | INTEGER | NULL | 截止时间（UTC 毫秒） |
-| status | INTEGER | NOT NULL, 0–3 | 状态枚举（见 §3） |
+| status | INTEGER | NOT NULL, 0–3 | 状态枚举（见 §3.1） |
+| priority | INTEGER | NOT NULL DEFAULT 0, 0–3 | 优先级枚举（见 §3.2，滴答式 4 档：无/低/中/高） |
 | sortOrder | INTEGER | NOT NULL | 同级内排序 |
 | createdAt | INTEGER | NOT NULL | UTC 毫秒 |
 | updatedAt | INTEGER | NOT NULL | UTC 毫秒（同步字段） |
@@ -88,6 +89,17 @@ tasks    1 ──── N tasks     （parentId 自引用，最多 3 级）
 | 1 | inProgress | 进行中 |
 | 2 | done | 已完成 |
 | 3 | cancelled | 已取消 |
+
+### 3.2 TaskPriority
+
+| 值 | 名称 | 含义 | 旗帜颜色 |
+|---|---|---|---|
+| 0 | none | 无优先级 | 无 |
+| 1 | low | 低 | 蓝 |
+| 2 | medium | 中 | 橙 |
+| 3 | high | 高 | 红 |
+
+> 优先级是任务自带属性，与状态（§3.1）正交；有子任务的任务同样可设置优先级（其状态仍由子任务派生，AGENTS.md §3-2）。
 
 ## 4. 时间与排序约定
 
@@ -144,7 +156,7 @@ double progress(Task root, List<Task> subtree):
 
 ### 6.3 UI 约束
 
-- 有子任务的任务：状态控件禁用，显示派生徽标；完成度以进度条展示。
+- 有子任务的任务：状态控件禁用，显示派生徽标；完成度以进度环 + 百分比展示（55-ui-redesign §5 `progressRing`）。
 - 无子任务的任务：状态手动可改。
 
 ## 7. 删除语义（FR-PRJ-03 / FR-TSK-09 / FR-TAG-03）
@@ -165,6 +177,13 @@ double progress(Task root, List<Task> subtree):
 - 每个迁移步骤必须写**迁移测试**：从旧版本 schema 造数据 → 升级 → 断言数据完整。
 - 预留扩展（v1 不实现）：提醒字段（remindAt）、重复规则字段（recurrence）。**新增字段必须带默认值**，保证旧快照可读。
 - 改表后：更新本文档字段表 + 写迁移步骤 + 跑 `dart run build_runner build --delete-conflicting-outputs`。
+
+### 已执行迁移
+
+| 版本 | 变更 | 说明 |
+|---|---|---|
+| 1 | 初始 schema | M1 建全部 5 张表 |
+| 2 | `tasks.priority` | 新增优先级列（INTEGER NOT NULL DEFAULT 0），`m.addColumn(tasks, tasks.priority)`；旧行默认 `none` |
 
 ## 9. 数据量假设
 

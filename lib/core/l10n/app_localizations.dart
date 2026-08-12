@@ -140,6 +140,12 @@ abstract class AppLocalizations {
   /// **'标签'**
   String get navTags;
 
+  /// No description provided for @openDrawer.
+  ///
+  /// In zh, this message translates to:
+  /// **'打开侧边栏'**
+  String get openDrawer;
+
   /// No description provided for @search.
   ///
   /// In zh, this message translates to:
@@ -781,6 +787,96 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'标签名已存在（不区分大小写）'**
   String get tagNameDuplicate;
+
+  /// No description provided for @moveTo.
+  ///
+  /// In zh, this message translates to:
+  /// **'移动到'**
+  String get moveTo;
+
+  /// No description provided for @searchProjects.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索项目'**
+  String get searchProjects;
+
+  /// No description provided for @addProject.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加项目'**
+  String get addProject;
+
+  /// No description provided for @dateAndReminder.
+  ///
+  /// In zh, this message translates to:
+  /// **'日期与提醒'**
+  String get dateAndReminder;
+
+  /// No description provided for @priority.
+  ///
+  /// In zh, this message translates to:
+  /// **'优先级'**
+  String get priority;
+
+  /// No description provided for @priorityHigh.
+  ///
+  /// In zh, this message translates to:
+  /// **'高'**
+  String get priorityHigh;
+
+  /// No description provided for @priorityMedium.
+  ///
+  /// In zh, this message translates to:
+  /// **'中'**
+  String get priorityMedium;
+
+  /// No description provided for @priorityLow.
+  ///
+  /// In zh, this message translates to:
+  /// **'低'**
+  String get priorityLow;
+
+  /// No description provided for @priorityNone.
+  ///
+  /// In zh, this message translates to:
+  /// **'无'**
+  String get priorityNone;
+
+  /// No description provided for @nextWeek.
+  ///
+  /// In zh, this message translates to:
+  /// **'下周'**
+  String get nextWeek;
+
+  /// No description provided for @custom.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义'**
+  String get custom;
+
+  /// No description provided for @clear.
+  ///
+  /// In zh, this message translates to:
+  /// **'清除'**
+  String get clear;
+
+  /// No description provided for @subtasks.
+  ///
+  /// In zh, this message translates to:
+  /// **'子任务'**
+  String get subtasks;
+
+  /// No description provided for @addSubtask.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加子任务'**
+  String get addSubtask;
+
+  /// No description provided for @subtaskHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'子任务标题'**
+  String get subtaskHint;
 }
 
 class _AppLocalizationsDelegate

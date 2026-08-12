@@ -34,7 +34,7 @@
     { "id": "uuid", "projectId": "uuid", "parentId": null,
       "title": "写周报", "description": "", "notes": "",
       "startAt": null, "endAt": 1720500000000,
-      "status": 0, "sortOrder": 0,
+      "status": 0, "priority": 2, "sortOrder": 0,
       "createdAt": 1720000000000, "updatedAt": 1720000000000, "deleted": false,
       "tagIds": ["tag-uuid-1"] }
   ],

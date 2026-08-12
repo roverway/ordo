@@ -5,12 +5,15 @@ import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/dates.dart';
+import '../../../shared/widgets/task_progress_ring.dart';
 
 /// Task row — the core list item in project detail and task trees.
 ///
-/// TickTick-inspired: clean checkbox, soft colors, subtle metadata row.
+/// TickTick-inspired: clean circular checkbox, soft colors, subtle metadata row.
+/// 卡片化（M5 批 1）：白卡片 + 圆角 16 + 轻阴影，hover 轻微抬升；
+/// 视觉与 `SimpleTaskTile` 统一（55-ui-redesign-proposal.md §6）。
 /// Supports drag-target highlight states for tree reordering.
-class TaskRow extends StatelessWidget {
+class TaskRow extends StatefulWidget {
   const TaskRow({
     super.key,
     required this.task,
@@ -48,6 +51,15 @@ class TaskRow extends StatelessWidget {
   /// When true, drop would make dragged task a child of this row.
   final bool dropAsChild;
 
+  @override
+  State<TaskRow> createState() => _TaskRowState();
+}
+
+class _TaskRowState extends State<TaskRow> {
+  bool _hovered = false;
+
+  bool get _raised => _hovered;
+
   Color _statusColor(TaskStatus status, ColorScheme colorScheme) =>
       switch (status) {
         TaskStatus.done => AppTokens.colorDone,
@@ -56,238 +68,261 @@ class TaskRow extends StatelessWidget {
         TaskStatus.todo => colorScheme.outline,
       };
 
+  /// 卡片背景：默认白卡，拖拽目标/拖拽中状态以叠加色替代。
+  Color _cardColor(ColorScheme colorScheme, bool isDark) {
+    if (widget.isInvalidDragTarget) {
+      return colorScheme.errorContainer.withValues(alpha: 0.4);
+    }
+    if (widget.isDragTarget) {
+      return colorScheme.primaryContainer.withValues(alpha: 0.25);
+    }
+    if (widget.isDragging) {
+      return colorScheme.surfaceContainerHighest.withValues(alpha: 0.5);
+    }
+    return isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final effectiveStatus = derivedStatus ?? task.status;
-    final hasDerived = derivedStatus != null;
+    final isDark = theme.brightness == Brightness.dark;
+    final effectiveStatus = widget.derivedStatus ?? widget.task.status;
+    final hasDerived = widget.derivedStatus != null;
     final isDone = effectiveStatus == TaskStatus.done;
-    final indent = depth * AppTokens.treeIndent;
+    final indent = widget.depth * AppTokens.treeIndent;
 
-    return AnimatedContainer(
-      duration: AppTokens.motionFast,
-      decoration: BoxDecoration(
-        color: isInvalidDragTarget
-            ? colorScheme.errorContainer.withValues(alpha: 0.4)
-            : isDragTarget
-            ? colorScheme.primaryContainer.withValues(alpha: 0.25)
-            : isDragging
-            ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
-            : null,
-        borderRadius: BorderRadius.circular(AppTokens.radiusList),
-        border: isDragTarget
-            ? Border.all(
-                color: isInvalidDragTarget
-                    ? colorScheme.error
-                    : colorScheme.primary,
-                width: 2,
-              )
-            : null,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppTokens.radiusList),
-          onTap: onTap,
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: AppTokens.spaceSm + indent,
-              right: AppTokens.spaceXxs,
-              top: AppTokens.spaceXs,
-              bottom: AppTokens.spaceXs,
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: AppTokens.motionFast,
+        margin: const EdgeInsets.symmetric(vertical: AppTokens.spaceXxs),
+        decoration: BoxDecoration(
+          color: _cardColor(colorScheme, isDark),
+          borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+          border: widget.isDragTarget
+              ? Border.all(
+                  color: widget.isInvalidDragTarget
+                      ? colorScheme.error
+                      : colorScheme.primary,
+                  width: 2,
+                )
+              : null,
+          boxShadow: [
+            BoxShadow(
+              color: _raised
+                  ? (isDark
+                        ? AppTokens.shadowCardDarkElevated
+                        : AppTokens.shadowCardElevated)
+                  : (isDark ? AppTokens.shadowCardDark : AppTokens.shadowCard),
+              blurRadius: _raised
+                  ? AppTokens.shadowBlurElevated
+                  : AppTokens.shadowBlurRest,
+              offset: Offset(
+                0,
+                _raised
+                    ? AppTokens.shadowOffsetYElevated
+                    : AppTokens.shadowOffsetY,
+              ),
             ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Expand/collapse arrow.
-                SizedBox(
-                  width: AppTokens.expandArrowSize + 8,
-                  height: AppTokens.expandArrowSize + 8,
-                  child: hasChildren
-                      ? GestureDetector(
-                          onTap: onToggleExpand,
-                          child: AnimatedRotation(
-                            turns: isExpanded ? 0.25 : 0,
-                            duration: AppTokens.motionFast,
-                            child: Icon(
-                              Icons.arrow_right,
-                              size: AppTokens.expandArrowSize,
-                              color: colorScheme.onSurfaceVariant,
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+            onTap: widget.onTap,
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: AppTokens.spaceSm + indent,
+                right: AppTokens.spaceXxs,
+                top: AppTokens.spaceXs,
+                bottom: AppTokens.spaceXs,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Expand/collapse arrow.
+                  SizedBox(
+                    width: AppTokens.expandArrowSize + 8,
+                    height: AppTokens.expandArrowSize + 8,
+                    child: widget.hasChildren
+                        ? GestureDetector(
+                            onTap: widget.onToggleExpand,
+                            child: AnimatedRotation(
+                              turns: widget.isExpanded ? 0.25 : 0,
+                              duration: AppTokens.motionFast,
+                              child: Icon(
+                                Icons.arrow_right,
+                                size: AppTokens.expandArrowSize,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
-                          ),
-                        )
-                      : null,
-                ),
-                // Checkbox.
-                SizedBox(
-                  width: AppTokens.touchTarget,
-                  height: AppTokens.touchTarget,
-                  child: Checkbox(
-                    value: isDone,
-                    onChanged: (!hasDerived || task.parentId == null)
-                        ? onToggleDone
+                          )
                         : null,
                   ),
-                ),
-                const SizedBox(width: AppTokens.spaceXs),
-                // Title + metadata.
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              task.title,
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                decoration: isDone
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                                color: isDone
-                                    ? colorScheme.onSurfaceVariant
-                                    : colorScheme.onSurface,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          // Inline status icon (when derived).
-                          if (hasDerived)
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                left: AppTokens.spaceXxs,
-                              ),
-                              child: Icon(
-                                _statusIcon(effectiveStatus, isDone),
-                                size: 14,
-                                color: _statusColor(
-                                  effectiveStatus,
-                                  colorScheme,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      // Metadata row: tags + due date + progress.
-                      if (tags.isNotEmpty ||
-                          task.endAt != null ||
-                          (progressValue != null && hasChildren))
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            top: AppTokens.spaceXxs,
-                          ),
-                          child: Row(
-                            children: [
-                              // Tag chips (up to 2).
-                              ...tags
-                                  .take(2)
-                                  .map(
-                                    (tag) => Padding(
-                                      padding: const EdgeInsets.only(
-                                        right: AppTokens.spaceXxs,
-                                      ),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: AppTokens.spaceXs,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Color(
-                                            tag.color,
-                                          ).withValues(alpha: 0.12),
-                                          borderRadius: BorderRadius.circular(
-                                            AppTokens.radiusChip,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          tag.name,
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                color: Color(tag.color),
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              if (tags.length > 2)
-                                Text(
-                                  '+${tags.length - 2}',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
-                                    fontSize: 10,
-                                  ),
-                                ),
-                              const Spacer(),
-                              // Progress bar.
-                              if (progressValue != null && hasChildren)
-                                SizedBox(
-                                  width: 40,
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(2),
-                                    child: LinearProgressIndicator(
-                                      value: progressValue,
-                                      minHeight: 3,
-                                      backgroundColor:
-                                          colorScheme.surfaceContainerHighest,
-                                      valueColor: AlwaysStoppedAnimation(
-                                        progressValue! >= 1.0
-                                            ? AppTokens.colorDone
-                                            : AppTokens.colorInProgress,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              // Due date.
-                              if (task.endAt != null) ...[
-                                if (progressValue != null)
-                                  const SizedBox(width: AppTokens.spaceXs),
-                                Icon(
-                                  Icons.calendar_today_outlined,
-                                  size: 11,
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                                const SizedBox(width: AppTokens.spaceXxs),
-                                Text(
-                                  formatDueDate(task.endAt!, l10n),
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                // Drop-as-child indicator.
-                if (isDragTarget && dropAsChild && !isInvalidDragTarget)
-                  Padding(
-                    padding: const EdgeInsets.only(right: AppTokens.spaceXxs),
-                    child: Icon(
-                      Icons.subdirectory_arrow_right,
-                      size: 18,
-                      color: colorScheme.primary,
+                  // Checkbox.
+                  SizedBox(
+                    width: AppTokens.touchTarget,
+                    height: AppTokens.touchTarget,
+                    child: Checkbox(
+                      value: isDone,
+                      onChanged: (!hasDerived || widget.task.parentId == null)
+                          ? widget.onToggleDone
+                          : null,
                     ),
                   ),
-                // More menu.
-                IconButton(
-                  icon: const Icon(Icons.more_vert, size: 18),
-                  onPressed: () => _showMenu(context),
-                  tooltip: AppLocalizations.of(context).rowActions,
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: AppTokens.touchTarget,
-                    minHeight: AppTokens.touchTarget,
+                  const SizedBox(width: AppTokens.spaceXs),
+                  // Title + metadata.
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                widget.task.title,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  decoration: isDone
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                  color: isDone
+                                      ? colorScheme.onSurfaceVariant
+                                      : colorScheme.onSurface,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            // Inline status icon (when derived).
+                            if (hasDerived)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  left: AppTokens.spaceXxs,
+                                ),
+                                child: Icon(
+                                  _statusIcon(effectiveStatus, isDone),
+                                  size: 14,
+                                  color: _statusColor(
+                                    effectiveStatus,
+                                    colorScheme,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        // Metadata row: tags + due date + progress.
+                        if (widget.tags.isNotEmpty ||
+                            widget.task.endAt != null ||
+                            (widget.progressValue != null &&
+                                widget.hasChildren))
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              top: AppTokens.spaceXxs,
+                            ),
+                            child: Row(
+                              children: [
+                                // Tag chips (up to 2).
+                                ...widget.tags
+                                    .take(2)
+                                    .map(
+                                      (tag) => Padding(
+                                        padding: const EdgeInsets.only(
+                                          right: AppTokens.spaceXxs,
+                                        ),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: AppTokens.spaceXs,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Color(
+                                              tag.color,
+                                            ).withValues(alpha: 0.12),
+                                            borderRadius: BorderRadius.circular(
+                                              AppTokens.radiusChip,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            tag.name,
+                                            style: theme.textTheme.bodySmall
+                                                ?.copyWith(
+                                                  color: Color(tag.color),
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                if (widget.tags.length > 2)
+                                  Text(
+                                    '+${widget.tags.length - 2}',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                const Spacer(),
+                                // Progress ring（滴答式：圆环 + 百分比，行尾）。
+                                // 有子任务任务的派生完成度，55-ui-redesign §5。
+                                if (widget.progressValue != null &&
+                                    widget.hasChildren)
+                                  TaskProgressRing(
+                                    value: widget.progressValue!,
+                                  ),
+                                // Due date.
+                                if (widget.task.endAt != null) ...[
+                                  if (widget.progressValue != null)
+                                    const SizedBox(width: AppTokens.spaceXs),
+                                  Icon(
+                                    Icons.calendar_today_outlined,
+                                    size: 11,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: AppTokens.spaceXxs),
+                                  Text(
+                                    formatDueDate(widget.task.endAt!, l10n),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  // Drop-as-child indicator.
+                  if (widget.isDragTarget &&
+                      widget.dropAsChild &&
+                      !widget.isInvalidDragTarget)
+                    Padding(
+                      padding: const EdgeInsets.only(right: AppTokens.spaceXxs),
+                      child: Icon(
+                        Icons.subdirectory_arrow_right,
+                        size: 18,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  // More menu.
+                  IconButton(
+                    icon: const Icon(Icons.more_vert, size: 18),
+                    onPressed: () => _showMenu(context),
+                    tooltip: AppLocalizations.of(context).rowActions,
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: AppTokens.touchTarget,
+                      minHeight: AppTokens.touchTarget,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -315,16 +350,16 @@ class TaskRow extends StatelessWidget {
               title: Text(l10n.edit),
               onTap: () {
                 Navigator.pop(context);
-                onMenuAction('edit');
+                widget.onMenuAction('edit');
               },
             ),
-            if (depth < 2)
+            if (widget.depth < 2)
               ListTile(
                 leading: const Icon(Icons.subdirectory_arrow_right, size: 20),
                 title: Text(l10n.newSubtask),
                 onTap: () {
                   Navigator.pop(context);
-                  onMenuAction('newSubtask');
+                  widget.onMenuAction('newSubtask');
                 },
               ),
             ListTile(
@@ -332,7 +367,7 @@ class TaskRow extends StatelessWidget {
               title: Text(l10n.moveUp),
               onTap: () {
                 Navigator.pop(context);
-                onMenuAction('moveUp');
+                widget.onMenuAction('moveUp');
               },
             ),
             ListTile(
@@ -340,25 +375,25 @@ class TaskRow extends StatelessWidget {
               title: Text(l10n.moveDown),
               onTap: () {
                 Navigator.pop(context);
-                onMenuAction('moveDown');
+                widget.onMenuAction('moveDown');
               },
             ),
-            if (depth < 2)
+            if (widget.depth < 2)
               ListTile(
                 leading: const Icon(Icons.arrow_right, size: 20),
                 title: Text(l10n.indent),
                 onTap: () {
                   Navigator.pop(context);
-                  onMenuAction('indent');
+                  widget.onMenuAction('indent');
                 },
               ),
-            if (depth > 0)
+            if (widget.depth > 0)
               ListTile(
                 leading: const Icon(Icons.arrow_left, size: 20),
                 title: Text(l10n.outdent),
                 onTap: () {
                   Navigator.pop(context);
-                  onMenuAction('outdent');
+                  widget.onMenuAction('outdent');
                 },
               ),
             const Divider(),
@@ -374,7 +409,7 @@ class TaskRow extends StatelessWidget {
               ),
               onTap: () {
                 Navigator.pop(context);
-                onMenuAction('delete');
+                widget.onMenuAction('delete');
               },
             ),
             const SizedBox(height: AppTokens.spaceXs),

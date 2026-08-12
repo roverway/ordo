@@ -30,6 +30,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navTags => 'Tags';
 
   @override
+  String get openDrawer => 'Open sidebar';
+
+  @override
   String get search => 'Search';
 
   @override
@@ -366,4 +369,49 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tagNameDuplicate => 'Tag name already exists (case-insensitive)';
+
+  @override
+  String get moveTo => 'Move to';
+
+  @override
+  String get searchProjects => 'Search projects';
+
+  @override
+  String get addProject => 'Add project';
+
+  @override
+  String get dateAndReminder => 'Date & reminder';
+
+  @override
+  String get priority => 'Priority';
+
+  @override
+  String get priorityHigh => 'High';
+
+  @override
+  String get priorityMedium => 'Medium';
+
+  @override
+  String get priorityLow => 'Low';
+
+  @override
+  String get priorityNone => 'None';
+
+  @override
+  String get nextWeek => 'Next week';
+
+  @override
+  String get custom => 'Custom';
+
+  @override
+  String get clear => 'Clear';
+
+  @override
+  String get subtasks => 'Subtasks';
+
+  @override
+  String get addSubtask => 'Add subtask';
+
+  @override
+  String get subtaskHint => 'Subtask title';
 }

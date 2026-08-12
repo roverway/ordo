@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/db/database.dart';
-import '../../core/db/repositories/todo_repository.dart';
 import '../../core/db/tables.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
@@ -12,6 +11,7 @@ import '../../core/utils/tree.dart';
 import '../../shared/widgets/app_shell.dart';
 import '../projects/project_providers.dart';
 import '../tasks/task_providers.dart';
+import '../tasks/widgets/task_create_sheet.dart';
 
 /// Inbox page — the launch home.
 ///
@@ -86,7 +86,7 @@ class InboxPage extends ConsumerWidget {
             ),
             const SizedBox(height: AppTokens.spaceLg),
             FilledButton.icon(
-              onPressed: () => _goNewTask(context),
+              onPressed: () => TaskCreateSheet.show(context),
               icon: const Icon(Icons.add, size: 20),
               label: Text(l10n.addTask),
             ),
@@ -128,19 +128,14 @@ class InboxPage extends ConsumerWidget {
           bottom: AppTokens.spaceMd,
           child: FloatingActionButton(
             tooltip: l10n.newTask,
-            onPressed: () => _goNewTask(context),
+            // 新建走滴答式底部弹窗（D2 定稿，55-ui-redesign §4.1）；
+            // 不传 projectId → 缺省落入内置收件箱（des-3，幂等 ensure）。
+            onPressed: () => TaskCreateSheet.show(context),
             child: const Icon(Icons.add),
           ),
         ),
       ],
     );
-  }
-
-  void _goNewTask(BuildContext context) {
-    // Inbox tasks: no explicit projectId is needed since createTask defaults
-    // to inboxProjectId when absent. But the task edit page requires projectId
-    // so we pass inboxProjectId explicitly.
-    context.push('/task/new?projectId=$inboxProjectId');
   }
 
   Future<void> _toggleDone(WidgetRef ref, Task task, bool? value) async {
@@ -155,7 +150,10 @@ class InboxPage extends ConsumerWidget {
 }
 
 /// A single inbox task row: checkbox + title + optional due date.
-class _InboxTaskTile extends StatelessWidget {
+///
+/// 视觉与 `SimpleTaskTile` 统一（M5 批 1 收尾）：白卡片化行（圆角 16 + 轻阴影，
+/// hover/按压轻微抬升），圆形复选框走 AppTheme（55-ui-redesign-proposal.md §6）。
+class _InboxTaskTile extends StatefulWidget {
   const _InboxTaskTile({
     required this.task,
     required this.hasChildren,
@@ -169,95 +167,145 @@ class _InboxTaskTile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
+  State<_InboxTaskTile> createState() => _InboxTaskTileState();
+}
+
+class _InboxTaskTileState extends State<_InboxTaskTile> {
+  bool _hovered = false;
+  bool _pressed = false;
+
+  bool get _raised => _hovered || _pressed;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isDone = task.status == TaskStatus.done;
+    final isDark = theme.brightness == Brightness.dark;
+    final isDone = widget.task.status == TaskStatus.done;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppTokens.radiusList),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTokens.spaceSm,
-              vertical: AppTokens.spaceXs,
-            ),
-            child: Row(
-              children: [
-                // Checkbox
-                SizedBox(
-                  width: AppTokens.touchTarget,
-                  height: AppTokens.touchTarget,
-                  child: hasChildren
-                      ? Tooltip(
-                          message: AppLocalizations.of(
-                            context,
-                          ).statusDerivedFromChildren,
-                          child: Checkbox(value: isDone, onChanged: null),
-                        )
-                      : Checkbox(value: isDone, onChanged: onToggleDone),
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppTokens.spaceXxs),
+        child: AnimatedContainer(
+          duration: AppTokens.motionFast,
+          curve: AppTokens.motionSpring,
+          decoration: BoxDecoration(
+            color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
+            borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+            boxShadow: [
+              BoxShadow(
+                color: _raised
+                    ? (isDark
+                          ? AppTokens.shadowCardDarkElevated
+                          : AppTokens.shadowCardElevated)
+                    : (isDark
+                          ? AppTokens.shadowCardDark
+                          : AppTokens.shadowCard),
+                blurRadius: _raised
+                    ? AppTokens.shadowBlurElevated
+                    : AppTokens.shadowBlurRest,
+                offset: Offset(
+                  0,
+                  _raised
+                      ? AppTokens.shadowOffsetYElevated
+                      : AppTokens.shadowOffsetY,
                 ),
-                const SizedBox(width: AppTokens.spaceXs),
-                // Title + due date
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        task.title,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          decoration: isDone
-                              ? TextDecoration.lineThrough
-                              : null,
-                          color: isDone
-                              ? colorScheme.onSurfaceVariant
-                              : colorScheme.onSurface,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (task.endAt != null)
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            top: AppTokens.spaceXxs,
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+              onTap: widget.onTap,
+              onHighlightChanged: (v) => setState(() => _pressed = v),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTokens.spaceMd,
+                  vertical: AppTokens.spaceSm,
+                ),
+                child: Row(
+                  children: [
+                    // Checkbox
+                    SizedBox(
+                      width: AppTokens.touchTarget,
+                      height: AppTokens.touchTarget,
+                      child: widget.hasChildren
+                          ? Tooltip(
+                              message: AppLocalizations.of(
+                                context,
+                              ).statusDerivedFromChildren,
+                              child: Checkbox(value: isDone, onChanged: null),
+                            )
+                          : Checkbox(
+                              value: isDone,
+                              onChanged: widget.onToggleDone,
+                            ),
+                    ),
+                    const SizedBox(width: AppTokens.spaceXs),
+                    // Title + due date
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.task.title,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              decoration: isDone
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                              color: isDone
+                                  ? colorScheme.onSurfaceVariant
+                                  : colorScheme.onSurface,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.calendar_today_outlined,
-                                size: 12,
-                                color: _dueDateColor(task.endAt!, colorScheme),
+                          if (widget.task.endAt != null)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: AppTokens.spaceXxs,
                               ),
-                              const SizedBox(width: AppTokens.spaceXxs),
-                              Text(
-                                formatDueDate(
-                                  task.endAt!,
-                                  AppLocalizations.of(context),
-                                ),
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: _dueDateColor(
-                                    task.endAt!,
-                                    colorScheme,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.calendar_today_outlined,
+                                    size: 12,
+                                    color: _dueDateColor(
+                                      widget.task.endAt!,
+                                      colorScheme,
+                                    ),
                                   ),
-                                ),
+                                  const SizedBox(width: AppTokens.spaceXxs),
+                                  Text(
+                                    formatDueDate(
+                                      widget.task.endAt!,
+                                      AppLocalizations.of(context),
+                                    ),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: _dueDateColor(
+                                        widget.task.endAt!,
+                                        colorScheme,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    // Chevron
+                    Icon(
+                      Icons.chevron_right,
+                      size: 20,
+                      color: colorScheme.outline.withValues(alpha: 0.4),
+                    ),
+                  ],
                 ),
-                // Chevron
-                Icon(
-                  Icons.chevron_right,
-                  size: 20,
-                  color: colorScheme.outline.withValues(alpha: 0.4),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -267,7 +315,7 @@ class _InboxTaskTile extends StatelessWidget {
 
   Color _dueDateColor(int endAtMs, ColorScheme colorScheme) {
     final now = DateTime.now().toUtc().millisecondsSinceEpoch;
-    if (task.status != TaskStatus.done && endAtMs < now) {
+    if (widget.task.status != TaskStatus.done && endAtMs < now) {
       return AppTokens.colorOverdue;
     }
     return colorScheme.onSurfaceVariant;

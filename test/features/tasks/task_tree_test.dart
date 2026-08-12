@@ -38,6 +38,7 @@ Task _task(
   notes: '',
   status: status,
   sortOrder: sortOrder,
+  priority: TaskPriority.none,
   createdAt: 0,
   updatedAt: 0,
   deleted: 0,

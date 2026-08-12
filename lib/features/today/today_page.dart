@@ -9,12 +9,14 @@ import '../../shared/widgets/app_shell.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/simple_task_tile.dart';
 import '../projects/project_providers.dart';
+import '../tasks/widgets/task_create_sheet.dart';
 import 'today_providers.dart';
 
 /// 今日视图（FR-VIEW-01，docs/10-requirements.md §9.1/§9.3）。
 ///
 /// 逾期组（endAt 升序）+ 今天组（startAt 升序）；组为空不显示组标题；
 /// 全部为空显示 EmptyState（沿用 stub 现状）。
+/// 右下角 FAB → 滴答式新建任务底部弹窗（D2 定稿，55-ui-redesign §4.1）。
 class TodayPage extends ConsumerWidget {
   const TodayPage({super.key});
 
@@ -25,18 +27,34 @@ class TodayPage extends ConsumerWidget {
 
     return AppShell(
       title: l10n.navToday,
-      child: viewAsync.when(
-        data: (view) {
-          if (view.isEmpty) {
-            return EmptyState(
-              icon: Icons.today_outlined,
-              message: l10n.emptyToday,
-            );
-          }
-          return _buildList(context, ref, view);
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(e.toString())),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: viewAsync.when(
+              data: (view) {
+                if (view.isEmpty) {
+                  return EmptyState(
+                    icon: Icons.today_outlined,
+                    message: l10n.emptyToday,
+                  );
+                }
+                return _buildList(context, ref, view);
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text(e.toString())),
+            ),
+          ),
+          // FAB：新建任务底部弹窗（缺省 projectId → 内置收件箱，des-3 幂等）。
+          Positioned(
+            right: AppTokens.spaceMd,
+            bottom: AppTokens.spaceMd,
+            child: FloatingActionButton(
+              tooltip: l10n.newTask,
+              onPressed: () => TaskCreateSheet.show(context),
+              child: const Icon(Icons.add),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -47,7 +65,11 @@ class TodayPage extends ConsumerWidget {
     final todayHeaderColor = Theme.of(context).colorScheme.onSurfaceVariant;
 
     return ListView(
-      padding: const EdgeInsets.symmetric(vertical: AppTokens.spaceSm),
+      // 卡片行（SimpleTaskTile）不内置水平 margin，由列表提供页面留白。
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTokens.spaceMd,
+        vertical: AppTokens.spaceSm,
+      ),
       children: [
         if (view.overdue.isNotEmpty) ...[
           _SectionHeader(title: l10n.overdue, color: AppTokens.colorOverdue),
@@ -73,6 +95,7 @@ class TodayPage extends ConsumerWidget {
       isDone: view.effectiveStatus == TaskStatus.done,
       isOverdue: view.isOverdue,
       tags: view.tags,
+      progressValue: view.progressValue,
       onTap: () => context.push('/task/${task.id}'),
       onToggleDone: view.hasChildren
           ? null

@@ -16,6 +16,7 @@ import 'package:todo/core/db/repositories/todo_repository.dart';
 import 'package:todo/core/l10n/app_localizations.dart';
 import 'package:todo/features/projects/project_providers.dart';
 import 'package:todo/features/settings/settings_providers.dart';
+import 'package:todo/features/tags/tag_providers.dart';
 import 'package:todo/features/tasks/task_providers.dart';
 import 'package:todo/features/tasks/task_edit_page.dart';
 import '../../helpers/db_test_setup.dart';
@@ -41,6 +42,7 @@ Task _task(
   sortOrder: sortOrder,
   startAt: startAt,
   endAt: endAt,
+  priority: TaskPriority.none,
   createdAt: 0,
   updatedAt: 0,
   deleted: 0,

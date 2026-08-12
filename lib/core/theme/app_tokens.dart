@@ -28,11 +28,35 @@ abstract final class AppTokens {
   /// 与 todo_repository.dart 的 inboxProjectColor 保持一致（DB 实际写入值）。
   static const Color colorInbox = Color(0xFF6C5CE7);
 
-  /// Light theme background tint — very subtle blue-gray.
-  static const Color bgTint = Color(0xFFF2F4F7);
+  /// Page surface (light) — very subtle blue-gray, cards float on top.
+  /// (55-ui-redesign-proposal.md §5 `surfacePage`)
+  static const Color surfacePageLight = Color(0xFFF2F4F7);
 
-  /// Dark theme background tint.
-  static const Color bgTintDark = Color(0xFF0F1117);
+  /// Page surface (dark).
+  static const Color surfacePageDark = Color(0xFF0F1117);
+
+  /// Card surface (light) — pure white（滴答式「白卡」，55-ui-redesign §5）。
+  static const Color surfaceCard = Color(0xFFFFFFFF);
+
+  /// Card surface (dark) — slightly lifted from the near-black page base.
+  static const Color surfaceCardDark = Color(0xFF1B1E27);
+
+  /// Checkmark glyph on the filled (done) circular checkbox.
+  static const Color colorOnCheck = Colors.white;
+
+  /// Done checkbox fill — TickTick blue（完成 = 蓝填充白勾，55-ui-redesign §5）。
+  static const Color checkboxDoneFill = colorInProgress;
+
+  // ── Priority colors（滴答式旗帜 红/橙/蓝/无，55-ui-redesign §4.1）──
+
+  /// High priority — red（与 presetColors[3] 同值）。
+  static const Color colorPriorityHigh = Color(0xFFEF6B6B);
+
+  /// Medium priority — warm amber（与 presetColors[2] 同值）。
+  static const Color colorPriorityMedium = Color(0xFFF4A74A);
+
+  /// Low priority — seed blue（与 presetColors[0] 同值）。
+  static const Color colorPriorityLow = Color(0xFF4A6CF7);
 
   // ── Border Radius ──
 
@@ -51,8 +75,9 @@ abstract final class AppTokens {
   /// List row radius.
   static const double radiusList = 10;
 
-  /// Checkbox radius.
-  static const double radiusCheckbox = 6;
+  /// Checkbox shape — circle (TickTick-style). Radius-based square shape
+  /// (`radiusCheckbox`) removed in favour of this circular shape.
+  static const OutlinedBorder checkboxShape = CircleBorder();
 
   // ── Spacing ──
 
@@ -102,11 +127,57 @@ abstract final class AppTokens {
 
   // ── Elevation / Shadow ──
 
-  /// Card shadow elevation.
-  static const double elevationCard = 0.5;
+  /// Card shadow elevation (resting).
+  static const double elevationCard = 1.0;
+
+  /// Card shadow elevation while hovered/pressed (subtle lift).
+  static const double elevationCardHover = 2.0;
+
+  /// Card shadow tint (light, resting) — soft black ~8%.
+  static const Color shadowCard = Color(0x14000000);
+
+  /// Card shadow tint (light, hover/press lift) — deeper black ~16%.
+  static const Color shadowCardElevated = Color(0x2A000000);
+
+  /// Card shadow tint (dark, resting) — faint white rim so cards lift off
+  /// the near-black page base.
+  static const Color shadowCardDark = Color(0x0AFFFFFF);
+
+  /// Card shadow tint (dark, hover/press lift).
+  static const Color shadowCardDarkElevated = Color(0x1CFFFFFF);
+
+  /// Card shadow blur radius (resting).
+  static const double shadowBlurRest = 6;
+
+  /// Card shadow blur radius (hover/press lift).
+  static const double shadowBlurElevated = 12;
+
+  /// Card shadow vertical offset (resting).
+  static const double shadowOffsetY = 1;
+
+  /// Card shadow vertical offset (hover/press lift).
+  static const double shadowOffsetYElevated = 3;
 
   /// FAB elevation.
   static const double elevationFab = 4;
+
+  // ── Progress Ring（仅令牌，批 2 使用 UI）──
+
+  /// Circular progress ring diameter for parent tasks.
+  static const double progressRingSize = 24;
+
+  /// Circular progress ring stroke width.
+  static const double progressRingWidth = 2.5;
+
+  // ── Drawer（仅令牌，批 2 使用 UI）──
+
+  /// Mobile drawer width as a fraction of screen width (TickTick: 75–80%).
+  static const double drawerWidthRatio = 0.78;
+  // 批 2：drawerSelectedBg 由 colorScheme.primaryContainer 派生（55-ui-redesign §5），
+  // 不在静态令牌中放派生色。
+
+  /// Wide-screen NavigationRail width（80 → 96，55-ui-redesign-proposal.md §3.2）。
+  static const double railWidth = 96;
 
   // ── Sizing ──
 

@@ -19,6 +19,26 @@ class TaskStatusConverter extends TypeConverter<TaskStatus, int> {
   int toSql(TaskStatus value) => value.index;
 }
 
+/// 任务优先级枚举（docs/40-data-model.md §3.2）。
+///
+/// 滴答式 4 档：无 / 低（蓝）/ 中（橙）/ 高（红）。
+/// 注意：**枚举顺序即存储值**（0=none / 1=low / 2=medium / 3=high），
+/// 已有数据后禁止调整枚举顺序，只允许末尾追加。
+enum TaskPriority { none, low, medium, high }
+
+/// 将 [TaskPriority] 与数据库 INTEGER 互转的 TypeConverter。
+///
+/// 值域：0=none / 1=low / 2=medium / 3=high（§3.2）。
+class TaskPriorityConverter extends TypeConverter<TaskPriority, int> {
+  const TaskPriorityConverter();
+
+  @override
+  TaskPriority fromSql(int fromDb) => TaskPriority.values[fromDb];
+
+  @override
+  int toSql(TaskPriority value) => value.index;
+}
+
 /// 项目表（docs/40-data-model.md §2.1）。
 ///
 /// 参与同步：必须带 id / updatedAt / deleted 三字段（AGENTS.md §3-3）。
@@ -61,6 +81,11 @@ class Tasks extends Table {
 
   /// 状态枚举 0–3（§3.1）。有子任务的任务此字段被忽略（状态由子任务派生）。
   IntColumn get status => integer().map(const TaskStatusConverter())();
+
+  /// 优先级枚举 0–3（§3.2，滴答式 4 档：无/低/中/高）。
+  IntColumn get priority => integer()
+      .map(const TaskPriorityConverter())
+      .withDefault(const Constant(0))();
 
   /// 同级内排序（0..n-1 连续）。
   IntColumn get sortOrder => integer()();

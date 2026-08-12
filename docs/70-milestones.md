@@ -142,9 +142,16 @@
 4. 无障碍：语义标签、对比度、字体缩放、键盘可达性。
 5. 全量回归：`flutter test` + 双端手工回归脚本。
 
+### UI 重构子任务（依据 `55-ui-redesign-proposal.md`，2026-08）
+
+- **批 1 视觉层（已完成 2026-08）**：设计令牌（surfacePage/surfaceCard/圆形复选框/阴影/railWidth）、主题接入（Scaffold 基底、Card/Checkbox/NavigationRail）、SimpleTaskTile 与任务树行卡片化、今日/日历页面基底适配、inbox 行卡片化。`flutter analyze` 0 error；`flutter test` 227 全绿。
+- **批 2-A 移动端侧边栏抽屉（已完成 2026-08）**：`10-requirements.md` FR-NAV-01 + `50-ui-ux.md` §4 已同步；AppShell 抽屉（系统组 + 项目组 + 新建项目）、窄屏底部 NavigationBar 精简为 3 入口、宽屏 Rail 5 目的地不变、AppBar 汉堡入口；`widget_test.dart` 同步新 IA（3 tab + 抽屉导航断言）。`flutter analyze` 0 error；`flutter test` 230 全绿。
+- **批 2 交互层（待做）**：FAB + 新建底部弹窗（自动保存 + 清单切换 + 日期/优先级/标签）；进度环（有子任务任务）；同步状态图标（依赖 M4）。
+
 **DoD**：
 - [ ] NFR-01~09 全部满足（`10-requirements.md` §11）
 - [ ] 双端全量回归通过（M2 脚本 + M3 视图 + M4 同步场景 1–10）
+- [ ] 批 2 交互层验收：新建弹窗全流程、进度环正确（抽屉已随批 2-A 验收）
 - [ ] `flutter analyze` 0 error；`flutter test` 全绿；`dart format` 通过
 - [ ] 文档与实现一致（改代码必改文档）
 

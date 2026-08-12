@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/db/database.dart';
 import '../../core/db/tables.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/dates.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import '../projects/project_providers.dart';
+import '../tags/tag_providers.dart';
 import 'task_providers.dart';
+import 'widgets/priority_picker.dart';
 
 /// Task edit page — card-based layout, TickTick/Microsoft To Do inspired.
 ///
@@ -237,6 +238,12 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
               ),
               const SizedBox(height: AppTokens.spaceSm),
 
+              // ── Priority ──
+              _SectionCard(
+                children: [_buildPriorityRow(context, l10n, formState)],
+              ),
+              const SizedBox(height: AppTokens.spaceSm),
+
               // ── Status ──
               _SectionCard(
                 children: [_buildStatusSection(context, l10n, formState)],
@@ -381,6 +388,48 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
             : null,
       ),
       onTap: () => _pickDateTime(context, isStart: isStart),
+    );
+  }
+
+  // ── Priority row ──
+
+  Widget _buildPriorityRow(
+    BuildContext context,
+    AppLocalizations l10n,
+    TaskFormState formState,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(
+        Icons.flag_outlined,
+        size: 20,
+        color: priorityColor(formState.priority),
+      ),
+      title: Text(
+        l10n.priority,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: colorScheme.onSurfaceVariant,
+        ),
+      ),
+      subtitle: Text(
+        priorityLabel(l10n, formState.priority),
+        style: theme.textTheme.bodyLarge?.copyWith(
+          color: colorScheme.onSurface,
+        ),
+      ),
+      trailing: const Icon(Icons.keyboard_arrow_right, size: 20),
+      onTap: () async {
+        final picked = await showPriorityPicker(
+          context,
+          current: formState.priority,
+        );
+        if (picked != null && context.mounted) {
+          ref.read(taskFormProvider.notifier).updatePriority(picked);
+        }
+      },
     );
   }
 
@@ -608,12 +657,6 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
     if (mounted) context.pop();
   }
 }
-
-/// Tags stream provider (needed by task edit page).
-final tagsStreamProvider = StreamProvider<List<Tag>>((ref) {
-  final repo = ref.watch(todoRepositoryProvider);
-  return repo.tags.watchAll();
-});
 
 /// Section card wrapper.
 class _SectionCard extends StatelessWidget {

@@ -4,7 +4,7 @@
 // 1. 月视图：跨天任务在区间内每天显示；仅 endAt 任务只显示在截止日；
 //    无时间任务不出现；月外任务不出现；
 // 2. 点含任务日期格 → 底部弹层列出该任务 +「新建」入口；
-// 3. 弹层「新建」→ 跳转 /task/new 且携带该日 09:00 的 startAt 参数；
+// 3. 弹层「新建」→ 打开新建任务底部弹窗（TaskCreateSheet）且预填该日 09:00 的 startAt；
 // 4. 周视图：周区间内每天列出任务（跨天任务出现在多天）。
 //
 // 说明：widget 测试用 StreamController 覆盖 calendarBucketsProvider（避免 drift
@@ -28,7 +28,9 @@ import 'package:todo/features/calendar/calendar_page.dart';
 import 'package:todo/features/calendar/calendar_providers.dart';
 import 'package:todo/features/projects/project_providers.dart';
 import 'package:todo/features/settings/settings_providers.dart';
+import 'package:todo/features/tags/tag_providers.dart';
 import 'package:todo/features/tasks/task_providers.dart';
+import 'package:todo/features/tasks/widgets/task_create_sheet.dart';
 import '../../helpers/db_test_setup.dart';
 
 /// 固定日历状态（2026-08-11，周二；月/周视图由参数决定）。
@@ -61,6 +63,7 @@ Task _task(
   endAt: endAt,
   status: status,
   sortOrder: 0,
+  priority: TaskPriority.none,
   createdAt: 0,
   updatedAt: 0,
   deleted: 0,
@@ -116,6 +119,21 @@ Future<StreamController<Map<DateTime, List<Task>>>> _pump(
           (ref) => Stream.value(const <Task>[]),
         ),
         taskTagsProvider.overrideWith((ref, taskId) async => const <Tag>[]),
+        // 新建弹窗 watch 的 drift 流也须覆盖（fake_async 下避免残留 Timer）。
+        projectsStreamProvider.overrideWithValue(
+          AsyncData([
+            Project(
+              id: 'inbox',
+              name: '收件箱',
+              color: 0xFF6C5CE7,
+              sortOrder: 0,
+              createdAt: 0,
+              updatedAt: 0,
+              deleted: 0,
+            ),
+          ]),
+        ),
+        tagsStreamProvider.overrideWithValue(const AsyncData(<Tag>[])),
         // 收件箱身份固定（新建任务的 projectId 来源；真实 drift 查询走事件循环，
         // 会让 pumpAndSettle 在 push 前提前返回，造成时序竞争）。
         inboxProjectProvider.overrideWithValue(
@@ -204,7 +222,7 @@ void main() {
     expect(find.text('B'), findsNWidgets(2)); // 日期格 + 弹层行
   });
 
-  testWidgets('弹层「新建」→ 跳转 /task/new 并携带该日 09:00 的 startAt', (tester) async {
+  testWidgets('弹层「新建」→ 打开新建任务底部弹窗并预填该日 09:00 的 startAt', (tester) async {
     final db = openTestDatabase();
     final repo = TodoRepository(database: db);
     // 桶里至少有一个任务，月网格才会渲染（空桶 → EmptyState 而非网格）。
@@ -227,9 +245,15 @@ void main() {
     await tester.tap(find.text('新建任务'));
     await tester.pumpAndSettle();
 
-    // 路由落到 /task/new，startAt = 2026-08-15 09:00 本地转 UTC 毫秒。
-    final expected = _ms(2026, 8, 15, 9).toString();
-    expect(find.text('new:$expected'), findsOneWidget);
+    // 打开的是底部弹窗（D2 定稿，替代全屏 /task/new 路由）。
+    expect(find.byType(TaskCreateSheet), findsOneWidget);
+    expect(find.textContaining('new:'), findsNothing);
+
+    // 预填该日 09:00 的 startAt（UTC 毫秒）到表单。
+    final ctx = tester.element(find.byType(TaskCreateSheet));
+    final formState = ProviderScope.containerOf(ctx).read(taskFormProvider);
+    expect(formState.projectId, 'inbox');
+    expect(formState.startAt, _ms(2026, 8, 15, 9));
   });
 
   testWidgets('周视图：周区间内每天列出任务，跨天任务出现在多天', (tester) async {

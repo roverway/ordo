@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/l10n/app_localizations.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_breakpoints.dart';
+import 'app_drawer.dart';
 
-/// Adaptive navigation shell (30-architecture.md §5).
+/// Adaptive navigation shell (30-architecture.md §5, 55-ui-redesign §3)。
 ///
-/// - Narrow (<600dp): top AppBar (title + search/settings) + bottom NavigationBar
-/// - Wide (≥600dp): top AppBar + left NavigationRail
+/// - Narrow (<600dp): 侧边栏抽屉承载清单导航（系统组 + 项目组 + 新建项目，
+///   55-ui-redesign §3.1 D1）+ AppBar 汉堡入口 + 底部 NavigationBar（3 系统入口）
+/// - Wide (≥600dp): top AppBar + left NavigationRail（5 目的地不变，批 2-A 不动）
 ///
-/// 5 destinations: Inbox, Today, Calendar, Projects, Tags.
-/// Highlight derived from the current route path.
+/// 抽屉选中态由当前路由路径推导；路由表不变，仅入口位置变化。
 class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.title, required this.child});
 
@@ -20,8 +22,8 @@ class AppShell extends StatelessWidget {
   /// Page body content.
   final Widget child;
 
-  /// 5 top-level destination paths (keep in sync with router.dart).
-  static const List<String> _destinationPaths = [
+  /// 宽屏 NavigationRail 5 个目的地（keep in sync with router.dart）。
+  static const List<String> _railPaths = [
     '/inbox',
     '/today',
     '/calendar',
@@ -29,9 +31,12 @@ class AppShell extends StatelessWidget {
     '/tags',
   ];
 
-  /// Derive destination index from route path; fall back to 0 (inbox).
-  static int _selectedIndex(String path) {
-    final index = _destinationPaths.indexOf(path);
+  /// 窄屏底部 NavigationBar 3 个系统入口（收集箱与项目移入抽屉，§3.1）。
+  static const List<String> _barPaths = ['/today', '/calendar', '/tags'];
+
+  /// Derive destination index from route path; fall back to 0.
+  static int _selectedIndexIn(List<String> paths, String path) {
+    final index = paths.indexOf(path);
     return index == -1 ? 0 : index;
   }
 
@@ -40,9 +45,11 @@ class AppShell extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final narrow = AppBreakpoints.isNarrow(context);
     final path = GoRouterState.of(context).uri.path;
-    final selectedIndex = _selectedIndex(path);
+    final railIndex = _selectedIndexIn(_railPaths, path);
+    final barIndex = _selectedIndexIn(_barPaths, path);
 
-    final destinations =
+    // 宽屏 Rail 5 目的地（不变）。
+    final railDestinations =
         <({String label, IconData icon, IconData selectedIcon})>[
           (
             label: l10n.navInbox,
@@ -71,8 +78,40 @@ class AppShell extends StatelessWidget {
           ),
         ];
 
+    // 窄屏底部 NavigationBar 3 系统入口（今日/日历/标签）。
+    final barDestinations =
+        <({String label, IconData icon, IconData selectedIcon})>[
+          (
+            label: l10n.navToday,
+            icon: Icons.today_outlined,
+            selectedIcon: Icons.today,
+          ),
+          (
+            label: l10n.navCalendar,
+            icon: Icons.calendar_today_outlined,
+            selectedIcon: Icons.calendar_today,
+          ),
+          (
+            label: l10n.navTags,
+            icon: Icons.label_outline,
+            selectedIcon: Icons.label,
+          ),
+        ];
+
     return Scaffold(
+      // 窄屏抽屉（宽 78% 屏宽，右侧遮罩点击关闭由 Scaffold scrim 提供）。
+      drawer: narrow ? const AppDrawer() : null,
       appBar: AppBar(
+        // 仅窄屏显示汉堡入口；宽屏由 Rail 承担导航。
+        leading: narrow
+            ? Builder(
+                builder: (context) => IconButton(
+                  tooltip: l10n.openDrawer,
+                  icon: const Icon(Icons.menu, size: 22),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
+              )
+            : null,
         title: Text(title),
         actions: [
           IconButton(
@@ -92,11 +131,14 @@ class AppShell extends StatelessWidget {
           : Row(
               children: [
                 NavigationRail(
-                  selectedIndex: selectedIndex,
+                  // 宽度与选中态药丸高亮由 AppTheme.navigationRailTheme 提供
+                  // （railWidth / indicatorColor / indicatorShape，55-ui-redesign §3.2）。
+                  minWidth: AppTokens.railWidth,
+                  selectedIndex: railIndex,
                   onDestinationSelected: (index) =>
-                      context.go(_destinationPaths[index]),
+                      context.go(_railPaths[index]),
                   destinations: [
-                    for (final d in destinations)
+                    for (final d in railDestinations)
                       NavigationRailDestination(
                         icon: Icon(d.icon),
                         selectedIcon: Icon(d.selectedIcon),
@@ -108,13 +150,15 @@ class AppShell extends StatelessWidget {
                 Expanded(child: child),
               ],
             ),
+      // 新建任务 FAB 布局策略见 55-ui-redesign §4.1；inbox/today/calendar 各自放置
+      // （projects/tags 保留各自语义 FAB）。不在 AppShell 层挂全局 FAB，避免与
+      // 页面自身 FAB 重复（widget_test 断言单 FAB）。
       bottomNavigationBar: narrow
           ? NavigationBar(
-              selectedIndex: selectedIndex,
-              onDestinationSelected: (index) =>
-                  context.go(_destinationPaths[index]),
+              selectedIndex: barIndex,
+              onDestinationSelected: (index) => context.go(_barPaths[index]),
               destinations: [
-                for (final d in destinations)
+                for (final d in barDestinations)
                   NavigationDestination(
                     icon: Icon(d.icon),
                     selectedIcon: Icon(d.selectedIcon),

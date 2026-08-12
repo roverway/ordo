@@ -16,7 +16,9 @@ import 'package:todo/core/l10n/app_localizations.dart';
 import 'package:todo/features/inbox/inbox_page.dart';
 import 'package:todo/features/projects/project_providers.dart';
 import 'package:todo/features/settings/settings_providers.dart';
+import 'package:todo/features/tags/tag_providers.dart';
 import 'package:todo/features/tasks/task_providers.dart';
+import 'package:todo/features/tasks/widgets/task_create_sheet.dart';
 import '../../helpers/db_test_setup.dart';
 
 /// 构造测试用 Task。
@@ -37,6 +39,7 @@ Task _task(
   sortOrder: sortOrder,
   startAt: null,
   endAt: null,
+  priority: TaskPriority.none,
   createdAt: 0,
   updatedAt: 0,
   deleted: 0,
@@ -90,6 +93,9 @@ Future<void> _pumpInbox(
         todoRepositoryProvider.overrideWithValue(repo),
         inboxProjectProvider.overrideWithValue(AsyncData(inboxProject)),
         inboxTasksProvider.overrideWithValue(AsyncData(tasks)),
+        // 新建弹窗 watch 的 drift 流也须覆盖（fake_async 下避免残留 Timer）。
+        projectsStreamProvider.overrideWithValue(AsyncData([inboxProject])),
+        tagsStreamProvider.overrideWithValue(const AsyncData(<Tag>[])),
       ],
       child: MaterialApp.router(
         routerConfig: router,
@@ -145,6 +151,30 @@ void main() {
       expect(find.byTooltip('状态由子任务派生'), findsNothing);
       final leafCb = _checkboxOf(tester, '叶子任务');
       expect(tester.widget<Checkbox>(leafCb).onChanged, isNotNull);
+    });
+  });
+
+  group('FAB — 新建任务底部弹窗（D2 定稿）', () {
+    testWidgets('点击 FAB 打开 TaskCreateSheet', (tester) async {
+      await _pumpInbox(tester, tasks: [_task('leaf', title: '叶子任务')]);
+
+      expect(find.byType(FloatingActionButton), findsOneWidget);
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+
+      // 弹窗打开（不再是全屏 /task/new 路由）。
+      expect(find.byType(TaskCreateSheet), findsOneWidget);
+      expect(find.text('new:inbox'), findsNothing);
+    });
+
+    testWidgets('空态「添加任务」按钮同样打开弹窗', (tester) async {
+      await _pumpInbox(tester, tasks: []);
+
+      expect(find.byType(FloatingActionButton), findsNothing);
+      await tester.tap(find.text('添加任务'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TaskCreateSheet), findsOneWidget);
     });
   });
 }

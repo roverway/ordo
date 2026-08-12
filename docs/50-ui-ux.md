@@ -7,6 +7,7 @@
 - **风格**：Material 3 基底 + 自定义设计令牌，复现 MIUI/HyperOS 视觉语言：squircle 圆角、弹簧动效、Monet 动态色。
 - **原则**：移动端优先；信息密度适中；层级清晰（缩进 + 圆角卡片）；动效跟手但不喧宾夺主。
 - **平台中立**：不绑定单一平台设计语言，四平台观感一致。
+- **UI 重构（2026-08，见 `55-ui-redesign-proposal.md`）**：向滴答清单靠拢——页面基底「浅灰底 + 白卡」强化卡片层级；任务行**圆形复选框 + 卡片化**；移动端导航改**侧边栏抽屉**（批 2-A 已完成，见 §4）；移动端新建任务走底部弹窗（批 2 待做）。
 
 ## 2. 设计令牌（Design Tokens）
 
@@ -21,6 +22,7 @@
 | `colorInProgress` | 蓝 `#3482FF` | 进行中 |
 | `colorCancelled` | 灰 `#9E9E9E` | 已取消 |
 | `colorOverdue` | 红 `#F44336` | 逾期 |
+| `surfacePage` | 浅灰 `#F2F4F7` / 深 `#0F1117` | 页面基底（Scaffold 背景，滴答式浅灰底） |
 | `surfaceBlur` | 半透明表面 | 毛玻璃（Android 12+ 可用，低端回退实色） |
 
 - 明/暗两套由 `ColorScheme.fromSeed(seedColor)` 生成，语义色（done/inProgress/cancelled/overdue）在明暗下均保持可辨识。
@@ -30,11 +32,12 @@
 
 | 令牌 | 值 | 用途 |
 |---|---|---|
-| `radiusCard` | 20 | 卡片 |
+| `radiusCard` | 16 | 卡片（任务行卡片化，滴答式） |
 | `radiusButton` | 16 | 按钮 |
 | `radiusChip` | 12 | 标签/筛选 chip |
 | `radiusDialog` | 24 | 对话框/底部弹层 |
 | `radiusList` | 12 | 列表行 |
+| `checkboxShape` | 圆形 | 任务完成勾选（完成=蓝填充白勾） |
 
 ### 2.3 间距
 
@@ -66,11 +69,17 @@
 
 ## 4. 导航与信息架构
 
-- 4 个一级目的地：**今日、日历、项目、标签**。
+- **窄屏（<600dp）**：侧边栏抽屉承载清单导航（`55-ui-redesign-proposal.md` §3.1，D1）：
+  - 顶部：应用名/Logo（无账号体系，不做头像）。
+  - 系统组（无分隔线）：**今日 / 收集箱 / 日历 / 标签**；当前项浅色药丸高亮（`secondaryContainer` 派生 + 圆角 8–12）。
+  - 细分隔线 + 项目组（用户清单）：颜色圆点 + 项目名 + 未完成数；当前项目同样药丸高亮。
+  - 细分隔线 + 底部「新建项目」（图标 + 文字，复用项目表单对话框）。
+  - 宽度 = 屏宽 × `drawerWidthRatio`（0.78，75–80%）；右侧半透明遮罩点击关闭。
+  - AppBar：左侧汉堡（`Icons.menu`）打开抽屉，右侧搜索/设置。
+  - 底部 `NavigationBar` 精简为 **3 个系统入口：今日 / 日历 / 标签**。
+- **宽屏（≥600dp）**：`NavigationRail`（宽度 96，5 目的地：收集箱/今日/日历/项目/标签）+ 两栏 master-detail；选中态药丸高亮（`indicatorColor` 由 colorScheme 派生）。
 - 搜索、设置：AppBar 图标，所有视图可用。
-- 断点布局（`30-architecture.md` §5）：
-  - `<600dp`：底部 `NavigationBar`（4 tab）+ push 详情页。
-  - `≥600dp`：`NavigationRail` + 两栏 master-detail。
+- 路由不变（`/inbox /today /calendar /projects /tags` 仍存在），抽屉/Rail 选中态由当前路由路径推导。
 
 ## 5. 屏幕规格
 
@@ -78,7 +87,7 @@
 
 - 顶部：日期标题 + 搜索/设置图标。
 - 分组：**逾期**（红标）→ **今天** → **即将到期**（可选分组）。
-- 任务行：完成勾选、标题、项目名、标签 chips、时间、派生进度。
+- 任务行：完成勾选（**圆形复选框**，完成=蓝填充白勾）、标题、项目名、标签 chips、时间、派生进度；**白卡片化行**（圆角 16 + 轻阴影，hover/按压轻微抬升）。
 - 空态：无任务时展示引导文案 + 「新建任务」按钮。
 
 ### 5.2 日历视图（`/calendar`）

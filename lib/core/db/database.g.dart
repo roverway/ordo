@@ -569,6 +569,16 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         type: DriftSqlType.int,
         requiredDuringInsert: true,
       ).withConverter<TaskStatus>($TasksTable.$converterstatus);
+  @override
+  late final GeneratedColumnWithTypeConverter<TaskPriority, int> priority =
+      GeneratedColumn<int>(
+        'priority',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(0),
+      ).withConverter<TaskPriority>($TasksTable.$converterpriority);
   static const VerificationMeta _sortOrderMeta = const VerificationMeta(
     'sortOrder',
   );
@@ -625,6 +635,7 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     startAt,
     endAt,
     status,
+    priority,
     sortOrder,
     createdAt,
     updatedAt,
@@ -773,6 +784,12 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
           data['${effectivePrefix}status'],
         )!,
       ),
+      priority: $TasksTable.$converterpriority.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}priority'],
+        )!,
+      ),
       sortOrder: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
@@ -799,6 +816,8 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
 
   static TypeConverter<TaskStatus, int> $converterstatus =
       const TaskStatusConverter();
+  static TypeConverter<TaskPriority, int> $converterpriority =
+      const TaskPriorityConverter();
 }
 
 class Task extends DataClass implements Insertable<Task> {
@@ -817,6 +836,9 @@ class Task extends DataClass implements Insertable<Task> {
 
   /// 状态枚举 0–3（§3.1）。有子任务的任务此字段被忽略（状态由子任务派生）。
   final TaskStatus status;
+
+  /// 优先级枚举 0–3（§3.2，滴答式 4 档：无/低/中/高）。
+  final TaskPriority priority;
 
   /// 同级内排序（0..n-1 连续）。
   final int sortOrder;
@@ -839,6 +861,7 @@ class Task extends DataClass implements Insertable<Task> {
     this.startAt,
     this.endAt,
     required this.status,
+    required this.priority,
     required this.sortOrder,
     required this.createdAt,
     required this.updatedAt,
@@ -864,6 +887,11 @@ class Task extends DataClass implements Insertable<Task> {
     {
       map['status'] = Variable<int>($TasksTable.$converterstatus.toSql(status));
     }
+    {
+      map['priority'] = Variable<int>(
+        $TasksTable.$converterpriority.toSql(priority),
+      );
+    }
     map['sort_order'] = Variable<int>(sortOrder);
     map['created_at'] = Variable<int>(createdAt);
     map['updated_at'] = Variable<int>(updatedAt);
@@ -888,6 +916,7 @@ class Task extends DataClass implements Insertable<Task> {
           ? const Value.absent()
           : Value(endAt),
       status: Value(status),
+      priority: Value(priority),
       sortOrder: Value(sortOrder),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -910,6 +939,7 @@ class Task extends DataClass implements Insertable<Task> {
       startAt: serializer.fromJson<int?>(json['startAt']),
       endAt: serializer.fromJson<int?>(json['endAt']),
       status: serializer.fromJson<TaskStatus>(json['status']),
+      priority: serializer.fromJson<TaskPriority>(json['priority']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
@@ -929,6 +959,7 @@ class Task extends DataClass implements Insertable<Task> {
       'startAt': serializer.toJson<int?>(startAt),
       'endAt': serializer.toJson<int?>(endAt),
       'status': serializer.toJson<TaskStatus>(status),
+      'priority': serializer.toJson<TaskPriority>(priority),
       'sortOrder': serializer.toJson<int>(sortOrder),
       'createdAt': serializer.toJson<int>(createdAt),
       'updatedAt': serializer.toJson<int>(updatedAt),
@@ -946,6 +977,7 @@ class Task extends DataClass implements Insertable<Task> {
     Value<int?> startAt = const Value.absent(),
     Value<int?> endAt = const Value.absent(),
     TaskStatus? status,
+    TaskPriority? priority,
     int? sortOrder,
     int? createdAt,
     int? updatedAt,
@@ -960,6 +992,7 @@ class Task extends DataClass implements Insertable<Task> {
     startAt: startAt.present ? startAt.value : this.startAt,
     endAt: endAt.present ? endAt.value : this.endAt,
     status: status ?? this.status,
+    priority: priority ?? this.priority,
     sortOrder: sortOrder ?? this.sortOrder,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -978,6 +1011,7 @@ class Task extends DataClass implements Insertable<Task> {
       startAt: data.startAt.present ? data.startAt.value : this.startAt,
       endAt: data.endAt.present ? data.endAt.value : this.endAt,
       status: data.status.present ? data.status.value : this.status,
+      priority: data.priority.present ? data.priority.value : this.priority,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -997,6 +1031,7 @@ class Task extends DataClass implements Insertable<Task> {
           ..write('startAt: $startAt, ')
           ..write('endAt: $endAt, ')
           ..write('status: $status, ')
+          ..write('priority: $priority, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -1016,6 +1051,7 @@ class Task extends DataClass implements Insertable<Task> {
     startAt,
     endAt,
     status,
+    priority,
     sortOrder,
     createdAt,
     updatedAt,
@@ -1034,6 +1070,7 @@ class Task extends DataClass implements Insertable<Task> {
           other.startAt == this.startAt &&
           other.endAt == this.endAt &&
           other.status == this.status &&
+          other.priority == this.priority &&
           other.sortOrder == this.sortOrder &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -1050,6 +1087,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
   final Value<int?> startAt;
   final Value<int?> endAt;
   final Value<TaskStatus> status;
+  final Value<TaskPriority> priority;
   final Value<int> sortOrder;
   final Value<int> createdAt;
   final Value<int> updatedAt;
@@ -1065,6 +1103,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.startAt = const Value.absent(),
     this.endAt = const Value.absent(),
     this.status = const Value.absent(),
+    this.priority = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1081,6 +1120,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.startAt = const Value.absent(),
     this.endAt = const Value.absent(),
     required TaskStatus status,
+    this.priority = const Value.absent(),
     required int sortOrder,
     required int createdAt,
     required int updatedAt,
@@ -1103,6 +1143,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Expression<int>? startAt,
     Expression<int>? endAt,
     Expression<int>? status,
+    Expression<int>? priority,
     Expression<int>? sortOrder,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
@@ -1119,6 +1160,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
       if (startAt != null) 'start_at': startAt,
       if (endAt != null) 'end_at': endAt,
       if (status != null) 'status': status,
+      if (priority != null) 'priority': priority,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -1137,6 +1179,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Value<int?>? startAt,
     Value<int?>? endAt,
     Value<TaskStatus>? status,
+    Value<TaskPriority>? priority,
     Value<int>? sortOrder,
     Value<int>? createdAt,
     Value<int>? updatedAt,
@@ -1153,6 +1196,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
       startAt: startAt ?? this.startAt,
       endAt: endAt ?? this.endAt,
       status: status ?? this.status,
+      priority: priority ?? this.priority,
       sortOrder: sortOrder ?? this.sortOrder,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -1193,6 +1237,11 @@ class TasksCompanion extends UpdateCompanion<Task> {
         $TasksTable.$converterstatus.toSql(status.value),
       );
     }
+    if (priority.present) {
+      map['priority'] = Variable<int>(
+        $TasksTable.$converterpriority.toSql(priority.value),
+      );
+    }
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
@@ -1223,6 +1272,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
           ..write('startAt: $startAt, ')
           ..write('endAt: $endAt, ')
           ..write('status: $status, ')
+          ..write('priority: $priority, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -2469,6 +2519,7 @@ typedef $$TasksTableCreateCompanionBuilder =
       Value<int?> startAt,
       Value<int?> endAt,
       required TaskStatus status,
+      Value<TaskPriority> priority,
       required int sortOrder,
       required int createdAt,
       required int updatedAt,
@@ -2486,6 +2537,7 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<int?> startAt,
       Value<int?> endAt,
       Value<TaskStatus> status,
+      Value<TaskPriority> priority,
       Value<int> sortOrder,
       Value<int> createdAt,
       Value<int> updatedAt,
@@ -2595,6 +2647,12 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
         column: $table.status,
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
+
+  ColumnWithTypeConverterFilters<TaskPriority, TaskPriority, int>
+  get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
 
   ColumnFilters<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
@@ -2732,6 +2790,11 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
@@ -2830,6 +2893,9 @@ class $$TasksTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<TaskStatus, int> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<TaskPriority, int> get priority =>
+      $composableBuilder(column: $table.priority, builder: (column) => column);
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
@@ -2956,6 +3022,7 @@ class $$TasksTableTableManager
                 Value<int?> startAt = const Value.absent(),
                 Value<int?> endAt = const Value.absent(),
                 Value<TaskStatus> status = const Value.absent(),
+                Value<TaskPriority> priority = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
@@ -2971,6 +3038,7 @@ class $$TasksTableTableManager
                 startAt: startAt,
                 endAt: endAt,
                 status: status,
+                priority: priority,
                 sortOrder: sortOrder,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -2988,6 +3056,7 @@ class $$TasksTableTableManager
                 Value<int?> startAt = const Value.absent(),
                 Value<int?> endAt = const Value.absent(),
                 required TaskStatus status,
+                Value<TaskPriority> priority = const Value.absent(),
                 required int sortOrder,
                 required int createdAt,
                 required int updatedAt,
@@ -3003,6 +3072,7 @@ class $$TasksTableTableManager
                 startAt: startAt,
                 endAt: endAt,
                 status: status,
+                priority: priority,
                 sortOrder: sortOrder,
                 createdAt: createdAt,
                 updatedAt: updatedAt,

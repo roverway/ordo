@@ -25,6 +25,9 @@ import 'package:todo/core/l10n/app_localizations.dart';
 import 'package:todo/core/theme/app_tokens.dart';
 import 'package:todo/features/projects/project_providers.dart';
 import 'package:todo/features/settings/settings_providers.dart';
+import 'package:todo/features/tags/tag_providers.dart';
+import 'package:todo/features/tasks/task_providers.dart';
+import 'package:todo/features/tasks/widgets/task_create_sheet.dart';
 import 'package:todo/features/today/today_page.dart';
 import 'package:todo/features/today/today_providers.dart';
 import 'package:todo/shared/widgets/empty_state.dart';
@@ -61,6 +64,7 @@ Task _task(
   sortOrder: sortOrder,
   startAt: startAt,
   endAt: endAt,
+  priority: TaskPriority.none,
   createdAt: 0,
   updatedAt: updatedAt,
   deleted: 0,
@@ -159,10 +163,24 @@ Future<TodoRepository> _pumpToday(
     tagsForTask: repo.tags.tagsForTask,
   );
 
+  final inboxProject = Project(
+    id: inboxProjectId,
+    name: '收件箱',
+    color: inboxProjectColor,
+    sortOrder: 0,
+    createdAt: 0,
+    updatedAt: 0,
+    deleted: 0,
+  );
+
   final overrides = [
     sharedPreferencesProvider.overrideWithValue(prefs),
     todoRepositoryProvider.overrideWithValue(repo),
     todayViewProvider.overrideWithValue(AsyncData(view)),
+    // 新建弹窗依赖的 Provider 一并覆盖（fake_async 下避免 drift 流残留 Timer）。
+    inboxProjectProvider.overrideWithValue(AsyncData(inboxProject)),
+    projectsStreamProvider.overrideWithValue(AsyncData([inboxProject])),
+    tagsStreamProvider.overrideWithValue(const AsyncData(<Tag>[])),
   ];
 
   final router = GoRouter(
@@ -435,5 +453,37 @@ void main() {
     expect(after!.status, TaskStatus.done);
     // 勾选点击不应触发行 onTap（没有跳转详情页）。
     expect(find.text('detail:t1'), findsNothing);
+  });
+
+  testWidgets('FAB 打开新建任务底部弹窗（D2 定稿，替代全屏 /task/new）', (tester) async {
+    final today = _todayStart();
+    final startAt = DateTime(
+      today.year,
+      today.month,
+      today.day,
+      9,
+    ).millisecondsSinceEpoch;
+    await _pumpToday(
+      tester,
+      tasks: [_task('t1', title: '今天任务', startAt: startAt)],
+    );
+
+    // 右下角 FAB（无全屏新建路由可跳，只有底部弹窗）。
+    expect(find.byType(FloatingActionButton), findsOneWidget);
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TaskCreateSheet), findsOneWidget);
+  });
+
+  testWidgets('空态下 FAB 仍可用并打开弹窗', (tester) async {
+    await _pumpToday(tester, tasks: [_task('n1', title: '无时间任务')]);
+
+    expect(find.byType(EmptyState), findsOneWidget);
+    expect(find.byType(FloatingActionButton), findsOneWidget);
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TaskCreateSheet), findsOneWidget);
   });
 }

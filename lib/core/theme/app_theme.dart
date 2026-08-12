@@ -21,7 +21,10 @@ abstract final class AppTheme {
 
     return base.copyWith(
       // ── Scaffold background ──
-      scaffoldBackgroundColor: isDark ? AppTokens.bgTintDark : AppTokens.bgTint,
+      // 页面基底：浅灰底 + 白卡片层次（55-ui-redesign-proposal.md §5 surfacePage）。
+      scaffoldBackgroundColor: isDark
+          ? AppTokens.surfacePageDark
+          : AppTokens.surfacePageLight,
 
       // ── AppBar ──
       appBarTheme: AppBarTheme(
@@ -43,7 +46,8 @@ abstract final class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTokens.radiusCard),
         ),
-        color: colorScheme.surface,
+        // 滴答式「白卡」：浅色纯白，深色略抬升于页面基底（55-ui-redesign §5）。
+        color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
       ),
 
       // ── Dialog ──
@@ -146,6 +150,10 @@ abstract final class AppTheme {
       // ── NavigationRail ──
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor: Colors.transparent,
+        // 宽屏 Rail 加宽 80 → 96（55-ui-redesign-proposal.md §3.2）。
+        minWidth: AppTokens.railWidth,
+        // 选中态药丸高亮：浅色容器 + 圆角（colorScheme 派生，不硬编码）。
+        indicatorColor: colorScheme.secondaryContainer,
         indicatorShape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTokens.radiusButton),
         ),
@@ -153,12 +161,25 @@ abstract final class AppTheme {
       ),
 
       // ── Checkbox ──
+      // 滴答风格圆形复选框：完成 = checkboxDoneFill 蓝填充 + 白勾；
+      // 禁用（有子任务，状态派生）= 浅灰填充。shape 走 AppTokens。
       checkboxTheme: CheckboxThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTokens.radiusCheckbox),
-        ),
+        shape: AppTokens.checkboxShape,
         side: BorderSide(color: colorScheme.outline, width: 1.5),
-        visualDensity: VisualDensity.compact,
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return AppTokens.checkboxDoneFill;
+          }
+          if (states.contains(WidgetState.disabled)) {
+            return colorScheme.onSurface.withValues(alpha: 0.15);
+          }
+          return Colors.transparent;
+        }),
+        checkColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? AppTokens.colorOnCheck
+              : Colors.transparent,
+        ),
       ),
 
       // ── Divider ──

@@ -56,8 +56,7 @@ class _TagsDetailPageState extends ConsumerState<TagsDetailPage> {
           child: ref
               .watch(allActiveTasksProvider)
               .when(
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Center(child: Text(e.toString())),
                 data: (allTasks) => ref
                     .watch(tagTasksProvider(widget.tagId))
@@ -129,6 +128,7 @@ class _TagsDetailPageState extends ConsumerState<TagsDetailPage> {
                       task: task,
                       hasChildren: children.isNotEmpty,
                       isDone: effective == TaskStatus.done,
+                      progressValue: taskProgress(task, allTasks),
                       onTap: () => context.push('/task/${task.id}'),
                       // 有子任务的任务状态由子任务派生，不给切换回调
                       //（SimpleTaskTile 在 hasChildren 时同样禁用勾选）。

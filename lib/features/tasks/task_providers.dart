@@ -63,6 +63,7 @@ class TaskFormState {
     this.startAt,
     this.endAt,
     this.status = TaskStatus.todo,
+    this.priority = TaskPriority.none,
     this.existingTagIds = const [],
     this.selectedTagIds = const [],
     this.isEditing = false,
@@ -78,6 +79,7 @@ class TaskFormState {
   final int? startAt;
   final int? endAt;
   final TaskStatus status;
+  final TaskPriority priority;
   final List<String> existingTagIds;
   final List<String> selectedTagIds;
   final bool isEditing;
@@ -93,6 +95,7 @@ class TaskFormState {
     int? startAt,
     int? endAt,
     TaskStatus? status,
+    TaskPriority? priority,
     List<String>? existingTagIds,
     List<String>? selectedTagIds,
     bool? isEditing,
@@ -108,6 +111,7 @@ class TaskFormState {
       startAt: startAt ?? this.startAt,
       endAt: endAt ?? this.endAt,
       status: status ?? this.status,
+      priority: priority ?? this.priority,
       existingTagIds: existingTagIds ?? this.existingTagIds,
       selectedTagIds: selectedTagIds ?? this.selectedTagIds,
       isEditing: isEditing ?? this.isEditing,
@@ -127,6 +131,7 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
   int? _originalStartAt;
   int? _originalEndAt;
   TaskStatus _originalStatus = TaskStatus.todo;
+  TaskPriority _originalPriority = TaskPriority.none;
   List<String> _originalTagIds = [];
 
   @override
@@ -146,6 +151,7 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
       startAt: task.startAt,
       endAt: task.endAt,
       status: task.status,
+      priority: task.priority,
       existingTagIds: tagIds,
       selectedTagIds: tagIds,
       isEditing: true,
@@ -166,6 +172,7 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
       startAt: state.startAt,
       endAt: state.endAt,
       status: state.status,
+      priority: state.priority,
       existingTagIds: state.existingTagIds,
       selectedTagIds: state.selectedTagIds,
       isEditing: state.isEditing,
@@ -182,6 +189,7 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
     _originalStartAt = null;
     _originalEndAt = null;
     _originalStatus = TaskStatus.todo;
+    _originalPriority = TaskPriority.none;
     _originalTagIds = [];
     state = TaskFormState(projectId: projectId, parentId: parentId);
   }
@@ -193,6 +201,7 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
     _originalStartAt = state.startAt;
     _originalEndAt = state.endAt;
     _originalStatus = state.status;
+    _originalPriority = state.priority;
     _originalTagIds = List<String>.from(state.selectedTagIds);
   }
 
@@ -203,6 +212,7 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
           state.notes.isNotEmpty ||
           state.startAt != null ||
           state.endAt != null ||
+          state.priority != TaskPriority.none ||
           state.selectedTagIds.isNotEmpty;
     }
     return state.title != _originalTitle ||
@@ -211,6 +221,7 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
         state.startAt != _originalStartAt ||
         state.endAt != _originalEndAt ||
         state.status != _originalStatus ||
+        state.priority != _originalPriority ||
         !_listEquals(state.selectedTagIds, _originalTagIds);
   }
 
@@ -250,6 +261,7 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
           startAt: state.startAt,
           endAt: state.endAt,
           status: children.isEmpty ? state.status : null,
+          priority: state.priority,
         );
         // 更新标签关联（全量替换）。
         await _repo.tags.setTaskTags(state.id!, state.selectedTagIds);
@@ -264,6 +276,7 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
           startAt: state.startAt,
           endAt: state.endAt,
           status: state.status,
+          priority: state.priority,
         );
         if (state.selectedTagIds.isNotEmpty) {
           await _repo.tags.setTaskTags(task.id, state.selectedTagIds);
@@ -290,6 +303,13 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
   void updateStartAt(int? value) => state = state.copyWith(startAt: value);
   void updateEndAt(int? value) => state = state.copyWith(endAt: value);
   void updateStatus(TaskStatus value) => state = state.copyWith(status: value);
+  void updatePriority(TaskPriority value) =>
+      state = state.copyWith(priority: value);
+
+  /// 全量替换已选标签 id 列表（标签选择弹层用）。
+  void setSelectedTags(List<String> tagIds) {
+    state = state.copyWith(selectedTagIds: List<String>.from(tagIds));
+  }
 
   void toggleTag(String tagId) {
     final current = List<String>.from(state.selectedTagIds);

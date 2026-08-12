@@ -14,6 +14,7 @@ Task _task(String id, {String? parentId}) => Task(
   description: '',
   notes: '',
   status: TaskStatus.todo,
+  priority: TaskPriority.none,
   sortOrder: 0,
   createdAt: 0,
   updatedAt: 0,

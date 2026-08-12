@@ -8,8 +8,8 @@ part 'database.g.dart';
 
 /// 应用数据库（docs/30-architecture.md §2）。
 ///
-/// schemaVersion = 1；迁移用 `MigrationStrategy.onUpgrade` 逐步执行
-/// （docs/40-data-model.md §8）。M1 无实际迁移步骤，仅框架。
+/// schemaVersion = 2；迁移用 `MigrationStrategy.onUpgrade` 逐步执行
+/// （docs/40-data-model.md §8）。v2：tasks 新增 priority 列。
 @DriftDatabase(tables: [Projects, Tasks, Tags, TaskTags, Settings])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
@@ -22,7 +22,7 @@ class AppDatabase extends _$AppDatabase {
       AppDatabase(executor ?? NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -30,8 +30,10 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
     },
     onUpgrade: (m, from, to) async {
-      // M1：无实际迁移步骤，框架预留。
-      // 后续版本在此按 m1 → m2 → … 顺序执行（40-data-model.md §8）。
+      // v1 → v2（40-data-model.md §8）：tasks 新增 priority 列（默认 0 = 无优先级）。
+      if (from < 2) {
+        await m.addColumn(tasks, tasks.priority);
+      }
     },
     beforeOpen: (details) async {
       // 开启外键约束（Drift 默认关闭，需应用层显式开启）。

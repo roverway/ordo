@@ -17,6 +17,7 @@ class TodayTaskView {
     required this.hasChildren,
     required this.effectiveStatus,
     required this.isOverdue,
+    this.progressValue,
   });
 
   final Task task;
@@ -33,6 +34,9 @@ class TodayTaskView {
 
   /// 是否逾期（view_rules.isOverdue 判定结果，§9.3）。
   final bool isOverdue;
+
+  /// 有子任务任务的派生完成度（0.0–1.0，进度环用）；无子任务为 null。
+  final double? progressValue;
 }
 
 /// 今日视图分组数据：逾期组 + 今天组（各组内已排序）。
@@ -87,6 +91,10 @@ Future<TodayViewData> buildTodayView({
         hasChildren: parentIds.contains(task.id),
         effectiveStatus: effectiveStatus,
         isOverdue: isOverdue,
+        // 进度环（滴答式）：有子任务任务按整棵子树统计完成度。
+        progressValue: parentIds.contains(task.id)
+            ? taskProgress(task, tasks)
+            : null,
       ),
     );
   }

@@ -15,6 +15,7 @@ import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/simple_task_tile.dart';
 import '../projects/project_providers.dart';
 import '../tasks/task_providers.dart';
+import '../tasks/widgets/task_create_sheet.dart';
 import 'calendar_providers.dart';
 
 /// 日历视图（FR-VIEW-02，docs/10-requirements.md §9.2）。
@@ -537,7 +538,8 @@ class CalendarPage extends ConsumerWidget {
       showDragHandle: true,
       useSafeArea: true,
       isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      // 页面基底（surfacePage）：白卡片在浅灰底上保持层次（55-ui-redesign §5）。
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppTokens.radiusDialog),
@@ -643,6 +645,10 @@ class _DaySheet extends ConsumerWidget {
   }
 
   /// 新建任务：解析收件箱项目 id，预填该日 09:00（本地时间 → UTC 毫秒）。
+  ///
+  /// D2 定稿（55-ui-redesign §4.1）：新建走底部弹窗，替代旧的全屏 /task/new 路径。
+  /// 日历保持「点日期格 → 弹层新建」的上下文入口（等价于 FAB 的今天预填），
+  /// 不另加全局 FAB（避免与 projects/tags 页 FAB 重复，测试断言单 FAB）。
   Future<void> _createTaskOnDay(
     BuildContext context,
     WidgetRef ref,
@@ -656,7 +662,11 @@ class _DaySheet extends ConsumerWidget {
       9,
     ).toUtc().millisecondsSinceEpoch;
     if (!context.mounted) return;
-    context.push('/task/new?projectId=${project.id}&startAt=$startAt');
+    TaskCreateSheet.show(
+      context,
+      projectId: project.id,
+      initialStartAt: startAt,
+    );
   }
 
   Widget _buildTaskTile(BuildContext context, WidgetRef ref, Task task) {
@@ -688,6 +698,9 @@ Widget buildCalendarTaskTile(
   final todayStart = DateTime(now.year, now.month, now.day);
   final isOverdue = view_rules.isOverdue(task, effective, todayStart);
   final tags = ref.watch(taskTagsProvider(task.id)).value ?? const <Tag>[];
+  // 进度环（滴答式）：全量任务列表在 CalendarPage 顶部已订阅，此处复用计算
+  // 有子任务任务的派生完成度（taskProgress 对无子任务返回 null）。
+  final allTasks = ref.watch(allActiveTasksProvider).value ?? const <Task>[];
 
   return SimpleTaskTile(
     task: task,
@@ -695,6 +708,7 @@ Widget buildCalendarTaskTile(
     isDone: effective == TaskStatus.done,
     isOverdue: isOverdue,
     tags: tags,
+    progressValue: hasChildren ? taskProgress(task, allTasks) : null,
     onTap: onTap,
     onToggleDone: hasChildren
         ? null

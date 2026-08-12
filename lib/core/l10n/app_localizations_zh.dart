@@ -30,6 +30,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get navTags => '标签';
 
   @override
+  String get openDrawer => '打开侧边栏';
+
+  @override
   String get search => '搜索';
 
   @override
@@ -361,4 +364,49 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get tagNameDuplicate => '标签名已存在（不区分大小写）';
+
+  @override
+  String get moveTo => '移动到';
+
+  @override
+  String get searchProjects => '搜索项目';
+
+  @override
+  String get addProject => '添加项目';
+
+  @override
+  String get dateAndReminder => '日期与提醒';
+
+  @override
+  String get priority => '优先级';
+
+  @override
+  String get priorityHigh => '高';
+
+  @override
+  String get priorityMedium => '中';
+
+  @override
+  String get priorityLow => '低';
+
+  @override
+  String get priorityNone => '无';
+
+  @override
+  String get nextWeek => '下周';
+
+  @override
+  String get custom => '自定义';
+
+  @override
+  String get clear => '清除';
+
+  @override
+  String get subtasks => '子任务';
+
+  @override
+  String get addSubtask => '添加子任务';
+
+  @override
+  String get subtaskHint => '子任务标题';
 }

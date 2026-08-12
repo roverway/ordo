@@ -162,6 +162,7 @@ class TodoRepository {
   ///   调用方从 ARB 提供，Repository 不做 i18n）。
   /// - [parentId] 非空时校验父任务存在且 `depth(parent) < 3`（§5.1）。
   /// - [endAt] 设置时要求 `endAt >= startAt`（§5.4）。
+  /// - [priority] 缺省为无优先级（滴答式 4 档，§3.2）。
   Future<Task> createTask({
     String? projectId,
     String? inboxDisplayName,
@@ -172,6 +173,7 @@ class TodoRepository {
     int? startAt,
     int? endAt,
     TaskStatus status = TaskStatus.todo,
+    TaskPriority priority = TaskPriority.none,
   }) async {
     _checkTextLength(title, 1, 200, '任务标题');
     _checkTimeRange(startAt, endAt);
@@ -215,6 +217,7 @@ class TodoRepository {
         startAt: Value(startAt),
         endAt: Value(endAt),
         status: status,
+        priority: Value(priority),
         sortOrder: siblings.length,
         createdAt: now,
         updatedAt: now,
@@ -234,6 +237,7 @@ class TodoRepository {
       startAt: Value(startAt),
       endAt: Value(endAt),
       status: status,
+      priority: Value(priority),
       sortOrder: roots.length,
       createdAt: now,
       updatedAt: now,
@@ -254,6 +258,7 @@ class TodoRepository {
     int? startAt,
     int? endAt,
     TaskStatus? status,
+    TaskPriority? priority,
   }) async {
     final existing = await tasks.getActiveById(id);
     if (existing == null) throw RepositoryException('任务不存在：$id');
@@ -278,6 +283,7 @@ class TodoRepository {
       startAt: Value(startAt),
       endAt: Value(endAt),
       status: status != null ? Value(status) : const Value.absent(),
+      priority: priority != null ? Value(priority) : const Value.absent(),
       updatedAt: Value(_nowMs()),
     );
     await tasks.updateById(id, entry);
