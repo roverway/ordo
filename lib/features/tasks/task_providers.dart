@@ -97,37 +97,60 @@ class TaskFormState {
   final bool isEditing;
   final TaskFormStatus statusEnum;
 
+  /// 哨兵值：区分「未传参（保留原值）」与「显式传 null（清空可空字段）」。
+  ///
+  /// 修复（59 讨论定稿 Bug）：此前 copyWith 用 `?? this.x`，传 null 被当作
+  /// 「保留原值」，导致 loadTask 加载一级任务/无时间任务时残留上一个任务的
+  /// parentId/startAt/endAt，以及日期清除（updateXxx(null)）失效。
+  static const Object _unset = Object();
+
   TaskFormState copyWith({
-    String? id,
-    String? projectId,
-    String? parentId,
-    String? title,
-    String? description,
-    String? notes,
-    int? startAt,
-    int? endAt,
-    TaskStatus? status,
-    TaskPriority? priority,
-    List<String>? existingTagIds,
-    List<String>? selectedTagIds,
-    bool? isEditing,
-    TaskFormStatus? statusEnum,
+    Object? id = _unset,
+    Object? projectId = _unset,
+    Object? parentId = _unset,
+    Object? title = _unset,
+    Object? description = _unset,
+    Object? notes = _unset,
+    Object? startAt = _unset,
+    Object? endAt = _unset,
+    Object? status = _unset,
+    Object? priority = _unset,
+    Object? existingTagIds = _unset,
+    Object? selectedTagIds = _unset,
+    Object? isEditing = _unset,
+    Object? statusEnum = _unset,
   }) {
     return TaskFormState(
-      id: id ?? this.id,
-      projectId: projectId ?? this.projectId,
-      parentId: parentId ?? this.parentId,
-      title: title ?? this.title,
-      description: description ?? this.description,
-      notes: notes ?? this.notes,
-      startAt: startAt ?? this.startAt,
-      endAt: endAt ?? this.endAt,
-      status: status ?? this.status,
-      priority: priority ?? this.priority,
-      existingTagIds: existingTagIds ?? this.existingTagIds,
-      selectedTagIds: selectedTagIds ?? this.selectedTagIds,
-      isEditing: isEditing ?? this.isEditing,
-      statusEnum: statusEnum ?? this.statusEnum,
+      id: identical(id, _unset) ? this.id : id as String?,
+      projectId: identical(projectId, _unset)
+          ? this.projectId
+          : projectId as String?,
+      parentId: identical(parentId, _unset)
+          ? this.parentId
+          : parentId as String?,
+      title: identical(title, _unset) ? this.title : title as String,
+      description: identical(description, _unset)
+          ? this.description
+          : description as String,
+      notes: identical(notes, _unset) ? this.notes : notes as String,
+      startAt: identical(startAt, _unset) ? this.startAt : startAt as int?,
+      endAt: identical(endAt, _unset) ? this.endAt : endAt as int?,
+      status: identical(status, _unset) ? this.status : status as TaskStatus,
+      priority: identical(priority, _unset)
+          ? this.priority
+          : priority as TaskPriority,
+      existingTagIds: identical(existingTagIds, _unset)
+          ? this.existingTagIds
+          : existingTagIds as List<String>,
+      selectedTagIds: identical(selectedTagIds, _unset)
+          ? this.selectedTagIds
+          : selectedTagIds as List<String>,
+      isEditing: identical(isEditing, _unset)
+          ? this.isEditing
+          : isEditing as bool,
+      statusEnum: identical(statusEnum, _unset)
+          ? this.statusEnum
+          : statusEnum as TaskFormStatus,
     );
   }
 }

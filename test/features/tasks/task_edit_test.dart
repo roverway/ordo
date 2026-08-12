@@ -781,4 +781,70 @@ void main() {
       expect(toolbarRect.top, greaterThan(0));
     });
   });
+
+  // ────────────────────────────────────────
+  // 13. 59 Bug：copyWith null 泄漏 — 一级任务残留上一个任务的父任务/时间
+  // ────────────────────────────────────────
+  group('59 Bug：切到一级任务时表单可空字段被正确清空', () {
+    test('先编辑带父任务的任务、再编辑一级任务 → parentId/时间不再泄漏', () async {
+      final db = openTestDatabase();
+      final repo = TodoRepository(database: db);
+      await db
+          .into(db.projects)
+          .insertOnConflictUpdate(
+            ProjectsCompanion.insert(
+              id: 'p1',
+              name: '测试项目',
+              color: 0xFF3482FF,
+              sortOrder: 0,
+              createdAt: 0,
+              updatedAt: 0,
+            ),
+          );
+      final parent = await repo.createTask(projectId: 'p1', title: '父任务');
+      final child = await repo.createTask(
+        projectId: 'p1',
+        parentId: parent.id,
+        title: '子任务',
+      );
+      // 一级任务：带开始/截止时间。
+      final top = await repo.createTask(
+        projectId: 'p1',
+        title: '一级任务',
+        startAt: 1000,
+        endAt: 2000,
+      );
+      // 一级任务：无时间。
+      final plain = await repo.createTask(projectId: 'p1', title: '无时间任务');
+
+      final container = ProviderContainer(
+        overrides: [todoRepositoryProvider.overrideWithValue(repo)],
+      );
+      addTearDown(container.dispose);
+      final notifier = container.read(taskFormProvider.notifier);
+
+      // 先加载二级任务：表单持有父任务。
+      await notifier.loadTask(child.id);
+      expect(notifier.state.parentId, parent.id);
+
+      // 再加载一级任务：parentId 必须被清空。
+      // 修复前 loadTask 用 copyWith(parentId: null)，null 被「保留原值」→ 残留父任务。
+      await notifier.loadTask(top.id);
+      expect(notifier.state.parentId, isNull);
+      expect(notifier.state.startAt, 1000);
+      expect(notifier.state.endAt, 2000);
+
+      // 再加载无时间的一级任务：startAt/endAt 必须被清空（同属 copyWith null 泄漏）。
+      await notifier.loadTask(plain.id);
+      expect(notifier.state.parentId, isNull);
+      expect(notifier.state.startAt, isNull);
+      expect(notifier.state.endAt, isNull);
+
+      // 日期清除路径（updateStartAt/updateEndAt(null)）同样应生效。
+      notifier.updateStartAt(5000);
+      expect(notifier.state.startAt, 5000);
+      notifier.updateStartAt(null);
+      expect(notifier.state.startAt, isNull);
+    });
+  });
 }
