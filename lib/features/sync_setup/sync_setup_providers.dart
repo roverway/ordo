@@ -14,6 +14,9 @@
 // 分层约束（30-architecture §1）：本文件只依赖 core/sync 与 Repository 抽象，
 // 不反向依赖 UI。
 
+import 'dart:io';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/security/secure_store.dart';
@@ -86,10 +89,29 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
 final syncTriggersProvider = Provider<SyncTriggers>((ref) {
   return SyncTriggers(
     engine: ref.watch(syncEngineProvider),
-    // 桌面恒 true（本项目桌面优先）；移动端 connectivity 检测后续接入（§10.3）。
-    isWifiAllowed: () async => true,
+    // 桌面恒 true（§10.2 桌面恒真）；Android 经 connectivity_plus 真实检测
+    // （M5 接入，2026-08；20-tech-stack.md §4）。
+    isWifiAllowed: _isWifiAllowed,
   );
 });
+
+/// WiFi 可用性判定（供 syncTriggersProvider 注入，docs/60-sync-design.md §10.3）。
+///
+/// - 桌面（Windows/Linux/macOS）恒 true：connectivity_plus 桌面端通常返回
+///   `other`/`vpn`，不具 Wi-Fi 语义（§10.2 桌面恒真，沿用现状语义）；
+/// - 移动端经 connectivity_plus 真实检测：当前连接结果含
+///   [ConnectivityResult.wifi] 才允许自动同步。
+///
+/// 每次调用 `Connectivity().checkConnectivity()`，不缓存（简单可靠，网络状态
+/// 实时）。插件在测试环境不可用，测试侧只验证 SyncTriggers 注入链路
+/// （sync_triggers_test.dart 用 fake 回调），真实检测留手工验证。
+Future<bool> _isWifiAllowed() async {
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    return true;
+  }
+  final results = await Connectivity().checkConnectivity();
+  return results.contains(ConnectivityResult.wifi);
+}
 
 /// 当前同步配置（settings 非敏感项 + SecureStore 凭据），供表单预填。
 ///

@@ -21,6 +21,7 @@
 | `webdav_client` | WebDAV 同步 | pub.dev 高信誉；PUT/GET/HEAD、认证、目录操作 |
 | `minio` | S3 同步 | **3.5.8**（2026-08 选定）：支持自定义 endpoint（AWS/R2/MinIO/Wasabi）、SigV4 库内建、pathStyle 默认 true。替代已调研失败的 `s3_dart`（其 getRequestUrl 会把自定义 endpoint 重写为 `s3.<region>.<endpoint>` 导致 NXDOMAIN，R2/MinIO 不可用） |
 | `flutter_secure_storage` | 凭据存储 | Android Keystore / Windows DPAPI；**禁止**明文存 shared_preferences |
+| `connectivity_plus` | 网络状态检测 | wifiOnly 自动同步判定（移动端真实检测；M5 接入，2026-08 锁定 7.3.1） |
 | `uuid` | UUID v4 生成 | 所有记录主键 |
 | `path_provider` | 应用目录 | 数据库文件位置 |
 | `shared_preferences` | 非敏感设置 | 主题/语言/同步开关等非敏感偏好（凭据除外） |

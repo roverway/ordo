@@ -163,6 +163,7 @@
   "syncAutoOnStart": "启动时自动同步",
   "syncAutoOnEdit": "编辑后自动同步",
   "syncWifiOnly": "仅 WiFi 时自动同步",
+  "syncWifiOnlyHint": "仅 WiFi 时自动同步，蜂窝网络下自动同步将被跳过",
   "syncTestConnection": "测试连接",
   "syncNow": "立即同步",
   "syncSave": "保存",

@@ -1076,6 +1076,12 @@ abstract class AppLocalizations {
   /// **'仅 WiFi 时自动同步'**
   String get syncWifiOnly;
 
+  /// No description provided for @syncWifiOnlyHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'仅 WiFi 时自动同步，蜂窝网络下自动同步将被跳过'**
+  String get syncWifiOnlyHint;
+
   /// No description provided for @syncTestConnection.
   ///
   /// In zh, this message translates to:

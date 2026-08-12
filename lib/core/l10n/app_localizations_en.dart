@@ -520,6 +520,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncWifiOnly => 'Auto-sync on WiFi only';
 
   @override
+  String get syncWifiOnlyHint => 'Auto-sync only on Wi-Fi; skipped on cellular';
+
+  @override
   String get syncTestConnection => 'Test connection';
 
   @override

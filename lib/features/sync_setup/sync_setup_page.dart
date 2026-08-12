@@ -401,6 +401,7 @@ class _SyncSetupPageState extends ConsumerState<SyncSetupPage> {
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(l10n.syncWifiOnly),
+              subtitle: Text(l10n.syncWifiOnlyHint),
               value: _wifiOnly,
               onChanged: (value) => setState(() => _wifiOnly = value),
             ),

@@ -208,6 +208,44 @@ void main() {
     });
   });
 
+  test('wifiOnly 且当前非 WiFi → 启动/回前台自动同步被跳过（_allowAuto 链路）', () {
+    fakeAsync((async) {
+      final engine = _StubEngine(
+        repository: repo,
+        results: [const SyncResult(ok: true)],
+        config: const SyncConfig(
+          enabled: true,
+          autoOnStart: true,
+          wifiOnly: true,
+        ),
+      );
+      final triggers = buildTriggers(engine, wifiAllowed: false);
+
+      triggers.runOnStart();
+      async.flushMicrotasks();
+      expect(engine.runCount, 0, reason: '非 WiFi 时启动自动同步被 wifiOnly 拦截');
+
+      triggers.runOnResume();
+      async.flushMicrotasks();
+      expect(engine.runCount, 0, reason: '非 WiFi 时回前台自动同步被 wifiOnly 拦截');
+    });
+  });
+
+  test('wifiOnly 且当前为 WiFi → 回前台自动同步正常执行', () {
+    fakeAsync((async) {
+      final engine = _StubEngine(
+        repository: repo,
+        results: [const SyncResult(ok: true)],
+        config: const SyncConfig(enabled: true, wifiOnly: true),
+      );
+      final triggers = buildTriggers(engine, wifiAllowed: true);
+
+      triggers.runOnResume();
+      async.flushMicrotasks();
+      expect(engine.runCount, 1, reason: 'WiFi 时自动同步应正常执行');
+    });
+  });
+
   test('同一退避链最多 5 次重试（1+2+4+8+16s）后停止；新触发才重新起链', () {
     fakeAsync((async) {
       final engine = _StubEngine(

@@ -146,7 +146,7 @@ abstract class RemoteStore {
 | 手动 | 设置页「立即同步」按钮 |
 | 启动自动 | App 启动后（可关） |
 | 编辑自动 | 任何写操作后防抖 2s（可关） |
-| WiFi-only | 仅 WiFi 时自动同步（移动端；桌面恒真） |
+| WiFi-only | 仅 WiFi 时自动同步（Android 经 connectivity_plus 真实检测，M5 接入，2026-08；桌面恒真） |
 
 ### 10.3 上传优化（FR-SYNC-07）
 

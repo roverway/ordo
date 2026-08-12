@@ -514,6 +514,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncWifiOnly => '仅 WiFi 时自动同步';
 
   @override
+  String get syncWifiOnlyHint => '仅 WiFi 时自动同步，蜂窝网络下自动同步将被跳过';
+
+  @override
   String get syncTestConnection => '测试连接';
 
   @override

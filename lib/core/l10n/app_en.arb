@@ -163,6 +163,7 @@
   "syncAutoOnStart": "Sync on app start",
   "syncAutoOnEdit": "Sync after edits",
   "syncWifiOnly": "Auto-sync on WiFi only",
+  "syncWifiOnlyHint": "Auto-sync only on Wi-Fi; skipped on cellular",
   "syncTestConnection": "Test connection",
   "syncNow": "Sync now",
   "syncSave": "Save",

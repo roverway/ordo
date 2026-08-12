@@ -204,8 +204,10 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                               ),
                               child: Row(
                                 children: [
-                                  // 标签 chips（≤2）。Flexible + maxLines 兜底：
-                                  // 系统字体缩放（NFR-06）下标签组可收缩而非溢出。
+                                  // 标签 chips（≤2）。每个 chip 用 Flexible 包住，使其
+                                  // 成为内层 Row 的可收缩子项：NFR-06 字体缩放下按
+                                  // 份额收缩，Text 的 maxLines + ellipsis 真正生效
+                                  // （而非整行溢出后被裁剪）。
                                   if (widget.tags.isNotEmpty)
                                     Flexible(
                                       child: Row(
@@ -214,45 +216,49 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                           ...widget.tags
                                               .take(2)
                                               .map(
-                                                (tag) => Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                        right:
-                                                            AppTokens.spaceXxs,
-                                                      ),
-                                                  child: Container(
+                                                (tag) => Flexible(
+                                                  child: Padding(
                                                     padding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal:
-                                                              AppTokens.spaceXs,
-                                                          vertical: 2,
+                                                        const EdgeInsets.only(
+                                                          right: AppTokens
+                                                              .spaceXxs,
                                                         ),
-                                                    decoration: BoxDecoration(
-                                                      color: Color(
-                                                        tag.color,
-                                                      ).withValues(alpha: 0.12),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            AppTokens
-                                                                .radiusChip,
+                                                    child: Container(
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal:
+                                                                AppTokens
+                                                                    .spaceXs,
+                                                            vertical: 2,
                                                           ),
-                                                    ),
-                                                    child: Text(
-                                                      tag.name,
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      style: theme
-                                                          .textTheme
-                                                          .bodySmall
-                                                          ?.copyWith(
-                                                            color: Color(
-                                                              tag.color,
+                                                      decoration: BoxDecoration(
+                                                        color: Color(tag.color)
+                                                            .withValues(
+                                                              alpha: 0.12,
                                                             ),
-                                                            fontSize: 10,
-                                                            fontWeight:
-                                                                FontWeight.w500,
-                                                          ),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              AppTokens
+                                                                  .radiusChip,
+                                                            ),
+                                                      ),
+                                                      child: Text(
+                                                        tag.name,
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                        style: theme
+                                                            .textTheme
+                                                            .bodySmall
+                                                            ?.copyWith(
+                                                              color: Color(
+                                                                tag.color,
+                                                              ),
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
+                                                            ),
+                                                      ),
                                                     ),
                                                   ),
                                                 ),
@@ -264,7 +270,6 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                                   ?.copyWith(
                                                     color: colorScheme
                                                         .onSurfaceVariant,
-                                                    fontSize: 10,
                                                   ),
                                             ),
                                         ],
