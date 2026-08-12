@@ -76,7 +76,7 @@
   - 细分隔线 + 底部「新建项目」（图标 + 文字，复用项目表单对话框）。
   - 宽度 = 屏宽 × `drawerWidthRatio`（0.78，75–80%）；右侧半透明遮罩点击关闭。
   - AppBar：左侧汉堡（`Icons.menu`）打开抽屉，右侧搜索/设置。
-  - 底部 `NavigationBar` 精简为 **3 个系统入口：今日 / 日历 / 标签**。
+  - 底部 **`CompactBottomBar`（自绘紧凑底栏，`57-task-page-polish.md` §4.1 D5）**：**2 个系统入口：今日 / 日历**（标签移入抽屉），高 `bottomBarHeight`（56dp，明显矮于标准 NavigationBar 80dp）；图标（`bottomBarIconSize` 22）+ 极小标签（`bottomBarLabelSize` 10）；选中 = 主色 + filled 图标，**非底栏路径视觉无选中**（`selectedIndex = -1`）；列表渲染可扩展（新增功能按钮向 `_barPaths`/`barDestinations` 各加一项）。
 - **宽屏（≥600dp）**：`NavigationRail`（宽度 96，5 目的地：收集箱/今日/日历/项目/标签）+ 两栏 master-detail；选中态药丸高亮（`indicatorColor` 由 colorScheme 派生）。
 - 搜索、设置：AppBar 图标，所有视图可用。
 - **通用任务页（`TaskListPage`，56-task-scope-page.md §3）**：今日 / 收件箱 / 项目三个任务类入口统一渲染为同一页面组件，由 `TaskScope`（Today | Inbox | Project(projectId)）驱动：

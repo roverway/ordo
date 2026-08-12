@@ -7,6 +7,15 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/dates.dart';
 import '../../../shared/widgets/task_progress_ring.dart';
 
+/// 任务行渲染形态（57-task-page-polish.md §4.2，D1/D7）。
+///
+/// - [TaskRowStyle.card]：独立白卡片行（默认，任务树平铺时用）；
+/// - [TaskRowStyle.cardHeader]：一级任务大卡片的头部——无自身卡片底/阴影
+///   （由外层大卡片提供），拖拽目标高亮态保留；
+/// - [TaskRowStyle.compact]：卡片内紧凑子任务行——无卡片底，Divider 分隔，
+///   紧凑间距 + 缩小缩进（借鉴 TaskCreateSheet 行距节奏）。
+enum TaskRowStyle { card, cardHeader, compact }
+
 /// Task row — the core list item in project detail and task trees.
 ///
 /// TickTick-inspired: clean circular checkbox, soft colors, subtle metadata row.
@@ -24,6 +33,7 @@ class TaskRow extends StatefulWidget {
     required this.onToggleDone,
     required this.onTap,
     required this.onMenuAction,
+    this.style = TaskRowStyle.card,
     this.tags = const [],
     this.derivedStatus,
     this.progressValue,
@@ -41,6 +51,7 @@ class TaskRow extends StatefulWidget {
   final ValueChanged<bool?> onToggleDone;
   final VoidCallback onTap;
   final void Function(String action) onMenuAction;
+  final TaskRowStyle style;
   final List<Tag> tags;
   final TaskStatus? derivedStatus;
   final double? progressValue;
@@ -60,6 +71,9 @@ class _TaskRowState extends State<TaskRow> {
 
   bool get _raised => _hovered;
 
+  /// 是否独立卡片行（仅 card 形态自带卡片底/阴影/悬停抬升）。
+  bool get _isCardStyle => widget.style == TaskRowStyle.card;
+
   Color _statusColor(TaskStatus status, ColorScheme colorScheme) =>
       switch (status) {
         TaskStatus.done => AppTokens.colorDone,
@@ -68,7 +82,8 @@ class _TaskRowState extends State<TaskRow> {
         TaskStatus.todo => colorScheme.outline,
       };
 
-  /// 卡片背景：默认白卡，拖拽目标/拖拽中状态以叠加色替代。
+  /// 行背景：独立卡片行默认白卡；卡片头/紧凑行无卡片底（透明），
+  /// 仅拖拽目标/拖拽中/悬停态以叠加色替代。
   Color _cardColor(ColorScheme colorScheme, bool isDark) {
     if (widget.isInvalidDragTarget) {
       return colorScheme.errorContainer.withValues(alpha: 0.4);
@@ -79,7 +94,41 @@ class _TaskRowState extends State<TaskRow> {
     if (widget.isDragging) {
       return colorScheme.surfaceContainerHighest.withValues(alpha: 0.5);
     }
+    if (!_isCardStyle && _hovered) {
+      // 无卡片底的行：悬停给轻微底色反馈（替代抬升阴影）。
+      return colorScheme.surfaceContainerHighest.withValues(alpha: 0.4);
+    }
     return isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard;
+  }
+
+  /// 行内边距：紧凑行用 [AppTokens.treeIndentCompact] 缩进，头部行对齐卡片
+  /// 内容区（[AppTokens.spaceMd]），无魔法值。
+  EdgeInsets _contentPadding() {
+    final indent =
+        widget.depth *
+        (widget.style == TaskRowStyle.compact
+            ? AppTokens.treeIndentCompact
+            : AppTokens.treeIndent);
+    return switch (widget.style) {
+      TaskRowStyle.card => EdgeInsets.only(
+        left: AppTokens.spaceSm + indent,
+        right: AppTokens.spaceXxs,
+        top: AppTokens.spaceXs,
+        bottom: AppTokens.spaceXs,
+      ),
+      TaskRowStyle.cardHeader => EdgeInsets.only(
+        left: AppTokens.spaceMd,
+        right: AppTokens.spaceXxs,
+        top: AppTokens.spaceSm,
+        bottom: AppTokens.spaceXs,
+      ),
+      TaskRowStyle.compact => EdgeInsets.only(
+        left: AppTokens.spaceMd + indent,
+        right: AppTokens.spaceXxs,
+        top: AppTokens.spaceXxs,
+        bottom: AppTokens.spaceXxs,
+      ),
+    };
   }
 
   @override
@@ -91,17 +140,22 @@ class _TaskRowState extends State<TaskRow> {
     final effectiveStatus = widget.derivedStatus ?? widget.task.status;
     final hasDerived = widget.derivedStatus != null;
     final isDone = effectiveStatus == TaskStatus.done;
-    final indent = widget.depth * AppTokens.treeIndent;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: AnimatedContainer(
         duration: AppTokens.motionFast,
-        margin: const EdgeInsets.symmetric(vertical: AppTokens.spaceXxs),
+        margin: _isCardStyle
+            ? const EdgeInsets.symmetric(vertical: AppTokens.spaceXxs)
+            : EdgeInsets.zero,
         decoration: BoxDecoration(
           color: _cardColor(colorScheme, isDark),
-          borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+          borderRadius: BorderRadius.circular(
+            widget.style == TaskRowStyle.compact
+                ? AppTokens.radiusList
+                : AppTokens.radiusCard,
+          ),
           border: widget.isDragTarget
               ? Border.all(
                   color: widget.isInvalidDragTarget
@@ -110,37 +164,40 @@ class _TaskRowState extends State<TaskRow> {
                   width: 2,
                 )
               : null,
-          boxShadow: [
-            BoxShadow(
-              color: _raised
-                  ? (isDark
-                        ? AppTokens.shadowCardDarkElevated
-                        : AppTokens.shadowCardElevated)
-                  : (isDark ? AppTokens.shadowCardDark : AppTokens.shadowCard),
-              blurRadius: _raised
-                  ? AppTokens.shadowBlurElevated
-                  : AppTokens.shadowBlurRest,
-              offset: Offset(
-                0,
-                _raised
-                    ? AppTokens.shadowOffsetYElevated
-                    : AppTokens.shadowOffsetY,
-              ),
-            ),
-          ],
+          boxShadow: _isCardStyle
+              ? [
+                  BoxShadow(
+                    color: _raised
+                        ? (isDark
+                              ? AppTokens.shadowCardDarkElevated
+                              : AppTokens.shadowCardElevated)
+                        : (isDark
+                              ? AppTokens.shadowCardDark
+                              : AppTokens.shadowCard),
+                    blurRadius: _raised
+                        ? AppTokens.shadowBlurElevated
+                        : AppTokens.shadowBlurRest,
+                    offset: Offset(
+                      0,
+                      _raised
+                          ? AppTokens.shadowOffsetYElevated
+                          : AppTokens.shadowOffsetY,
+                    ),
+                  ),
+                ]
+              : null,
         ),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+            borderRadius: BorderRadius.circular(
+              widget.style == TaskRowStyle.compact
+                  ? AppTokens.radiusList
+                  : AppTokens.radiusCard,
+            ),
             onTap: widget.onTap,
             child: Padding(
-              padding: EdgeInsets.only(
-                left: AppTokens.spaceSm + indent,
-                right: AppTokens.spaceXxs,
-                top: AppTokens.spaceXs,
-                bottom: AppTokens.spaceXs,
-              ),
+              padding: _contentPadding(),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [

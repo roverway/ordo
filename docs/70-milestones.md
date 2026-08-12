@@ -147,7 +147,9 @@
 - **批 1 视觉层（已完成 2026-08）**：设计令牌（surfacePage/surfaceCard/圆形复选框/阴影/railWidth）、主题接入（Scaffold 基底、Card/Checkbox/NavigationRail）、SimpleTaskTile 与任务树行卡片化、今日/日历页面基底适配、inbox 行卡片化。`flutter analyze` 0 error；`flutter test` 227 全绿。
 - **批 2-A 移动端侧边栏抽屉（已完成 2026-08）**：`10-requirements.md` FR-NAV-01 + `50-ui-ux.md` §4 已同步；AppShell 抽屉（系统组 + 项目组 + 新建项目）、窄屏底部 NavigationBar 精简为 3 入口、宽屏 Rail 5 目的地不变、AppBar 汉堡入口；`widget_test.dart` 同步新 IA（3 tab + 抽屉导航断言）。`flutter analyze` 0 error；`flutter test` 230 全绿。
 - **统一任务页 TaskListPage（已完成 2026-08，`docs/56-task-scope-page.md`）**：今日/收件箱/项目三作用域统一渲染（AppShell 壳内，修复项目页无汉堡/底栏）；`initialLocation` 改 `/today`；项目编辑/删除入 AppBar、删除后跳 `/today`；FAB 统一走滴答式弹窗；`ProjectDetailPage`/`TodayPage`/`InboxPage` 废弃（逻辑并入）；`InboxTaskTile` 提升为共享组件；文档 FR-NAV/FR-VIEW/50-ui-ux §4/§5 同步。`flutter analyze` 0 error；`flutter test` 257 全绿。
+- **精简窄屏底栏（已完成 2026-08，`docs/57-task-page-polish.md` 批 1）**：底栏 3 → 2 项（今日/日历，标签移入抽屉）；自绘 `CompactBottomBar`（高 56dp，明显矮于标准 NavigationBar 80dp；`selectedIndex = -1` 天然无选中；列表渲染可扩展）；令牌 `bottomBarHeight`/`bottomBarIconSize`/`bottomBarLabelSize`；FR-NAV-01 + 50-ui-ux §4 同步；`widget_test` 更新（2-tab 切换、紧凑高度断言）。`flutter analyze` 0 error；`flutter test` 257 全绿。
 - **批 2 交互层（待做）**：FAB + 新建底部弹窗（自动保存 + 清单切换 + 日期/优先级/标签）；进度环（有子任务任务）；同步状态图标（依赖 M4）。
+- **项目任务卡片化（待做，`docs/57-task-page-polish.md` 批 2）**：一级任务卡片 + 内部子任务紧凑行（拖拽/菜单/校验保留）。
 
 **DoD**：
 - [ ] NFR-01~09 全部满足（`10-requirements.md` §11）

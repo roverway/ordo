@@ -14,10 +14,19 @@ import '../../projects/project_providers.dart';
 import '../task_providers.dart';
 import 'task_row.dart';
 
-/// 任务树组件（50-ui-ux.md §5.3）。
+/// 任务树组件（50-ui-ux.md §5.3；57-task-page-polish.md §4.2 批 2 卡片化）。
 ///
-/// 缩进 + 展开/折叠；每行：勾选、标题、标签、时间、状态徽标。
-/// 支持长按拖拽排序/调级 + 键盘兜底。
+/// 项目作用域结构（D1）：
+/// - **一级任务 = 大卡片**（白卡 `surfaceCard` + `radiusCard` + 轻阴影，默认展开 D3）；
+///   卡片头部 = [TaskRow]（`cardHeader` 形态）：勾选、标题、标签 chips、时间、
+///   进度环、展开/折叠箭头、行菜单。
+/// - 展开区（卡片内缩进区，Divider 分隔紧凑行 D7）：二级任务 = [TaskRow]（`compact`
+///   形态，借鉴 TaskCreateSheet 行距节奏）；二级有子任务时再缩进展开至 3 级。
+///
+/// 拖拽（D2 完整保留）：一级卡片头长按拖拽同级排序；卡片内子任务行长按拖拽
+/// 排序/调级/回 1 级。`_rowKeys` 覆盖两类行（卡片头 + 内部子行），上下半命中判定
+/// （`_dropAsChild`）、`_fitsDepthLimit` 深度校验、防环、非法目标红色高亮、回弹
+/// 提示全部沿用；`onAccept` 仍调 `repo.moveTask`。
 class TaskTree extends ConsumerStatefulWidget {
   const TaskTree({super.key, required this.projectId});
 
@@ -36,6 +45,7 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
   bool _dropAsChild = false;
 
   /// 每行 GlobalKey，用于在 onMove 时换算悬停位置（上半/下半）。
+  /// 覆盖两类行：一级卡片头与卡片内紧凑子行（每个任务 id 唯一）。
   final Map<String, GlobalKey> _rowKeys = {};
 
   GlobalKey _rowKey(String id) => _rowKeys.putIfAbsent(id, () => GlobalKey());
@@ -63,6 +73,9 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
           tasks: tasks,
           expandState: expandState,
         );
+        // 一级任务 = 列表项（卡片）；内部子任务行递归渲染在卡片内。
+        final roots = treeNodes.where((n) => n.depth == 0).toList();
+        final childrenOf = _indexDirectChildren(treeNodes);
         final repo = ref.read(todoRepositoryProvider);
 
         return ListView.builder(
@@ -70,212 +83,365 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
             horizontal: AppTokens.spaceMd,
             vertical: AppTokens.spaceSm,
           ),
-          itemCount: treeNodes.length + (_draggingTaskId != null ? 1 : 0),
+          itemCount: roots.length + (_draggingTaskId != null ? 1 : 0),
           itemBuilder: (context, index) {
             // 拖拽进行时在列表末尾追加"回到 1 级"落点（FR-TSK-07）。
-            if (index >= treeNodes.length) {
+            if (index >= roots.length) {
               return _buildRootDropZone(context, tasks, repo, l10n);
             }
-            final node = treeNodes[index];
-            return LongPressDraggable<String>(
-              data: node.task.id,
-              dragAnchorStrategy: pointerDragAnchorStrategy,
-              onDragStarted: () {
-                setState(() => _draggingTaskId = node.task.id);
-              },
-              onDragEnd: (_) {
-                setState(_clearDragState);
-              },
-              feedback: Material(
-                color: Colors.transparent,
-                child: Opacity(
-                  opacity: 0.8,
-                  child: Container(
-                    width: MediaQuery.of(context).size.width * 0.85,
-                    padding: const EdgeInsets.all(AppTokens.spaceSm),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(AppTokens.radiusList),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.15),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      node.task.title,
-                      style: Theme.of(context).textTheme.bodyLarge,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-              ),
-              childWhenDragging: Opacity(
-                opacity: 0.3,
-                child: _buildTaskRow(context, node, tasks, repo, expandState),
-              ),
-              child: KeyedSubtree(
-                key: _rowKey(node.task.id),
-                child: DragTarget<String>(
-                  onWillAcceptWithDetails: (details) {
-                    final draggedId = details.data;
-                    final targetId = node.task.id;
-
-                    // 自身不能拖到自身。
-                    if (draggedId == targetId) {
-                      setState(() {
-                        _dragTargetId = targetId;
-                        _isInvalidDragTarget = true;
-                      });
-                      return false;
-                    }
-
-                    final byId = indexTasksById(tasks);
-                    final draggedTask = byId[draggedId];
-                    final targetTask = byId[targetId];
-                    if (draggedTask != null && targetTask != null) {
-                      // 检查是否是后代（防环，§5.2）。
-                      if (isDescendantOf(targetTask, draggedTask, byId)) {
-                        setState(() {
-                          _dragTargetId = targetId;
-                          _isInvalidDragTarget = true;
-                        });
-                        return false;
-                      }
-
-                      // 深度校验（§5.1）：统一用
-                      // depthOf(newParent) + subtreeDepthOf(node) <= 3。
-                      // 当前悬停位置决定成为子级（父=目标）还是同级（父=目标父级）。
-                      if (!_fitsDepthLimit(
-                        draggedTask,
-                        targetTask,
-                        byId,
-                        tasks,
-                        _dropAsChild,
-                      )) {
-                        setState(() {
-                          _dragTargetId = targetId;
-                          _isInvalidDragTarget = true;
-                        });
-                        return false;
-                      }
-                    }
-
-                    setState(() {
-                      _dragTargetId = targetId;
-                      _isInvalidDragTarget = false;
-                    });
-                    return true;
-                  },
-                  onMove: (details) {
-                    // 根据悬停纵向位置切换语义：
-                    // 上半 = 同级排序（插到目标前），下半 = 成为子级。
-                    // 注：dragAnchorStrategy 用 pointerDragAnchorStrategy，
-                    // 使 details.offset 即指针全局坐标（默认的 child 策略返回的是
-                    // 反馈物锚点，不能直接用于定位）。
-                    final box = _rowKey(
-                      node.task.id,
-                    ).currentContext?.findRenderObject();
-                    if (box is! RenderBox) return;
-                    final local = box.globalToLocal(details.offset);
-                    final isLowerHalf = local.dy > box.size.height / 2;
-                    if (isLowerHalf == _dropAsChild) return;
-
-                    final byId = indexTasksById(tasks);
-                    final draggedTask = byId[_draggingTaskId];
-                    final targetTask = byId[node.task.id];
-                    if (draggedTask == null || targetTask == null) return;
-                    final fits = _fitsDepthLimit(
-                      draggedTask,
-                      targetTask,
-                      byId,
-                      tasks,
-                      isLowerHalf,
-                    );
-                    setState(() {
-                      _dropAsChild = isLowerHalf;
-                      _dragTargetId = node.task.id;
-                      _isInvalidDragTarget = !fits;
-                    });
-                  },
-                  onAcceptWithDetails: (details) async {
-                    final draggedId = details.data;
-                    final targetId = node.task.id;
-
-                    // onMove 可能已将目标标记为非法（超深/防环），此时拒绝落点。
-                    if (_isInvalidDragTarget && _dragTargetId == targetId) {
-                      if (mounted) setState(_clearDragState);
-                      return;
-                    }
-
-                    final byId = indexTasksById(tasks);
-                    final draggedTask = byId[draggedId];
-                    final targetTask = byId[targetId];
-
-                    if (draggedTask == null || targetTask == null) return;
-
-                    final String? newParentId;
-                    final int newIndex;
-                    if (_dropAsChild) {
-                      // 成为目标的子级：追加到目标现有子任务末尾。
-                      newParentId = targetId;
-                      final childrenIndex = indexChildrenByParent(tasks);
-                      newIndex =
-                          (childrenIndex[targetId] ?? const <Task>[]).length;
-                    } else {
-                      // 同级排序：目标的父级作为新父级，插到目标之前。
-                      newParentId = targetTask.parentId;
-                      newIndex = targetTask.sortOrder;
-                    }
-
-                    try {
-                      await repo.moveTask(
-                        draggedId,
-                        newParentId: newParentId,
-                        newIndex: newIndex,
-                      );
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(_friendlyError(l10n, e))),
-                        );
-                      }
-                    }
-                    if (mounted) setState(_clearDragState);
-                  },
-                  onLeave: (_) {
-                    setState(() {
-                      _dragTargetId = null;
-                      _isInvalidDragTarget = false;
-                      _dropAsChild = false;
-                    });
-                  },
-                  builder: (context, candidateData, rejectedData) {
-                    return _buildTaskRow(
-                      context,
-                      node,
-                      tasks,
-                      repo,
-                      expandState,
-                      isDragTarget: _dragTargetId == node.task.id,
-                      isInvalidDragTarget:
-                          _isInvalidDragTarget && _dragTargetId == node.task.id,
-                      isDragging: _draggingTaskId == node.task.id,
-                      dropAsChild:
-                          _dropAsChild && _dragTargetId == node.task.id,
-                    );
-                  },
-                ),
-              ),
+            final root = roots[index];
+            return _buildCard(
+              context,
+              root,
+              childrenOf,
+              tasks,
+              repo,
+              expandState,
             );
           },
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text(e.toString())),
+    );
+  }
+
+  /// 将扁平先序 [treeNodes] 分组成「父任务 id → 直接子节点列表」。
+  ///
+  /// treeNodes 为先序排列（父节点紧邻其整棵子树之前），因此每个节点向前
+  /// 扫描到的第一个「深度小 1」的节点即为其父节点。
+  Map<String, List<TreeNode>> _indexDirectChildren(List<TreeNode> treeNodes) {
+    final result = <String, List<TreeNode>>{};
+    for (var i = 0; i < treeNodes.length; i++) {
+      final node = treeNodes[i];
+      if (node.depth == 0) continue;
+      for (var j = i - 1; j >= 0; j--) {
+        if (treeNodes[j].depth == node.depth - 1) {
+          result.putIfAbsent(treeNodes[j].task.id, () => []).add(node);
+          break;
+        }
+      }
+    }
+    return result;
+  }
+
+  /// 一级任务大卡片（D1）：卡片头 + 展开区（Divider 分隔的紧凑子任务行）。
+  ///
+  /// 卡片容器提供白卡底/圆角/轻阴影；卡片头与内部子行均为独立拖拽源
+  /// （各包自己的 DragTarget，几何不重叠 → 命中互不干扰）。
+  Widget _buildCard(
+    BuildContext context,
+    TreeNode rootNode,
+    Map<String, List<TreeNode>> childrenOf,
+    List<Task> tasks,
+    TodoRepository repo,
+    Map<String, bool> expandState,
+  ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final children = childrenOf[rootNode.task.id] ?? const <TreeNode>[];
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppTokens.spaceSm),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
+          borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? AppTokens.shadowCardDark : AppTokens.shadowCard,
+              blurRadius: AppTokens.shadowBlurRest,
+              offset: const Offset(0, AppTokens.shadowOffsetY),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildDraggableRow(
+                context,
+                rootNode,
+                tasks,
+                repo,
+                expandState,
+                style: TaskRowStyle.cardHeader,
+              ),
+              if (rootNode.isExpanded && children.isNotEmpty) ...[
+                const Divider(height: 1),
+                _buildChildrenSection(
+                  context,
+                  children,
+                  childrenOf,
+                  tasks,
+                  repo,
+                  expandState,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 卡片展开区：紧凑子任务行（Divider 分隔，D7），
+  /// 有子任务的子行递归缩进展开（至 3 级）。
+  Widget _buildChildrenSection(
+    BuildContext context,
+    List<TreeNode> children,
+    Map<String, List<TreeNode>> childrenOf,
+    List<Task> tasks,
+    TodoRepository repo,
+    Map<String, bool> expandState,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < children.length; i++) ...[
+          if (i > 0) const Divider(height: 1),
+          _buildDraggableRow(
+            context,
+            children[i],
+            tasks,
+            repo,
+            expandState,
+            style: TaskRowStyle.compact,
+          ),
+          if (children[i].isExpanded &&
+              (childrenOf[children[i].task.id]?.isNotEmpty ?? false)) ...[
+            const Divider(height: 1),
+            _buildChildrenSection(
+              context,
+              childrenOf[children[i].task.id]!,
+              childrenOf,
+              tasks,
+              repo,
+              expandState,
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+
+  /// 单个任务行的拖拽包装（D2 完整保留）：LongPressDraggable + DragTarget。
+  ///
+  /// 适用于两类行（一级卡片头 / 卡片内紧凑子行）：
+  /// - `_rowKeys` 按任务 id 登记（两类行共用），onMove 用其 RenderBox 换算
+  ///   悬停位置（上半=同级排序，下半=成为子级 `_dropAsChild`）；
+  /// - 深度校验 / 防环 / 非法目标高亮 / 回弹提示全部沿用，
+  ///   `onAccept` 调 `repo.moveTask`。
+  Widget _buildDraggableRow(
+    BuildContext context,
+    TreeNode node,
+    List<Task> tasks,
+    TodoRepository repo,
+    Map<String, bool> expandState, {
+    required TaskRowStyle style,
+  }) {
+    return LongPressDraggable<String>(
+      data: node.task.id,
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      onDragStarted: () {
+        setState(() => _draggingTaskId = node.task.id);
+      },
+      onDragEnd: (_) {
+        setState(_clearDragState);
+      },
+      feedback: Material(
+        color: Colors.transparent,
+        child: Opacity(
+          opacity: 0.8,
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.85,
+            padding: const EdgeInsets.all(AppTokens.spaceSm),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(AppTokens.radiusList),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Text(
+              node.task.title,
+              style: Theme.of(context).textTheme.bodyLarge,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+      ),
+      childWhenDragging: Opacity(
+        opacity: 0.3,
+        child: _buildTaskRow(
+          context,
+          node,
+          tasks,
+          repo,
+          expandState,
+          style: style,
+          isDragging: true,
+        ),
+      ),
+      child: KeyedSubtree(
+        key: _rowKey(node.task.id),
+        child: DragTarget<String>(
+          onWillAcceptWithDetails: (details) {
+            final draggedId = details.data;
+            final targetId = node.task.id;
+
+            // 自身不能拖到自身。
+            if (draggedId == targetId) {
+              setState(() {
+                _dragTargetId = targetId;
+                _isInvalidDragTarget = true;
+              });
+              return false;
+            }
+
+            final byId = indexTasksById(tasks);
+            final draggedTask = byId[draggedId];
+            final targetTask = byId[targetId];
+            if (draggedTask != null && targetTask != null) {
+              // 检查是否是后代（防环，§5.2）。
+              if (isDescendantOf(targetTask, draggedTask, byId)) {
+                setState(() {
+                  _dragTargetId = targetId;
+                  _isInvalidDragTarget = true;
+                });
+                return false;
+              }
+
+              // 深度校验（§5.1）：统一用
+              // depthOf(newParent) + subtreeDepthOf(node) <= 3。
+              // 当前悬停位置决定成为子级（父=目标）还是同级（父=目标父级）。
+              if (!_fitsDepthLimit(
+                draggedTask,
+                targetTask,
+                byId,
+                tasks,
+                _dropAsChild,
+              )) {
+                setState(() {
+                  _dragTargetId = targetId;
+                  _isInvalidDragTarget = true;
+                });
+                return false;
+              }
+            }
+
+            setState(() {
+              _dragTargetId = targetId;
+              _isInvalidDragTarget = false;
+            });
+            return true;
+          },
+          onMove: (details) {
+            // 根据悬停纵向位置切换语义：
+            // 上半 = 同级排序（插到目标前），下半 = 成为子级。
+            // 注：dragAnchorStrategy 用 pointerDragAnchorStrategy，
+            // 使 details.offset 即指针全局坐标（默认的 child 策略返回的是
+            // 反馈物锚点，不能直接用于定位）。
+            final box = _rowKey(
+              node.task.id,
+            ).currentContext?.findRenderObject();
+            if (box is! RenderBox) return;
+            final local = box.globalToLocal(details.offset);
+            final isLowerHalf = local.dy > box.size.height / 2;
+            if (isLowerHalf == _dropAsChild) return;
+
+            final byId = indexTasksById(tasks);
+            final draggedTask = byId[_draggingTaskId];
+            final targetTask = byId[node.task.id];
+            if (draggedTask == null || targetTask == null) return;
+            final fits = _fitsDepthLimit(
+              draggedTask,
+              targetTask,
+              byId,
+              tasks,
+              isLowerHalf,
+            );
+            setState(() {
+              _dropAsChild = isLowerHalf;
+              _dragTargetId = node.task.id;
+              _isInvalidDragTarget = !fits;
+            });
+          },
+          onAcceptWithDetails: (details) async {
+            final draggedId = details.data;
+            final targetId = node.task.id;
+
+            // onMove 可能已将目标标记为非法（超深/防环），此时拒绝落点。
+            if (_isInvalidDragTarget && _dragTargetId == targetId) {
+              if (mounted) setState(_clearDragState);
+              return;
+            }
+
+            final byId = indexTasksById(tasks);
+            final draggedTask = byId[draggedId];
+            final targetTask = byId[targetId];
+
+            if (draggedTask == null || targetTask == null) return;
+
+            final String? newParentId;
+            final int newIndex;
+            if (_dropAsChild) {
+              // 成为目标的子级：追加到目标现有子任务末尾。
+              newParentId = targetId;
+              final childrenIndex = indexChildrenByParent(tasks);
+              newIndex = (childrenIndex[targetId] ?? const <Task>[]).length;
+            } else {
+              // 同级排序：目标的父级作为新父级，插到目标之前。
+              newParentId = targetTask.parentId;
+              newIndex = targetTask.sortOrder;
+            }
+
+            try {
+              await repo.moveTask(
+                draggedId,
+                newParentId: newParentId,
+                newIndex: newIndex,
+              );
+            } catch (e) {
+              if (context.mounted) {
+                final l10n = AppLocalizations.of(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(_friendlyError(l10n, e))),
+                );
+              }
+            }
+            if (mounted) setState(_clearDragState);
+          },
+          onLeave: (_) {
+            setState(() {
+              _dragTargetId = null;
+              _isInvalidDragTarget = false;
+              _dropAsChild = false;
+            });
+          },
+          builder: (context, candidateData, rejectedData) {
+            return _buildTaskRow(
+              context,
+              node,
+              tasks,
+              repo,
+              expandState,
+              style: style,
+              isDragTarget: _dragTargetId == node.task.id,
+              isInvalidDragTarget:
+                  _isInvalidDragTarget && _dragTargetId == node.task.id,
+              isDragging: _draggingTaskId == node.task.id,
+              dropAsChild: _dropAsChild && _dragTargetId == node.task.id,
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -392,6 +558,7 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     List<Task> tasks,
     TodoRepository repo,
     Map<String, bool> expandState, {
+    TaskRowStyle style = TaskRowStyle.card,
     bool isDragTarget = false,
     bool isInvalidDragTarget = false,
     bool isDragging = false,
@@ -410,42 +577,45 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     final progressValue = directChildren.isNotEmpty
         ? progress(node.task, subtree)
         : null;
+    // 标签 chips 仅一级卡片头展示（紧凑子行保持精简，D7）。
+    final tags = style == TaskRowStyle.compact
+        ? const <Tag>[]
+        : ref.watch(taskTagsProvider(node.task.id)).value ?? const <Tag>[];
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
-      child: TaskRow(
-        task: node.task,
-        depth: node.depth,
-        hasChildren: node.hasChildren,
-        isExpanded: node.isExpanded,
-        onToggleExpand: () {
-          ref
-              .read(treeExpandProvider(widget.projectId).notifier)
-              .toggle(node.task.id);
-        },
-        onToggleDone: (value) async {
-          final newStatus = value == true ? TaskStatus.done : TaskStatus.todo;
-          try {
-            await repo.updateTask(node.task.id, status: newStatus);
-          } catch (e) {
-            if (context.mounted) {
-              final l10n = AppLocalizations.of(context);
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(_friendlyError(l10n, e))));
-            }
+    return TaskRow(
+      task: node.task,
+      depth: node.depth,
+      style: style,
+      hasChildren: node.hasChildren,
+      isExpanded: node.isExpanded,
+      onToggleExpand: () {
+        ref
+            .read(treeExpandProvider(widget.projectId).notifier)
+            .toggle(node.task.id);
+      },
+      onToggleDone: (value) async {
+        final newStatus = value == true ? TaskStatus.done : TaskStatus.todo;
+        try {
+          await repo.updateTask(node.task.id, status: newStatus);
+        } catch (e) {
+          if (context.mounted) {
+            final l10n = AppLocalizations.of(context);
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(_friendlyError(l10n, e))));
           }
-        },
-        onTap: () => context.push('/task/${node.task.id}'),
-        onMenuAction: (action) =>
-            _handleMenuAction(context, action, node.task, tasks, repo),
-        derivedStatus: effectiveStatus,
-        progressValue: progressValue,
-        isDragging: isDragging,
-        isDragTarget: isDragTarget,
-        isInvalidDragTarget: isInvalidDragTarget,
-        dropAsChild: dropAsChild,
-      ),
+        }
+      },
+      onTap: () => context.push('/task/${node.task.id}'),
+      onMenuAction: (action) =>
+          _handleMenuAction(context, action, node.task, tasks, repo),
+      derivedStatus: effectiveStatus,
+      progressValue: progressValue,
+      tags: tags,
+      isDragging: isDragging,
+      isDragTarget: isDragTarget,
+      isInvalidDragTarget: isInvalidDragTarget,
+      dropAsChild: dropAsChild,
     );
   }
 

@@ -19,6 +19,18 @@ final projectTasksProvider = StreamProvider.family<List<Task>, String>((
   return repo.tasks.watchByProject(projectId);
 });
 
+/// 某任务关联标签（UI 层按需取，FutureProvider.family 自动刷新）。
+///
+/// 从 calendar_providers 迁移至任务域（57-task-page-polish.md 批 2：
+/// 一级任务卡片头部展示标签 chips）。
+final taskTagsProvider = FutureProvider.family<List<Tag>, String>((
+  ref,
+  taskId,
+) {
+  final repo = ref.watch(todoRepositoryProvider);
+  return repo.tags.tagsForTask(taskId);
+});
+
 /// 内置收件箱展示名（ARB 文案，随当前语言切换）。
 final inboxProjectNameProvider = Provider<String>((ref) {
   final locale = ref.watch(localeProvider);

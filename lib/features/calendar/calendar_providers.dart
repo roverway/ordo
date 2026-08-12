@@ -103,8 +103,8 @@ final calendarStateProvider = NotifierProvider<CalendarNotifier, CalendarState>(
 /// 键为本地 DateOnly（`DateTime(y, m, d)`，与 [calendarDaysForTask] 返回值一致）；
 /// 对每个任务调 [calendarDaysForTask] 得到区间内应显示的日期集合，逐日入桶，
 /// 跨天任务会出现在区间内每一天。桶内顺序继承流顺序（updatedAt 降序）。
-/// 只放 [Task]——tags/派生状态由 UI 层按需解析（taskTagsProvider），
-/// 避免在流内做 N+1 查询拖慢订阅。
+/// 只放 [Task]——tags/派生状态由 UI 层按需解析（taskTagsProvider，
+/// 定义于 task_providers），避免在流内做 N+1 查询拖慢订阅。
 Map<DateTime, List<Task>> buildCalendarBuckets(
   List<Task> tasks,
   CalendarState state,
@@ -133,13 +133,4 @@ final calendarBucketsProvider = StreamProvider<Map<DateTime, List<Task>>>((
   final state = ref.watch(calendarStateProvider);
   final tasks = await ref.watch(allActiveTasksProvider.future);
   yield buildCalendarBuckets(tasks, state);
-});
-
-/// 某任务关联标签（UI 层按需取，FutureProvider.family 自动刷新）。
-final taskTagsProvider = FutureProvider.family<List<Tag>, String>((
-  ref,
-  taskId,
-) {
-  final repo = ref.watch(todoRepositoryProvider);
-  return repo.tags.tagsForTask(taskId);
 });

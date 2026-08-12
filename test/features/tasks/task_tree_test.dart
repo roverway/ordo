@@ -398,6 +398,43 @@ void main() {
     });
   });
 
+  group('卡片化结构（57 批 2：一级卡片 + 内部子行）', () {
+    testWidgets('一级任务用卡片头形态，子任务用紧凑行形态', (tester) async {
+      await _pumpTree(tester, [
+        _task('r', title: 'Root'),
+        _task('c', parentId: 'r', title: 'Child', sortOrder: 1),
+      ]);
+      final rows = tester.widgetList<TaskRow>(find.byType(TaskRow)).toList();
+      final rootRow = rows.firstWhere((r) => r.task.id == 'r');
+      final childRow = rows.firstWhere((r) => r.task.id == 'c');
+      expect(rootRow.style, TaskRowStyle.cardHeader);
+      expect(childRow.style, TaskRowStyle.compact);
+    });
+
+    testWidgets('卡片头与子任务行之间、子行之间均用 Divider 分隔', (tester) async {
+      await _pumpTree(tester, [
+        _task('r', title: 'Root'),
+        _task('c1', parentId: 'r', title: 'C1', sortOrder: 1),
+        _task('c2', parentId: 'r', title: 'C2', sortOrder: 2),
+      ]);
+      // 结构：头部 ─ Divider ─ C1 ─ Divider ─ C2。
+      expect(find.byType(Divider), findsNWidgets(2));
+    });
+
+    testWidgets('折叠一级卡片隐藏展开区（含 Divider）', (tester) async {
+      await _pumpTree(
+        tester,
+        [
+          _task('r', title: 'Root'),
+          _task('c', parentId: 'r', title: 'Child', sortOrder: 1),
+        ],
+        expandState: {'r': false},
+      );
+      expect(find.text('Child'), findsNothing);
+      expect(find.byType(Divider), findsNothing);
+    });
+  });
+
   group('derived status badge', () {
     testWidgets('all done children show check_circle', (tester) async {
       await _pumpTree(tester, [
@@ -567,6 +604,37 @@ void main() {
       final b = after.firstWhere((t) => t.id == 'b');
       expect(b.parentId, isNull);
       expect(b.sortOrder, 1); // 追加到 1 级末尾。
+    });
+
+    testWidgets('卡片内子行拖到 1 级卡片头上半 → 回 1 级（插到卡片前）', (tester) async {
+      final repo = await _pumpTreeWithDb(tester, [
+        _task('a', title: 'A', sortOrder: 0),
+        _task('b', title: 'B', parentId: 'a', sortOrder: 0),
+      ]);
+
+      // B（卡片内紧凑行）长按拖到 A 的卡片头上半 → 提升为 1 级，排在 A 前。
+      await _dragToRow(tester, 'B', 'A', 0.2);
+
+      final after = await repo.tasks.getByProject('p1');
+      final b = after.firstWhere((t) => t.id == 'b');
+      expect(b.parentId, isNull);
+      expect(b.sortOrder, 0);
+    });
+
+    testWidgets('卡片内子行同级排序：拖 C 到 B 上半 → C 前移，父级不变', (tester) async {
+      final repo = await _pumpTreeWithDb(tester, [
+        _task('a', title: 'A', sortOrder: 0),
+        _task('b', title: 'B', parentId: 'a', sortOrder: 0),
+        _task('c', title: 'C', parentId: 'a', sortOrder: 1),
+      ]);
+
+      await _dragToRow(tester, 'C', 'B', 0.2);
+
+      final after = await repo.tasks.getByProject('p1');
+      final b = after.firstWhere((t) => t.id == 'b');
+      final c = after.firstWhere((t) => t.id == 'c');
+      expect(c.parentId, 'a');
+      expect(c.sortOrder, lessThan(b.sortOrder));
     });
 
     testWidgets('拖到自身 → 不产生移动', (tester) async {

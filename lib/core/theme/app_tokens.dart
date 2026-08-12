@@ -161,6 +161,17 @@ abstract final class AppTokens {
   /// FAB elevation.
   static const double elevationFab = 4;
 
+  // ── 紧凑底栏（57-task-page-polish.md §4.1，D5）──
+
+  /// 窄屏紧凑底栏高度——明显矮于标准 NavigationBar（80dp）。
+  static const double bottomBarHeight = 56;
+
+  /// 底栏目的地图标尺寸。
+  static const double bottomBarIconSize = 22;
+
+  /// 底栏目的地标签字号（极小，配合紧凑栏）。
+  static const double bottomBarLabelSize = 10;
+
   // ── Progress Ring（仅令牌，批 2 使用 UI）──
 
   /// Circular progress ring diameter for parent tasks.
@@ -192,6 +203,10 @@ abstract final class AppTokens {
 
   /// Task tree indent per depth level.
   static const double treeIndent = 28;
+
+  /// Compact task-row indent per depth level（57-task-page-polish.md §4.2 D1/D7：
+  /// 一级卡片内子任务行的缩进，比平铺树的 28 更紧凑）。
+  static const double treeIndentCompact = 20;
 
   /// Empty state icon size.
   static const double emptyIconSize = 56;

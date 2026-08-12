@@ -5,14 +5,16 @@ import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_breakpoints.dart';
 import 'app_drawer.dart';
+import 'compact_bottom_bar.dart';
 
 /// Adaptive navigation shell (30-architecture.md §5, 55-ui-redesign §3)。
 ///
 /// - Narrow (<600dp): 侧边栏抽屉承载清单导航（系统组 + 项目组 + 新建项目，
-///   55-ui-redesign §3.1 D1）+ AppBar 汉堡入口 + 底部 NavigationBar（3 系统入口）
-/// - Wide (≥600dp): top AppBar + left NavigationRail（5 目的地不变，批 2-A 不动）
+///   55-ui-redesign §3.1 D1）+ AppBar 汉堡入口 + 紧凑底栏（今日/日历 2 项，
+///   57-task-page-polish §4.1 D5）
+/// - Wide (≥600dp): top AppBar + left NavigationRail（5 目的地不变）
 ///
-/// 抽屉选中态由当前路由路径推导；路由表不变，仅入口位置变化。
+/// 抽屉/底栏选中态由当前路由路径推导；路由表不变，仅入口位置变化。
 class AppShell extends StatelessWidget {
   const AppShell({
     super.key,
@@ -40,16 +42,15 @@ class AppShell extends StatelessWidget {
     '/tags',
   ];
 
-  /// 窄屏底部 NavigationBar 3 个系统入口（收集箱与项目移入抽屉，§3.1）。
-  static const List<String> _barPaths = ['/today', '/calendar', '/tags'];
+  /// 窄屏紧凑底栏目的地路径（57-task-page-polish §4.1 D5：今日/日历 2 项，
+  /// 标签移入抽屉）。**将来新增功能按钮在此追加**（与 barDestinations 同步）。
+  static const List<String> _barPaths = ['/today', '/calendar'];
 
   /// 当前路由是否命中窄屏底栏的某个入口。
   ///
   /// 未命中（如 /inbox、/projects/:id、/search、/settings）时底栏**无选中**：
-  /// NavigationBar 的 selectedIndex 必须为合法值（断言 0 ≤ i < n），故传 0，
-  /// 但用局部 Theme 把指示器置透明、选中态样式对齐未选中，实现视觉「无选中」。
-  /// 此语义仅底栏需要；宽屏 Rail 的 fallback 0 = 收件箱（索引 0，launch 首页为
-  /// /today 后仍保持收件箱高亮——未命中路由时 Rail 同样无对应目的地）。
+  /// 自绘 [CompactBottomBar] 的 selectedIndex 传 `-1`（视觉全未选中，
+  /// 无 NavigationBar 的合法索引断言限制）。
   static bool _hasBarMatch(String path) => _barPaths.contains(path);
 
   /// Derive destination index from route path; fall back to 0.
@@ -61,13 +62,12 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final narrow = AppBreakpoints.isNarrow(context);
     final path = GoRouterState.of(context).uri.path;
     final hasBarMatch = _hasBarMatch(path);
     final railIndex = _selectedIndexIn(_railPaths, path);
-    final barIndex = hasBarMatch ? _barPaths.indexOf(path) : 0;
+    // -1 = 无选中（inbox/项目/搜索/设置等非底栏路径）。
+    final barIndex = hasBarMatch ? _barPaths.indexOf(path) : -1;
 
     // 宽屏 Rail 5 目的地（不变）。
     final railDestinations =
@@ -99,17 +99,21 @@ class AppShell extends StatelessWidget {
           ),
         ];
 
-    // 窄屏底部 NavigationBar 3 系统入口（今日/日历/标签）。
-    //
-    // icon 与 selectedIcon 使用同一 outlined 图标：选中态靠 indicator 药丸 +
-    // 图标/文字颜色区分（滴答式），而非切换 filled 变体。这样未命中路由时
-    // 才能做到视觉「无选中」——若依赖形状切换，selectedIndex 传合法值
-    // （0）会强制第一个目的地渲染 filled 图标，无法完全抑制。
-    final barDestinations = <({String label, IconData icon})>[
-      (label: l10n.navToday, icon: Icons.today_outlined),
-      (label: l10n.navCalendar, icon: Icons.calendar_today_outlined),
-      (label: l10n.navTags, icon: Icons.label_outline),
-    ];
+    // 窄屏紧凑底栏 2 系统入口（今日/日历；标签移入抽屉，57-task-page-polish §4.1）。
+    // 列表渲染可扩展：将来新增功能按钮在 _barPaths 与这里各加一项即可。
+    final barDestinations =
+        <({String label, IconData icon, IconData selectedIcon})>[
+          (
+            label: l10n.navToday,
+            icon: Icons.today_outlined,
+            selectedIcon: Icons.today,
+          ),
+          (
+            label: l10n.navCalendar,
+            icon: Icons.calendar_today_outlined,
+            selectedIcon: Icons.calendar_today,
+          ),
+        ];
 
     return Scaffold(
       // 窄屏抽屉：宽度（屏宽 × drawerWidthRatio）由 AppDrawer 自身提供
@@ -169,40 +173,13 @@ class AppShell extends StatelessWidget {
       // 新建任务 FAB 布局策略见 55-ui-redesign §4.1；inbox/today/calendar 各自放置
       // （projects/tags 保留各自语义 FAB）。不在 AppShell 层挂全局 FAB，避免与
       // 页面自身 FAB 重复（widget_test 断言单 FAB）。
+      // 窄屏紧凑底栏（自绘 CompactBottomBar：高 56dp，明显矮于标准
+      // NavigationBar 80dp；「无选中」= selectedIndex -1，天然支持）。
       bottomNavigationBar: narrow
-          ? Theme(
-              // 未命中底栏路由：无选中。选中 index 传 0 满足合法断言，但把
-              // indicator 置透明、选中态（icon/label）样式对齐未选中，
-              // 视觉上无任何高亮（修复评审问题 1：inbox 首页不再误亮「今日」）。
-              data: hasBarMatch
-                  ? theme
-                  : theme.copyWith(
-                      navigationBarTheme: theme.navigationBarTheme.copyWith(
-                        indicatorColor: Colors.transparent,
-                        iconTheme: WidgetStateProperty.resolveWith(
-                          (states) => IconThemeData(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        labelTextStyle: WidgetStateProperty.resolveWith(
-                          (states) => theme.textTheme.labelMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                    ),
-              child: NavigationBar(
-                selectedIndex: barIndex,
-                onDestinationSelected: (index) => context.go(_barPaths[index]),
-                destinations: [
-                  for (final d in barDestinations)
-                    NavigationDestination(
-                      icon: Icon(d.icon),
-                      selectedIcon: Icon(d.icon),
-                      label: d.label,
-                    ),
-                ],
-              ),
+          ? CompactBottomBar(
+              destinations: barDestinations,
+              selectedIndex: barIndex,
+              onSelected: (index) => context.go(_barPaths[index]),
             )
           : null,
     );
