@@ -19,6 +19,7 @@ import 'package:todo/features/settings/settings_providers.dart';
 import 'package:todo/features/tags/tag_providers.dart';
 import 'package:todo/features/tasks/task_providers.dart';
 import 'package:todo/features/tasks/task_edit_page.dart';
+import 'package:todo/features/tasks/widgets/task_editor.dart';
 import '../../helpers/db_test_setup.dart';
 
 /// 构造测试用 Task。
@@ -133,6 +134,11 @@ Future<void> _pumpEdit(
     projectTasksProvider.overrideWith(
       (ref, projectId) => Stream.value(existingTasks),
     ),
+    // 父任务行（_ParentTaskRow）会 watch allActiveTasksProvider；用 Stream.value
+    // 覆盖避免走真实 drift 流 —— 否则 teardown 时 drift 的 StreamQueryStore
+    // markAsClosed 会遗留一个 Timer（drift 缓存保活，见 stream_queries.dart），
+    // 触发 flutter_test「A Timer is still pending」断言失败。
+    allActiveTasksProvider.overrideWith((ref) => Stream.value(existingTasks)),
     tagsStreamProvider.overrideWithValue(const AsyncData([])),
   ];
 
@@ -218,8 +224,8 @@ void main() {
     testWidgets('空标题点击保存显示 SnackBar 错误', (tester) async {
       await _pumpEdit(tester, projectId: 'p1');
 
-      // 页面应有标题"新建任务"。
-      expect(find.text('新建任务'), findsWidgets);
+      // 页面已渲染：AppBar 标题为项目切换器（新结构，无「新建任务」文字标题）。
+      expect(find.byType(TaskProjectSwitcher), findsOneWidget);
 
       // 不输入标题，直接点保存。
       await tester.tap(find.text('保存'));
@@ -233,8 +239,8 @@ void main() {
     testWidgets('纯空格标题也显示验证错误', (tester) async {
       await _pumpEdit(tester, projectId: 'p1');
 
-      // Find the title TextFormField (first one on the page).
-      final titleField = find.byType(TextFormField).first;
+      // 标题输入改为无边框 TextField（页面第一个输入框即标题）。
+      final titleField = find.byType(TextField).first;
       await tester.enterText(titleField, '   ');
       await tester.tap(find.text('保存'));
       await tester.pumpAndSettle();
@@ -273,18 +279,21 @@ void main() {
 
       await _pumpEdit(tester, taskId: 'parent', existingTasks: tasks);
 
-      // 等待加载完成后，状态 ChoiceChip 应被 AbsorbPointer 包裹。
+      // 等待加载完成后，底部工具栏状态按钮应为禁用（有子任务 → 状态由子任务派生）。
       await tester.pumpAndSettle();
 
-      // 验证 AbsorbPointer 存在且 absorbing=true（有子任务）。
-      final absorbers = find.byType(AbsorbPointer);
-      expect(absorbers, findsWidgets);
+      // 状态入口为底部工具栏按钮（图标随当前状态，todo = radio_button_unchecked）。
+      final statusButtons = find.ancestor(
+        of: find.byIcon(Icons.radio_button_unchecked),
+        matching: find.byType(IconButton),
+      );
+      expect(statusButtons, findsWidgets);
 
-      // 至少有一个 AbsorbPointer 的 absorbing=true。
-      final hasAbsorbing = tester
-          .widgetList<AbsorbPointer>(absorbers)
-          .any((a) => a.absorbing);
-      expect(hasAbsorbing, isTrue);
+      // 有子任务 → 状态按钮 enabled=false（onPressed 为 null）。
+      final hasDisabled = tester
+          .widgetList<IconButton>(statusButtons)
+          .any((b) => b.onPressed == null);
+      expect(hasDisabled, isTrue);
     });
 
     testWidgets('新建任务（无子任务）状态控件可用', (tester) async {
@@ -413,10 +422,10 @@ void main() {
     testWidgets('页面渲染包含 PopScope', (tester) async {
       await _pumpEdit(tester, projectId: 'p1');
 
-      // _pumpEdit 已 pumpAndSettle，页面应已渲染。
-      // 直接验证 TaskEditPage 的关键结构。
-      expect(find.byType(TextFormField), findsWidgets);
-      expect(find.text('新建任务'), findsOneWidget);
+      // 页面应已渲染：PopScope（未保存离开拦截）+ AppBar 项目切换器 + 共享编辑器标题输入。
+      expect(find.byWidgetPredicate((w) => w is PopScope), findsWidgets);
+      expect(find.byType(TaskProjectSwitcher), findsOneWidget);
+      expect(find.byType(TextField), findsWidgets);
     });
   });
 
@@ -546,7 +555,7 @@ void main() {
   group('Bug #4 回归：切换项目清空 parentId', () {
     testWidgets('编辑有父任务的任务：切换项目后 parentId 清空、父任务行消失', (tester) async {
       final tasks = [
-        _task('parent', title: '父任务'),
+        _task('parent', title: '父任务标题'),
         _task('child', parentId: 'parent', title: '子任务', sortOrder: 1),
       ];
       final p2 = Project(
@@ -567,21 +576,21 @@ void main() {
         extraProjects: [p2],
       );
 
-      // 编辑有父任务的任务：父任务信息行可见。
-      expect(find.text('parent'), findsOneWidget);
+      // 编辑有父任务的任务：父任务只读行可见（显示父任务标题）。
+      expect(find.text('父任务标题'), findsOneWidget);
 
-      // 切换项目到 p2。
-      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      // 切换项目到 p2（AppBar 的 TaskProjectSwitcher → 项目选择弹层）。
+      await tester.tap(find.byType(TaskProjectSwitcher));
       await tester.pumpAndSettle();
       await tester.tap(find.text('项目二').last);
       await tester.pumpAndSettle();
 
-      // parentId 被清空（父任务不能跨项目），父任务信息行消失。
+      // parentId 被清空（父任务不能跨项目），父任务行消失。
       final ctx = tester.element(find.byType(TaskEditPage));
       final state = ProviderScope.containerOf(ctx).read(taskFormProvider);
       expect(state.projectId, 'p2');
       expect(state.parentId, isNull);
-      expect(find.text('parent'), findsNothing);
+      expect(find.text('父任务标题'), findsNothing);
     });
   });
 }

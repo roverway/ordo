@@ -425,4 +425,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get subtaskHint => 'Subtask title';
+
+  @override
+  String get noStartTime => 'No start time';
+
+  @override
+  String get attachmentComingSoon => 'Attachments coming soon';
 }

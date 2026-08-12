@@ -420,4 +420,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get subtaskHint => '子任务标题';
+
+  @override
+  String get noStartTime => '无开始时间';
+
+  @override
+  String get attachmentComingSoon => '附件功能即将推出';
 }

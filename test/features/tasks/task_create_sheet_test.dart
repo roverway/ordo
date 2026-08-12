@@ -120,10 +120,10 @@ void main() {
     expect(find.text('测试项目'), findsOneWidget);
     // 标题输入（占位符「任务标题」）。
     expect(find.text('任务标题'), findsOneWidget);
-    // 选项行。
-    expect(find.text('日期与提醒'), findsOneWidget);
-    expect(find.text('优先级'), findsOneWidget);
-    expect(find.text('标签'), findsOneWidget);
+    // 选项行 → 底部工具栏图标（Tooltip 未长按不渲染，改查 Icon）。
+    expect(find.byIcon(Icons.calendar_today_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.flag_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.label_outline), findsOneWidget);
     // 子任务区（1 级任务展示）。
     expect(find.text('子任务'), findsOneWidget);
     expect(find.text('添加子任务'), findsOneWidget);
@@ -162,8 +162,10 @@ void main() {
     final repo = await _repo('p1');
     await _openSheet(tester, repo: repo);
 
-    // 设置日期（产生内容但标题为空）。
-    await tester.tap(find.text('日期与提醒'));
+    // 设置日期（产生内容但标题为空）：工具栏日期图标 → 弹层选「开始时间」→ 今天。
+    await tester.tap(find.byIcon(Icons.calendar_today_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('开始时间'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('今天'));
     await tester.pumpAndSettle();
@@ -182,7 +184,8 @@ void main() {
     final repo = await _repo('p1');
     await _openSheet(tester, repo: repo);
 
-    await tester.tap(find.text('优先级'));
+    // 优先级入口改为底部工具栏旗帜图标。
+    await tester.tap(find.byIcon(Icons.flag_outlined));
     await tester.pumpAndSettle();
     await tester.tap(find.text('高'));
     await tester.pumpAndSettle();

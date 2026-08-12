@@ -132,5 +132,7 @@
   "collapse": "Collapse",
   "subtasks": "Subtasks",
   "addSubtask": "Add subtask",
-  "subtaskHint": "Subtask title"
+  "subtaskHint": "Subtask title",
+  "noStartTime": "No start time",
+  "attachmentComingSoon": "Attachments coming soon"
 }

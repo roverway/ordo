@@ -1,22 +1,28 @@
+// 任务编辑全屏页（59-task-editor-optimization.md §5.3 定稿）。
+//
+// 全屏容器：AppBar（返回 + 项目名 + 下拉双箭头 + 保存按钮 + ⋯ 菜单）+ 共享编辑器
+// [TaskEditor]（showTopBar/showToolbar 均关，项目切换与 ⋯ 菜单放 AppBar）。
+//
+// - 保存：显式保存（AppBar 保存按钮）+ 未保存离开拦截（PopScope + hasChanges，
+//   含子任务改动），55 §8 现状保留（D2）。
+// - 子任务管理（D3）：加载现有子任务；新增/删除/拖拽排序**延迟到保存时统一执行**
+//   （与显式保存语义一致，取消编辑不产生意外数据变更）；删除现有子任务带确认。
+// - 删除任务（D4）：⋯ 菜单含删除，确认后级联硬删（repo.deleteTask）。
+// - 父任务（parentId 非空）：编辑器内只读信息行展示。
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/db/tables.dart';
+import '../../core/db/repositories/todo_repository.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
-import '../../core/utils/dates.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import '../projects/project_providers.dart';
-import '../tags/tag_providers.dart';
 import 'task_providers.dart';
-import 'widgets/priority_picker.dart';
+import 'widgets/task_editor.dart';
 
-/// Task edit page — card-based layout, TickTick/Microsoft To Do inspired.
-///
-/// Sections: Title, description, notes, dates, status, tags, project.
-/// Project selector is now interactive (was read-only). Status is disabled
-/// when the task has children (derived).
+/// Task edit page — unified editor, TickTick-inspired full-screen container.
 class TaskEditPage extends ConsumerStatefulWidget {
   const TaskEditPage({
     super.key,
@@ -40,18 +46,18 @@ class TaskEditPage extends ConsumerStatefulWidget {
 }
 
 class _TaskEditPageState extends ConsumerState<TaskEditPage> {
-  late final TextEditingController _titleController;
-  late final TextEditingController _descController;
-  late final TextEditingController _notesController;
+  late final TaskEditorController _editorController;
   bool _hasChildren = false;
   bool _initialized = false;
+
+  bool get _isEditing => widget.taskId != null;
 
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController();
-    _descController = TextEditingController();
-    _notesController = TextEditingController();
+    _editorController = TaskEditorController(
+      mode: _isEditing ? TaskEditorMode.edit : TaskEditorMode.create,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
   }
 
@@ -65,16 +71,16 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
     if (widget.taskId != null) {
       await notifier.loadTask(widget.taskId!);
       final loadedState = ref.read(taskFormProvider);
-      _titleController.text = loadedState.title;
-      _descController.text = loadedState.description;
-      _notesController.text = loadedState.notes;
 
       final repo = ref.read(todoRepositoryProvider);
       final children = await repo.tasks.getDirectChildren(
         loadedState.projectId!,
         widget.taskId,
       );
-      if (mounted) setState(() => _hasChildren = children.isNotEmpty);
+      if (mounted) {
+        _editorController.initializeSubtasks(children);
+        setState(() => _hasChildren = children.isNotEmpty);
+      }
     } else {
       if (widget.projectId == null) {
         if (mounted) {
@@ -97,26 +103,22 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
 
   @override
   void dispose() {
-    _titleController.dispose();
-    _descController.dispose();
-    _notesController.dispose();
+    _editorController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
     final formState = ref.watch(taskFormProvider);
-    final isEditing = widget.taskId != null;
 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         final notifier = ref.read(taskFormProvider.notifier);
-        if (notifier.hasChanges) {
+        if (notifier.hasChanges || _editorController.hasSubtaskChanges) {
           final discard = await showConfirmDialog(
             context: context,
             title: l10n.unsavedChanges,
@@ -133,507 +135,89 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
         }
       },
       child: Scaffold(
+        // AppBar：返回（自动 leading）+ 项目名 + 下拉双箭头 + 保存 + ⋯ 菜单。
         appBar: AppBar(
-          title: Text(isEditing ? l10n.edit : l10n.newTask),
+          titleSpacing: AppTokens.spaceXs,
+          title: const TaskProjectSwitcher(),
           actions: [
             TextButton.icon(
               onPressed: _save,
               icon: const Icon(Icons.check, size: 18),
               label: Text(l10n.save),
             ),
+            TaskEditorMenuButton(
+              controller: _editorController,
+              onDeleteRequested: _isEditing ? _confirmDeleteTask : null,
+            ),
           ],
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(AppTokens.spaceMd),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Title ──
-              _SectionCard(
-                children: [
-                  TextFormField(
-                    controller: _titleController,
-                    decoration: InputDecoration(
-                      hintText: l10n.taskTitleHint,
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-                    onChanged: (v) =>
-                        ref.read(taskFormProvider.notifier).updateTitle(v),
-                    autofocus: true,
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppTokens.spaceSm),
-
-              // ── Project selector ──
-              _SectionCard(
-                children: [_buildProjectPicker(context, l10n, formState)],
-              ),
-              const SizedBox(height: AppTokens.spaceSm),
-
-              // ── Description + Notes ──
-              _SectionCard(
-                children: [
-                  TextFormField(
-                    controller: _descController,
-                    decoration: InputDecoration(
-                      labelText: l10n.taskDescription,
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                      floatingLabelBehavior: FloatingLabelBehavior.always,
-                    ),
-                    maxLines: 3,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: colorScheme.onSurface,
-                    ),
-                    onChanged: (v) => ref
-                        .read(taskFormProvider.notifier)
-                        .updateDescription(v),
-                  ),
-                  const Divider(),
-                  TextFormField(
-                    controller: _notesController,
-                    decoration: InputDecoration(
-                      labelText: l10n.taskNotes,
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                      floatingLabelBehavior: FloatingLabelBehavior.always,
-                    ),
-                    maxLines: 2,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                    onChanged: (v) =>
-                        ref.read(taskFormProvider.notifier).updateNotes(v),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppTokens.spaceSm),
-
-              // ── Dates ──
-              _SectionCard(
-                children: [
-                  _buildDateRow(
-                    context,
-                    l10n,
-                    formState.startAt,
-                    l10n.taskStartTime,
-                    Icons.play_arrow_outlined,
-                    isStart: true,
-                  ),
-                  const Divider(indent: 0),
-                  _buildDateRow(
-                    context,
-                    l10n,
-                    formState.endAt,
-                    l10n.taskEndTime,
-                    Icons.flag_outlined,
-                    isStart: false,
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppTokens.spaceSm),
-
-              // ── Priority ──
-              _SectionCard(
-                children: [_buildPriorityRow(context, l10n, formState)],
-              ),
-              const SizedBox(height: AppTokens.spaceSm),
-
-              // ── Status ──
-              _SectionCard(
-                children: [_buildStatusSection(context, l10n, formState)],
-              ),
-              const SizedBox(height: AppTokens.spaceSm),
-
-              // ── Tags ──
-              _SectionCard(
-                children: [_buildTagSection(context, l10n, formState)],
-              ),
-              const SizedBox(height: AppTokens.spaceSm),
-
-              // ── Parent (read-only, if exists) ──
-              if (formState.parentId != null)
-                _SectionCard(
-                  children: [
-                    _buildInfoRow(
-                      context,
-                      l10n.taskParent,
-                      formState.parentId!,
-                    ),
-                  ],
-                ),
-              const SizedBox(height: AppTokens.spaceXxxl),
-            ],
+          child: TaskEditor(
+            controller: _editorController,
+            showTopBar: false,
+            showToolbar: false,
+            showSubtasks: formState.parentId == null,
+            hasExistingChildren: _hasChildren,
+            onDeleteRequested: _isEditing ? _confirmDeleteTask : null,
           ),
         ),
-      ),
-    );
-  }
-
-  // ── Project picker ──
-
-  Widget _buildProjectPicker(
-    BuildContext context,
-    AppLocalizations l10n,
-    TaskFormState formState,
-  ) {
-    final projectsAsync = ref.watch(projectsStreamProvider);
-
-    return projectsAsync.when(
-      data: (projects) {
-        return DropdownButtonFormField<String>(
-          initialValue: formState.projectId,
-          decoration: InputDecoration(
-            labelText: l10n.taskProject,
-            border: InputBorder.none,
-            contentPadding: EdgeInsets.zero,
-            floatingLabelBehavior: FloatingLabelBehavior.always,
-          ),
-          isExpanded: true,
-          hint: Text(l10n.selectProject),
-          icon: const Icon(Icons.keyboard_arrow_down, size: 20),
-          items: [
-            for (final p in projects)
-              DropdownMenuItem(
-                value: p.id,
-                child: Row(
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: Color(p.color),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: AppTokens.spaceSm),
-                    Text(p.name),
-                  ],
-                ),
-              ),
-          ],
-          onChanged: (value) {
-            if (value != null) {
-              // 父任务不能跨项目：主动切换项目时清空 parentId，
-              // 否则保存时父任务校验会失败（父任务仍属于旧项目）。
-              ref
-                  .read(taskFormProvider.notifier)
-                  .setProjectAndParent(value, null);
-            }
-          },
-        );
-      },
-      loading: () => const SizedBox(
-        height: 48,
-        child: Center(
-          child: SizedBox(
-            width: 16,
-            height: 16,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
-      ),
-      error: (e, _) => Text(e.toString()),
-    );
-  }
-
-  // ── Date row ──
-
-  Widget _buildDateRow(
-    BuildContext context,
-    AppLocalizations l10n,
-    int? value,
-    String label,
-    IconData icon, {
-    required bool isStart,
-  }) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final hasValue = value != null;
-
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(
-        icon,
-        size: 20,
-        color: hasValue ? colorScheme.primary : colorScheme.outline,
-      ),
-      title: Text(
-        label,
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: colorScheme.onSurfaceVariant,
-        ),
-      ),
-      subtitle: Text(
-        hasValue ? formatDateTime(value) : l10n.noDueDate,
-        style: theme.textTheme.bodyLarge?.copyWith(
-          color: hasValue ? colorScheme.onSurface : colorScheme.outline,
-        ),
-      ),
-      trailing: IconButton(
-        icon: Icon(hasValue ? Icons.close : Icons.edit_calendar, size: 20),
-        onPressed: hasValue
-            ? () {
-                if (isStart) {
-                  ref.read(taskFormProvider.notifier).updateStartAt(null);
-                } else {
-                  ref.read(taskFormProvider.notifier).updateEndAt(null);
-                }
-              }
-            : null,
-      ),
-      onTap: () => _pickDateTime(context, isStart: isStart),
-    );
-  }
-
-  // ── Priority row ──
-
-  Widget _buildPriorityRow(
-    BuildContext context,
-    AppLocalizations l10n,
-    TaskFormState formState,
-  ) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(
-        Icons.flag_outlined,
-        size: 20,
-        color: priorityColor(formState.priority),
-      ),
-      title: Text(
-        l10n.priority,
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: colorScheme.onSurfaceVariant,
-        ),
-      ),
-      subtitle: Text(
-        priorityLabel(l10n, formState.priority),
-        style: theme.textTheme.bodyLarge?.copyWith(
-          color: colorScheme.onSurface,
-        ),
-      ),
-      trailing: const Icon(Icons.keyboard_arrow_right, size: 20),
-      onTap: () async {
-        final picked = await showPriorityPicker(
-          context,
-          current: formState.priority,
-        );
-        if (picked != null && context.mounted) {
-          ref.read(taskFormProvider.notifier).updatePriority(picked);
-        }
-      },
-    );
-  }
-
-  // ── Status chips ──
-
-  Widget _buildStatusSection(
-    BuildContext context,
-    AppLocalizations l10n,
-    TaskFormState formState,
-  ) {
-    final isDisabled = _hasChildren;
-    final theme = Theme.of(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: AppTokens.spaceXs),
-          child: Text(
-            l10n.taskStatus,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-        AbsorbPointer(
-          absorbing: isDisabled,
-          child: Opacity(
-            opacity: isDisabled ? 0.5 : 1.0,
-            child: Wrap(
-              spacing: AppTokens.spaceXs,
-              runSpacing: AppTokens.spaceXs,
-              children: TaskStatus.values.map((status) {
-                final isSelected = formState.status == status;
-                return ChoiceChip(
-                  label: Text(_statusLabel(l10n, status)),
-                  selected: isSelected,
-                  onSelected: isDisabled
-                      ? null
-                      : (_) => ref
-                            .read(taskFormProvider.notifier)
-                            .updateStatus(status),
-                  visualDensity: VisualDensity.compact,
-                );
-              }).toList(),
-            ),
-          ),
-        ),
-        if (isDisabled)
-          Padding(
-            padding: const EdgeInsets.only(top: AppTokens.spaceXs),
-            child: Text(
-              l10n.statusDerivedFromChildren,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+        // 底部工具栏常驻（键盘弹出时随 viewInsets 上移）。
+        bottomNavigationBar: ListenableBuilder(
+          listenable: _editorController,
+          builder: (context, _) => SafeArea(
+            top: false,
+            child: Material(
+              color: colorScheme.surface,
+              elevation: AppTokens.elevationCard,
+              child: TaskEditorToolbar(
+                // 已有子任务或待保存的新建子任务行 → 状态由子任务派生，禁用。
+                statusDisabled:
+                    _hasChildren || _editorController.hasPendingNewSubtasks,
               ),
             ),
           ),
-      ],
+        ),
+      ),
     );
   }
 
-  // ── Tags ──
+  // ── 删除任务（D4，⋯ 菜单入口，带确认弹窗）─────────────────────────
 
-  Widget _buildTagSection(
-    BuildContext context,
-    AppLocalizations l10n,
-    TaskFormState formState,
-  ) {
-    final tagsAsync = ref.watch(tagsStreamProvider);
+  Future<void> _confirmDeleteTask() async {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final formState = ref.read(taskFormProvider);
+    final taskId = formState.id;
+    if (taskId == null) return; // 新建模式不应出现删除入口。
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: AppTokens.spaceXs),
-          child: Text(
-            l10n.taskTags,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-        tagsAsync.when(
-          data: (tags) {
-            if (tags.isEmpty) {
-              return Text(
-                l10n.noTags,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              );
-            }
-            return Wrap(
-              spacing: AppTokens.spaceXs,
-              runSpacing: AppTokens.spaceXs,
-              children: tags.map((tag) {
-                final isSelected = formState.selectedTagIds.contains(tag.id);
-                return FilterChip(
-                  label: Text(tag.name),
-                  selected: isSelected,
-                  onSelected: (_) =>
-                      ref.read(taskFormProvider.notifier).toggleTag(tag.id),
-                  avatar: isSelected
-                      ? null
-                      : Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: Color(tag.color),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                  selectedColor: Color(tag.color).withValues(alpha: 0.15),
-                  visualDensity: VisualDensity.compact,
-                );
-              }).toList(),
-            );
-          },
-          loading: () => const SizedBox(
-            height: 32,
-            child: Center(
-              child: SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-          ),
-          error: (e, _) => Text(e.toString()),
-        ),
-      ],
-    );
-  }
-
-  // ── Info row ──
-
-  Widget _buildInfoRow(BuildContext context, String label, String value) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(width: AppTokens.spaceSm),
-        Expanded(
-          child: Text(
-            value,
-            style: theme.textTheme.bodyLarge,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── Helpers ──
-
-  String _statusLabel(AppLocalizations l10n, TaskStatus status) =>
-      switch (status) {
-        TaskStatus.todo => l10n.statusTodo,
-        TaskStatus.inProgress => l10n.statusInProgress,
-        TaskStatus.done => l10n.statusDone,
-        TaskStatus.cancelled => l10n.statusCancelled,
-      };
-
-  Future<void> _pickDateTime(
-    BuildContext context, {
-    required bool isStart,
-  }) async {
-    final now = DateTime.now();
-    final date = await showDatePicker(
+    final title = formState.title.trim().isEmpty
+        ? l10n.taskTitle
+        : formState.title.trim();
+    final confirmed = await showConfirmDialog(
       context: context,
-      initialDate: now,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
+      title: l10n.deleteTask,
+      message: '${l10n.deleteTaskConfirm(title)}\n${l10n.deleteTaskWarning}',
+      confirmLabel: l10n.delete,
+      confirmColor: theme.colorScheme.error,
     );
-    if (date == null || !context.mounted) return;
+    if (!confirmed || !mounted) return;
 
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(now),
-    );
-    if (time == null) return;
-
-    final dt = DateTime(
-      date.year,
-      date.month,
-      date.day,
-      time.hour,
-      time.minute,
-    );
-    final ms = dt.toUtc().millisecondsSinceEpoch;
-
-    if (isStart) {
-      ref.read(taskFormProvider.notifier).updateStartAt(ms);
-    } else {
-      ref.read(taskFormProvider.notifier).updateEndAt(ms);
+    try {
+      final repo = ref.read(todoRepositoryProvider);
+      await repo.deleteTask(taskId);
+      if (!mounted) return;
+      ref.read(taskFormProvider.notifier).reset();
+      context.pop();
+    } on RepositoryException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     }
   }
+
+  // ── 显式保存（D2）─────────────────────────────────────────────────
 
   Future<void> _save() async {
     final notifier = ref.read(taskFormProvider.notifier);
@@ -654,29 +238,77 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
       return;
     }
 
+    await _syncSubtasks();
     if (mounted) context.pop();
   }
-}
 
-/// Section card wrapper.
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.children});
+  /// 保存成功后统一执行子任务增删改排序（D3，延迟落库）。
+  ///
+  /// 顺序：1) 级联删除已移除的现有子任务 → 2) 创建非空新行 → 3) 更新改名的
+  /// 现有行 → 4) 按 UI 顺序左→右移动重排（moveTask 同级重排收敛）。
+  /// 任一失败仅提示（父任务已保存，与新建弹窗兜底行为一致）。
+  Future<void> _syncSubtasks() async {
+    final repo = ref.read(todoRepositoryProvider);
+    final formState = ref.read(taskFormProvider);
+    final parentId = formState.id;
+    final projectId = formState.projectId;
+    if (parentId == null || projectId == null) return;
 
-  final List<Widget> children;
+    final rows = _editorController.subtaskRows;
+    try {
+      // 1. 删除已移除的现有子任务（级联）。
+      for (final id in List<String>.from(_editorController.removedSubtaskIds)) {
+        await repo.deleteTask(id);
+      }
 
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppTokens.spaceMd,
-          vertical: AppTokens.spaceSm,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: children,
-        ),
-      ),
-    );
+      // 2. 创建非空新行（先追加到末尾，第 4 步再移动到最终位置）。
+      final createdIds = <SubtaskRow, String>{};
+      for (final row in rows) {
+        if (!row.isNew) continue;
+        final title = row.controller.text.trim();
+        if (title.isEmpty) continue;
+        final task = await repo.createTask(
+          projectId: projectId,
+          parentId: parentId,
+          title: title,
+        );
+        createdIds[row] = task.id;
+      }
+
+      // 3. 更新改名的现有行（标题被清空时保留原标题，不做破坏性变更）。
+      for (final row in rows) {
+        if (row.isNew) continue;
+        final title = row.controller.text.trim();
+        if (title.isEmpty) continue;
+        final task = await repo.tasks.getActiveById(row.id!);
+        if (task != null && task.title != title) {
+          await repo.updateTask(row.id!, title: title);
+        }
+      }
+
+      // 4. 按 UI 顺序重排（现有行 + 新创建行；空新行不占位）。
+      final orderedIds = <String>[
+        for (final row in rows)
+          if (row.id != null)
+            row.id!
+          else if (createdIds.containsKey(row))
+            createdIds[row]!,
+      ];
+      for (var i = 0; i < orderedIds.length; i++) {
+        final id = orderedIds[i];
+        final siblings = await repo.tasks.getDirectChildren(
+          projectId,
+          parentId,
+        );
+        final currentIndex = siblings.indexWhere((t) => t.id == id);
+        if (currentIndex == i) continue;
+        await repo.moveTask(id, newParentId: parentId, newIndex: i);
+      }
+    } on RepositoryException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
+    }
   }
 }

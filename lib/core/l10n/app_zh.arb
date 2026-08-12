@@ -132,5 +132,7 @@
   "collapse": "收起",
   "subtasks": "子任务",
   "addSubtask": "添加子任务",
-  "subtaskHint": "子任务标题"
+  "subtaskHint": "子任务标题",
+  "noStartTime": "无开始时间",
+  "attachmentComingSoon": "附件功能即将推出"
 }

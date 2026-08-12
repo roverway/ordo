@@ -895,6 +895,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'子任务标题'**
   String get subtaskHint;
+
+  /// No description provided for @noStartTime.
+  ///
+  /// In zh, this message translates to:
+  /// **'无开始时间'**
+  String get noStartTime;
+
+  /// No description provided for @attachmentComingSoon.
+  ///
+  /// In zh, this message translates to:
+  /// **'附件功能即将推出'**
+  String get attachmentComingSoon;
 }
 
 class _AppLocalizationsDelegate

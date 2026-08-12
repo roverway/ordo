@@ -150,6 +150,7 @@
 - **精简窄屏底栏（已完成 2026-08，`docs/57-task-page-polish.md` 批 1）**：底栏 3 → 2 项（今日/日历，标签移入抽屉）；自绘 `CompactBottomBar`（高 56dp，明显矮于标准 NavigationBar 80dp；`selectedIndex = -1` 天然无选中；列表渲染可扩展）；令牌 `bottomBarHeight`/`bottomBarIconSize`/`bottomBarLabelSize`；FR-NAV-01 + 50-ui-ux §4 同步；`widget_test` 更新（2-tab 切换、紧凑高度断言）。`flutter analyze` 0 error；`flutter test` 257 全绿。
 - **批 2 交互层（待做）**：FAB + 新建底部弹窗（自动保存 + 清单切换 + 日期/优先级/标签）；进度环（有子任务任务）；同步状态图标（依赖 M4）。
 - **项目任务卡片化（待做，`docs/57-task-page-polish.md` 批 2）**：一级任务卡片 + 内部子任务紧凑行（拖拽/菜单/校验保留）。
+- **任务编辑界面优化（待做，`docs/59-task-editor-optimization.md`）**：统一编辑器（新建弹窗与编辑页共用共享「任务编辑器」组件，仅呈现容器不同，D1）；设置项移入底部工具栏（日期/状态/标签/优先级 + 附件占位禁用，D5）；编辑页子任务管理（新增/删除/拖拽排序，D3）+ ⋯ 菜单删除入口（D4）；编辑页显式保存 + 未保存离开提示保留（D2）。`50-ui-ux.md` §5.6 已同步。
 
 **DoD**：
 - [ ] NFR-01~09 全部满足（`10-requirements.md` §11）
