@@ -705,4 +705,34 @@ void main() {
       expect(children.map((t) => t.title), contains('新子任务'));
     });
   });
+
+  // ────────────────────────────────────────
+  // 11. 方案 B：编辑页子任务区按自身深度展示（59 讨论定稿）
+  // ────────────────────────────────────────
+  group('编辑页子任务区按深度展示（方案 B）', () {
+    testWidgets('编辑 2 级任务（自身带子任务）：子任务区展示', (tester) async {
+      // 回归：此前编辑页按 parentId==null 判定，2 级带子任务的任务不显示
+      // 子任务区，与 1 级任务产生「两种编辑器」分歧。
+      final tasks = [
+        _task('l1', title: '一级'),
+        _task('l2', parentId: 'l1', title: '二级', sortOrder: 1),
+        _task('l3', parentId: 'l2', title: '三级', sortOrder: 1),
+      ];
+      await _pumpEdit(tester, taskId: 'l2', existingTasks: tasks);
+      await tester.pumpAndSettle();
+      expect(find.text('添加子任务'), findsOneWidget);
+    });
+
+    testWidgets('编辑 3 级（最深）任务：子任务区不展示', (tester) async {
+      final tasks = [
+        _task('l1', title: '一级'),
+        _task('l2', parentId: 'l1', title: '二级', sortOrder: 1),
+        _task('l3', parentId: 'l2', title: '三级', sortOrder: 1),
+      ];
+      await _pumpEdit(tester, taskId: 'l3', existingTasks: tasks);
+      await tester.pumpAndSettle();
+      // 深度 3 = 最深，无法再创建子任务 → 隐藏子任务区。
+      expect(find.text('添加子任务'), findsNothing);
+    });
+  });
 }

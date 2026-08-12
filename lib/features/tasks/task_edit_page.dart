@@ -17,6 +17,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/db/repositories/todo_repository.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/utils/tree.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import '../projects/project_providers.dart';
 import 'task_providers.dart';
@@ -51,6 +52,10 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
   bool _initialized = false;
   bool _isSaving = false;
 
+  /// 编辑态子任务区是否展示（方案 B：自身深度 < 3 才可再创建子任务）。
+  /// 加载完成前默认展示，避免「先隐藏后显示」闪烁（深度 3 的极深任务加载后隐藏）。
+  bool _showSubtasks = true;
+
   bool get _isEditing => widget.taskId != null;
 
   @override
@@ -78,9 +83,19 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
         loadedState.projectId!,
         widget.taskId,
       );
+      // 方案 B（59 讨论定稿）：子任务区展示条件 = 被编辑任务自身深度 < 3
+      // （3 级为最深，无法再创建子任务）。解决「有子任务的 2 级任务不显示子任务区」
+      // 与 1 级任务显示不一致的问题（点击现有任务出现两种编辑器的根因）。
+      final all = await repo.tasks.getAllByProject(loadedState.projectId!);
+      final byId = indexTasksById(all);
+      final taskEntry = byId[widget.taskId!];
+      final depth = taskEntry != null ? depthOf(taskEntry, byId) : 1;
       if (mounted) {
         _editorController.initializeSubtasks(children);
-        setState(() => _hasChildren = children.isNotEmpty);
+        setState(() {
+          _hasChildren = children.isNotEmpty;
+          _showSubtasks = depth < 3;
+        });
       }
     } else {
       if (widget.projectId == null) {
@@ -158,7 +173,10 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
             controller: _editorController,
             showTopBar: false,
             showToolbar: false,
-            showSubtasks: formState.parentId == null,
+            // 编辑态：子任务区按自身深度（<3 展示，方案 B）；新建态维持「仅 1 级任务」。
+            showSubtasks: _isEditing
+                ? _showSubtasks
+                : formState.parentId == null,
             hasExistingChildren: _hasChildren,
             onDeleteRequested: _isEditing ? _confirmDeleteTask : null,
           ),
