@@ -129,6 +129,18 @@ class TaskEditorController extends ChangeNotifier {
         row.controller.text.trim(),
   ];
 
+  /// 保存成功后重设子任务快照：清空删除标记并重拍原始顺序/标题，
+  /// 使 [hasSubtaskChanges] 归 false（保存后离开不再误弹「未保存」提示，59 评审 Bug 1）。
+  void markSubtasksSaved() {
+    removedSubtaskIds.clear();
+    _originalOrder = subtaskRows.map((r) => r.id).toList();
+    _originalTitles = {
+      for (final row in subtaskRows)
+        if (row.id != null) row.id!: row.controller.text.trim(),
+    };
+    notifyListeners();
+  }
+
   void toggleDescription() {
     showDescription = !showDescription;
     notifyListeners();

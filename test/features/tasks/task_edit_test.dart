@@ -593,4 +593,116 @@ void main() {
       expect(find.text('父任务标题'), findsNothing);
     });
   });
+
+  // ────────────────────────────────────────
+  // 10. 59 评审回归：保存子任务后不再误弹「未保存」对话框
+  // ────────────────────────────────────────
+  group('59 评审回归：保存子任务后直接退出', () {
+    testWidgets('保存子任务后 pop 不再弹「未保存」对话框，子任务已落库', (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      final prefs = await SharedPreferences.getInstance();
+      final db = openTestDatabase();
+      final repo = TodoRepository(database: db);
+      await db
+          .into(db.projects)
+          .insertOnConflictUpdate(
+            ProjectsCompanion.insert(
+              id: 'p1',
+              name: '测试项目',
+              color: 0xFF3482FF,
+              sortOrder: 0,
+              createdAt: 0,
+              updatedAt: 0,
+            ),
+          );
+      await db
+          .into(db.tasks)
+          .insertOnConflictUpdate(
+            TasksCompanion.insert(
+              id: 'parent',
+              projectId: 'p1',
+              title: '父任务',
+              status: TaskStatus.todo,
+              sortOrder: 0,
+              createdAt: 0,
+              updatedAt: 0,
+            ),
+          );
+
+      // 编辑页作为 push 出来的路由（保存成功后 context.pop 才能真正退出）。
+      final router = GoRouter(
+        initialLocation: '/home',
+        routes: [
+          GoRoute(
+            path: '/home',
+            builder: (_, _) => Scaffold(
+              body: Builder(
+                builder: (context) => TextButton(
+                  onPressed: () => context.push('/task/parent'),
+                  child: const Text('进入编辑'),
+                ),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/task/:id',
+            builder: (_, state) =>
+                TaskEditPage(taskId: state.pathParameters['id']),
+          ),
+          GoRoute(path: '/projects', builder: (_, _) => const Scaffold()),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            todoRepositoryProvider.overrideWithValue(repo),
+            projectsStreamProvider.overrideWithValue(
+              AsyncData([
+                Project(
+                  id: 'p1',
+                  name: '测试项目',
+                  color: 0xFF3482FF,
+                  description: '',
+                  sortOrder: 0,
+                  createdAt: 0,
+                  updatedAt: 0,
+                  deleted: 0,
+                ),
+              ]),
+            ),
+            tagsStreamProvider.overrideWithValue(const AsyncData([])),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            locale: const Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('进入编辑'));
+      await tester.pumpAndSettle();
+
+      // 添加子任务行并输入。
+      await tester.tap(find.text('添加子任务'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).last, '新子任务');
+
+      // 保存 → 页面直接退出（Bug 1 修复前会弹「有未保存的更改」对话框）。
+      await tester.tap(find.text('保存'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('有未保存的更改'), findsNothing);
+      expect(find.byType(TaskEditPage), findsNothing);
+      // 子任务已落库。
+      final children = await repo.tasks.getDirectChildren('p1', 'parent');
+      expect(children.map((t) => t.title), contains('新子任务'));
+    });
+  });
 }

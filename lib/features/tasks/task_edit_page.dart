@@ -49,6 +49,7 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
   late final TaskEditorController _editorController;
   bool _hasChildren = false;
   bool _initialized = false;
+  bool _isSaving = false;
 
   bool get _isEditing => widget.taskId != null;
 
@@ -207,6 +208,8 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
       final repo = ref.read(todoRepositoryProvider);
       await repo.deleteTask(taskId);
       if (!mounted) return;
+      // 任务已删除：重设子任务快照，避免返回被「未保存」拦截（59 评审 Bug 1）。
+      _editorController.markSubtasksSaved();
       ref.read(taskFormProvider.notifier).reset();
       context.pop();
     } on RepositoryException catch (e) {
@@ -220,26 +223,36 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
   // ── 显式保存（D2）─────────────────────────────────────────────────
 
   Future<void> _save() async {
-    final notifier = ref.read(taskFormProvider.notifier);
-    final errorKey = await notifier.save();
+    if (_isSaving) return; // 防双击重复落库（59 评审 Bug 3）。
+    _isSaving = true;
+    try {
+      final notifier = ref.read(taskFormProvider.notifier);
+      final errorKey = await notifier.save();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (errorKey != null) {
-      final l10n = AppLocalizations.of(context);
-      final message = switch (errorKey) {
-        'title_required' => l10n.titleRequired,
-        'end_time_before_start' => l10n.endTimeBeforeStart,
-        _ => errorKey,
-      };
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
-      return;
+      if (errorKey != null) {
+        final l10n = AppLocalizations.of(context);
+        final message = switch (errorKey) {
+          'title_required' => l10n.titleRequired,
+          'end_time_before_start' => l10n.endTimeBeforeStart,
+          _ => errorKey,
+        };
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+        return;
+      }
+
+      await _syncSubtasks();
+      if (!mounted) return;
+      // 保存成功后重设子任务快照，使 hasSubtaskChanges 归 false，
+      // 返回时不再误弹「未保存更改」对话框（59 评审 Bug 1）。
+      _editorController.markSubtasksSaved();
+      context.pop();
+    } finally {
+      _isSaving = false;
     }
-
-    await _syncSubtasks();
-    if (mounted) context.pop();
   }
 
   /// 保存成功后统一执行子任务增删改排序（D3，延迟落库）。
@@ -251,8 +264,13 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
     final repo = ref.read(todoRepositoryProvider);
     final formState = ref.read(taskFormProvider);
     final parentId = formState.id;
-    final projectId = formState.projectId;
-    if (parentId == null || projectId == null) return;
+    if (parentId == null) return;
+
+    // 项目以 DB 实际归属为准：编辑页切换项目不落库（既有缺陷，59 §8 遗留），
+    // 表单 projectId 可能已漂移，子任务仍归属父任务的真实项目（59 评审 Bug 2）。
+    final parent = await repo.tasks.getActiveById(parentId);
+    if (parent == null) return;
+    final projectId = parent.projectId;
 
     final rows = _editorController.subtaskRows;
     try {
