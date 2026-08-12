@@ -183,6 +183,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get titleRequired => 'Title cannot be empty';
 
   @override
+  String nameTooLong(Object max) {
+    return 'Name cannot exceed $max characters';
+  }
+
+  @override
   String get endTimeBeforeStart => 'Due time cannot be earlier than start time';
 
   @override

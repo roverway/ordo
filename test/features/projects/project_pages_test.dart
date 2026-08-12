@@ -12,6 +12,7 @@ import 'package:todo/core/db/database.dart';
 import 'package:todo/core/l10n/app_localizations.dart';
 import 'package:todo/features/projects/project_providers.dart';
 import 'package:todo/features/projects/projects_page.dart';
+import 'package:todo/features/projects/widgets/project_form_dialog.dart';
 import 'package:todo/features/settings/settings_providers.dart';
 import 'package:todo/features/tasks/task_list_page.dart';
 import 'package:todo/features/tasks/task_providers.dart';
@@ -291,6 +292,119 @@ void main() {
       await tester.tap(find.text('保存'));
       await tester.pumpAndSettle();
       expect(find.byType(Dialog), findsNothing);
+    });
+
+    testWidgets('键盘收起：已手动拖离的弹窗不回弹（评审 #4 场景1）', (tester) async {
+      await _pump(
+        tester,
+        initialLocation: '/projects',
+        routes: [
+          GoRoute(path: '/projects', builder: (_, _) => const ProjectsPage()),
+          GoRoute(path: '/projects/:id', builder: (_, _) => const Scaffold()),
+        ],
+        projects: [_project('p1', '工作')],
+      );
+
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+
+      // 模拟键盘弹出 → 弹窗自动扩展至全屏。
+      tester.view.viewInsets = FakeViewPadding(bottom: 300);
+      addTearDown(tester.view.reset);
+      await tester.pumpAndSettle();
+
+      // 用户把弹窗拖到最小高度 0.4（从 ListView 顶部非输入区起拖）。
+      final sheetList = find.descendant(
+        of: find.byType(DraggableScrollableSheet),
+        matching: find.byType(ListView),
+      );
+      final listTop = tester.getTopLeft(sheetList);
+      await tester.dragFrom(
+        listTop + const Offset(100, 10),
+        const Offset(0, 400),
+      );
+      await tester.pumpAndSettle();
+
+      // 键盘收起 → 弹窗应停留在用户拖到的位置，不再回弹到 0.6。
+      tester.view.viewInsets = FakeViewPadding.zero;
+      await tester.pumpAndSettle();
+
+      final height = tester.getSize(sheetList).height;
+      // 0.4×800=320 弹窗（List 更矮）；若错误回弹 0.6×800=480 则明显更高。
+      expect(height, lessThan(320));
+    });
+
+    testWidgets('键盘收起：点过「收起」后弹窗不被拉回 0.6（评审 #4 场景2）', (tester) async {
+      await _pump(
+        tester,
+        initialLocation: '/projects',
+        routes: [
+          GoRoute(path: '/projects', builder: (_, _) => const ProjectsPage()),
+          GoRoute(path: '/projects/:id', builder: (_, _) => const Scaffold()),
+        ],
+        projects: [_project('p1', '工作')],
+      );
+
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+
+      // 键盘弹出 → 全屏态出现收起按钮。
+      tester.view.viewInsets = FakeViewPadding(bottom: 300);
+      addTearDown(tester.view.reset);
+      await tester.pumpAndSettle();
+
+      // 点击收起（用户主动接管）→ 再拖回全屏。
+      await tester.tap(find.byIcon(Icons.keyboard_arrow_down));
+      await tester.pumpAndSettle();
+      final sheetList = find.descendant(
+        of: find.byType(DraggableScrollableSheet),
+        matching: find.byType(ListView),
+      );
+      final listTop = tester.getTopLeft(sheetList);
+      await tester.dragFrom(
+        listTop + const Offset(100, 10),
+        const Offset(0, -250),
+      );
+      await tester.pumpAndSettle();
+
+      // 键盘收起 → 用户拖到的全屏位置应保持，不被拉回 0.6。
+      tester.view.viewInsets = FakeViewPadding.zero;
+      await tester.pumpAndSettle();
+
+      final height = tester.getSize(sheetList).height;
+      // 全屏 800 弹窗；若被错误拉回 0.6×800=480 则明显更矮。
+      expect(height, greaterThan(500));
+    });
+
+    testWidgets('编辑模式：预填超长名称时保存显示长度校验文案（评审 #2）', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('zh'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => Center(
+                child: ElevatedButton(
+                  onPressed: () => showProjectFormDialog(
+                    context: context,
+                    initialName: '超长项目名称' * 17, // 6 字 × 17 = 102 字 > 100
+                  ),
+                  child: const Text('open-form'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open-form'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('保存'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('名称不能超过 100 个字符'), findsOneWidget);
+      expect(find.byType(Dialog), findsOneWidget); // 校验失败不关闭。
     });
   });
 

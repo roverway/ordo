@@ -182,6 +182,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get titleRequired => '标题不能为空';
 
   @override
+  String nameTooLong(Object max) {
+    return '名称不能超过 $max 个字符';
+  }
+
+  @override
   String get endTimeBeforeStart => '截止时间不能早于开始时间';
 
   @override

@@ -440,6 +440,12 @@ abstract class AppLocalizations {
   /// **'标题不能为空'**
   String get titleRequired;
 
+  /// No description provided for @nameTooLong.
+  ///
+  /// In zh, this message translates to:
+  /// **'名称不能超过 {max} 个字符'**
+  String nameTooLong(Object max);
+
   /// No description provided for @endTimeBeforeStart.
   ///
   /// In zh, this message translates to:

@@ -46,13 +46,14 @@ class TodoRepository {
 
   // ─────────────────────────── Projects ───────────────────────────
 
-  /// 新建项目（name 1–100 字符；sortOrder 自动追加到末尾）。
+  /// 新建项目（name 1–100 字符；description 最多 500 字符；sortOrder 自动追加到末尾）。
   Future<Project> createProject({
     required String name,
     required int color,
     String description = '',
   }) async {
     _checkTextLength(name, 1, 100, '项目名');
+    _checkTextLength(description, 0, 500, '项目描述');
     final now = _nowMs();
     final project = ProjectsCompanion.insert(
       id: newUuid(),
@@ -82,7 +83,7 @@ class TodoRepository {
           : const Value.absent(),
       color: color != null ? Value(color) : const Value.absent(),
       description: description != null
-          ? Value(description)
+          ? Value(_checkTextLength(description, 0, 500, '项目描述'))
           : const Value.absent(),
       updatedAt: Value(_nowMs()),
     );

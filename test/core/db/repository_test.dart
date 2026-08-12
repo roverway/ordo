@@ -96,6 +96,30 @@ void main() {
       );
     });
 
+    test('项目描述长度校验（最多 500 字符）', () async {
+      // 空描述允许（默认 ''）。
+      final p = await repo.createProject(name: 'P', color: 0, description: '');
+      expect(p.description, '');
+
+      // 500 字符以内允许并读回。
+      final ok = await repo.createProject(
+        name: 'P2',
+        color: 0,
+        description: 'x' * 500,
+      );
+      expect(ok.description.length, 500);
+
+      // 超长拒绝（create 与 update 一致）。
+      expect(
+        () => repo.createProject(name: 'P3', color: 0, description: 'x' * 501),
+        throwsA(isA<RepositoryException>()),
+      );
+      expect(
+        () => repo.updateProject(p.id, description: 'x' * 501),
+        throwsA(isA<RepositoryException>()),
+      );
+    });
+
     test('标签名不区分大小写唯一', () async {
       await repo.createTag(name: 'Work', color: 0);
       expect(

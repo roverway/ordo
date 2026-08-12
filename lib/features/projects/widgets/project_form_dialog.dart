@@ -166,9 +166,12 @@ class _ProjectFormSheetState extends State<_ProjectFormSheet> {
       _expandedByKeyboard = !_isFullscreen;
       _animateTo(1.0);
     } else if (insets == 0 && _lastViewInsets > 0 && _expandedByKeyboard) {
-      // 键盘收起：回落到默认部分高度（用户手动拖到全屏的保持全屏）。
+      // 键盘收起：仅当弹窗仍停在键盘展开过的位置（全屏）时才回落到默认高度；
+      // 用户若已手动拖离该位置，不强行回弹（评审 #4）。
       _expandedByKeyboard = false;
-      _animateTo(_initialFraction);
+      if (_sheetController.size >= _fullscreenThreshold) {
+        _animateTo(_initialFraction);
+      }
     }
     _lastViewInsets = insets;
   }
@@ -187,7 +190,11 @@ class _ProjectFormSheetState extends State<_ProjectFormSheet> {
   }
 
   /// 全屏态顶部「返回」：收起回默认部分高度。
-  void _collapse() => _animateTo(_initialFraction);
+  void _collapse() {
+    // 用户主动接管弹窗位置：清除键盘展开标记，后续键盘收起不再回弹（评审 #4）。
+    _expandedByKeyboard = false;
+    _animateTo(_initialFraction);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -198,6 +205,9 @@ class _ProjectFormSheetState extends State<_ProjectFormSheet> {
       maxChildSize: 1.0,
       snap: true,
       snapSizes: const [_minFraction, _initialFraction, 1.0],
+      // 拖到 0.4 是合法停靠位（配合显式 取消/保存，D4）：关闭而非收起弹窗。
+      // 默认 true 会让底部弹窗被拖拽到 min 时直接 Navigator.pop（评审回归发现）。
+      shouldCloseOnMinExtent: false,
       controller: _sheetController,
       builder: (context, scrollController) => _ProjectForm(
         initialName: widget.initialName,
@@ -451,6 +461,9 @@ class _ProjectFormState extends State<_ProjectForm> {
                 child: TextFormField(
                   controller: _nameController,
                   autofocus: true,
+                  maxLength: _nameMaxLength,
+                  // 紧凑行内不展示字符计数器（评审 #2）。
+                  buildCounter: _hideCounter,
                   style: theme.textTheme.bodyLarge,
                   decoration: InputDecoration(
                     hintText: l10n.projectName,
@@ -458,9 +471,16 @@ class _ProjectFormState extends State<_ProjectForm> {
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
                   ),
-                  validator: (value) => (value == null || value.trim().isEmpty)
-                      ? l10n.titleRequired
-                      : null,
+                  validator: (value) {
+                    final v = value?.trim() ?? '';
+                    if (v.isEmpty) return l10n.titleRequired;
+                    // 防御：maxLength 已拦截输入，但预填/程序赋值仍可能超长，
+                    // 避免落库时抛未捕获 RepositoryException（tables.dart max 100）。
+                    if (v.length > _nameMaxLength) {
+                      return l10n.nameTooLong(_nameMaxLength);
+                    }
+                    return null;
+                  },
                   textInputAction: TextInputAction.next,
                 ),
               ),
@@ -520,6 +540,9 @@ class _ProjectFormState extends State<_ProjectForm> {
                   controller: _descriptionController,
                   minLines: 2,
                   maxLines: 3,
+                  maxLength: _descriptionMaxLength,
+                  // 紧凑行内不展示字符计数器（评审 #2）。
+                  buildCounter: _hideCounter,
                   style: theme.textTheme.bodyLarge,
                   decoration: InputDecoration(
                     hintText: l10n.projectDescription,
@@ -560,7 +583,21 @@ class _ProjectFormState extends State<_ProjectForm> {
       ),
     );
   }
+
+  /// 隐藏字段右下角字符计数器（紧凑表单内嵌计数器会挤占空间，评审 #2）。
+  static Widget? _hideCounter(
+    BuildContext context, {
+    required int currentLength,
+    required bool isFocused,
+    required int? maxLength,
+  }) => null;
 }
+
+/// 项目名称长度上限（与 tables.dart name 列 `withLength(min: 1, max: 100)` 对齐）。
+const int _nameMaxLength = 100;
+
+/// 描述长度上限（DB 无约束，纯 UI 层防护）。
+const int _descriptionMaxLength = 500;
 
 /// 选项行图标尺寸（分析报告 §3：灰色线性 ~24px，配合 56dp 行高取 22）。
 const double _optionIconSize = 22;

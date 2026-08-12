@@ -63,8 +63,9 @@ class Projects extends Table {
   TextColumn get name => text().withLength(min: 1, max: 100)();
   IntColumn get color => integer()();
 
-  /// 描述（可选，纯文本）。
-  TextColumn get description => text().withDefault(const Constant(''))();
+  /// 描述（可选，纯文本，最多 500 字符）。
+  TextColumn get description =>
+      text().withLength(max: 500).withDefault(const Constant(''))();
   IntColumn get sortOrder => integer()();
 
   /// UTC 毫秒。

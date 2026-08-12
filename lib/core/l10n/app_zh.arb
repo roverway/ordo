@@ -57,6 +57,7 @@
   "statusDone": "已完成",
   "statusCancelled": "已取消",
   "titleRequired": "标题不能为空",
+  "nameTooLong": "名称不能超过 {max} 个字符",
   "endTimeBeforeStart": "截止时间不能早于开始时间",
   "depthLimitExceeded": "已达到最大层级（3级），无法创建子任务",
   "moveDepthExceeded": "移动后层级超过上限",

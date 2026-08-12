@@ -57,6 +57,7 @@
   "statusDone": "Done",
   "statusCancelled": "Cancelled",
   "titleRequired": "Title cannot be empty",
+  "nameTooLong": "Name cannot exceed {max} characters",
   "endTimeBeforeStart": "Due time cannot be earlier than start time",
   "depthLimitExceeded": "Maximum depth (3 levels) reached, cannot create subtask",
   "moveDepthExceeded": "Move would exceed depth limit",

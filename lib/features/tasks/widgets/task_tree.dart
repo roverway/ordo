@@ -108,19 +108,22 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
 
   /// 将扁平先序 [treeNodes] 分组成「父任务 id → 直接子节点列表」。
   ///
-  /// treeNodes 为先序排列（父节点紧邻其整棵子树之前），因此每个节点向前
-  /// 扫描到的第一个「深度小 1」的节点即为其父节点。
+  /// treeNodes 为先序排列（`buildTreeNodes` 深度优先遍历，父节点必然先于其
+  /// 整棵子树入列），因此可用**祖先栈**在单次遍历内完成分组：遍历时弹出所有
+  /// 深度 ≥ 当前节点的栈顶（离开已完成的子树），栈顶即当前节点的父节点。
+  /// 复杂度 O(n)，替代旧的 O(n²) 反向扫描（评审发现 #1）。
   Map<String, List<TreeNode>> _indexDirectChildren(List<TreeNode> treeNodes) {
     final result = <String, List<TreeNode>>{};
-    for (var i = 0; i < treeNodes.length; i++) {
-      final node = treeNodes[i];
-      if (node.depth == 0) continue;
-      for (var j = i - 1; j >= 0; j--) {
-        if (treeNodes[j].depth == node.depth - 1) {
-          result.putIfAbsent(treeNodes[j].task.id, () => []).add(node);
-          break;
-        }
+    // 祖先链栈：栈顶 = 当前节点之前的最近祖先（即其父节点候选）。
+    final ancestors = <TreeNode>[];
+    for (final node in treeNodes) {
+      while (ancestors.isNotEmpty && ancestors.last.depth >= node.depth) {
+        ancestors.removeLast();
       }
+      if (node.depth > 0 && ancestors.isNotEmpty) {
+        result.putIfAbsent(ancestors.last.task.id, () => []).add(node);
+      }
+      ancestors.add(node);
     }
     return result;
   }
@@ -558,7 +561,7 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     List<Task> tasks,
     TodoRepository repo,
     Map<String, bool> expandState, {
-    TaskRowStyle style = TaskRowStyle.card,
+    TaskRowStyle style = TaskRowStyle.cardHeader,
     bool isDragTarget = false,
     bool isInvalidDragTarget = false,
     bool isDragging = false,

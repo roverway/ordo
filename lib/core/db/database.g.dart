@@ -47,6 +47,7 @@ class $ProjectsTable extends Projects with TableInfo<$ProjectsTable, Project> {
     'description',
     aliasedName,
     false,
+    additionalChecks: GeneratedColumn.checkTextLength(maxTextLength: 500),
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
@@ -234,7 +235,7 @@ class Project extends DataClass implements Insertable<Project> {
   final String name;
   final int color;
 
-  /// 描述（可选，纯文本）。
+  /// 描述（可选，纯文本，最多 500 字符）。
   final String description;
   final int sortOrder;
 
