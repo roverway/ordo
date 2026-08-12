@@ -1,7 +1,8 @@
 // 任务编辑全屏页（59-task-editor-optimization.md §5.3 定稿）。
 //
-// 全屏容器：AppBar（返回 + 项目名 + 下拉双箭头 + 保存按钮 + ⋯ 菜单）+ 共享编辑器
-// [TaskEditor]（showTopBar/showToolbar 均关，项目切换与 ⋯ 菜单放 AppBar）。
+// 全屏容器：AppBar（返回 + 项目名 + 保存按钮 + ⋯ 菜单；新建态项目名带下拉箭头可切换，
+// 编辑态只读展示）+ 共享编辑器 [TaskEditor]（showTopBar/showToolbar 均关，工具栏由本页
+// 在 body 内钉底渲染并随键盘上移）。
 //
 // - 保存：显式保存（AppBar 保存按钮）+ 未保存离开拦截（PopScope + hasChanges，
 //   含子任务改动），55 §8 现状保留（D2）。
@@ -154,7 +155,7 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
         // 显式声明：body 高度会扣除键盘 inset（Scaffold contentBottom），
         // 底部工具栏随 body 上移，键盘弹出时不遮挡（59 修复）。
         resizeToAvoidBottomInset: true,
-        // AppBar：返回（自动 leading）+ 项目名 + 下拉双箭头 + 保存 + ⋯ 菜单。
+        // AppBar：返回（自动 leading）+ 项目名（新建态带下拉箭头可切换，编辑态只读）+ 保存 + ⋯ 菜单。
         appBar: AppBar(
           titleSpacing: AppTokens.spaceXs,
           // 编辑已有任务：项目切换不落库（跨项目移动未实现），仅展示项目名；

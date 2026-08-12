@@ -198,10 +198,12 @@ class TaskEditor extends ConsumerStatefulWidget {
   /// 是否展示顶部栏（编辑全屏页的 AppBar 已含项目切换 + ⋯ 菜单，传 false，59 §5.3）。
   final bool showTopBar;
 
-  /// 是否在内容区末尾渲染底部工具栏（编辑全屏页改为 bottomNavigationBar 常驻，传 false）。
+  /// 是否在内容区末尾渲染底部工具栏（编辑全屏页由容器在 body 内自行钉底
+  /// 渲染并随键盘上移，传 false；59 键盘修复）。
   final bool showToolbar;
 
-  /// 是否展示子任务区（新建子任务 / 编辑有父任务的任务时传 false，仅 1 级任务展示）。
+  /// 是否展示子任务区（新建态仅 1 级任务展示；编辑态由容器按被编辑任务
+  /// 自身深度 <3 判定，方案 B）。
   final bool showSubtasks;
 
   /// 任务当前在 DB 中是否已有子任务（状态派生禁用的静态依据）。
@@ -563,7 +565,7 @@ class TaskProjectSwitcher extends ConsumerWidget {
       ),
     );
     if (result != null && context.mounted) {
-      // 父任务不能跨项目：切换项目时清空 parentId（与编辑页一致）。
+      // 父任务不能跨项目：切换项目时清空 parentId（新建态切换；编辑态无此入口）。
       ref.read(taskFormProvider.notifier).setProjectAndParent(result, null);
     }
   }

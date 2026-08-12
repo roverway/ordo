@@ -774,6 +774,9 @@ void main() {
       // 工具栏底边 ≤ 键盘顶边（修复前工具栏在 bottomNavigationBar，
       // 不随 viewInsets 上移，会位于 y≈800 被键盘遮挡）。
       expect(toolbarRect.bottom, lessThanOrEqualTo(500));
+      // 紧贴键盘上方（body 底 ≈ 800 − AppBar 56 − viewInsets 300 ≈ 444）：
+      // 上限排除被键盘遮挡，下限排除「重复上移过头飘到屏幕中部」的回归。
+      expect(toolbarRect.bottom, greaterThan(400));
       // 工具栏仍完整可见。
       expect(toolbarRect.top, greaterThan(0));
     });
