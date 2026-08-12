@@ -213,7 +213,11 @@ class AppDrawer extends ConsumerWidget {
     if (result != null && context.mounted) {
       await ref
           .read(todoRepositoryProvider)
-          .createProject(name: result.name, color: result.color);
+          .createProject(
+            name: result.name,
+            color: result.color,
+            description: result.description,
+          );
     }
   }
 }

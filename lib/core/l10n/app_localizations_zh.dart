@@ -96,6 +96,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get projectColor => '项目颜色';
 
   @override
+  String get projectDescription => '项目描述';
+
+  @override
   String get editProject => '编辑项目';
 
   @override
@@ -400,6 +403,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get clear => '清除';
+
+  @override
+  String get collapse => '收起';
 
   @override
   String get subtasks => '子任务';

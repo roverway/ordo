@@ -39,6 +39,18 @@ class $ProjectsTable extends Projects with TableInfo<$ProjectsTable, Project> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _sortOrderMeta = const VerificationMeta(
     'sortOrder',
   );
@@ -89,6 +101,7 @@ class $ProjectsTable extends Projects with TableInfo<$ProjectsTable, Project> {
     id,
     name,
     color,
+    description,
     sortOrder,
     createdAt,
     updatedAt,
@@ -126,6 +139,15 @@ class $ProjectsTable extends Projects with TableInfo<$ProjectsTable, Project> {
       );
     } else if (isInserting) {
       context.missing(_colorMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
     }
     if (data.containsKey('sort_order')) {
       context.handle(
@@ -178,6 +200,10 @@ class $ProjectsTable extends Projects with TableInfo<$ProjectsTable, Project> {
         DriftSqlType.int,
         data['${effectivePrefix}color'],
       )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      )!,
       sortOrder: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
@@ -207,6 +233,9 @@ class Project extends DataClass implements Insertable<Project> {
   final String id;
   final String name;
   final int color;
+
+  /// 描述（可选，纯文本）。
+  final String description;
   final int sortOrder;
 
   /// UTC 毫秒。
@@ -221,6 +250,7 @@ class Project extends DataClass implements Insertable<Project> {
     required this.id,
     required this.name,
     required this.color,
+    required this.description,
     required this.sortOrder,
     required this.createdAt,
     required this.updatedAt,
@@ -232,6 +262,7 @@ class Project extends DataClass implements Insertable<Project> {
     map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
     map['color'] = Variable<int>(color);
+    map['description'] = Variable<String>(description);
     map['sort_order'] = Variable<int>(sortOrder);
     map['created_at'] = Variable<int>(createdAt);
     map['updated_at'] = Variable<int>(updatedAt);
@@ -244,6 +275,7 @@ class Project extends DataClass implements Insertable<Project> {
       id: Value(id),
       name: Value(name),
       color: Value(color),
+      description: Value(description),
       sortOrder: Value(sortOrder),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -260,6 +292,7 @@ class Project extends DataClass implements Insertable<Project> {
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       color: serializer.fromJson<int>(json['color']),
+      description: serializer.fromJson<String>(json['description']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
@@ -273,6 +306,7 @@ class Project extends DataClass implements Insertable<Project> {
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'color': serializer.toJson<int>(color),
+      'description': serializer.toJson<String>(description),
       'sortOrder': serializer.toJson<int>(sortOrder),
       'createdAt': serializer.toJson<int>(createdAt),
       'updatedAt': serializer.toJson<int>(updatedAt),
@@ -284,6 +318,7 @@ class Project extends DataClass implements Insertable<Project> {
     String? id,
     String? name,
     int? color,
+    String? description,
     int? sortOrder,
     int? createdAt,
     int? updatedAt,
@@ -292,6 +327,7 @@ class Project extends DataClass implements Insertable<Project> {
     id: id ?? this.id,
     name: name ?? this.name,
     color: color ?? this.color,
+    description: description ?? this.description,
     sortOrder: sortOrder ?? this.sortOrder,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -302,6 +338,9 @@ class Project extends DataClass implements Insertable<Project> {
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       color: data.color.present ? data.color.value : this.color,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -315,6 +354,7 @@ class Project extends DataClass implements Insertable<Project> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('color: $color, ')
+          ..write('description: $description, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -324,8 +364,16 @@ class Project extends DataClass implements Insertable<Project> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, color, sortOrder, createdAt, updatedAt, deleted);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    color,
+    description,
+    sortOrder,
+    createdAt,
+    updatedAt,
+    deleted,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -333,6 +381,7 @@ class Project extends DataClass implements Insertable<Project> {
           other.id == this.id &&
           other.name == this.name &&
           other.color == this.color &&
+          other.description == this.description &&
           other.sortOrder == this.sortOrder &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -343,6 +392,7 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
   final Value<String> id;
   final Value<String> name;
   final Value<int> color;
+  final Value<String> description;
   final Value<int> sortOrder;
   final Value<int> createdAt;
   final Value<int> updatedAt;
@@ -352,6 +402,7 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.color = const Value.absent(),
+    this.description = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -362,6 +413,7 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
     required String id,
     required String name,
     required int color,
+    this.description = const Value.absent(),
     required int sortOrder,
     required int createdAt,
     required int updatedAt,
@@ -377,6 +429,7 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
     Expression<String>? id,
     Expression<String>? name,
     Expression<int>? color,
+    Expression<String>? description,
     Expression<int>? sortOrder,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
@@ -387,6 +440,7 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (color != null) 'color': color,
+      if (description != null) 'description': description,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -399,6 +453,7 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
     Value<String>? id,
     Value<String>? name,
     Value<int>? color,
+    Value<String>? description,
     Value<int>? sortOrder,
     Value<int>? createdAt,
     Value<int>? updatedAt,
@@ -409,6 +464,7 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
       id: id ?? this.id,
       name: name ?? this.name,
       color: color ?? this.color,
+      description: description ?? this.description,
       sortOrder: sortOrder ?? this.sortOrder,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -428,6 +484,9 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
     }
     if (color.present) {
       map['color'] = Variable<int>(color.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
     }
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
@@ -453,6 +512,7 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('color: $color, ')
+          ..write('description: $description, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -2181,6 +2241,7 @@ typedef $$ProjectsTableCreateCompanionBuilder =
       required String id,
       required String name,
       required int color,
+      Value<String> description,
       required int sortOrder,
       required int createdAt,
       required int updatedAt,
@@ -2192,6 +2253,7 @@ typedef $$ProjectsTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> name,
       Value<int> color,
+      Value<String> description,
       Value<int> sortOrder,
       Value<int> createdAt,
       Value<int> updatedAt,
@@ -2244,6 +2306,11 @@ class $$ProjectsTableFilterComposer
 
   ColumnFilters<int> get color => $composableBuilder(
     column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2317,6 +2384,11 @@ class $$ProjectsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
@@ -2355,6 +2427,11 @@ class $$ProjectsTableAnnotationComposer
 
   GeneratedColumn<int> get color =>
       $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
@@ -2425,6 +2502,7 @@ class $$ProjectsTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<int> color = const Value.absent(),
+                Value<String> description = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
@@ -2434,6 +2512,7 @@ class $$ProjectsTableTableManager
                 id: id,
                 name: name,
                 color: color,
+                description: description,
                 sortOrder: sortOrder,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -2445,6 +2524,7 @@ class $$ProjectsTableTableManager
                 required String id,
                 required String name,
                 required int color,
+                Value<String> description = const Value.absent(),
                 required int sortOrder,
                 required int createdAt,
                 required int updatedAt,
@@ -2454,6 +2534,7 @@ class $$ProjectsTableTableManager
                 id: id,
                 name: name,
                 color: color,
+                description: description,
                 sortOrder: sortOrder,
                 createdAt: createdAt,
                 updatedAt: updatedAt,

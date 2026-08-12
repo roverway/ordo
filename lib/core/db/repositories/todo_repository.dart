@@ -50,6 +50,7 @@ class TodoRepository {
   Future<Project> createProject({
     required String name,
     required int color,
+    String description = '',
   }) async {
     _checkTextLength(name, 1, 100, '项目名');
     final now = _nowMs();
@@ -57,6 +58,7 @@ class TodoRepository {
       id: newUuid(),
       name: name,
       color: color,
+      description: Value(description),
       sortOrder: await _nextProjectSortOrder(),
       createdAt: now,
       updatedAt: now,
@@ -65,8 +67,13 @@ class TodoRepository {
     return (await projects.getById(project.id.value))!;
   }
 
-  /// 更新项目（name/color），统一刷新 updatedAt。
-  Future<void> updateProject(String id, {String? name, int? color}) async {
+  /// 更新项目（name/color/description），统一刷新 updatedAt。
+  Future<void> updateProject(
+    String id, {
+    String? name,
+    int? color,
+    String? description,
+  }) async {
     final existing = await projects.getById(id);
     if (existing == null) throw RepositoryException('项目不存在：$id');
     final entry = ProjectsCompanion(
@@ -74,6 +81,9 @@ class TodoRepository {
           ? Value(_checkTextLength(name, 1, 100, '项目名'))
           : const Value.absent(),
       color: color != null ? Value(color) : const Value.absent(),
+      description: description != null
+          ? Value(description)
+          : const Value.absent(),
       updatedAt: Value(_nowMs()),
     );
     await projects.updateById(id, entry);

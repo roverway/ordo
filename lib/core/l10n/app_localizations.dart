@@ -272,6 +272,12 @@ abstract class AppLocalizations {
   /// **'项目颜色'**
   String get projectColor;
 
+  /// No description provided for @projectDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'项目描述'**
+  String get projectDescription;
+
   /// No description provided for @editProject.
   ///
   /// In zh, this message translates to:
@@ -859,6 +865,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'清除'**
   String get clear;
+
+  /// No description provided for @collapse.
+  ///
+  /// In zh, this message translates to:
+  /// **'收起'**
+  String get collapse;
 
   /// No description provided for @subtasks.
   ///

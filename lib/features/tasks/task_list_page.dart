@@ -191,11 +191,17 @@ class TaskListPage extends ConsumerWidget {
       context: context,
       initialName: project.name,
       initialColor: project.color,
+      initialDescription: project.description,
     );
     if (result != null && context.mounted) {
       await ref
           .read(todoRepositoryProvider)
-          .updateProject(project.id, name: result.name, color: result.color);
+          .updateProject(
+            project.id,
+            name: result.name,
+            color: result.color,
+            description: result.description,
+          );
     }
   }
 

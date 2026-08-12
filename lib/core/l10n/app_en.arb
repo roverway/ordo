@@ -29,6 +29,7 @@
   "newProject": "New Project",
   "projectName": "Project name",
   "projectColor": "Project color",
+  "projectDescription": "Project description",
   "editProject": "Edit Project",
   "deleteProject": "Delete Project",
   "deleteProjectConfirm": "Delete project \"{name}\"?",
@@ -127,6 +128,7 @@
   "nextWeek": "Next week",
   "custom": "Custom",
   "clear": "Clear",
+  "collapse": "Collapse",
   "subtasks": "Subtasks",
   "addSubtask": "Add subtask",
   "subtaskHint": "Subtask title"

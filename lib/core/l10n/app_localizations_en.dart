@@ -96,6 +96,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get projectColor => 'Project color';
 
   @override
+  String get projectDescription => 'Project description';
+
+  @override
   String get editProject => 'Edit Project';
 
   @override
@@ -405,6 +408,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clear => 'Clear';
+
+  @override
+  String get collapse => 'Collapse';
 
   @override
   String get subtasks => 'Subtasks';

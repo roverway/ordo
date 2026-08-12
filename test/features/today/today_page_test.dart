@@ -167,6 +167,7 @@ Future<TodoRepository> _pumpToday(
     id: inboxProjectId,
     name: '收件箱',
     color: inboxProjectColor,
+    description: '',
     sortOrder: 0,
     createdAt: 0,
     updatedAt: 0,

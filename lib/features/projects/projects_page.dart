@@ -78,7 +78,11 @@ class ProjectsPage extends ConsumerWidget {
     final result = await showProjectFormDialog(context: context);
     if (result != null && context.mounted) {
       final repo = ref.read(todoRepositoryProvider);
-      await repo.createProject(name: result.name, color: result.color);
+      await repo.createProject(
+        name: result.name,
+        color: result.color,
+        description: result.description,
+      );
     }
   }
 }

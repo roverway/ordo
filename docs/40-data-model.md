@@ -23,6 +23,7 @@ tasks    1 ──── N tasks     （parentId 自引用，最多 3 级）
 | id | TEXT | PK | UUID v4 |
 | name | TEXT | NOT NULL, 1–100 字符 | 项目名 |
 | color | INTEGER | NOT NULL | ARGB 颜色值 |
+| description | TEXT | NOT NULL DEFAULT '' | 描述（可选，纯文本） |
 | sortOrder | INTEGER | NOT NULL | 项目间排序 |
 | createdAt | INTEGER | NOT NULL | UTC 毫秒 |
 | updatedAt | INTEGER | NOT NULL | UTC 毫秒（同步字段） |
@@ -184,6 +185,7 @@ double progress(Task root, List<Task> subtree):
 |---|---|---|
 | 1 | 初始 schema | M1 建全部 5 张表 |
 | 2 | `tasks.priority` | 新增优先级列（INTEGER NOT NULL DEFAULT 0），`m.addColumn(tasks, tasks.priority)`；旧行默认 `none` |
+| 3 | `projects.description` | 新增描述列（TEXT NOT NULL DEFAULT ''），`m.addColumn(projects, projects.description)`；旧行默认 `''` |
 
 ## 9. 数据量假设
 

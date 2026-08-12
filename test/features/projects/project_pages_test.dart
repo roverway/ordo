@@ -22,6 +22,7 @@ Project _project(String id, String name, {int color = 0xFF3482FF}) => Project(
   id: id,
   name: name,
   color: color,
+  description: '',
   sortOrder: 0,
   createdAt: 0,
   updatedAt: 0,
@@ -143,8 +144,12 @@ void main() {
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsOneWidget);
+      // 移动端（<600dp）为可上拉底部弹窗（D1），不再用 AlertDialog。
+      expect(find.byType(BottomSheet), findsOneWidget);
       expect(find.byType(TextFormField), findsOneWidget);
+      // 描述字段（可选，D2）+ 颜色选项行。
+      expect(find.text('项目描述'), findsOneWidget);
+      expect(find.text('项目颜色'), findsOneWidget);
     });
 
     testWidgets('新建对话框：空名称验证失败', (tester) async {
@@ -207,8 +212,8 @@ void main() {
       await tester.tap(find.text('保存'));
       await tester.pumpAndSettle();
 
-      // 对话框已关闭（pop 返回数据）。
-      expect(find.byType(AlertDialog), findsNothing);
+      // 弹窗已关闭（pop 返回数据）。
+      expect(find.byType(BottomSheet), findsNothing);
     });
 
     testWidgets('新建对话框：取消关闭不返回数据', (tester) async {
@@ -228,7 +233,64 @@ void main() {
       await tester.tap(find.text('取消'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.byType(BottomSheet), findsNothing);
+    });
+
+    testWidgets('新建弹窗：颜色选项行弹出底部颜色选择器并选中', (tester) async {
+      await _pump(
+        tester,
+        initialLocation: '/projects',
+        routes: [
+          GoRoute(path: '/projects', builder: (_, _) => const ProjectsPage()),
+          GoRoute(path: '/projects/:id', builder: (_, _) => const Scaffold()),
+        ],
+        projects: [_project('p1', '工作')],
+      );
+
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+
+      // 点击颜色选项行 → 弹出颜色选择器（D3）。
+      await tester.tap(find.text('项目颜色'));
+      await tester.pumpAndSettle();
+
+      // 选择器顶栏标题 + 8 个预设色点；弹窗仍保留在下层。
+      expect(find.byType(BottomSheet), findsNWidgets(2));
+      expect(find.text('项目颜色'), findsNWidgets(2));
+
+      // 点击某个色点 → 选择器关闭，表单弹窗仍在。
+      await tester.tap(find.byIcon(Icons.check).first);
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+    });
+
+    testWidgets('桌面端（≥600dp）新建项目为居中对话框（D5）', (tester) async {
+      await _pump(
+        tester,
+        initialLocation: '/projects',
+        routes: [
+          GoRoute(path: '/projects', builder: (_, _) => const ProjectsPage()),
+          GoRoute(path: '/projects/:id', builder: (_, _) => const Scaffold()),
+        ],
+        projects: [_project('p1', '工作')],
+        size: const Size(800, 900),
+      );
+
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+
+      // 宽屏走居中 Dialog（非 BottomSheet），选项行结构一致。
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(find.text('项目名称'), findsOneWidget);
+      expect(find.text('项目颜色'), findsOneWidget);
+      expect(find.text('项目描述'), findsOneWidget);
+
+      // 有效名称 → 保存关闭。
+      await tester.enterText(find.byType(TextFormField), '桌面项目');
+      await tester.tap(find.text('保存'));
+      await tester.pumpAndSettle();
+      expect(find.byType(Dialog), findsNothing);
     });
   });
 

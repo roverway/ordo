@@ -912,6 +912,7 @@ class _ProjectPickerSheetState extends ConsumerState<_ProjectPickerSheet> {
     final project = await repo.createProject(
       name: data.name,
       color: data.color,
+      description: data.description,
     );
     if (!mounted) return;
     Navigator.of(context).pop(project.id);

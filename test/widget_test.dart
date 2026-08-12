@@ -79,6 +79,7 @@ Future<void> pumpApp(
             id: inboxProjectId,
             name: '收件箱',
             color: inboxProjectColor,
+            description: '',
             sortOrder: 0,
             createdAt: 0,
             updatedAt: 0,
@@ -94,6 +95,7 @@ Future<void> pumpApp(
       id: 'inbox',
       name: 'Inbox',
       color: 0xFF7C6FF7,
+      description: '',
       sortOrder: 0,
       createdAt: 0,
       updatedAt: 0,
@@ -294,6 +296,7 @@ void main() {
       id: 'p1',
       name: '工作',
       color: 0xFF4A6CF7,
+      description: '',
       sortOrder: 0,
       createdAt: 0,
       updatedAt: 0,
@@ -338,6 +341,7 @@ void main() {
       id: 'p1',
       name: '工作',
       color: 0xFF4A6CF7,
+      description: '',
       sortOrder: 0,
       createdAt: 0,
       updatedAt: 0,
@@ -374,17 +378,17 @@ void main() {
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();
 
-    // 底部「新建项目」→ 复用 project_form_dialog。
+    // 底部「新建项目」→ 复用 project_form_dialog（移动端为可上拉底部弹窗 D1）。
     await tester.tap(
       find.descendant(of: find.byType(Drawer), matching: find.text('新建项目')),
     );
     await tester.pumpAndSettle();
-    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.byType(BottomSheet), findsOneWidget);
 
     // 取消关闭，不落库。
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
-    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(BottomSheet), findsNothing);
   });
 
   testWidgets('Settings: theme mode & language switch persist instantly', (
