@@ -34,6 +34,14 @@ class AppShell extends StatelessWidget {
   /// 窄屏底部 NavigationBar 3 个系统入口（收集箱与项目移入抽屉，§3.1）。
   static const List<String> _barPaths = ['/today', '/calendar', '/tags'];
 
+  /// 当前路由是否命中窄屏底栏的某个入口。
+  ///
+  /// 未命中（如 /inbox、/projects/:id、/search、/settings）时底栏**无选中**：
+  /// NavigationBar 的 selectedIndex 必须为合法值（断言 0 ≤ i < n），故传 0，
+  /// 但用局部 Theme 把指示器置透明、选中态样式对齐未选中，实现视觉「无选中」。
+  /// 此语义仅底栏需要；宽屏 Rail 的 fallback 0 = 收件箱（首页）保持高亮正确。
+  static bool _hasBarMatch(String path) => _barPaths.contains(path);
+
   /// Derive destination index from route path; fall back to 0.
   static int _selectedIndexIn(List<String> paths, String path) {
     final index = paths.indexOf(path);
@@ -43,10 +51,13 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final narrow = AppBreakpoints.isNarrow(context);
     final path = GoRouterState.of(context).uri.path;
+    final hasBarMatch = _hasBarMatch(path);
     final railIndex = _selectedIndexIn(_railPaths, path);
-    final barIndex = _selectedIndexIn(_barPaths, path);
+    final barIndex = hasBarMatch ? _barPaths.indexOf(path) : 0;
 
     // 宽屏 Rail 5 目的地（不变）。
     final railDestinations =
@@ -79,27 +90,20 @@ class AppShell extends StatelessWidget {
         ];
 
     // 窄屏底部 NavigationBar 3 系统入口（今日/日历/标签）。
-    final barDestinations =
-        <({String label, IconData icon, IconData selectedIcon})>[
-          (
-            label: l10n.navToday,
-            icon: Icons.today_outlined,
-            selectedIcon: Icons.today,
-          ),
-          (
-            label: l10n.navCalendar,
-            icon: Icons.calendar_today_outlined,
-            selectedIcon: Icons.calendar_today,
-          ),
-          (
-            label: l10n.navTags,
-            icon: Icons.label_outline,
-            selectedIcon: Icons.label,
-          ),
-        ];
+    //
+    // icon 与 selectedIcon 使用同一 outlined 图标：选中态靠 indicator 药丸 +
+    // 图标/文字颜色区分（滴答式），而非切换 filled 变体。这样未命中路由时
+    // 才能做到视觉「无选中」——若依赖形状切换，selectedIndex 传合法值
+    // （0）会强制第一个目的地渲染 filled 图标，无法完全抑制。
+    final barDestinations = <({String label, IconData icon})>[
+      (label: l10n.navToday, icon: Icons.today_outlined),
+      (label: l10n.navCalendar, icon: Icons.calendar_today_outlined),
+      (label: l10n.navTags, icon: Icons.label_outline),
+    ];
 
     return Scaffold(
-      // 窄屏抽屉（宽 78% 屏宽，右侧遮罩点击关闭由 Scaffold scrim 提供）。
+      // 窄屏抽屉：宽度（屏宽 × drawerWidthRatio）由 AppDrawer 自身提供
+      //（评审问题 5：接线 0.78 令牌）；右侧遮罩点击关闭由 Scaffold scrim 提供。
       drawer: narrow ? const AppDrawer() : null,
       appBar: AppBar(
         // 仅窄屏显示汉堡入口；宽屏由 Rail 承担导航。
@@ -154,17 +158,39 @@ class AppShell extends StatelessWidget {
       // （projects/tags 保留各自语义 FAB）。不在 AppShell 层挂全局 FAB，避免与
       // 页面自身 FAB 重复（widget_test 断言单 FAB）。
       bottomNavigationBar: narrow
-          ? NavigationBar(
-              selectedIndex: barIndex,
-              onDestinationSelected: (index) => context.go(_barPaths[index]),
-              destinations: [
-                for (final d in barDestinations)
-                  NavigationDestination(
-                    icon: Icon(d.icon),
-                    selectedIcon: Icon(d.selectedIcon),
-                    label: d.label,
-                  ),
-              ],
+          ? Theme(
+              // 未命中底栏路由：无选中。选中 index 传 0 满足合法断言，但把
+              // indicator 置透明、选中态（icon/label）样式对齐未选中，
+              // 视觉上无任何高亮（修复评审问题 1：inbox 首页不再误亮「今日」）。
+              data: hasBarMatch
+                  ? theme
+                  : theme.copyWith(
+                      navigationBarTheme: theme.navigationBarTheme.copyWith(
+                        indicatorColor: Colors.transparent,
+                        iconTheme: WidgetStateProperty.resolveWith(
+                          (states) => IconThemeData(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        labelTextStyle: WidgetStateProperty.resolveWith(
+                          (states) => theme.textTheme.labelMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ),
+              child: NavigationBar(
+                selectedIndex: barIndex,
+                onDestinationSelected: (index) => context.go(_barPaths[index]),
+                destinations: [
+                  for (final d in barDestinations)
+                    NavigationDestination(
+                      icon: Icon(d.icon),
+                      selectedIcon: Icon(d.icon),
+                      label: d.label,
+                    ),
+                ],
+              ),
             )
           : null,
     );

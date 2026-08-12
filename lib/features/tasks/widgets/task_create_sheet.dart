@@ -110,23 +110,37 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _initForm());
   }
 
-  /// 初始化表单：确定项目（缺省收件箱）并复用 taskFormProvider 的新建路径。
+  /// 初始化表单：同步复位 + 解析项目（缺省收件箱，幂等 ensure，产品决策 #3）。
+  ///
+  /// 顺序修复（评审问题 2）：先在首帧后**同步** `resetForNew`（projectId 用
+  /// widget 传入值或内置收件箱固定 id [inboxProjectId]，无需任何 await），
+  /// 再在 inbox ensure future 解析完成后仅用 [setProjectAndParent] 校正项目
+  /// 字段——该方法保留表单其余字段（标题/优先级/日期等），不会清空用户
+  /// 已输入内容。避免「await 期间输入被 resetForNew 静默清空」的丢数据窗口。
   Future<void> _initForm() async {
     if (_initialized) return;
     _initialized = true;
     final notifier = ref.read(taskFormProvider.notifier);
-    String projectId = widget.projectId ?? '';
-    if (widget.projectId == null) {
-      // 未指定项目 → 内置收件箱（幂等 ensure，产品决策 #3）。
-      final inbox = await ref.read(inboxProjectProvider.future);
-      projectId = inbox.id;
-    }
-    notifier.resetForNew(projectId, widget.parentId);
+
+    // 1. 同步复位（可立即输入）：缺省项目用收件箱固定 id，幂等语义不变。
+    final initialProjectId = widget.projectId ?? inboxProjectId;
+    notifier.resetForNew(initialProjectId, widget.parentId);
     if (widget.initialStartAt != null) {
       notifier.updateStartAt(widget.initialStartAt);
     }
     if (widget.initialEndAt != null) {
       notifier.updateEndAt(widget.initialEndAt);
+    }
+
+    // 2. 缺省项目时确保收件箱行存在（幂等），解析完成后仅校正项目字段。
+    if (widget.projectId == null) {
+      try {
+        final inbox = await ref.read(inboxProjectProvider.future);
+        notifier.setProjectAndParent(inbox.id, widget.parentId);
+      } catch (_) {
+        // ensure 失败极罕见（SQLite 本地库）：表单已按收件箱 id 初始化，
+        // 保存时若行缺失会经 RepositoryException 走 SnackBar，不静默丢数据。
+      }
     }
   }
 

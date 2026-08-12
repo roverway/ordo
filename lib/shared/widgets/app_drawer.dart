@@ -17,7 +17,7 @@ import '../../features/tasks/task_providers.dart';
 /// - 当前项选中态：secondaryContainer 浅色药丸 + 圆角（colorScheme 派生，
 ///   不硬编码颜色）；由当前路由路径推导（路由不变，仅入口变化）。
 ///
-/// 宽 75–80% 屏宽（`AppTokens.drawerWidthRatio`，由 AppShell 的 Drawer 提供），
+/// 宽度 = 屏宽 × [AppTokens.drawerWidthRatio]（0.78，定稿 75–80% 屏宽），
 /// 右侧半透明遮罩由 Scaffold 自带 scrim 提供（点击关闭）。
 class AppDrawer extends ConsumerWidget {
   const AppDrawer({super.key});
@@ -58,6 +58,7 @@ class AppDrawer extends ConsumerWidget {
         ];
 
     return Drawer(
+      width: MediaQuery.sizeOf(context).width * AppTokens.drawerWidthRatio,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

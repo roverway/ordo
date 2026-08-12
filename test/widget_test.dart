@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:todo/app.dart';
 import 'package:todo/core/db/database.dart';
+import 'package:todo/core/theme/app_tokens.dart';
 import 'package:todo/features/calendar/calendar_providers.dart';
 import 'package:todo/features/projects/project_providers.dart';
 import 'package:todo/features/settings/settings_providers.dart';
@@ -130,6 +131,14 @@ void main() {
     // 窄屏 AppBar 有汉堡入口；抽屉未打开时不渲染。
     expect(find.byIcon(Icons.menu), findsOneWidget);
     expect(find.byType(Drawer), findsNothing);
+
+    // 评审回归断言：inbox（默认首页）不在底栏 3 入口中，底栏必须「无选中」——
+    // 局部 Theme 将 indicator 置透明（不允许误亮「今日」，Flutter 断言
+    // selectedIndex 必须合法，故无法用非法 index 表达无选中）。
+    final navTheme = Theme.of(
+      tester.element(find.byType(NavigationBar)),
+    ).navigationBarTheme;
+    expect(navTheme.indicatorColor, Colors.transparent);
   });
 
   testWidgets(
@@ -165,6 +174,11 @@ void main() {
     await tester.tap(find.text('今日'));
     await tester.pumpAndSettle();
     expect(find.text('今天还没有任务'), findsOneWidget);
+    // 命中底栏路由后「无选中」Theme 覆盖解除（indicator 恢复非透明）。
+    final todayNavTheme = Theme.of(
+      tester.element(find.byType(NavigationBar)),
+    ).navigationBarTheme;
+    expect(todayNavTheme.indicatorColor, isNot(Colors.transparent));
 
     // Switch to Calendar.
     await tester.tap(find.text('日历'));
@@ -186,6 +200,11 @@ void main() {
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();
     expect(find.byType(Drawer), findsOneWidget);
+    // 抽屉宽度接线：屏宽 × drawerWidthRatio（评审问题 5）。
+    expect(
+      tester.widget<Drawer>(find.byType(Drawer)).width,
+      400 * AppTokens.drawerWidthRatio,
+    );
 
     // 系统组：今日 → 今日页（抽屉内点击，避免匹配到底部 tab）。
     await tester.tap(

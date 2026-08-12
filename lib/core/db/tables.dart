@@ -9,11 +9,19 @@ enum TaskStatus { todo, inProgress, done, cancelled }
 /// 将 [TaskStatus] 与数据库 INTEGER 互转的 TypeConverter。
 ///
 /// 值域：0=todo / 1=inProgress / 2=done / 3=cancelled（§3.1）。
+/// 读取路径**崩溃安全**（评审问题 3，与 TaskPriorityConverter 同款）：status
+/// 已进入同步快照，未来同步引擎或新版本客户端可能带来越界值；越界一律回退
+/// [TaskStatus.todo]（status 的语义默认值）。写入路径由枚举驱动，`toSql` 恒合法。
 class TaskStatusConverter extends TypeConverter<TaskStatus, int> {
   const TaskStatusConverter();
 
   @override
-  TaskStatus fromSql(int fromDb) => TaskStatus.values[fromDb];
+  TaskStatus fromSql(int fromDb) {
+    if (fromDb < 0 || fromDb >= TaskStatus.values.length) {
+      return TaskStatus.todo;
+    }
+    return TaskStatus.values[fromDb];
+  }
 
   @override
   int toSql(TaskStatus value) => value.index;
@@ -29,11 +37,19 @@ enum TaskPriority { none, low, medium, high }
 /// 将 [TaskPriority] 与数据库 INTEGER 互转的 TypeConverter。
 ///
 /// 值域：0=none / 1=low / 2=medium / 3=high（§3.2）。
+/// 读取路径**崩溃安全**（评审问题 3）：priority 已进入同步快照，未来同步引擎
+/// 或新版本客户端可能带来越界值；越界一律回退 [TaskPriority.none]（未知值
+/// 不应被静默解释为某个具体优先级）。写入路径由枚举驱动，`toSql` 恒合法。
 class TaskPriorityConverter extends TypeConverter<TaskPriority, int> {
   const TaskPriorityConverter();
 
   @override
-  TaskPriority fromSql(int fromDb) => TaskPriority.values[fromDb];
+  TaskPriority fromSql(int fromDb) {
+    if (fromDb < 0 || fromDb >= TaskPriority.values.length) {
+      return TaskPriority.none;
+    }
+    return TaskPriority.values[fromDb];
+  }
 
   @override
   int toSql(TaskPriority value) => value.index;
