@@ -114,6 +114,8 @@ class TaskListPage extends ConsumerWidget {
 
     // FAB 显示条件（沿用原各页行为，56-task-scope-page.md §3.2）：
     // 今日常驻；收件箱仅非空（空态用「添加任务」按钮，避免双新建入口）；项目存在时。
+    // loading/error 态隐藏 FAB（与旧页面只在 data 态渲染 FAB 一致；error 态点 FAB
+    // 会对不存在的 projectId 抛 RepositoryException）。
     final showFab = switch (scope) {
       TodayTaskScope() => true,
       InboxTaskScope() =>
@@ -121,14 +123,14 @@ class TaskListPage extends ConsumerWidget {
             .watch(inboxTasksProvider)
             .maybeWhen(
               data: (tasks) => tasks.any((t) => t.parentId == null),
-              orElse: () => true,
+              orElse: () => false,
             ),
       ProjectTaskScope(:final projectId) =>
         ref
             .watch(projectsStreamProvider)
             .maybeWhen(
               data: (projects) => projects.any((p) => p.id == projectId),
-              orElse: () => true,
+              orElse: () => false,
             ),
     };
 

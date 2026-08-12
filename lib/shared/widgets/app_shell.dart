@@ -48,7 +48,8 @@ class AppShell extends StatelessWidget {
   /// 未命中（如 /inbox、/projects/:id、/search、/settings）时底栏**无选中**：
   /// NavigationBar 的 selectedIndex 必须为合法值（断言 0 ≤ i < n），故传 0，
   /// 但用局部 Theme 把指示器置透明、选中态样式对齐未选中，实现视觉「无选中」。
-  /// 此语义仅底栏需要；宽屏 Rail 的 fallback 0 = 收件箱（首页）保持高亮正确。
+  /// 此语义仅底栏需要；宽屏 Rail 的 fallback 0 = 收件箱（索引 0，launch 首页为
+  /// /today 后仍保持收件箱高亮——未命中路由时 Rail 同样无对应目的地）。
   static bool _hasBarMatch(String path) => _barPaths.contains(path);
 
   /// Derive destination index from route path; fall back to 0.
