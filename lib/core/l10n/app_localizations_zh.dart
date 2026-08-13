@@ -296,6 +296,17 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String relativeStartInDays(num days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '距开始 $days 天',
+      one: '距开始 1 天',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get noDueDate => '无截止日期';
 
   @override

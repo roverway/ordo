@@ -300,6 +300,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String relativeStartInDays(num days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: 'Starts in $days days',
+      one: 'Starts in 1 day',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get noDueDate => 'No due date';
 
   @override

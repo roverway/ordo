@@ -91,6 +91,7 @@
   "tasksRemaining": "{count} 个待完成",
   "progress": "进度",
   "progressPercent": "进度 {percent}%",
+  "relativeStartInDays": "{days, plural, =1 {距开始 1 天} other {距开始 {days} 天}}",
   "noDueDate": "无截止日期",
   "selectProject": "选择项目",
   "done": "完成",

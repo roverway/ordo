@@ -211,6 +211,31 @@ abstract final class AppTokens {
   /// Empty state icon size.
   static const double emptyIconSize = 56;
 
+  // ── 任务列表扁平行（61-task-list-redesign.md §4/§7）──
+
+  /// 方形勾选框圆角（参考案例方形 □，61 §4.2）。
+  static const double checkboxRadius = 4;
+
+  /// 方形勾选框形状（任务列表行用；编辑页子任务区仍用圆形 [checkboxShape]）。
+  static const OutlinedBorder checkboxShapeSquare = RoundedRectangleBorder(
+    borderRadius: BorderRadius.all(Radius.circular(checkboxRadius)),
+  );
+
+  /// 任务树每级缩进量（61 §4.3，替代 [treeIndent]=28 用于扁平行子任务缩进）。
+  static const double treeIndentLevel = 24;
+
+  /// 行尾展开/折叠箭头尺寸（61 §4.5，比 AppBar/树内 [expandArrowSize] 20 稍小）。
+  static const double expandArrowSizeRow = 16;
+
+  /// 相对时间文字颜色（「距开始 X 天」，61 §4.4，与 colorPriorityMedium 同值）。
+  static const Color colorDateRelative = Color(0xFFF4A74A);
+
+  /// 任务行最小高度（一级任务行，61 §3.2）。
+  static const double taskRowMinHeight = 56;
+
+  /// 任务行最小高度（子任务行，61 §3.2）。
+  static const double taskRowCompactMinHeight = 48;
+
   // ── 状态反馈（M5 任务 1，50-ui-ux.md §6.3）──
 
   /// 统一加载指示器尺寸（LoadingView）。

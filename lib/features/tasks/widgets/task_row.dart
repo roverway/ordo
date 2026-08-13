@@ -7,19 +7,20 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/dates.dart';
 import '../../../shared/widgets/task_progress_ring.dart';
 
-/// 任务行渲染形态（57-task-page-polish.md §4.2，D1/D7）。
+/// 任务行渲染形态（57-task-page-polish.md §4.2，D1/D7；61-task-list-redesign.md §4）。
 ///
 /// - [TaskRowStyle.cardHeader]：一级任务大卡片的头部——无自身卡片底/阴影
 ///   （由外层大卡片提供），拖拽目标高亮态保留；
 /// - [TaskRowStyle.compact]：卡片内紧凑子任务行——无卡片底，Divider 分隔，
-///   紧凑间距 + 缩小缩进（借鉴 TaskCreateSheet 行距节奏）。
+///   紧凑间距 + 缩进（借鉴 TaskCreateSheet 行距节奏）。
 enum TaskRowStyle { cardHeader, compact }
 
 /// Task row — the core list item in project detail and task trees.
 ///
-/// TickTick-inspired: clean circular checkbox, soft colors, subtle metadata row.
-/// 卡片化（M5 批 1）：白卡片 + 圆角 16 + 轻阴影，hover 轻微抬升；
-/// 视觉与 `SimpleTaskTile` 统一（55-ui-redesign-proposal.md §6）。
+/// 扁平行式（61-task-list-redesign.md §2/§4）：任务行本身无独立卡片底/阴影，
+/// 仅保留拖拽/悬停态叠加色；勾选框为**方形**并按层级着色（一级蓝、子级红）；
+/// 元信息（描述/标签/日期）从标题同行改为标题下方独立行；子任务数 + 展开箭头
+/// 移至行尾（菜单左侧）。
 /// Supports drag-target highlight states for tree reordering.
 class TaskRow extends StatefulWidget {
   const TaskRow({
@@ -33,6 +34,7 @@ class TaskRow extends StatefulWidget {
     required this.onTap,
     required this.onMenuAction,
     this.style = TaskRowStyle.cardHeader,
+    this.childCount = 0,
     this.tags = const [],
     this.derivedStatus,
     this.progressValue,
@@ -51,6 +53,10 @@ class TaskRow extends StatefulWidget {
   final VoidCallback onTap;
   final void Function(String action) onMenuAction;
   final TaskRowStyle style;
+
+  /// 直接子任务数量（61 §4.5：行尾「子任务数 + 展开箭头」）。
+  final int childCount;
+
   final List<Tag> tags;
   final TaskStatus? derivedStatus;
   final double? progressValue;
@@ -76,9 +82,8 @@ class _TaskRowState extends State<TaskRow> {
         TaskStatus.todo => colorScheme.outline,
       };
 
-  /// 行背景：卡片头/紧凑行无自身卡片底（透明，卡片底由外层容器提供），
-  /// 仅拖拽目标/拖拽中/悬停态以叠加色替代。
-  Color _cardColor(ColorScheme colorScheme, bool isDark) {
+  /// 行背景（61 §2/§4.7）：扁平行无自身卡片底，透明底 + 仅拖拽/悬停态叠加色。
+  Color _rowColor(ColorScheme colorScheme) {
     if (widget.isInvalidDragTarget) {
       return colorScheme.errorContainer.withValues(alpha: 0.4);
     }
@@ -89,20 +94,16 @@ class _TaskRowState extends State<TaskRow> {
       return colorScheme.surfaceContainerHighest.withValues(alpha: 0.5);
     }
     if (_hovered) {
-      // 无卡片底的行：悬停给轻微底色反馈（替代抬升阴影）。
+      // 扁平行：悬停给轻微底色反馈（替代卡片阴影抬升）。
       return colorScheme.surfaceContainerHighest.withValues(alpha: 0.4);
     }
-    return isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard;
+    return Colors.transparent;
   }
 
-  /// 行内边距：紧凑行用 [AppTokens.treeIndentCompact] 缩进，头部行对齐卡片
-  /// 内容区（[AppTokens.spaceMd]），无魔法值。
+  /// 行内边距（61 §4.1）：左 [AppTokens.spaceMd]、右 [AppTokens.spaceXxs]，
+  /// 子任务行按深度缩进 [AppTokens.treeIndentLevel]（一级行深度恒 0 不缩进）。
   EdgeInsets _contentPadding() {
-    final indent =
-        widget.depth *
-        (widget.style == TaskRowStyle.compact
-            ? AppTokens.treeIndentCompact
-            : AppTokens.treeIndent);
+    final indent = widget.depth * AppTokens.treeIndentLevel;
     return switch (widget.style) {
       TaskRowStyle.cardHeader => EdgeInsets.only(
         left: AppTokens.spaceMd,
@@ -119,28 +120,44 @@ class _TaskRowState extends State<TaskRow> {
     };
   }
 
+  /// 勾选框边框色（61 §4.2 层级着色）：完成 = 蓝填充白勾（边框被填充覆盖）；
+  /// 未完成按深度着色——一级蓝 [AppTokens.colorInProgress]、子级红
+  /// [AppTokens.colorPriorityHigh]。
+  Color _checkboxBorderColor(bool isDone) {
+    if (isDone) return AppTokens.checkboxDoneFill;
+    return widget.depth == 0
+        ? AppTokens.colorInProgress
+        : AppTokens.colorPriorityHigh;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
     final effectiveStatus = widget.derivedStatus ?? widget.task.status;
     final hasDerived = widget.derivedStatus != null;
     final isDone = effectiveStatus == TaskStatus.done;
+
+    final dateText = formatDateRange(
+      widget.task.startAt,
+      widget.task.endAt,
+      l10n,
+    );
+    final relativeText = formatRelativeStart(widget.task.startAt, l10n);
+    final rowRadius = widget.style == TaskRowStyle.compact
+        ? AppTokens.radiusList
+        : AppTokens.radiusCard;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: AnimatedContainer(
         duration: AppTokens.motionFast,
+        curve: AppTokens.motionSpring,
         decoration: BoxDecoration(
-          color: _cardColor(colorScheme, isDark),
-          borderRadius: BorderRadius.circular(
-            widget.style == TaskRowStyle.compact
-                ? AppTokens.radiusList
-                : AppTokens.radiusCard,
-          ),
+          color: _rowColor(colorScheme),
+          borderRadius: BorderRadius.circular(rowRadius),
           border: widget.isDragTarget
               ? Border.all(
                   color: widget.isInvalidDragTarget
@@ -153,114 +170,114 @@ class _TaskRowState extends State<TaskRow> {
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            borderRadius: BorderRadius.circular(
-              widget.style == TaskRowStyle.compact
-                  ? AppTokens.radiusList
-                  : AppTokens.radiusCard,
-            ),
+            borderRadius: BorderRadius.circular(rowRadius),
             onTap: widget.onTap,
             child: Padding(
               padding: _contentPadding(),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Expand/collapse arrow.
-                  SizedBox(
-                    width: AppTokens.expandArrowSize + 8,
-                    height: AppTokens.expandArrowSize + 8,
-                    child: widget.hasChildren
-                        ? Semantics(
-                            // 无障碍（NFR-06）：纯图标按钮补语义标签（展开/收起）。
-                            button: true,
-                            label: widget.isExpanded
-                                ? l10n.collapse
-                                : l10n.expand,
-                            child: GestureDetector(
-                              onTap: widget.onToggleExpand,
-                              child: AnimatedRotation(
-                                turns: widget.isExpanded ? 0.25 : 0,
-                                duration: AppTokens.motionFast,
-                                child: Icon(
-                                  Icons.arrow_right,
-                                  size: AppTokens.expandArrowSize,
-                                  color: colorScheme.onSurfaceVariant,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: widget.style == TaskRowStyle.compact
+                      ? AppTokens.taskRowCompactMinHeight
+                      : AppTokens.taskRowMinHeight,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Checkbox（方形，61 §4.2；有子任务的子任务行禁用：
+                    // 状态由父任务派生，Tooltip 解释原因，AGENTS.md §3-2 +
+                    // NFR-06 语义）。
+                    SizedBox(
+                      width: AppTokens.touchTarget,
+                      height: AppTokens.touchTarget,
+                      child: (!hasDerived || widget.task.parentId == null)
+                          ? Checkbox(
+                              value: isDone,
+                              shape: AppTokens.checkboxShapeSquare,
+                              side: BorderSide(
+                                color: _checkboxBorderColor(isDone),
+                                width: 1.5,
+                              ),
+                              onChanged: widget.onToggleDone,
+                            )
+                          : Tooltip(
+                              message: l10n.statusDerivedFromChildren,
+                              child: Checkbox(
+                                value: isDone,
+                                shape: AppTokens.checkboxShapeSquare,
+                                side: BorderSide(
+                                  color: _checkboxBorderColor(isDone),
+                                  width: 1.5,
                                 ),
+                                onChanged: null,
                               ),
                             ),
-                          )
-                        : null,
-                  ),
-                  // Checkbox（有子任务的子任务行禁用：状态由父任务派生，
-                  // Tooltip 解释原因，AGENTS.md §3-2 + NFR-06 语义）。
-                  SizedBox(
-                    width: AppTokens.touchTarget,
-                    height: AppTokens.touchTarget,
-                    child: (!hasDerived || widget.task.parentId == null)
-                        ? Checkbox(
-                            value: isDone,
-                            onChanged: widget.onToggleDone,
-                          )
-                        : Tooltip(
-                            message: l10n.statusDerivedFromChildren,
-                            child: Checkbox(value: isDone, onChanged: null),
+                    ),
+                    const SizedBox(width: AppTokens.spaceXs),
+                    // Title + description + tags + date（61 §4.1/§4.4）。
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  widget.task.title,
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    decoration: isDone
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                    color: isDone
+                                        ? colorScheme.onSurfaceVariant
+                                        : colorScheme.onSurface,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              // Inline status icon (when derived).
+                              if (hasDerived)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: AppTokens.spaceXxs,
+                                  ),
+                                  child: Icon(
+                                    _statusIcon(effectiveStatus, isDone),
+                                    size: 14,
+                                    color: _statusColor(
+                                      effectiveStatus,
+                                      colorScheme,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
-                  ),
-                  const SizedBox(width: AppTokens.spaceXs),
-                  // Title + metadata.
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
+                          // 描述文字（61 §4.4）：标题下方灰色小字，有内容才显示。
+                          if (widget.task.description.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: AppTokens.spaceXxs,
+                              ),
                               child: Text(
-                                widget.task.title,
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  decoration: isDone
-                                      ? TextDecoration.lineThrough
-                                      : null,
-                                  color: isDone
-                                      ? colorScheme.onSurfaceVariant
-                                      : colorScheme.onSurface,
+                                widget.task.description,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            // Inline status icon (when derived).
-                            if (hasDerived)
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  left: AppTokens.spaceXxs,
-                                ),
-                                child: Icon(
-                                  _statusIcon(effectiveStatus, isDone),
-                                  size: 14,
-                                  color: _statusColor(
-                                    effectiveStatus,
-                                    colorScheme,
-                                  ),
-                                ),
+                          // 标签 chips（61 §4.4）：描述下方独立行（≤2 + +N）。
+                          // 每个 chip 用 Flexible 包住，使其成为内层 Row 的
+                          // 可收缩子项：NFR-06 字体缩放下按份额收缩，Text 的
+                          // maxLines + ellipsis 真正生效。
+                          if (widget.tags.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: AppTokens.spaceXxs,
                               ),
-                          ],
-                        ),
-                        // Metadata row: tags + due date + progress.
-                        if (widget.tags.isNotEmpty ||
-                            widget.task.endAt != null ||
-                            (widget.progressValue != null &&
-                                widget.hasChildren))
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              top: AppTokens.spaceXxs,
-                            ),
-                            child: Row(
-                              children: [
-                                // Tag chips (up to 2)。每个 chip 用 Flexible 包住，
-                                // 使其成为内层 Row 的可收缩子项：NFR-06 字体缩放下
-                                // 按份额收缩，Text 的 maxLines + ellipsis 真正生效
-                                // （而非整行溢出后被裁剪）。
-                                if (widget.tags.isNotEmpty)
+                              child: Row(
+                                children: [
                                   Flexible(
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
@@ -324,62 +341,120 @@ class _TaskRowState extends State<TaskRow> {
                                       ],
                                     ),
                                   ),
-                                const Spacer(),
-                                // Progress ring（滴答式：圆环 + 百分比，行尾）。
-                                // 有子任务任务的派生完成度，55-ui-redesign §5。
-                                if (widget.progressValue != null &&
-                                    widget.hasChildren)
-                                  TaskProgressRing(
-                                    value: widget.progressValue!,
-                                  ),
-                                // Due date.
-                                if (widget.task.endAt != null) ...[
-                                  if (widget.progressValue != null)
-                                    const SizedBox(width: AppTokens.spaceXs),
+                                ],
+                              ),
+                            ),
+                          // 日期行（61 §4.4）：标题下方独立行，日期范围灰色 +
+                          // 相对时间（距开始 X 天）橙色强调。
+                          if (dateText.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: AppTokens.spaceXxs,
+                              ),
+                              child: Row(
+                                children: [
                                   Icon(
                                     Icons.calendar_today_outlined,
                                     size: 11,
                                     color: colorScheme.onSurfaceVariant,
                                   ),
                                   const SizedBox(width: AppTokens.spaceXxs),
-                                  Text(
-                                    formatDueDate(widget.task.endAt!, l10n),
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: colorScheme.onSurfaceVariant,
+                                  Expanded(
+                                    child: Text(
+                                      dateText,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
+                                  if (relativeText.isNotEmpty) ...[
+                                    const SizedBox(width: AppTokens.spaceXs),
+                                    Text(
+                                      relativeText,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: AppTokens.colorDateRelative,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                    ),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  // Drop-as-child indicator.
-                  if (widget.isDragTarget &&
-                      widget.dropAsChild &&
-                      !widget.isInvalidDragTarget)
-                    Padding(
-                      padding: const EdgeInsets.only(right: AppTokens.spaceXxs),
-                      child: Icon(
-                        Icons.subdirectory_arrow_right,
-                        size: 18,
-                        color: colorScheme.primary,
+                        ],
                       ),
                     ),
-                  // More menu.
-                  IconButton(
-                    icon: const Icon(Icons.more_vert, size: 18),
-                    onPressed: () => _showMenu(context),
-                    tooltip: AppLocalizations.of(context).rowActions,
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: AppTokens.touchTarget,
-                      minHeight: AppTokens.touchTarget,
+                    // Progress ring（61 §4.4：行尾，子任务数左侧）。
+                    if (widget.progressValue != null && widget.hasChildren) ...[
+                      TaskProgressRing(value: widget.progressValue!),
+                      const SizedBox(width: AppTokens.spaceXs),
+                    ],
+                    // 子任务数 + 展开箭头（61 §4.5：行尾、菜单左侧；无子任务
+                    // 不显示）。展开 = 箭头朝下（turns 0.25），折叠 = 朝右。
+                    if (widget.hasChildren) ...[
+                      Semantics(
+                        // 无障碍（NFR-06）：纯图标按钮补语义标签（展开/收起）。
+                        button: true,
+                        label: widget.isExpanded ? l10n.collapse : l10n.expand,
+                        child: GestureDetector(
+                          onTap: widget.onToggleExpand,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '${widget.childCount}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(width: AppTokens.spaceXxs),
+                              AnimatedRotation(
+                                turns: widget.isExpanded ? 0.25 : 0,
+                                duration: AppTokens.motionFast,
+                                curve: AppTokens.motionSpring,
+                                child: Icon(
+                                  Icons.arrow_right,
+                                  size: AppTokens.expandArrowSizeRow,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: AppTokens.spaceXxs),
+                    ],
+                    // Drop-as-child indicator.
+                    if (widget.isDragTarget &&
+                        widget.dropAsChild &&
+                        !widget.isInvalidDragTarget)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          right: AppTokens.spaceXxs,
+                        ),
+                        child: Icon(
+                          Icons.subdirectory_arrow_right,
+                          size: 18,
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                    // More menu.
+                    IconButton(
+                      icon: const Icon(Icons.more_vert, size: 18),
+                      onPressed: () => _showMenu(context),
+                      tooltip: AppLocalizations.of(context).rowActions,
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: AppTokens.touchTarget,
+                        minHeight: AppTokens.touchTarget,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

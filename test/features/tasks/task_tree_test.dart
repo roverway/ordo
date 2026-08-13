@@ -14,6 +14,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:todo/core/db/database.dart';
 import 'package:todo/core/db/tables.dart';
 import 'package:todo/core/l10n/app_localizations.dart';
+import 'package:todo/core/theme/app_tokens.dart';
 import 'package:todo/core/utils/derived.dart';
 import 'package:todo/features/projects/project_providers.dart';
 import 'package:todo/features/settings/settings_providers.dart';
@@ -27,6 +28,9 @@ Task _task(
   String projectId = 'p1',
   String? parentId,
   String? title,
+  String description = '',
+  int? startAt,
+  int? endAt,
   TaskStatus status = TaskStatus.todo,
   int sortOrder = 0,
 }) => Task(
@@ -34,10 +38,12 @@ Task _task(
   projectId: projectId,
   parentId: parentId,
   title: title ?? id,
-  description: '',
+  description: description,
   notes: '',
   status: status,
   sortOrder: sortOrder,
+  startAt: startAt,
+  endAt: endAt,
   priority: TaskPriority.none,
   createdAt: 0,
   updatedAt: 0,
@@ -57,6 +63,7 @@ Future<void> _pumpTree(
   List<Task> tasks, {
   Map<String, bool> expandState = const {},
   Size size = const Size(400, 800),
+  Map<String, List<Tag>> taskTags = const {},
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
@@ -97,6 +104,10 @@ Future<void> _pumpTree(
     projectTasksProvider.overrideWith((ref, projectId) => Stream.value(tasks)),
     treeExpandProvider.overrideWith2(
       (arg) => _TestTreeExpandNotifier(expandState),
+    ),
+    // 标签注入（61 §4.4：一级与子行均展示；测试用预设数据）。
+    taskTagsProvider.overrideWith(
+      (ref, taskId) async => taskTags[taskId] ?? const <Tag>[],
     ),
   ];
   final router = GoRouter(
@@ -434,6 +445,115 @@ void main() {
       );
       expect(find.text('Child'), findsNothing);
       expect(find.byType(Divider), findsNothing);
+    });
+  });
+
+  group('扁平行视觉（61-task-list-redesign.md §4）', () {
+    /// 定位某任务行内嵌的 Checkbox widget。
+    Checkbox boxOf(WidgetTester tester, String title) =>
+        tester.widget<Checkbox>(
+          find.descendant(
+            of: find.ancestor(
+              of: find.text(title),
+              matching: find.byType(TaskRow),
+            ),
+            matching: find.byType(Checkbox),
+          ),
+        );
+
+    testWidgets('勾选框为方形，一级蓝边框、子级红边框（层级着色）', (tester) async {
+      await _pumpTree(tester, [
+        _task('r', title: 'Root'),
+        _task('c', parentId: 'r', title: 'Child', sortOrder: 1),
+      ]);
+      final rootBox = boxOf(tester, 'Root');
+      final childBox = boxOf(tester, 'Child');
+      expect(rootBox.shape, isA<RoundedRectangleBorder>());
+      expect(childBox.shape, isA<RoundedRectangleBorder>());
+      expect(rootBox.side?.color, AppTokens.colorInProgress);
+      expect(childBox.side?.color, AppTokens.colorPriorityHigh);
+    });
+
+    testWidgets('行尾显示子任务数 + 展开箭头，无子任务不显示', (tester) async {
+      await _pumpTree(tester, [
+        _task('r', title: 'Root'),
+        _task('c1', parentId: 'r', title: 'C1', sortOrder: 1),
+        _task('c2', parentId: 'r', title: 'C2', sortOrder: 2),
+        _task('leaf', title: 'Leaf'),
+      ]);
+      final rootRow = find.ancestor(
+        of: find.text('Root'),
+        matching: find.byType(TaskRow),
+      );
+      // Root 有 2 个直接子任务 → 行尾数字 2。
+      expect(
+        find.descendant(of: rootRow, matching: find.text('2')),
+        findsOneWidget,
+      );
+      // 只有有子任务的行渲染箭头（Root 一个；C1/C2/Leaf 无）。
+      expect(find.byIcon(Icons.arrow_right), findsOneWidget);
+    });
+
+    testWidgets('描述文字显示在标题下方（有内容才渲染）', (tester) async {
+      await _pumpTree(tester, [
+        _task('r', title: 'Root', description: '这是一段描述'),
+        _task('c', parentId: 'r', title: 'Child', sortOrder: 1),
+      ]);
+      // 仅 Root 有描述 → 全局恰好一条描述文本（Child 无描述不渲染空行）。
+      expect(find.text('这是一段描述'), findsOneWidget);
+      expect(find.text('Root'), findsOneWidget);
+      expect(find.text('Child'), findsOneWidget);
+    });
+
+    testWidgets('日期行：范围文本 + 橙色相对时间（距开始 X 天）', (tester) async {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final tomorrow = today.add(const Duration(days: 1));
+      final dayAfter = today.add(const Duration(days: 2));
+      await _pumpTree(tester, [
+        _task(
+          'r',
+          title: 'Root',
+          startAt: tomorrow.millisecondsSinceEpoch,
+          endAt: dayAfter.millisecondsSinceEpoch,
+        ),
+      ]);
+      // 相对时间（zh ICU：=1 → 「距开始 1 天」），橙色强调。
+      final relative = tester.widget<Text>(find.text('距开始 1 天'));
+      expect(relative.style?.color, AppTokens.colorDateRelative);
+      // 日期范围行存在（formatDueDate(tomorrow) → 「明天」）。
+      expect(find.textContaining('明天'), findsOneWidget);
+    });
+
+    testWidgets('compact 子行也显示标签（61 §4.4，覆盖 57 D7）', (tester) async {
+      final tag = Tag(
+        id: 'tg1',
+        name: '工作',
+        color: 0xFF4A6CF7,
+        sortOrder: 0,
+        createdAt: 0,
+        updatedAt: 0,
+        deleted: 0,
+      );
+      await _pumpTree(
+        tester,
+        [
+          _task('r', title: 'Root'),
+          _task('c', parentId: 'r', title: 'Child', sortOrder: 1),
+        ],
+        taskTags: {
+          'c': [tag],
+        },
+      );
+      // 标签 chip 渲染在子行内。
+      final childRow = find.ancestor(
+        of: find.text('Child'),
+        matching: find.byType(TaskRow),
+      );
+      expect(
+        find.descendant(of: childRow, matching: find.text('工作')),
+        findsOneWidget,
+      );
     });
   });
 

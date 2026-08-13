@@ -91,6 +91,7 @@
   "tasksRemaining": "{count} remaining",
   "progress": "Progress",
   "progressPercent": "Progress {percent}%",
+  "relativeStartInDays": "{days, plural, =1 {Starts in 1 day} other {Starts in {days} days}}",
   "noDueDate": "No due date",
   "selectProject": "Select project",
   "done": "Done",

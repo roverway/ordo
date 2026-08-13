@@ -6,20 +6,23 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/utils/dates.dart';
 import 'task_progress_ring.dart';
 
-/// 卡片化任务行（今日/日历/标签/搜索视图共用，滴答风格，M5 批 1）。
+/// 扁平行任务行（今日/日历/标签/搜索视图共用，61-task-list-redesign.md §6 阶段 3）。
 ///
 /// 与 `task_row.dart`（任务树拖拽行）解耦：**不加拖拽、不加菜单、不加缩进**。
-/// 展示内容：圆形勾选 + 标题 + 标签 chips（最多 2 个）+ 时间区间 + 逾期徽标。
+/// 展示内容：方形勾选 + 标题 + 描述 + 标签 chips（最多 2 个）+ 日期行
+/// （范围灰色 + 相对时间橙）+ 逾期徽标 + 派生进度环。
 ///
-/// 视觉规格（55-ui-redesign-proposal.md §6，批 1）：
-/// - 白卡片行：圆角 [AppTokens.radiusCard] + 轻阴影 [AppTokens.elevationCard]，
-///   hover/按压轻微抬升到 [AppTokens.elevationCardHover]。
-/// - 圆形复选框：完成 = 蓝填充白勾（[AppTokens.colorInProgress] + [AppTokens.colorOnCheck]，
-///   由 AppTheme.checkboxTheme 统一提供）；有子任务禁用态保留。
+/// 视觉规格（61-task-list-redesign.md §2/§4）：
+/// - 扁平行：无独立卡片底/阴影，hover 给轻微底色反馈；与 `TaskRow` 视觉统一。
+/// - 方形复选框：完成 = 蓝填充白勾（[AppTokens.checkboxDoneFill] +
+///   [AppTokens.colorOnCheck]，由 AppTheme.checkboxTheme 提供填充），
+///   未完成边框 = [AppTokens.colorInProgress]（今日等作用域恒为一级行）。
+/// - 元信息（描述/标签/日期）为标题下方独立行，标签在描述下方，日期行尾
+///   橙色相对时间（「距开始 X 天」，[AppTokens.colorDateRelative]）。
 ///
 /// - [hasChildren]：任务有子任务时勾选禁用（状态由子任务派生，AGENTS.md §3-2）。
-/// - [progressValue]：有子任务任务的派生完成度（0.0–1.0）；非空时在元信息行
-///   尾部渲染进度环 + 百分比（55-ui-redesign §5，滴答式）。
+/// - [progressValue]：有子任务任务的派生完成度（0.0–1.0）；非空时在行尾
+///   渲染进度环 + 百分比（55-ui-redesign §5，滴答式）。
 /// - [isDone]：标题划线 + 弱色。
 /// - [isOverdue]：标题红色 + 尾部「逾期」徽标。
 /// - [tags]：任务关联标签（调用方解析后传入）。
@@ -55,26 +58,18 @@ class SimpleTaskTile extends StatefulWidget {
 
 class _SimpleTaskTileState extends State<SimpleTaskTile> {
   bool _hovered = false;
-  bool _pressed = false;
-
-  bool get _raised => _hovered || _pressed;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
     final timeText = formatDateRange(
       widget.task.startAt,
       widget.task.endAt,
       l10n,
     );
-    final showMeta =
-        widget.tags.isNotEmpty ||
-        timeText.isNotEmpty ||
-        widget.isOverdue ||
-        (widget.hasChildren && widget.progressValue != null);
+    final relativeText = formatRelativeStart(widget.task.startAt, l10n);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -85,130 +80,135 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
           duration: AppTokens.motionFast,
           curve: AppTokens.motionSpring,
           decoration: BoxDecoration(
-            color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
-            borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-            boxShadow: [
-              BoxShadow(
-                color: _raised
-                    ? (isDark
-                          ? AppTokens.shadowCardDarkElevated
-                          : AppTokens.shadowCardElevated)
-                    : (isDark
-                          ? AppTokens.shadowCardDark
-                          : AppTokens.shadowCard),
-                blurRadius: _raised
-                    ? AppTokens.shadowBlurElevated
-                    : AppTokens.shadowBlurRest,
-                offset: Offset(
-                  0,
-                  _raised
-                      ? AppTokens.shadowOffsetYElevated
-                      : AppTokens.shadowOffsetY,
-                ),
-              ),
-            ],
+            // 扁平行：透明底，仅 hover 给轻微底色（61 §2/§4.7）。
+            color: _hovered
+                ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.4)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppTokens.radiusList),
           ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+              borderRadius: BorderRadius.circular(AppTokens.radiusList),
               onTap: widget.onTap,
-              onHighlightChanged: (v) => setState(() => _pressed = v),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppTokens.spaceMd,
-                  vertical: AppTokens.spaceSm,
+                  vertical: AppTokens.spaceXs,
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // 圆形勾选（有子任务 → 禁用，状态由子任务派生）。
-                    SizedBox(
-                      width: AppTokens.touchTarget,
-                      height: AppTokens.touchTarget,
-                      child: widget.hasChildren
-                          ? Tooltip(
-                              // 无障碍（NFR-06）：禁用原因走 ARB 文案。
-                              message: l10n.statusDerivedFromChildren,
-                              child: Checkbox(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minHeight: AppTokens.taskRowMinHeight,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // 方形勾选（61 §4.2；有子任务 → 禁用，状态由子任务派生）。
+                      SizedBox(
+                        width: AppTokens.touchTarget,
+                        height: AppTokens.touchTarget,
+                        child: widget.hasChildren
+                            ? Tooltip(
+                                // 无障碍（NFR-06）：禁用原因走 ARB 文案。
+                                message: l10n.statusDerivedFromChildren,
+                                child: Checkbox(
+                                  value: widget.isDone,
+                                  shape: AppTokens.checkboxShapeSquare,
+                                  side: BorderSide(
+                                    color: AppTokens.colorInProgress,
+                                    width: 1.5,
+                                  ),
+                                  onChanged: null,
+                                ),
+                              )
+                            : Checkbox(
                                 value: widget.isDone,
-                                onChanged: null,
+                                shape: AppTokens.checkboxShapeSquare,
+                                side: BorderSide(
+                                  color: AppTokens.colorInProgress,
+                                  width: 1.5,
+                                ),
+                                onChanged: widget.onToggleDone,
                               ),
-                            )
-                          : Checkbox(
-                              value: widget.isDone,
-                              onChanged: widget.onToggleDone,
+                      ),
+                      const SizedBox(width: AppTokens.spaceSm),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    widget.task.title,
+                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                      decoration: widget.isDone
+                                          ? TextDecoration.lineThrough
+                                          : null,
+                                      color: widget.isDone
+                                          ? colorScheme.onSurfaceVariant
+                                          : widget.isOverdue
+                                          ? AppTokens.colorOverdue
+                                          : colorScheme.onSurface,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                // 逾期徽标。
+                                if (widget.isOverdue)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      left: AppTokens.spaceXxs,
+                                    ),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppTokens.spaceXs,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppTokens.colorOverdue
+                                            .withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(
+                                          AppTokens.radiusChip,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        l10n.overdue,
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: AppTokens.colorOverdue,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
-                    ),
-                    const SizedBox(width: AppTokens.spaceSm),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
+                            // 描述文字（61 §4.4）：标题下方灰色小字。
+                            if (widget.task.description.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  top: AppTokens.spaceXxs,
+                                ),
                                 child: Text(
-                                  widget.task.title,
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    decoration: widget.isDone
-                                        ? TextDecoration.lineThrough
-                                        : null,
-                                    color: widget.isDone
-                                        ? colorScheme.onSurfaceVariant
-                                        : widget.isOverdue
-                                        ? AppTokens.colorOverdue
-                                        : colorScheme.onSurface,
+                                  widget.task.description,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              // 逾期徽标。
-                              if (widget.isOverdue)
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                    left: AppTokens.spaceXxs,
-                                  ),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: AppTokens.spaceXs,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppTokens.colorOverdue.withValues(
-                                        alpha: 0.12,
-                                      ),
-                                      borderRadius: BorderRadius.circular(
-                                        AppTokens.radiusChip,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      l10n.overdue,
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: AppTokens.colorOverdue,
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                    ),
-                                  ),
+                            // 标签 chips（61 §4.4）：描述下方独立行（≤2 + +N）。
+                            if (widget.tags.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  top: AppTokens.spaceXxs,
                                 ),
-                            ],
-                          ),
-                          // 元信息行：标签 chips（≤2）+ 时间区间（内联紧凑排布）。
-                          if (showMeta)
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                top: AppTokens.spaceXxs,
-                              ),
-                              child: Row(
-                                children: [
-                                  // 标签 chips（≤2）。每个 chip 用 Flexible 包住，使其
-                                  // 成为内层 Row 的可收缩子项：NFR-06 字体缩放下按
-                                  // 份额收缩，Text 的 maxLines + ellipsis 真正生效
-                                  // （而非整行溢出后被裁剪）。
-                                  if (widget.tags.isNotEmpty)
+                                child: Row(
+                                  children: [
                                     Flexible(
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
@@ -275,24 +275,25 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                         ],
                                       ),
                                     ),
-                                  const Spacer(),
-                                  // 进度环 + 百分比（有子任务任务的派生完成度）。
-                                  if (widget.hasChildren &&
-                                      widget.progressValue != null) ...[
-                                    TaskProgressRing(
-                                      value: widget.progressValue!,
-                                    ),
-                                    if (timeText.isNotEmpty)
-                                      const SizedBox(width: AppTokens.spaceXs),
                                   ],
-                                  if (timeText.isNotEmpty) ...[
+                                ),
+                              ),
+                            // 日期行（61 §4.4）：标题下方独立行，范围灰色 +
+                            // 相对时间橙色强调。
+                            if (timeText.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  top: AppTokens.spaceXxs,
+                                ),
+                                child: Row(
+                                  children: [
                                     Icon(
                                       Icons.calendar_today_outlined,
                                       size: 11,
                                       color: colorScheme.onSurfaceVariant,
                                     ),
                                     const SizedBox(width: AppTokens.spaceXxs),
-                                    Flexible(
+                                    Expanded(
                                       child: Text(
                                         timeText,
                                         style: theme.textTheme.bodySmall
@@ -304,14 +305,32 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
+                                    if (relativeText.isNotEmpty) ...[
+                                      const SizedBox(width: AppTokens.spaceXs),
+                                      Text(
+                                        relativeText,
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color:
+                                                  AppTokens.colorDateRelative,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                      ),
+                                    ],
                                   ],
-                                ],
+                                ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                      // 进度环 + 百分比（61 §4.4：行尾，有子任务任务的派生完成度）。
+                      if (widget.hasChildren &&
+                          widget.progressValue != null) ...[
+                        TaskProgressRing(value: widget.progressValue!),
+                        const SizedBox(width: AppTokens.spaceXs),
+                      ],
+                    ],
+                  ),
                 ),
               ),
             ),

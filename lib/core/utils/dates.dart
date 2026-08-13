@@ -58,3 +58,21 @@ String formatDateRange(int? startAt, int? endAt, AppLocalizations l10n) {
   if (sameDay) return formatDueDate(startAt, l10n);
   return '${formatDueDate(startAt, l10n)} – ${formatDueDate(endAt, l10n)}';
 }
+
+/// 「距开始 X 天」相对时间文案（61-task-list-redesign.md §4.4）。
+///
+/// [startAt] 在今天之后（≥1 天）返回本地化文案（如「距开始 12 天」），
+/// 其余情况（今天/已开始/无开始时间）返回空串，行内不渲染该部分。
+String formatRelativeStart(int? startAt, AppLocalizations l10n) {
+  if (startAt == null) return '';
+  final start = DateTime.fromMillisecondsSinceEpoch(
+    startAt,
+    isUtc: true,
+  ).toLocal();
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final target = DateTime(start.year, start.month, start.day);
+  final days = target.difference(today).inDays;
+  if (days < 1) return '';
+  return l10n.relativeStartInDays(days);
+}

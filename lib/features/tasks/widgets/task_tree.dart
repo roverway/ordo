@@ -587,10 +587,10 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     final progressValue = directChildren.isNotEmpty
         ? progress(node.task, subtree)
         : null;
-    // 标签 chips 仅一级卡片头展示（紧凑子行保持精简，D7）。
-    final tags = style == TaskRowStyle.compact
-        ? const <Tag>[]
-        : ref.watch(taskTagsProvider(node.task.id)).value ?? const <Tag>[];
+    // 标签 chips：一级卡片头与紧凑子行均展示（61 §4.1/§4.4 统一规格，
+    // 覆盖 57 文档 D7「紧凑子行保持精简」；参考案例子任务同样显示标签）。
+    final tags =
+        ref.watch(taskTagsProvider(node.task.id)).value ?? const <Tag>[];
 
     return TaskRow(
       task: node.task,
@@ -598,6 +598,7 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
       style: style,
       hasChildren: node.hasChildren,
       isExpanded: node.isExpanded,
+      childCount: directChildren.length,
       onToggleExpand: () {
         ref
             .read(treeExpandProvider(widget.projectId).notifier)

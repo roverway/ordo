@@ -644,6 +644,12 @@ abstract class AppLocalizations {
   /// **'进度 {percent}%'**
   String progressPercent(Object percent);
 
+  /// No description provided for @relativeStartInDays.
+  ///
+  /// In zh, this message translates to:
+  /// **'{days, plural, =1 {距开始 1 天} other {距开始 {days} 天}}'**
+  String relativeStartInDays(num days);
+
   /// No description provided for @noDueDate.
   ///
   /// In zh, this message translates to:
