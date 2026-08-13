@@ -11,7 +11,7 @@ import '../../../shared/widgets/task_progress_ring.dart';
 ///
 /// - [TaskRowStyle.cardHeader]：一级任务大卡片的头部——无自身卡片底/阴影
 ///   （由外层大卡片提供），拖拽目标高亮态保留；
-/// - [TaskRowStyle.compact]：卡片内紧凑子任务行——无卡片底，Divider 分隔，
+/// - [TaskRowStyle.compact]：卡片内紧凑子任务行——无卡片底、无分隔线，
 ///   紧凑间距 + 缩进（借鉴 TaskCreateSheet 行距节奏）。
 enum TaskRowStyle { cardHeader, compact }
 
@@ -20,7 +20,7 @@ enum TaskRowStyle { cardHeader, compact }
 /// 扁平行式（61-task-list-redesign.md §2/§4）：任务行本身无独立卡片底/阴影，
 /// 仅保留拖拽/悬停态叠加色；勾选框为**方形**并按层级着色（一级蓝、子级红）；
 /// 元信息（描述/标签/日期）从标题同行改为标题下方独立行；子任务数 + 展开箭头
-/// 移至行尾（菜单左侧）。
+/// 移至行尾。
 ///
 /// 用户打磨要求（override 61 §4.1/§4.5/§4.6）：
 /// 1. 移除标题行右侧的派生状态小圆点（状态仍由 [derivedStatus] 传给勾选框）；
@@ -28,6 +28,9 @@ enum TaskRowStyle { cardHeader, compact }
 ///    由 TaskTree 包整行，61 §4.6 语义）；行内菜单入口改为**桌面右键**
 ///    （InkWell.onSecondaryTap），移动端由「点击行 → 编辑页」承载
 ///    （编辑页内含新建子任务/删除；上移/下移/缩进/缩出由拖拽覆盖）。
+/// 3. 键盘可达性取舍（用户已确认接受）：行菜单不再有键盘入口（键盘用户
+///    的上移/下移/缩进/缩出仅能通过拖拽完成；LongPressDraggable 无设备
+///    限制，桌面鼠标长按可拖拽调级）。
 /// Supports drag-target highlight states for tree reordering.
 class TaskRow extends StatefulWidget {
   const TaskRow({

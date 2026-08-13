@@ -29,8 +29,9 @@ class AppShell extends StatelessWidget {
   /// Page body content.
   final Widget child;
 
-  /// 追加在搜索/设置图标**之后**的 AppBar actions（如项目作用域的编辑/删除）。
-  /// null = 仅默认搜索/设置（现有调用方兼容，56-task-scope-page.md §3.3）。
+  /// 追加在搜索图标**之后**的 AppBar actions（如项目作用域的编辑/删除）。
+  /// null = 仅默认搜索（现有调用方兼容，56-task-scope-page.md §3.3；
+  /// 设置按钮已移至抽屉底部/宽屏 NavigationRail trailing，打磨要求）。
   final List<Widget>? actions;
 
   /// 宽屏 NavigationRail 5 个目的地（keep in sync with router.dart）。

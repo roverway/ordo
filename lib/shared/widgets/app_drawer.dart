@@ -22,11 +22,20 @@ import 'loading_view.dart';
 ///
 /// 宽度 = 屏宽 × [AppTokens.drawerWidthRatio]（0.78，定稿 75–80% 屏宽），
 /// 右侧半透明遮罩由 Scaffold 自带 scrim 提供（点击关闭）。
-class AppDrawer extends ConsumerWidget {
+class AppDrawer extends ConsumerStatefulWidget {
   const AppDrawer({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AppDrawer> createState() => _AppDrawerState();
+}
+
+class _AppDrawerState extends ConsumerState<AppDrawer> {
+  /// 防抽屉关闭动画期间（~246ms）重复点击导致的二次 pop 竞态
+  /// （第二次 pop 会弹掉刚 push 的 /settings 路由）。
+  bool _navigating = false;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final path = GoRouterState.of(context).uri.path;
@@ -220,12 +229,16 @@ class AppDrawer extends ConsumerWidget {
 
   /// 关闭抽屉并切换到目标路由（路由不变，仅入口位置变化）。
   void _go(BuildContext context, String path) {
+    if (_navigating) return;
+    _navigating = true;
     Navigator.of(context).pop();
     context.go(path);
   }
 
   /// 关闭抽屉并推入设置页（push 保持导航栈，设置页可返回任务页）。
   void _openSettings(BuildContext context) {
+    if (_navigating) return;
+    _navigating = true;
     Navigator.of(context).pop();
     context.push('/settings');
   }
