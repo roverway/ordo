@@ -25,7 +25,6 @@ import 'package:todo/core/sync/snapshot.dart';
 import 'package:todo/core/sync/snapshot_codec.dart';
 import 'package:todo/core/sync/sync_config.dart';
 import 'package:todo/core/sync/sync_engine.dart';
-import 'package:webdav_client/webdav_client.dart';
 
 import '../../helpers/db_test_setup.dart';
 
@@ -65,14 +64,16 @@ WebDavRemoteStore _liveStore(int n) => WebDavRemoteStore(
 
 /// 确保场景子目录 `{baseUrl}todo-live-test/sN/` 已存在。
 ///
-/// store 传相对 key 后，坚果云不会自动创建不存在的父目录（write 前的
-/// mkdirAll 仅对 key 的父路径生效，而相对 key 无 `/` 时父路径为空被跳过），
-/// 故每个场景开始前用原始 webdav_client（非 WebDavRemoteStore）显式建目录。
-/// 用 mkdirAll 而非 mkdir：目录已存在时 MKCOL 返回 405（视为成功）、
-/// 父目录缺失时 409 分支递归逐级创建，可安全重复调用。
+/// 用新适配器 [WebDavClientAdapter.mkdirAll]（能逐级创建到 baseUrl 目录本身）。
+/// 旧 webdav_client 的 mkdirAll 在「baseUrl 目录也不存在」（坚果云 409
+/// AncestorsNotFound）时无法处理——这正是用户实测同步失败的场景。
 Future<void> ensureScenarioDir(int n) async {
-  final client = newClient(_liveBase, user: _liveUser, password: _livePass);
-  await client.mkdirAll('todo-live-test/s$n/');
+  final adapter = WebDavClientAdapter.create(
+    baseUrl: _liveBase,
+    username: _liveUser,
+    password: _livePass,
+  );
+  await adapter.mkdirAll(_scenarioBaseUrl(n));
 }
 
 SnapshotData _decode(Uint8List? bytes) {

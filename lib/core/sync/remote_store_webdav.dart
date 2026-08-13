@@ -194,10 +194,11 @@ class WebDavClientAdapter implements WebDavClientLike {
   Future<void> write(String path, Uint8List data) async {
     var resp = await _request('PUT', path, data: data);
     if (_putOk(resp)) return;
-    // 父目录缺失（坚果云不会自动建目录，PROPFIND/GET 也会因此返回 409）：
-    // 递归创建父目录后重试一次。
+    // 目标目录（含 baseUrl 目录本身）缺失——坚果云不会自动建目录，PROPFIND/
+    // GET/PUT 都会因此返回 404/409（用户实测 bug：配置的同步目录不存在时
+    // 测试连接误判正常、同步却报远端错误）。逐级创建后重试一次。
     if (resp.statusCode == 409 || resp.statusCode == 404) {
-      await _mkdirAllParent(path);
+      await mkdirAll(_dirOf(_resolve(path)));
       resp = await _request('PUT', path, data: data);
       if (_putOk(resp)) return;
     }
@@ -335,38 +336,47 @@ class WebDavClientAdapter implements WebDavClientLike {
   /// URL 的 origin（scheme://host[:port]）；用于跨主机重定向不转发凭据。
   String _originOf(String uri) => Uri.parse(uri).origin;
 
-  /// 创建相对 key 的父目录（先试完整父路径，409 才逐级 MKCOL）。
+  /// 确保目录存在（逐级 MKCOL）。[write] 上传遇 409/404 时自动调用；
+  /// live smoke 测试亦复用本方法建场景目录。
   ///
-  /// - 405「已存在」视为成功（与 webdav_client mkdirAll 同语义）；
-  /// - key 不含 `/`（如 `data.json.gz`）时无父级 → 直接返回（父目录即
-  ///   baseUrl 目录，用户配置的同步文件夹必然存在）；
-  /// - 先整段 MKCOL 省请求（坚果云 600 次/30 分钟限流），父级缺失（409）
-  ///   才逐级从短到长创建。
-  Future<void> _mkdirAllParent(String path) async {
-    final parent = _parentOf(path);
-    if (parent == null) return;
-
-    var resp = await _request('MKCOL', '$parent/');
+  /// [dirUrl] 为完整目录 URL（带尾斜杠）。
+  ///
+  /// 坚果云实测行为（本实现据此对齐）：
+  /// - MKCOL 不存在目录 → 201；MKCOL 已存在目录 → 201（非标准，405 也接受）；
+  /// - MKCOL 系统 collection 根（如 `/dav/`）→ 403 OperationNotAllowed
+  ///   （视为已存在跳过）；
+  /// - MKCOL 父链缺失 → 409 AncestorsNotFound（触发逐级创建）。
+  ///
+  /// 先整段 MKCOL 省请求（坚果云 600 次/30 分钟限流）；仅 409 才从根向下
+  /// 逐级创建。
+  Future<void> mkdirAll(String dirUrl) async {
+    var resp = await _request('MKCOL', dirUrl);
     if (resp.statusCode == 201 || resp.statusCode == 405) return;
     if (resp.statusCode != 409) throw _statusError(resp);
 
-    // 409：父级缺失 → 逐级创建（a/ → a/b/ → …）。
+    // 409：父链缺失 → 从根向下逐级 MKCOL。403（系统 collection 根，如坚果云
+    // `/dav/`）视为已存在跳过；201/405 已存在继续；其余抛错。
+    final uri = Uri.parse(dirUrl);
+    final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
+    final origin = '${uri.scheme}://${uri.authority}';
     var current = '';
-    for (final segment in parent.split('/')) {
-      if (segment.isEmpty) continue;
-      current = current.isEmpty ? segment : '$current/$segment';
-      resp = await _request('MKCOL', '$current/');
-      final s = resp.statusCode;
-      if (s == 201 || s == 405) continue; // 201=创建 / 405=已存在。
-      throw _statusError(resp);
+    for (final segment in segments) {
+      current = '$current/${Uri.encodeComponent(segment)}';
+      final r = await _request('MKCOL', '$origin$current/');
+      final s = r.statusCode;
+      if (s == 201 || s == 405 || s == 403) continue;
+      throw _statusError(r);
     }
   }
 
-  /// 相对 key 的父路径；无 `/` 时返回 null。
-  String? _parentOf(String path) {
-    final idx = path.lastIndexOf('/');
-    if (idx <= 0) return null;
-    return path.substring(0, idx);
+  /// 完整 URL 的目录部分（去掉文件名，保留尾斜杠）。
+  ///
+  /// 如 `https://host/a/b/data.json.gz` → `https://host/a/b/`。
+  String _dirOf(String url) {
+    final uri = Uri.parse(url);
+    final idx = uri.path.lastIndexOf('/');
+    if (idx <= 0) return '${uri.scheme}://${uri.authority}/';
+    return '${uri.scheme}://${uri.authority}${uri.path.substring(0, idx + 1)}';
   }
 
   /// 从 PROPFIND 207 响应 XML 中提取 `getlastmodified` 并解析为 UTC。

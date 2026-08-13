@@ -182,14 +182,70 @@ void main() {
       );
     });
 
-    test('key 无父级时不发 MKCOL', () async {
+    test('PUT 409（配置目录不存在）→ 创建 baseUrl 目录 → 重试成功（用户实测场景）', () async {
       final fake = _FakeHttpAdapter();
-      fake.onFetch = (_) => _body('', 201);
+      var putCount = 0;
+      fake.onFetch = (options) {
+        if (options.method == 'PUT') {
+          putCount++;
+          // 第一次 PUT：baseUrl 目录（mytodotest）不存在 → 坚果云 409。
+          return _body('', putCount == 1 ? 409 : 201);
+        }
+        return _body('', 201); // MKCOL 创建 baseUrl 目录成功。
+      };
       final adapter = _build(fake);
 
       await adapter.write('data.json.gz', Uint8List.fromList([1]));
 
-      expect(fake.requests.map((r) => r.method).toList(), ['PUT']);
+      expect(putCount, 2);
+      expect(fake.requests.map((r) => '${r.method} ${r.path}').toList(), [
+        'PUT https://dav.example.com/todo/data.json.gz',
+        // 修复：key 无父级时也须确保 baseUrl 目录本身存在。
+        'MKCOL https://dav.example.com/todo/',
+        'PUT https://dav.example.com/todo/data.json.gz',
+      ]);
+    });
+
+    test('MKCOL 整段 409 → 从根逐级创建（403 系统根跳过，坚果云语义）', () async {
+      final fake = _FakeHttpAdapter();
+      var putCount = 0;
+      var mkcolCount = 0;
+      fake.onFetch = (options) {
+        switch (options.method) {
+          case 'PUT':
+            putCount++;
+            // 第一次 PUT：baseUrl 目录不存在 → 409。
+            return _body('', putCount == 1 ? 409 : 201);
+          case 'MKCOL':
+            mkcolCount++;
+            // 第 1 个 MKCOL：整段目标目录 → 父链缺失 409（触发逐级）。
+            if (mkcolCount == 1) return _body('', 409);
+            // 逐级：系统根 /dav/ → 403（视为已存在跳过）。
+            if (options.path == 'https://dav.example.com/dav/') {
+              return _body('', 403);
+            }
+            return _body('', 201);
+          default:
+            return _body('', 500);
+        }
+      };
+      final adapter = _build(
+        fake,
+        baseUrl: 'https://dav.example.com/dav/Apps/mytodotest',
+      );
+
+      await adapter.write('data.json.gz', Uint8List.fromList([1]));
+
+      // PUT 409 → 整段 MKCOL(409) → 逐级 /dav/(403) → /dav/Apps/(201)
+      // → /dav/Apps/mytodotest/(201) → 重试 PUT。
+      expect(fake.requests.map((r) => '${r.method} ${r.path}').toList(), [
+        'PUT https://dav.example.com/dav/Apps/mytodotest/data.json.gz',
+        'MKCOL https://dav.example.com/dav/Apps/mytodotest/',
+        'MKCOL https://dav.example.com/dav/',
+        'MKCOL https://dav.example.com/dav/Apps/',
+        'MKCOL https://dav.example.com/dav/Apps/mytodotest/',
+        'PUT https://dav.example.com/dav/Apps/mytodotest/data.json.gz',
+      ]);
     });
   });
 
