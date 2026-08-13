@@ -263,6 +263,13 @@ class S3RemoteStore implements RemoteStore {
     return e.response?.statusCode == 404;
   }
 
+  @override
+  Future<DateTime?> serverNow() async {
+    // 局限：minio-dart 不暴露原始响应头，无法获取服务器时间 → 恒返回 null，
+    // §11 时钟偏差 A 检在 S3 上跳过（fail-open），B 检仍生效。
+    return null;
+  }
+
   /// §12 错误分类：MinioS3Error（远端 HTTP 层错误）→ 领域异常。
   ///
   /// 认证类（code 或 401/403）→ SyncAuthException；其余 → SyncRemoteException。

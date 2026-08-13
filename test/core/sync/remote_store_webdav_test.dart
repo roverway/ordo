@@ -39,6 +39,9 @@ class _FakeWebDavClient implements WebDavClientLike {
   final List<String> writtenPaths = [];
   final List<Uint8List> writtenData = [];
 
+  /// `lastServerNow` 返回值（模拟适配器从响应 `Date` 头捕获的服务器时间）。
+  DateTime? serverNowValue;
+
   @override
   Future<File> readProps(String path) {
     readPropsPaths.add(path);
@@ -69,6 +72,9 @@ class _FakeWebDavClient implements WebDavClientLike {
     }
     return handler(path, data);
   }
+
+  @override
+  DateTime? get lastServerNow => serverNowValue;
 }
 
 /// 构造带状态码的 DioException（badResponse，如 404/401/500）。
@@ -248,6 +254,25 @@ void main() {
         t.store.lastModified(),
         throwsA(isA<SyncNetworkException>()),
       );
+    });
+  });
+
+  group('serverNow（§11 A 检：零额外 RTT 顺带捕获）', () {
+    test('返回适配器捕获的服务器时间（UTC）', () async {
+      final t = _build();
+      t.fake.serverNowValue = DateTime.utc(2026, 8, 13, 10, 0, 0);
+      t.fake.onReadProps = (_) async => File(path: '/todo/data.json.gz');
+
+      final serverNow = await t.store.serverNow();
+
+      expect(serverNow, DateTime.utc(2026, 8, 13, 10, 0, 0));
+    });
+
+    test('尚未发起请求/无 Date 头 → null（fail-open）', () async {
+      final t = _build();
+      t.fake.serverNowValue = null;
+
+      expect(await t.store.serverNow(), isNull);
     });
   });
 

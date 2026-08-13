@@ -59,6 +59,10 @@ abstract class WebDavClientLike {
 
   /// PUT：写入（原子覆盖，父目录自动递归创建）。
   Future<void> write(String path, Uint8List data);
+
+  /// 最近一次响应携带的服务器时间（UTC）；尚无请求/无 `Date` 头/解析失败
+  /// 返回 null（§11 时钟偏差 A 检用，零额外 RTT——从既有请求响应顺带捕获）。
+  DateTime? get lastServerNow;
 }
 
 /// PROPFIND 请求体（请求单文件属性，含 mTime）。
@@ -140,6 +144,10 @@ class WebDavClientAdapter implements WebDavClientLike {
   final String _username;
   final String _password;
 
+  /// 最近一次响应携带的服务器时间（UTC）；在 [_request] 顺带捕获（零额外
+  /// RTT）。无请求/无 `Date` 头/解析失败 → null（§11 A 检 fail-open）。
+  DateTime? _lastServerNow;
+
   /// 认证状态（初始 BasicAuth/NoAuth，401 挑战后切换）。
   ///
   /// 非线程安全：设计为单同步串行使用（同步引擎每次 run() 新建 store/客户端，
@@ -211,6 +219,9 @@ class WebDavClientAdapter implements WebDavClientLike {
     return s == 200 || s == 201 || s == 204;
   }
 
+  @override
+  DateTime? get lastServerNow => _lastServerNow;
+
   /// 核心请求：拼 URL、预置认证头、401 挑战协商、3xx 重定向跟随。
   ///
   /// 状态码**不在此校验**（WebDAV 语义由各方法自行判断），非预期状态码
@@ -258,6 +269,16 @@ class WebDavClientAdapter implements WebDavClientLike {
         data: data,
       );
       final status = resp.statusCode;
+
+      // §11 时钟偏差 A 检：顺带捕获服务器时间（HTTP `Date` 响应头，
+      // RFC7231 IMF-fixdate，如 `Thu, 13 Aug 2026 10:00:00 GMT`）。
+      // 零额外 RTT——所有请求（PROPFIND/GET/PUT/MKCOL）都经过本方法。
+      // 无 `Date` 头或解析失败 → 保持旧值/null（fail-open）。
+      final dateHeader = resp.headers.value('date');
+      if (dateHeader != null) {
+        final parsed = _parseHttpDate(dateHeader);
+        if (parsed != null) _lastServerNow = parsed;
+      }
 
       // 3xx 重定向：跟随 Location（相对/绝对均可）。达到上限则视为远端错误。
       if (status != null && status >= 300 && status < 400) {
@@ -523,6 +544,13 @@ class WebDavRemoteStore implements RemoteStore {
   bool _isNotFound(DioException e) {
     final status = e.response?.statusCode;
     return status == 404 || status == 409;
+  }
+
+  @override
+  Future<DateTime?> serverNow() async {
+    // §11 时钟偏差 A 检：返回适配器从**既有请求**响应头顺带捕获的服务器
+    // 时间（零额外 RTT）；尚无请求/无 `Date` 头/解析失败 → null（fail-open）。
+    return _client.lastServerNow;
   }
 
   /// §12 错误分类：DioException → 领域异常（调用方 `throw` 之）。

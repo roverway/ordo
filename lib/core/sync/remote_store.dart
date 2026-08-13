@@ -33,4 +33,13 @@ abstract class RemoteStore {
 
   /// 远端对象最后修改时间（UTC）；对象不存在返回 null。
   Future<DateTime?> lastModified();
+
+  /// 服务器当前时间（UTC）；无法获取返回 null（§11 时钟偏差 A 检 fail-open）。
+  ///
+  /// 实现约定：
+  /// - WebDAV：从**既有请求**的 HTTP `Date` 响应头顺带捕获（零额外 RTT），
+  ///   无请求/无 `Date` 头/解析失败 → null；
+  /// - S3：minio-dart 不暴露原始响应头 → 恒返回 null（A 检在 S3 上跳过，
+  ///   B 检仍生效）。
+  Future<DateTime?> serverNow();
 }

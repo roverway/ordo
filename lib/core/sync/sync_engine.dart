@@ -6,7 +6,9 @@
 // - 读取配置（settings 非敏感项 + SecureStore 凭据）与设备 ID（首次生成持久化）；
 // - 首次同步四分支（§5）：本地空+远端有 → 下载应用；本地有+远端空 → 上传；
 //   都有 → 读改写（§6）；schemaVersion 不匹配 → 拒绝；
-// - 时钟偏差检测（§11）：|remote.exportedAt - now| > 5min → 用户确认，否则中止；
+// - 时钟偏差检测（§11）：双检——A 检本地 vs 服务器时钟（serverNow），
+//   B 检对端（上一上传者）时钟 vs 服务器写时刻（exportedAt vs lastModified），
+//   任一 >5min → 用户确认，否则中止；
 // - 应用合并（§4/D1）：deleted=true → 本地硬删 + 墓碑保留进本地墓碑集合；
 //   其余 → upsert；task_tags 按合并结果全量重建；
 // - 上传优化（§10.3）：比较「本次合并/导出结果」与「本次下载到的远端快照」
@@ -299,7 +301,12 @@ class SyncEngine {
           // 竞态：远端刚被删且本地空 → 无事可做，仍记成功。
           return await _finishSuccess();
         }
-        final remote = await _decodeAndVerify(bytes);
+        final remote = await _decodeAndVerify(
+          bytes,
+          store,
+          // B 检（§11）需服务器写时刻；仅在此获取一次（PROPFIND）。
+          lastModified: await store.lastModified(),
+        );
         final merged = merge(
           SnapshotData(
             schemaVersion: kSnapshotSchemaVersion,
@@ -464,7 +471,13 @@ class SyncEngine {
         return;
       }
 
-      final remote = await _decodeAndVerify(bytes);
+      final remote = await _decodeAndVerify(
+        bytes,
+        store,
+        // B 检（§11）：复用本次读改写起点/上次迭代已获取的 lastModified
+        // 值（不增加冗余 PROPFIND RTT——循环内 lmNow 另作并发判定用）。
+        lastModified: lastModifiedBefore,
+      );
       // §10.3 上传优化：比较基准为「本次下载到的远端业务内容」而非本进程
       // 上传历史——合并/导出结果与之无差异说明没有需要传播的变更，跳过上传
       // 仍记成功；若远端被外部设备改写为不同内容，hash 必然变化 → 正常上传。
@@ -514,8 +527,19 @@ class SyncEngine {
   /// - schemaVersion 不匹配 / gzip 损坏 / 非法 JSON → 抛
   ///   [SnapshotSchemaException] / [FormatException]（外层按 §12 处理，
   ///   不覆盖远端）；
-  /// - 时钟偏差 >5min → 调 confirmClockSkew()；false/null → 抛
-  ///   [_ClockSkewRejected] 中止（不 merge 不写库）。
+  /// - 时钟偏差双检（任一命中 → 调 confirmClockSkew()；false/null → 抛
+  ///   [_ClockSkewRejected] 中止，不 merge 不写库）：
+  ///   - **A 检**：本地时钟 vs 服务器时钟（`|serverNow - now| > 5min`）；
+  ///     [RemoteStore.serverNow] 无法获取（如 S3）→ 跳过（fail-open）；
+  ///   - **B 检**：对端（上一上传者）时钟 vs 服务器写时刻
+  ///     （`|remote.exportedAt - lastModified| > 5min`）。exportedAt 与
+  ///     lastModified 度量同一写时刻（远端快照写入时 exportedAt=当时客户端
+  ///     时间、lastModified=服务器记录的写入时间），lastModified 为 null →
+  ///     跳过（fail-open）。
+  ///
+  /// [store] 用于 A 检（[RemoteStore.serverNow]）；[lastModified] 用于 B 检，
+  /// **由调用方传入可复用的值**（分支 C 读改写循环复用已获取的
+  /// lastModifiedBefore，不增加冗余 PROPFIND RTT；分支 A 在调用前获取一次）。
   ///
   /// NFR-02（§9）：快照解析在 isolate 中执行，不阻塞 UI。
   /// - [decodeSnapshot] 是顶层纯函数（不捕获外层上下文、无平台通道/Flutter
@@ -529,15 +553,35 @@ class SyncEngine {
   ///   String/int，均可发送 → 原类型冒泡，外层 §12 catch 分支不感知是否隔离；
   /// - 阈值：bytes ≥ [_kIsolateDecodeThresholdBytes]（256KB）才走 isolate，
   ///   小快照同步解析（isolate 往返开销大于收益，且便于单测用固定逻辑）。
-  Future<SnapshotData> _decodeAndVerify(Uint8List bytes) async {
+  Future<SnapshotData> _decodeAndVerify(
+    Uint8List bytes,
+    RemoteStore store, {
+    DateTime? lastModified,
+  }) async {
     final remote = bytes.length >= _kIsolateDecodeThresholdBytes
         ? await compute(decodeSnapshot, bytes)
         : decodeSnapshot(bytes);
     final nowMs = _now().toUtc().millisecondsSinceEpoch;
-    if ((remote.exportedAt - nowMs).abs() > _kClockSkewToleranceMs) {
+    // A 检（§11）：本地时钟 vs 服务器时钟。serverNow 为 null（无法获取，
+    // 如 S3）→ 跳过（fail-open）。
+    final serverNow = await store.serverNow();
+    final aSkew =
+        serverNow != null &&
+        (serverNow.millisecondsSinceEpoch - nowMs).abs() >
+            _kClockSkewToleranceMs;
+    // B 检（§11）：对端（上一上传者）时钟 vs 服务器写时刻。lastModified 为
+    // null（无写时刻可参考）→ 跳过（fail-open）。
+    final lmMs = lastModified?.toUtc().millisecondsSinceEpoch;
+    final bSkew =
+        lmMs != null &&
+        (remote.exportedAt - lmMs).abs() > _kClockSkewToleranceMs;
+    if (aSkew || bSkew) {
       final confirmed = _confirmClockSkew != null && await _confirmClockSkew();
       if (!confirmed) {
-        debugPrint('sync: 时钟偏差被拒（远端 exportedAt=${remote.exportedAt}）');
+        debugPrint(
+          'sync: 时钟偏差被拒（aSkew=$aSkew bSkew=$bSkew '
+          'exportedAt=${remote.exportedAt}）',
+        );
         throw const _ClockSkewRejected();
       }
     }

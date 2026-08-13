@@ -40,11 +40,16 @@ import '../../helpers/db_test_setup.dart';
 
 // ─────────────────────────── Fake RemoteStore ───────────────────────────
 
-/// 内存 Fake 远端存储：upload/download/exists/lastModified 全在内存完成，
-/// 支持错误注入与并发写入钩子。
+/// 内存 Fake 远端存储：upload/download/exists/lastModified/serverNow 全在
+/// 内存完成，支持错误注入与并发写入钩子。
 class FakeRemoteStore implements RemoteStore {
   Uint8List? remoteBytes;
   DateTime? remoteModifiedAt;
+
+  /// `serverNow()` 返回值；null = 模拟「无法获取服务器时间」（如 S3，
+  /// §11 A 检跳过）。
+  DateTime? serverNowValue;
+  int serverNowCount = 0;
 
   int uploadCount = 0;
   int downloadCount = 0;
@@ -84,6 +89,12 @@ class FakeRemoteStore implements RemoteStore {
     lastModifiedCount++;
     if (onBeforeLastModified != null) await onBeforeLastModified!();
     return remoteModifiedAt;
+  }
+
+  @override
+  Future<DateTime?> serverNow() async {
+    serverNowCount++;
+    return serverNowValue;
   }
 
   /// 模拟另一设备并发上传（不计数 [uploadCount]）。
@@ -869,17 +880,18 @@ void main() {
       expect(await repo.settings.get(SyncSettingsKeys.lastSyncedAt), isNull);
     });
 
-    test('时钟偏差被拒 → 中止，本地库不变', () async {
+    test('时钟偏差被拒（A 检：本地 vs 服务器时钟差 >5min）→ 中止，本地库不变', () async {
       await enableSync(repo);
       final p = await repo.createProject(name: 'P', color: 0);
-      // 远端 exportedAt 距现在 >5min（未来 10 分钟）。
-      final farFuture = DateTime.now().toUtc().add(const Duration(minutes: 10));
+      // 远端快照本身健康（exportedAt 与服务器写时刻一致）→ 只触发 A 检。
       seedRemote(
-        SnapshotData(
-          schemaVersion: kSnapshotSchemaVersion,
-          deviceId: 'remote',
-          exportedAt: farFuture.millisecondsSinceEpoch,
+        remoteSnapshot(
+          projects: [projectRec(id: 'p-remote', name: '远端项目')],
         ),
+      );
+      // 本地时钟与服务器时钟偏差 10 分钟（A 检命中）。
+      remote.serverNowValue = DateTime.now().toUtc().add(
+        const Duration(minutes: 10),
       );
 
       var confirmed = false;
@@ -892,7 +904,7 @@ void main() {
 
       final result = await engine.run();
 
-      expect(confirmed, isTrue);
+      expect(confirmed, isTrue, reason: 'A 检命中应触发确认流程');
       expect(result.ok, isFalse);
       expect(engine.state.status, SyncStateStatus.error);
       expect(result.errorCode, SyncErrorCode.clockSkew);
@@ -903,18 +915,17 @@ void main() {
       expect(await repo.settings.get(SyncSettingsKeys.lastSyncedAt), isNull);
     });
 
-    test('时钟偏差且 UI 未提供确认回调（null）→ 直接拒绝', () async {
+    test('时钟偏差且 UI 未提供确认回调（null）→ 直接拒绝（A 检）', () async {
       await enableSync(repo);
       final p = await repo.createProject(name: 'P', color: 0);
-      final farPast = DateTime.now().toUtc().subtract(
-        const Duration(minutes: 30),
-      );
       seedRemote(
-        SnapshotData(
-          schemaVersion: kSnapshotSchemaVersion,
-          deviceId: 'remote',
-          exportedAt: farPast.millisecondsSinceEpoch,
+        remoteSnapshot(
+          projects: [projectRec(id: 'p-remote', name: '远端项目')],
         ),
+      );
+      // 本地时钟与服务器时钟偏差 10 分钟（A 检命中）。
+      remote.serverNowValue = DateTime.now().toUtc().add(
+        const Duration(minutes: 10),
       );
 
       final engine = await buildEngine(); // confirmClockSkew == null
@@ -925,6 +936,85 @@ void main() {
       expect(result.errorCode, SyncErrorCode.clockSkew);
       expect(engine.state.errorCode, SyncErrorCode.clockSkew);
       expect((await repo.projects.getById(p.id))!.name, 'P');
+    });
+
+    test('快照陈旧但不触发：exportedAt 与服务器写时刻一致（修复回归）', () async {
+      await enableSync(repo);
+      // 30 分钟前的远端快照——旧实现 |exportedAt - now| >5min 必然误报
+      // clockSkew；新语义 exportedAt 与 lastModified 度量同一写时刻 → 不触发。
+      final farPast = DateTime.now().toUtc().subtract(
+        const Duration(minutes: 30),
+      );
+      seedRemote(
+        remoteSnapshot(
+          exportedAt: farPast.millisecondsSinceEpoch,
+          projects: [projectRec(id: 'p-stale', name: '旧快照项目')],
+        ),
+      );
+      // 服务器写时刻与 exportedAt 一致（同一写时刻）→ B 检不触发。
+      remote.remoteModifiedAt = farPast;
+      // 服务器时钟正常 → A 检不触发。
+      remote.serverNowValue = DateTime.now().toUtc();
+
+      final engine = await buildEngine();
+      final result = await engine.run();
+
+      expect(result.ok, isTrue, reason: '陈旧但时钟健康的快照必须同步成功');
+      expect(engine.state.status, SyncStateStatus.success);
+      // 本地空 → 分支 A，远端数据应用成功。
+      expect((await repo.projects.getById('p-stale'))!.name, '旧快照项目');
+    });
+
+    test('对端时钟偏差触发 B 检：exportedAt 与服务器写时刻差 >5min', () async {
+      await enableSync(repo);
+      // 本地非空 → 分支 C（验证循环内复用 lastModifiedBefore，不重复请求）。
+      final p = await repo.createProject(name: 'P', color: 0);
+      // 远端快照 exportedAt 为未来 10 分钟（对端时钟偏快）。
+      final farFuture = DateTime.now().toUtc().add(const Duration(minutes: 10));
+      seedRemote(
+        remoteSnapshot(
+          deviceId: 'other-device',
+          exportedAt: farFuture.millisecondsSinceEpoch,
+          projects: [projectRec(id: 'p-other', name: '另一设备项目')],
+        ),
+      );
+      // 服务器时钟正常 → A 检不触发；seedRemote 已把 remoteModifiedAt 设为
+      // now，与 exportedAt 差 10 分钟 → B 检触发。
+      remote.serverNowValue = DateTime.now().toUtc();
+
+      var confirmed = false;
+      final engine = await buildEngine(
+        confirmClockSkew: () async {
+          confirmed = true;
+          return true; // 用户确认校准 → 继续同步。
+        },
+      );
+      final result = await engine.run();
+
+      expect(confirmed, isTrue, reason: 'B 检命中应触发确认流程');
+      expect(result.ok, isTrue, reason: '用户确认后应继续同步');
+      // 确认后正常合并：远端项目应用到本地。
+      expect((await repo.projects.getById('p-other'))!.name, '另一设备项目');
+      expect((await repo.projects.getById(p.id))!.name, 'P');
+    });
+
+    test('serverNow 为 null（模拟 S3）→ A 检跳过、B 检正常不触发', () async {
+      await enableSync(repo);
+      // 本地空 → 分支 A（A 检依赖 store.serverNow()）。
+      seedRemote(
+        remoteSnapshot(
+          projects: [projectRec(id: 'p-s3', name: 'S3 项目')],
+        ),
+      );
+      remote.serverNowValue = null; // 模拟 S3：无法获取服务器时间。
+
+      final engine = await buildEngine();
+      final result = await engine.run();
+
+      expect(remote.serverNowCount, 1, reason: 'A 检应尝试读取 serverNow');
+      expect(result.ok, isTrue);
+      expect(engine.state.status, SyncStateStatus.success);
+      expect((await repo.projects.getById('p-s3'))!.name, 'S3 项目');
     });
 
     test('未启用同步 → skipped（不联网、不写库）', () async {

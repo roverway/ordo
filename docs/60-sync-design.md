@@ -156,7 +156,9 @@ abstract class RemoteStore {
 
 ## 11. 时钟偏差检测（FR-SYNC-06）
 
-- 合并前：`|remote.exportedAt - now| > 5min` → 提示用户校准时钟（不静默合并，用户确认后继续）。
+- 合并前双检（任一命中 → 提示用户校准时钟，不静默合并，用户确认后继续）：
+  - **A 检**：`|serverNow - now| > 5min`（本地时钟 vs 服务器时钟；serverNow 取 WebDAV 既有请求响应头，无法获取则跳过，如 S3）；
+  - **B 检**：`|remote.exportedAt - lastModified| > 5min`（对端/上一上传者时钟 vs 服务器写时刻，两者度量同一写时刻）。
 - 原因：LWW 依赖两端时钟；Windows 时钟漂移常见（Oracle 评审 H3）。
 
 ## 12. 错误处理（NFR-03）

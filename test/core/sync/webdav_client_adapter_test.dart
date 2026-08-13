@@ -282,6 +282,33 @@ void main() {
     });
   });
 
+  group('serverNow 捕获（§11 A 检，零额外 RTT）', () {
+    test('响应携带 Date 头 → 顺带捕获为 UTC 服务器时间', () async {
+      final fake = _FakeHttpAdapter();
+      fake.onFetch = (_) => _body(_kXml207, 207, {
+        'content-type': 'application/xml',
+        'date': 'Thu, 13 Aug 2026 10:00:00 GMT',
+      });
+      final adapter = _build(fake);
+
+      await adapter.readProps('data.json.gz');
+
+      expect(adapter.lastServerNow, DateTime.utc(2026, 8, 13, 10, 0, 0));
+      expect(adapter.lastServerNow!.isUtc, isTrue, reason: '§3 时间一律 UTC');
+    });
+
+    test('无 Date 头 → null（fail-open）', () async {
+      final fake = _FakeHttpAdapter();
+      fake.onFetch = (_) =>
+          _body(_kXml207, 207, {'content-type': 'application/xml'});
+      final adapter = _build(fake);
+
+      await adapter.readProps('data.json.gz');
+
+      expect(adapter.lastServerNow, isNull);
+    });
+  });
+
   group('401 认证协商', () {
     test('NoAuth 首请求 401 Basic 挑战 → 重试带 Authorization 头', () async {
       final fake = _FakeHttpAdapter();
