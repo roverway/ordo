@@ -456,24 +456,6 @@ void main() {
       );
     });
 
-    test('watchInboxTasks 只返回收件箱项目任务', () async {
-      await repo.ensureInboxProject('收件箱');
-      final other = await repo.createProject(name: '工作', color: 0);
-
-      final inboxTask = await repo.createTask(title: '收件箱任务');
-      final inboxChild = await repo.createTask(
-        parentId: inboxTask.id,
-        title: '收件箱子任务',
-      );
-      await repo.createTask(projectId: other.id, title: '项目任务');
-
-      final tasks = await repo.watchInboxTasks().first;
-      expect(tasks.map((t) => t.id).toSet(), {inboxTask.id, inboxChild.id});
-      expect(tasks.every((t) => t.projectId == inboxProjectId), isTrue);
-      // 子树一并返回（扁平列表）。
-      expect(tasks.any((t) => t.id == inboxChild.id), isTrue);
-    });
-
     test('收件箱墓碑行（deleted=1）时 ensure 恢复', () async {
       await repo.ensureInboxProject('收件箱');
       // 模拟同步产生的墓碑。

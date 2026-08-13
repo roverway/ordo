@@ -51,15 +51,6 @@ final inboxProjectProvider = FutureProvider<Project>((ref) {
   return repo.ensureInboxProject(name);
 });
 
-/// 收件箱任务列表（流式，自动刷新）。
-///
-/// 先确保收件箱项目存在，再订阅其任务流（扁平列表，UI 层按需取 1 级）。
-final inboxTasksProvider = StreamProvider<List<Task>>((ref) async* {
-  final repo = ref.watch(todoRepositoryProvider);
-  await ref.watch(inboxProjectProvider.future);
-  yield* repo.watchInboxTasks();
-});
-
 /// 任务表单保存状态（成功/失败/空闲）。
 enum TaskFormStatus { idle, saving, success, error }
 

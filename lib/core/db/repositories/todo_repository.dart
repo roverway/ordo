@@ -534,12 +534,6 @@ class TodoRepository {
     await onDataChanged?.call();
   }
 
-  /// 收件箱项目下全部未删除任务（扁平列表，含 1 级与子树），按 sortOrder 升序。
-  ///
-  /// 首页目前展示 1 级任务列表 + 完成勾选；子树任务一并返回，UI 层按需过滤。
-  /// 收件箱行需先经 [ensureInboxProject] 确保存在（Provider 层负责）。
-  Stream<List<Task>> watchInboxTasks() => tasks.watchByProject(inboxProjectId);
-
   /// 删除任务：级联硬删所有后代（含自身）+ 关联 task_tags，同一事务。
   ///
   /// 同步行为（40-data-model.md §7）：被删任务（含后代）各写一条墓碑。

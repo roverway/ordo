@@ -87,7 +87,6 @@ Future<void> pumpApp(
           ),
         ),
       ),
-      inboxTasksProvider.overrideWithValue(const AsyncData([])),
     ]);
   } else {
     // Without a real DB, mock inbox providers so the app doesn't crash.
@@ -103,7 +102,6 @@ Future<void> pumpApp(
     );
     overrides.addAll([
       inboxProjectProvider.overrideWithValue(AsyncData(dummyProject)),
-      inboxTasksProvider.overrideWithValue(const AsyncData([])),
       // M3 视图 provider：无真实 DB 时给空数据。否则落到真实仓库的流
       // 在测试里不结束（loading 转圈），pumpAndSettle 超时。
       todayViewProvider.overrideWithValue(

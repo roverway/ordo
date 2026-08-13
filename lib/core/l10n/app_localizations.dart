@@ -218,12 +218,6 @@ abstract class AppLocalizations {
   /// **'版本'**
   String get aboutVersion;
 
-  /// No description provided for @emptyInbox.
-  ///
-  /// In zh, this message translates to:
-  /// **'收件箱是空的，去添加任务吧'**
-  String get emptyInbox;
-
   /// No description provided for @emptyToday.
   ///
   /// In zh, this message translates to:

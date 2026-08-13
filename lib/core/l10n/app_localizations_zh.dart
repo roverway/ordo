@@ -69,9 +69,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aboutVersion => '版本';
 
   @override
-  String get emptyInbox => '收件箱是空的，去添加任务吧';
-
-  @override
   String get emptyToday => '今天还没有任务';
 
   @override

@@ -1,9 +1,9 @@
 // 收件箱页测试。
 //
 // Bug 3 修复后 /inbox 渲染 `TaskTree(projectId: inboxProjectId)`（与项目页一致，
-// 不再有旧版扁平列表 InboxTaskTile）。任务树行为由 task_tree_test.dart 覆盖，
-// 本文件只验证：/inbox 接入树形渲染、FAB 恒显示（空收件箱亦保留，空态文案
-// 依赖 FAB 新建入口）。
+// 不再有旧版扁平列表）。任务树行为由 task_tree_test.dart 覆盖，本文件只验证：
+// /inbox 接入树形渲染、FAB 打开 TaskCreateSheet、空收件箱保留 FAB（空态文案
+// 「还没有任务，点击下方按钮新建」依赖底部新建入口）。
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -49,8 +49,7 @@ Task _task(
 
 /// 封装收件箱页的 ProviderScope + GoRouter。
 ///
-/// 任务数据走 `projectTasksProvider(inboxProjectId)`（TaskTree 消费的 family），
-/// 不再覆盖旧的 `inboxTasksProvider`。
+/// 任务数据走 `projectTasksProvider(inboxProjectId)`（TaskTree 消费的 family）。
 Future<void> _pumpInbox(
   WidgetTester tester, {
   required List<Task> tasks,

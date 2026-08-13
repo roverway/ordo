@@ -69,9 +69,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutVersion => 'Version';
 
   @override
-  String get emptyInbox => 'All clear! Nothing in your inbox.';
-
-  @override
   String get emptyToday => 'No tasks today';
 
   @override
