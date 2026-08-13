@@ -83,7 +83,7 @@
 - 搜索、设置：AppBar 图标，所有视图可用。
 - **通用任务页（`TaskListPage`，56-task-scope-page.md §3）**：今日 / 收件箱 / 项目三个任务类入口统一渲染为同一页面组件，由 `TaskScope`（Today | Inbox | Project(projectId)）驱动：
   - 标题：今日 = `navToday`；收件箱/项目 = 对应项目名（动态）。
-  - body：今日 = 分组列表（逾期 + 今天）；收件箱 = 1 级任务列表（`InboxTaskTile`）；项目 = 任务树（3 级）。
+  - body：今日 = 分组列表（逾期 + 今天）；收件箱/项目 = 任务树（3 级，收件箱复用 `TaskTree(projectId: inboxProjectId)`，Bug 3 后与项目作用域一致）。
   - AppBar：今日/收件箱 = 搜索/设置；项目 = 搜索/设置 + 编辑 + 删除（删除后跳 `/today`）。
   - FAB：统一走滴答式新建底部弹窗（今日缺省收件箱；收件箱/项目带对应 projectId）。
   - 三个作用域均在 AppShell 壳内（汉堡/底栏/Rail 常驻）。

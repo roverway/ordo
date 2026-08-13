@@ -42,7 +42,7 @@ TaskScope = Today | Inbox | Project(projectId)
 ```
 
 - `/today` → 今日作用域（保持现有分组列表：逾期 + 今天）
-- `/inbox` → 收件箱作用域（inbox 项目下 1 级任务 + 子任务索引，复用现有 `_InboxTaskTile`）
+- `/inbox` → 收件箱作用域（`TaskTree(projectId: inboxProjectId)`，与项目作用域一致的任务树；Bug 3 修复前为扁平 1 级列表，扁平组件 `InboxTaskTile`/`inboxTasksProvider` 已删除）
 - `/projects/:id` → 项目作用域（TaskTree，3 级任务树）
 - 侧边栏选中项由路由路径推导（现有逻辑不变）；三个作用域**共用同一个页面组件 `TaskListPage`**，仅 body 与 AppBar actions 不同。
 
@@ -53,7 +53,7 @@ TaskListPage(scope)
 └─ AppShell(title: scope 标题, actions: scope 专属操作)
    ├─ body:
    │   Today 作用域   → 今日分组列表（复用 today_providers 的 TodayViewData 逻辑）
-   │   Inbox 作用域   → inbox 项目任务列表（复用 inbox_providers 的 inboxTasksProvider + _InboxTaskTile）
+   │   Inbox 作用域   → TaskTree(inboxProjectId)（与项目作用域一致的 3 级任务树）
    │   Project 作用域 → TaskTree(projectId)
    ├─ FAB → TaskCreateSheet（Today: 缺省收件箱；Inbox/Project: 对应 projectId）
    └─ 空态/加载/错误（随作用域）
@@ -75,9 +75,9 @@ TaskListPage(scope)
 |---|---|
 | `router.dart` | `initialLocation: '/inbox'` → `'/today'`；`/today`、`/inbox`、`/projects/:id` 改渲染 `TaskListPage(对应作用域)` |
 | `today_page.dart` | 列表构建逻辑抽取为今日作用域 body（供 `TaskListPage` 复用） |
-| `inbox_page.dart` | 任务列表/空态/标题逻辑并入收件箱作用域 body；`_InboxTaskTile` 抽取为共享组件 |
+| `inbox_page.dart` | 任务列表/空态/标题逻辑并入收件箱作用域 body（Bug 3 后收件箱作用域直接渲染 `TaskTree`，扁平列表组件 `InboxTaskTile` 已删除） |
 | `project_detail_page.dart` | 任务树 + 编辑/删除逻辑并入项目作用域 body/actions；**文件废弃或瘦身为轻壳** |
-| 新增 | `TaskListPage`（作用域分发）+ 共享 `InboxTaskTile` |
+| 新增 | `TaskListPage`（作用域分发；收件箱作用域复用 `TaskTree`） |
 
 ## 4. 实施步骤（分两批）
 
