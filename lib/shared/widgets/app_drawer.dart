@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/db/repositories/todo_repository.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../features/projects/project_providers.dart';
@@ -104,7 +105,11 @@ class AppDrawer extends ConsumerWidget {
                       .watch(projectsStreamProvider)
                       .when(
                         data: (projects) => [
-                          for (final project in projects)
+                          // 内置收件箱由系统组 /inbox 承载，项目组不重复展示
+                          //（Bug 3 用户实测：此前侧栏出现两个「收件箱」入口）。
+                          for (final project in projects.where(
+                            (p) => p.id != inboxProjectId,
+                          ))
                             _DrawerTile(
                               leading: Container(
                                 width: 10,

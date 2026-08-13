@@ -1,7 +1,9 @@
 // 收件箱页测试。
 //
-// 覆盖：有直接子任务的任务复选框禁用（状态由子任务派生，AGENTS.md §3-2）
-// 并显示派生状态 Tooltip；无子任务的任务复选框保持可用。
+// Bug 3 修复后 /inbox 渲染 `TaskTree(projectId: inboxProjectId)`（与项目页一致，
+// 不再有旧版扁平列表 InboxTaskTile）。任务树行为由 task_tree_test.dart 覆盖，
+// 本文件只验证：/inbox 接入树形渲染、FAB 恒显示（空收件箱亦保留，空态文案
+// 依赖 FAB 新建入口）。
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,7 +23,7 @@ import 'package:todo/features/tasks/task_providers.dart';
 import 'package:todo/features/tasks/widgets/task_create_sheet.dart';
 import '../../helpers/db_test_setup.dart';
 
-/// 构造测试用 Task。
+/// 构造测试用 Task（一律落在内置收件箱项目下）。
 Task _task(
   String id, {
   String? parentId,
@@ -46,6 +48,9 @@ Task _task(
 );
 
 /// 封装收件箱页的 ProviderScope + GoRouter。
+///
+/// 任务数据走 `projectTasksProvider(inboxProjectId)`（TaskTree 消费的 family），
+/// 不再覆盖旧的 `inboxTasksProvider`。
 Future<void> _pumpInbox(
   WidgetTester tester, {
   required List<Task> tasks,
@@ -96,7 +101,9 @@ Future<void> _pumpInbox(
         sharedPreferencesProvider.overrideWithValue(prefs),
         todoRepositoryProvider.overrideWithValue(repo),
         inboxProjectProvider.overrideWithValue(AsyncData(inboxProject)),
-        inboxTasksProvider.overrideWithValue(AsyncData(tasks)),
+        projectTasksProvider(
+          inboxProjectId,
+        ).overrideWithValue(AsyncData(tasks)),
         // 新建弹窗 watch 的 drift 流也须覆盖（fake_async 下避免残留 Timer）。
         projectsStreamProvider.overrideWithValue(AsyncData([inboxProject])),
         tagsStreamProvider.overrideWithValue(const AsyncData(<Tag>[])),
@@ -112,54 +119,29 @@ Future<void> _pumpInbox(
   await tester.pumpAndSettle();
 }
 
-/// 定位某任务所在行内嵌的 Checkbox。
-Finder _checkboxOf(WidgetTester tester, String title) {
-  final inkWell = find
-      .ancestor(of: find.text(title), matching: find.byType(InkWell))
-      .first;
-  return find.descendant(of: inkWell, matching: find.byType(Checkbox));
-}
-
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  group('收件箱复选框 — 有子任务时禁用', () {
-    testWidgets('有直接子任务的任务复选框禁用并显示派生提示', (tester) async {
+  group('收件箱任务树 — 与项目页一致的树形渲染（Bug 3）', () {
+    testWidgets('父任务+子任务数据渲染为任务树', (tester) async {
       final tasks = [
         _task('root', title: '父任务'),
         _task('child', parentId: 'root', title: '子任务', sortOrder: 1),
-        _task('leaf', title: '叶子任务', sortOrder: 2),
       ];
 
       await _pumpInbox(tester, tasks: tasks);
 
-      // 父任务（有直接子任务）复选框禁用。
-      final parentCb = _checkboxOf(tester, '父任务');
-      expect(parentCb, findsOneWidget);
-      expect(tester.widget<Checkbox>(parentCb).onChanged, isNull);
-
-      // 无子任务的叶子任务复选框可用。
-      final leafCb = _checkboxOf(tester, '叶子任务');
-      expect(leafCb, findsOneWidget);
-      expect(tester.widget<Checkbox>(leafCb).onChanged, isNotNull);
-
-      // 派生状态提示 Tooltip 存在（ARB：statusDerivedFromChildren）。
-      expect(find.byTooltip('状态由子任务派生'), findsOneWidget);
-    });
-
-    testWidgets('无子任务时禁用复选框不存在（仅 1 级任务渲染）', (tester) async {
-      await _pumpInbox(tester, tasks: [_task('leaf', title: '叶子任务')]);
-
-      expect(find.byTooltip('状态由子任务派生'), findsNothing);
-      final leafCb = _checkboxOf(tester, '叶子任务');
-      expect(tester.widget<Checkbox>(leafCb).onChanged, isNotNull);
+      // 一级卡片（父任务）与默认展开的子任务标题均可见（树行为细节见
+      // task_tree_test.dart，这里只验证 /inbox 确实接入了 TaskTree）。
+      expect(find.text('父任务'), findsOneWidget);
+      expect(find.text('子任务'), findsOneWidget);
     });
   });
 
   group('FAB — 新建任务底部弹窗（D2 定稿）', () {
-    testWidgets('点击 FAB 打开 TaskCreateSheet', (tester) async {
+    testWidgets('点击 FAB 打开 TaskCreateSheet（恒显示）', (tester) async {
       await _pumpInbox(tester, tasks: [_task('leaf', title: '叶子任务')]);
 
       expect(find.byType(FloatingActionButton), findsOneWidget);
@@ -171,11 +153,16 @@ void main() {
       expect(find.text('new:inbox'), findsNothing);
     });
 
-    testWidgets('空态「添加任务」按钮同样打开弹窗', (tester) async {
+    testWidgets('空收件箱：FAB 依然显示，空态文案依赖 FAB 新建', (tester) async {
       await _pumpInbox(tester, tasks: []);
 
-      expect(find.byType(FloatingActionButton), findsNothing);
-      await tester.tap(find.text('添加任务'));
+      // TaskTree 空态（ARB：emptyProjectDetail）。
+      expect(find.text('还没有任务，点击下方按钮新建'), findsOneWidget);
+      // FAB 恒显示（收件箱项目恒存在）；旧版空态「添加任务」按钮已移除。
+      expect(find.byType(FloatingActionButton), findsOneWidget);
+      expect(find.text('添加任务'), findsNothing);
+
+      await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
       expect(find.byType(TaskCreateSheet), findsOneWidget);

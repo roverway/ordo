@@ -7,12 +7,10 @@ import '../../core/db/repositories/todo_repository.dart';
 import '../../core/db/tables.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
-import '../../core/utils/tree.dart';
 import '../../shared/widgets/app_shell.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
-import '../../shared/widgets/inbox_task_tile.dart';
 import '../../shared/widgets/loading_view.dart';
 import '../../shared/widgets/simple_task_tile.dart';
 import '../projects/project_providers.dart';
@@ -34,7 +32,8 @@ final class TodayTaskScope extends TaskScope {
   const TodayTaskScope();
 }
 
-/// 收件箱作用域：inbox 项目下 1 级任务（D4，并入统一页）。
+/// 收件箱作用域：内置收件箱项目（inboxProjectId）下的任务树
+/// （Bug 3 修复：/inbox 与项目页一致渲染 TaskTree，不再有扁平列表双入口）。
 final class InboxTaskScope extends TaskScope {
   const InboxTaskScope();
 }
@@ -114,19 +113,18 @@ class TaskListPage extends ConsumerWidget {
       _ => const <Widget>[],
     };
 
-    // FAB 显示条件（沿用原各页行为，56-task-scope-page.md §3.2）：
-    // 今日常驻；收件箱仅非空（空态用「添加任务」按钮，避免双新建入口）；项目存在时。
+    // FAB 显示条件（56-task-scope-page.md §3.2）：
+    // 今日常驻；收件箱恒显示（内置收件箱项目由 ensureInboxProject 幂等保证存在，
+    // 且 TaskTree 空态文案「还没有任务，点击下方按钮新建」依赖底部 FAB，
+    // 空收件箱也必须保留 FAB——旧版空态「添加任务」按钮已移除）；项目存在时。
     // loading/error 态隐藏 FAB（与旧页面只在 data 态渲染 FAB 一致；error 态点 FAB
     // 会对不存在的 projectId 抛 RepositoryException）。
     final showFab = switch (scope) {
       TodayTaskScope() => true,
-      InboxTaskScope() =>
-        ref
-            .watch(inboxTasksProvider)
-            .maybeWhen(
-              data: (tasks) => tasks.any((t) => t.parentId == null),
-              orElse: () => false,
-            ),
+      // 收件箱项目恒存在（ensureInboxProject 幂等），TaskTree 空态文案
+      // 「还没有任务，点击下方按钮新建」依赖底部 FAB，空收件箱也必须显示 FAB
+      //（不再有旧版空态「添加任务」按钮）。
+      InboxTaskScope() => true,
       ProjectTaskScope(:final projectId) =>
         ref
             .watch(projectsStreamProvider)
@@ -143,8 +141,8 @@ class TaskListPage extends ConsumerWidget {
         children: [
           Positioned.fill(child: _buildBody(context, ref)),
           // FAB：统一走滴答式新建底部弹窗（D2 定稿，55-ui-redesign §4.1）。
-          // 显示条件与各作用域原行为一致：今日常驻；收件箱仅非空
-          //（空态用「添加任务」按钮，避免双新建入口）；项目存在时。
+          // 显示条件与各作用域行为一致：今日常驻；收件箱恒显示（空态文案依赖
+          // FAB）；项目存在时。
           if (showFab)
             Positioned(
               right: AppTokens.spaceMd,
@@ -159,7 +157,7 @@ class TaskListPage extends ConsumerWidget {
   Widget _buildBody(BuildContext context, WidgetRef ref) {
     return switch (scope) {
       TodayTaskScope() => const _TodayBody(),
-      InboxTaskScope() => const _InboxBody(),
+      InboxTaskScope() => TaskTree(projectId: inboxProjectId),
       ProjectTaskScope(:final projectId) => _ProjectBody(projectId: projectId),
     };
   }
@@ -306,72 +304,6 @@ class _TodayBody extends ConsumerWidget {
   }
 }
 
-/// 收件箱作用域 body（从 inbox_page.dart 抽取，行为不变）。
-class _InboxBody extends ConsumerWidget {
-  const _InboxBody();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final tasksAsync = ref.watch(inboxTasksProvider);
-
-    return tasksAsync.when(
-      data: (tasks) {
-        final rootTasks = tasks.where((t) => t.parentId == null).toList();
-        final childrenIndex = indexChildrenByParent(tasks);
-        if (rootTasks.isEmpty) {
-          return _InboxEmptyState(
-            addLabel: l10n.addTask,
-            onAdd: () => TaskCreateSheet.show(context),
-          );
-        }
-        return _buildTaskList(context, ref, rootTasks, childrenIndex);
-      },
-      loading: () => const LoadingView(),
-      error: (e, st) {
-        logAsyncError(e, st);
-        return ErrorView(onRetry: () => ref.invalidate(inboxTasksProvider));
-      },
-    );
-  }
-
-  Widget _buildTaskList(
-    BuildContext context,
-    WidgetRef ref,
-    List<Task> rootTasks,
-    Map<String?, List<Task>> childrenIndex,
-  ) {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTokens.spaceMd,
-        vertical: AppTokens.spaceSm,
-      ),
-      itemCount: rootTasks.length,
-      itemBuilder: (context, index) {
-        final task = rootTasks[index];
-        final hasChildren =
-            (childrenIndex[task.id] ?? const <Task>[]).isNotEmpty;
-        return InboxTaskTile(
-          task: task,
-          hasChildren: hasChildren,
-          onToggleDone: (value) => _toggleDone(ref, task, value),
-          onTap: () => context.push('/task/${task.id}'),
-        );
-      },
-    );
-  }
-
-  Future<void> _toggleDone(WidgetRef ref, Task task, bool? value) async {
-    final repo = ref.read(todoRepositoryProvider);
-    final newStatus = value == true ? TaskStatus.done : TaskStatus.todo;
-    try {
-      await repo.updateTask(task.id, status: newStatus);
-    } catch (_) {
-      // Silently fail toggle — status will revert via stream.
-    }
-  }
-}
-
 /// 项目作用域 body：任务树（3 级，拖拽/展开折叠）。
 ///
 /// 项目不存在（已被删除/深链失效）时显示空态；任务树自带空态/加载/错误。
@@ -401,58 +333,6 @@ class _ProjectBody extends ConsumerWidget {
         logAsyncError(e, st);
         return ErrorView(onRetry: () => ref.invalidate(projectsStreamProvider));
       },
-    );
-  }
-}
-
-/// 收件箱空态：圆形图标 + 引导文案 + 新建按钮。
-class _InboxEmptyState extends StatelessWidget {
-  const _InboxEmptyState({required this.addLabel, required this.onAdd});
-
-  final String addLabel;
-  final VoidCallback onAdd;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTokens.spaceXxl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 88,
-              height: 88,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer.withValues(
-                  alpha: 0.3,
-                ),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.inbox_outlined,
-                size: 40,
-                color: theme.colorScheme.primary.withValues(alpha: 0.6),
-              ),
-            ),
-            const SizedBox(height: AppTokens.spaceXl),
-            Text(
-              AppLocalizations.of(context).emptyInbox,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppTokens.spaceLg),
-            FilledButton.icon(
-              onPressed: onAdd,
-              icon: const Icon(Icons.add, size: 20),
-              label: Text(addLabel),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

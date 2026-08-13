@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/db/repositories/todo_repository.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../shared/widgets/app_shell.dart';
@@ -28,7 +29,12 @@ class ProjectsPage extends ConsumerWidget {
       title: l10n.navProjects,
       child: projectsAsync.when(
         data: (projects) {
-          if (projects.isEmpty) {
+          // 与抽屉项目组一致：内置收件箱由系统组 /inbox 承载，不列入项目列表
+          //（Bug 3）。新装仅有收件箱项目时应显示「暂无项目」空态。
+          final visibleProjects = projects
+              .where((p) => p.id != inboxProjectId)
+              .toList();
+          if (visibleProjects.isEmpty) {
             return EmptyState(
               icon: Icons.folder_outlined,
               message: l10n.emptyProjects,
@@ -46,9 +52,9 @@ class ProjectsPage extends ConsumerWidget {
                   horizontal: AppTokens.spaceMd,
                   vertical: AppTokens.spaceSm,
                 ),
-                itemCount: projects.length,
+                itemCount: visibleProjects.length,
                 itemBuilder: (context, index) {
-                  final project = projects[index];
+                  final project = visibleProjects[index];
                   return ProjectCard(
                     project: project,
                     onTap: () => context.push('/projects/${project.id}'),
