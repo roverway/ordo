@@ -275,6 +275,9 @@ class WebDavClientAdapter implements WebDavClientLike {
       // 401 → 认证协商（语义同 webdav_client req）：
       // - NoAuth → 按挑战切 Basic/Digest；
       // - 预置 Basic 但服务器要 Digest → 切 Digest；
+      // - **挑战来自新 origin**（跨主机重定向后目标主机的 401）→ 按挑战类型
+      //   对当前 origin 重新协商（旧 origin 的认证状态不适用于新主机，
+      //   例如预置 Basic 被重定向目标以 Basic 挑战——否则会误判凭据错误）；
       // - Digest stale → 重建 DigestAuth 续期。
       // 重试超限或凭据错误 → 最后一个 401 上抛（→ SyncAuthException）。
       if (authAttempts >= _kMaxAuthAttempts) {
@@ -282,7 +285,9 @@ class WebDavClientAdapter implements WebDavClientLike {
       }
       final w3a = resp.headers.value('www-authenticate');
       final lower = w3a?.toLowerCase();
+      final challengeFromNewOrigin = _originOf(uri) != _authOrigin;
       final canUpgrade =
+          challengeFromNewOrigin ||
           _auth.type == AuthType.NoAuth ||
           (_auth.type == AuthType.BasicAuth &&
               lower?.contains('digest') == true);

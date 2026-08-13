@@ -405,5 +405,38 @@ void main() {
         reason: '跨主机重定向必须剥离凭据',
       );
     });
+
+    test('跨主机重定向后目标 Basic 挑战 → 按新 origin 重新协商成功', () async {
+      final fake = _FakeHttpAdapter();
+      fake.onFetch = (options) {
+        final auth = options.headers['authorization'] as String?;
+        if (options.path.startsWith('https://dav.example.com')) {
+          return _body('', 302, {'location': 'https://cdn.example.com/file'});
+        }
+        if (options.path.startsWith('https://cdn.example.com')) {
+          if (auth == null) {
+            // 未带凭据（跨主机不转发）→ 目标主机自己发起 Basic 挑战。
+            return _body('', 401, {'www-authenticate': 'Basic realm="cdn"'});
+          }
+          return ResponseBody.fromBytes(Uint8List.fromList([7]), 200);
+        }
+        return _body('', 500);
+      };
+      final adapter = _build(fake, username: 'user', password: 'pass');
+
+      final bytes = await adapter.read('data.json.gz');
+
+      expect(bytes, [7]);
+      // dav 302 → cdn 401(Basic 挑战) → cdn 200(带 Basic 头)。
+      expect(fake.requests.length, 3);
+      expect(fake.requests.last.path, 'https://cdn.example.com/file');
+      expect(
+        (fake.requests.last.headers['authorization'] as String).startsWith(
+          'Basic ',
+        ),
+        isTrue,
+        reason: '目标主机 Basic 挑战应对当前 origin 重新协商而非误判凭据错误',
+      );
+    });
   });
 }
