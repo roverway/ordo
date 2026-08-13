@@ -49,4 +49,38 @@ void main() {
       );
     });
   });
+
+  group('formatRelativeStart', () {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    final dayAfter = today.add(const Duration(days: 2));
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    test('null → 空串', () {
+      expect(formatRelativeStart(null, l10n), '');
+    });
+
+    test('今天开始 → 空串（days=0）', () {
+      expect(formatRelativeStart(_ms(today), l10n), '');
+    });
+
+    test('明天开始 → 空串（days=1，抑制冗余，61 §4.4）', () {
+      expect(formatRelativeStart(_ms(tomorrow), l10n), '');
+    });
+
+    test('后天开始 → 「Starts in 2 days」', () {
+      expect(formatRelativeStart(_ms(dayAfter), l10n), 'Starts in 2 days');
+    });
+
+    test('已开始（过去）→ 空串', () {
+      expect(formatRelativeStart(_ms(yesterday), l10n), '');
+    });
+
+    test('天数差在 UTC 域计算：明天（含 DST 23 小时日）恒为 1 天', () {
+      // 不模拟具体 DST 时区，验证「明天」差值恒定 1：若实现退化为本地
+      // difference.inDays，DST 春季日会得 0；UTC 域计算恒为 1 → 空串。
+      expect(formatRelativeStart(_ms(tomorrow), l10n), '');
+    });
+  });
 }

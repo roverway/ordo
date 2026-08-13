@@ -505,24 +505,35 @@ void main() {
       expect(find.text('Child'), findsOneWidget);
     });
 
-    testWidgets('日期行：范围文本 + 橙色相对时间（距开始 X 天）', (tester) async {
+    testWidgets('日期行：范围文本 + 橙色相对时间（后天开始显示）', (tester) async {
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
-      final tomorrow = today.add(const Duration(days: 1));
       final dayAfter = today.add(const Duration(days: 2));
+      final dayAfterNext = today.add(const Duration(days: 3));
       await _pumpTree(tester, [
         _task(
           'r',
           title: 'Root',
-          startAt: tomorrow.millisecondsSinceEpoch,
-          endAt: dayAfter.millisecondsSinceEpoch,
+          startAt: dayAfter.millisecondsSinceEpoch,
+          endAt: dayAfterNext.millisecondsSinceEpoch,
         ),
       ]);
-      // 相对时间（zh ICU：=1 → 「距开始 1 天」），橙色强调。
-      final relative = tester.widget<Text>(find.text('距开始 1 天'));
+      // 相对时间（zh ICU：=2 → 「距开始 2 天」），橙色强调。
+      final relative = tester.widget<Text>(find.text('距开始 2 天'));
       expect(relative.style?.color, AppTokens.colorDateRelative);
-      // 日期范围行存在（formatDueDate(tomorrow) → 「明天」）。
-      expect(find.textContaining('明天'), findsOneWidget);
+    });
+
+    testWidgets('明天开始 → 日期行只显示「明天」，不追加相对时间（评审修复 3）', (tester) async {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final tomorrow = today.add(const Duration(days: 1));
+      await _pumpTree(tester, [
+        _task('r', title: 'Root', startAt: tomorrow.millisecondsSinceEpoch),
+      ]);
+      // formatDateRange(明天) → formatDueDate → 「明天」，恰好一处。
+      expect(find.text('明天'), findsOneWidget);
+      // 「距开始 1 天」被抑制，避免同一日期两段文字。
+      expect(find.textContaining('距开始'), findsNothing);
     });
 
     testWidgets('compact 子行也显示标签（61 §4.4，覆盖 57 D7）', (tester) async {

@@ -400,28 +400,38 @@ class _TaskRowState extends State<TaskRow> {
                         button: true,
                         label: widget.isExpanded ? l10n.collapse : l10n.expand,
                         child: GestureDetector(
+                          // 评审修复 2：ConstrainedBox 恢复最小 32×32 触控区
+                          //（改造前固定 28×28），opaque 使透明区也响应点击；
+                          // Row 自身尺寸不变 → 不改变行尾对齐布局。
+                          behavior: HitTestBehavior.opaque,
                           onTap: widget.onToggleExpand,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '${widget.childCount}',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              minWidth: AppTokens.expandTapTargetSize,
+                              minHeight: AppTokens.expandTapTargetSize,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '${widget.childCount}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: AppTokens.spaceXxs),
-                              AnimatedRotation(
-                                turns: widget.isExpanded ? 0.25 : 0,
-                                duration: AppTokens.motionFast,
-                                curve: AppTokens.motionSpring,
-                                child: Icon(
-                                  Icons.arrow_right,
-                                  size: AppTokens.expandArrowSizeRow,
-                                  color: colorScheme.onSurfaceVariant,
+                                const SizedBox(width: AppTokens.spaceXxs),
+                                AnimatedRotation(
+                                  turns: widget.isExpanded ? 0.25 : 0,
+                                  duration: AppTokens.motionFast,
+                                  curve: AppTokens.motionSpring,
+                                  child: Icon(
+                                    Icons.arrow_right,
+                                    size: AppTokens.expandArrowSizeRow,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),

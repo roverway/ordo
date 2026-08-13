@@ -227,6 +227,11 @@ abstract final class AppTokens {
   /// 行尾展开/折叠箭头尺寸（61 §4.5，比 AppBar/树内 [expandArrowSize] 20 稍小）。
   static const double expandArrowSizeRow = 16;
 
+  /// 行尾展开/折叠控件最小触控区域（评审修复 2：改造前固定 28×28，
+  /// 改造后箭头随内容尺寸收缩到约 16px；恢复触控目标并尽量接近 NFR-06
+  /// ≥48dp 的硬约束，行内空间有限取 32）。
+  static const double expandTapTargetSize = 32;
+
   /// 相对时间文字颜色（「距开始 X 天」，61 §4.4，与 colorPriorityMedium 同值）。
   static const Color colorDateRelative = Color(0xFFF4A74A);
 
