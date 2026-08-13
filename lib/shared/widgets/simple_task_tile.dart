@@ -92,9 +92,11 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
               borderRadius: BorderRadius.circular(AppTokens.radiusList),
               onTap: widget.onTap,
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTokens.spaceMd,
-                  vertical: AppTokens.spaceXs,
+                padding: const EdgeInsets.only(
+                  // 用户打磨要求 4（与 TaskRow 视觉一致）：行内水平边距收紧、
+                  // 垂直 padding 为 0（单行行高由勾选框触控区 44 决定）。
+                  left: AppTokens.spaceXxs,
+                  right: AppTokens.spaceXxs,
                 ),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(
@@ -104,9 +106,10 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       // 方形勾选（61 §4.2；有子任务 → 禁用，状态由子任务派生）。
+                      // 触控区 44（与 TaskRow 一致的取舍），视觉 24 居中。
                       SizedBox(
-                        width: AppTokens.touchTarget,
-                        height: AppTokens.touchTarget,
+                        width: AppTokens.checkboxTapTargetSize,
+                        height: AppTokens.checkboxTapTargetSize,
                         child: widget.hasChildren
                             ? Tooltip(
                                 // 无障碍（NFR-06）：禁用原因走 ARB 文案。
@@ -131,7 +134,7 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                 onChanged: widget.onToggleDone,
                               ),
                       ),
-                      const SizedBox(width: AppTokens.spaceSm),
+                      const SizedBox(width: AppTokens.spaceXxs),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

@@ -21,6 +21,13 @@ enum TaskRowStyle { cardHeader, compact }
 /// 仅保留拖拽/悬停态叠加色；勾选框为**方形**并按层级着色（一级蓝、子级红）；
 /// 元信息（描述/标签/日期）从标题同行改为标题下方独立行；子任务数 + 展开箭头
 /// 移至行尾（菜单左侧）。
+///
+/// 用户打磨要求（override 61 §4.1/§4.5/§4.6）：
+/// 1. 移除标题行右侧的派生状态小圆点（状态仍由 [derivedStatus] 传给勾选框）；
+/// 2. 移除行尾「⋮」菜单按钮，同时**恢复整行长按拖拽**（LongPressDraggable
+///    由 TaskTree 包整行，61 §4.6 语义）；行内菜单入口改为**桌面右键**
+///    （InkWell.onSecondaryTap），移动端由「点击行 → 编辑页」承载
+///    （编辑页内含新建子任务/删除；上移/下移/缩进/缩出由拖拽覆盖）。
 /// Supports drag-target highlight states for tree reordering.
 class TaskRow extends StatefulWidget {
   const TaskRow({
@@ -74,14 +81,6 @@ class TaskRow extends StatefulWidget {
 class _TaskRowState extends State<TaskRow> {
   bool _hovered = false;
 
-  Color _statusColor(TaskStatus status, ColorScheme colorScheme) =>
-      switch (status) {
-        TaskStatus.done => AppTokens.colorDone,
-        TaskStatus.inProgress => AppTokens.colorInProgress,
-        TaskStatus.cancelled => AppTokens.colorCancelled,
-        TaskStatus.todo => colorScheme.outline,
-      };
-
   /// 行背景（61 §2/§4.7）：扁平行无自身卡片底，透明底 + 仅拖拽/悬停态叠加色。
   Color _rowColor(ColorScheme colorScheme) {
     if (widget.isInvalidDragTarget) {
@@ -100,22 +99,22 @@ class _TaskRowState extends State<TaskRow> {
     return Colors.transparent;
   }
 
-  /// 行内边距（61 §4.1）：左 [AppTokens.spaceMd]、右 [AppTokens.spaceXxs]，
-  /// 子任务行按深度缩进 [AppTokens.treeIndentLevel]（一级行深度恒 0 不缩进）。
+  /// 行内边距（61 §4.1；用户打磨要求 2/3/4 逐轮收紧）：左 [AppTokens.spaceXxs]、
+  /// 右 [AppTokens.spaceXxs]、垂直 padding 为 0——单行行高由勾选框触控区
+  /// （[AppTokens.checkboxTapTargetSize]=44）与标题行决定，视觉留白由触控区
+  /// 内部空隙提供（视觉勾选框 24 在 44 触控区内居中，上下各 10px）；
+  /// 多行任务（描述/标签/日期）高度自然撑开。子任务行按深度缩进
+  /// [AppTokens.treeIndentLevel]（一级行深度恒 0 不缩进）。
   EdgeInsets _contentPadding() {
     final indent = widget.depth * AppTokens.treeIndentLevel;
     return switch (widget.style) {
-      TaskRowStyle.cardHeader => EdgeInsets.only(
-        left: AppTokens.spaceMd,
+      TaskRowStyle.cardHeader => const EdgeInsets.only(
+        left: AppTokens.spaceXxs,
         right: AppTokens.spaceXxs,
-        top: AppTokens.spaceSm,
-        bottom: AppTokens.spaceXs,
       ),
       TaskRowStyle.compact => EdgeInsets.only(
-        left: AppTokens.spaceMd + indent,
+        left: AppTokens.spaceXxs + indent,
         right: AppTokens.spaceXxs,
-        top: AppTokens.spaceXxs,
-        bottom: AppTokens.spaceXxs,
       ),
     };
   }
@@ -172,6 +171,10 @@ class _TaskRowState extends State<TaskRow> {
           child: InkWell(
             borderRadius: BorderRadius.circular(rowRadius),
             onTap: widget.onTap,
+            // 用户打磨要求（恢复整行拖拽）：行体**长按不再弹菜单**（与整行
+            // LongPressDraggable 互斥，拖拽由 TaskTree 包整行触发）；
+            // 菜单入口保留**桌面右键**（onSecondaryTap，与长按不冲突）。
+            onSecondaryTap: () => _showMenu(context),
             child: Padding(
               padding: _contentPadding(),
               child: ConstrainedBox(
@@ -185,10 +188,11 @@ class _TaskRowState extends State<TaskRow> {
                   children: [
                     // Checkbox（方形，61 §4.2；有子任务的子任务行禁用：
                     // 状态由父任务派生，Tooltip 解释原因，AGENTS.md §3-2 +
-                    // NFR-06 语义）。
+                    // NFR-06 语义）。触控区 = checkboxTapTargetSize（44，
+                    // 用户打磨要求 4：单行行高压缩的权衡），视觉 24 居中。
                     SizedBox(
-                      width: AppTokens.touchTarget,
-                      height: AppTokens.touchTarget,
+                      width: AppTokens.checkboxTapTargetSize,
+                      height: AppTokens.checkboxTapTargetSize,
                       child: (!hasDerived || widget.task.parentId == null)
                           ? Checkbox(
                               value: isDone,
@@ -212,45 +216,26 @@ class _TaskRowState extends State<TaskRow> {
                               ),
                             ),
                     ),
-                    const SizedBox(width: AppTokens.spaceXs),
+                    const SizedBox(width: AppTokens.spaceXxs),
                     // Title + description + tags + date（61 §4.1/§4.4）。
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  widget.task.title,
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    decoration: isDone
-                                        ? TextDecoration.lineThrough
-                                        : null,
-                                    color: isDone
-                                        ? colorScheme.onSurfaceVariant
-                                        : colorScheme.onSurface,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              // Inline status icon (when derived).
-                              if (hasDerived)
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                    left: AppTokens.spaceXxs,
-                                  ),
-                                  child: Icon(
-                                    _statusIcon(effectiveStatus, isDone),
-                                    size: 14,
-                                    color: _statusColor(
-                                      effectiveStatus,
-                                      colorScheme,
-                                    ),
-                                  ),
-                                ),
-                            ],
+                          // 用户打磨要求 1：移除派生状态小圆点（状态信息由
+                          // 勾选框与进度环承载，标题行不再叠加状态图标）。
+                          Text(
+                            widget.task.title,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              decoration: isDone
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                              color: isDone
+                                  ? colorScheme.onSurfaceVariant
+                                  : colorScheme.onSurface,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           // 描述文字（61 §4.4）：标题下方灰色小字，有内容才显示。
                           if (widget.task.description.isNotEmpty)
@@ -451,18 +436,6 @@ class _TaskRowState extends State<TaskRow> {
                           color: colorScheme.primary,
                         ),
                       ),
-                    // More menu.
-                    IconButton(
-                      icon: const Icon(Icons.more_vert, size: 18),
-                      onPressed: () => _showMenu(context),
-                      tooltip: AppLocalizations.of(context).rowActions,
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: AppTokens.touchTarget,
-                        minHeight: AppTokens.touchTarget,
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -561,11 +534,4 @@ class _TaskRowState extends State<TaskRow> {
       ),
     );
   }
-
-  IconData _statusIcon(TaskStatus status, bool isDone) => switch (status) {
-    TaskStatus.done => Icons.check_circle,
-    TaskStatus.inProgress => Icons.radio_button_checked,
-    TaskStatus.cancelled => Icons.cancel,
-    TaskStatus.todo => Icons.circle_outlined,
-  };
 }

@@ -82,8 +82,10 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
 
         return ListView.builder(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppTokens.spaceMd,
-            vertical: AppTokens.spaceSm,
+            // 用户打磨要求 3：列表水平 padding spaceMd→spaceXs（缩小卡片
+            // 与屏幕边缘距离）、垂直 padding 保持 spaceXs。
+            horizontal: AppTokens.spaceXs,
+            vertical: AppTokens.spaceXs,
           ),
           itemCount: roots.length + (_draggingTaskId != null ? 1 : 0),
           itemBuilder: (context, index) {
@@ -152,7 +154,9 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     final children = childrenOf[rootNode.task.id] ?? const <TreeNode>[];
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppTokens.spaceSm),
+      // 用户打磨要求 4：一级卡片底部间距 spaceXxs→spaceXs，
+      // 与卡片↔屏幕左右边缘距离（列表水平 padding spaceXs）相等。
+      padding: const EdgeInsets.only(bottom: AppTokens.spaceXs),
       child: Container(
         decoration: BoxDecoration(
           color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
@@ -178,8 +182,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
                 expandState,
                 style: TaskRowStyle.cardHeader,
               ),
-              if (rootNode.isExpanded && children.isNotEmpty) ...[
-                const Divider(height: 1),
+              // 用户打磨要求 2：去掉子行间 Divider（行间靠间距区分）。
+              if (rootNode.isExpanded && children.isNotEmpty)
                 _buildChildrenSection(
                   context,
                   children,
@@ -188,7 +192,6 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
                   repo,
                   expandState,
                 ),
-              ],
             ],
           ),
         ),
@@ -196,8 +199,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     );
   }
 
-  /// 卡片展开区：紧凑子任务行（Divider 分隔，D7），
-  /// 有子任务的子行递归缩进展开（至 3 级）。
+  /// 卡片展开区：紧凑子任务行（用户打磨要求 2：无 Divider，行间靠间距
+  /// 区分），有子任务的子行递归缩进展开（至 3 级）。
   Widget _buildChildrenSection(
     BuildContext context,
     List<TreeNode> children,
@@ -210,7 +213,6 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (var i = 0; i < children.length; i++) ...[
-          if (i > 0) const Divider(height: 1),
           _buildDraggableRow(
             context,
             children[i],
@@ -220,8 +222,7 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
             style: TaskRowStyle.compact,
           ),
           if (children[i].isExpanded &&
-              (childrenOf[children[i].task.id]?.isNotEmpty ?? false)) ...[
-            const Divider(height: 1),
+              (childrenOf[children[i].task.id]?.isNotEmpty ?? false))
             _buildChildrenSection(
               context,
               childrenOf[children[i].task.id]!,
@@ -230,15 +231,17 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
               repo,
               expandState,
             ),
-          ],
         ],
       ],
     );
   }
 
-  /// 单个任务行的拖拽包装（D2 完整保留）：LongPressDraggable + DragTarget。
+  /// 单个任务行的拖拽包装（D2 完整保留；61 §4.6 语义）：LongPressDraggable
+  /// 包**整行**（长按行任意位置起拖），DragTarget 命中整行。
   ///
-  /// 适用于两类行（一级卡片头 / 卡片内紧凑子行）：
+  /// 用户打磨要求（override 上一轮把手方案）：**恢复整行拖拽**，删除行尾
+  /// 拖拽把手；行体长按不再弹菜单（与拖拽互斥），菜单入口改为桌面右键
+  /// （TaskRow InkWell.onSecondaryTap）。以下逻辑全部沿用：
   /// - `_rowKeys` 按任务 id 登记（两类行共用），onMove 用其 RenderBox 换算
   ///   悬停位置（上半=同级排序，下半=成为子级 `_dropAsChild`）；
   /// - 深度校验 / 防环 / 非法目标高亮 / 回弹提示全部沿用，

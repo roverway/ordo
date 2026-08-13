@@ -204,6 +204,21 @@ void main() {
           findsOneWidget,
         );
       }
+      // 用户打磨要求 4：宽屏设置入口在 Rail 底部（AppBar 无设置图标）。
+      expect(
+        find.descendant(
+          of: find.byType(NavigationRail),
+          matching: find.byIcon(Icons.settings_outlined),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.byIcon(Icons.settings_outlined),
+        ),
+        findsNothing,
+      );
     },
   );
 
@@ -394,9 +409,20 @@ void main() {
   ) async {
     await pumpApp(tester, const Size(400, 800));
 
-    await tester.tap(find.byIcon(Icons.settings_outlined));
+    // 用户打磨要求 4：设置入口移出 AppBar，窄屏入口在抽屉底部
+    //（新建项目行右侧）。
+    expect(find.byIcon(Icons.settings_outlined), findsNothing);
+    await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();
-    // Default locale is zh.
+    await tester.tap(
+      find.descendant(
+        of: find.byType(Drawer),
+        matching: find.byIcon(Icons.settings_outlined),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // 抽屉点击后自动关闭并进入设置页。
+    expect(find.byType(Drawer), findsNothing);
     expect(find.text('设置'), findsOneWidget);
 
     await tester.tap(find.text('深色'));
@@ -419,8 +445,17 @@ void main() {
   ) async {
     await pumpApp(tester, const Size(400, 800));
 
-    await tester.tap(find.byIcon(Icons.settings_outlined));
+    // 窄屏设置入口：抽屉底部（用户打磨要求 4）。
+    await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(Drawer),
+        matching: find.byIcon(Icons.settings_outlined),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(Drawer), findsNothing);
 
     // 同步分组入口存在（push 跳转；/settings/sync 为 /settings 子路由，
     // 栈为 任务页→settings→sync，AppBar 自动出现返回箭头）。

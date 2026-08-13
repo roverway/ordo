@@ -174,11 +174,15 @@ abstract final class AppTokens {
 
   // ── Progress Ring（仅令牌，批 2 使用 UI）──
 
-  /// Circular progress ring diameter for parent tasks.
-  static const double progressRingSize = 24;
+  /// Circular progress ring diameter for parent tasks
+  /// （用户打磨要求 1：24 → 18，行尾更轻量）。
+  static const double progressRingSize = 18;
 
-  /// Circular progress ring stroke width.
-  static const double progressRingWidth = 2.5;
+  /// Circular progress ring stroke width（用户打磨要求 1：2.5 → 2）。
+  static const double progressRingWidth = 2;
+
+  /// 进度百分比字号（用户打磨要求 1：bodySmall 12 → 10，整体小一号）。
+  static const double progressPercentSize = 10;
 
   // ── Drawer（仅令牌，批 2 使用 UI）──
 
@@ -197,6 +201,13 @@ abstract final class AppTokens {
 
   /// Checkbox touch area size.
   static const double checkboxSize = 24;
+
+  /// 任务行勾选框触控区尺寸（用户打磨要求 4，override 61 §3.2 行高规格 +
+  /// NFR-06 ≥48dp 触控下限的权衡）：视觉 [checkboxSize]=24，触控区取 44
+  /// ——单行任务行高由触控区决定，44 处「48 硬约束」与「行高明显更窄」
+  /// （用户期望 36-48）的折中，用户明确接受 44-48 区间取舍；
+  /// 行点击（onTap → 编辑页）由整行 InkWell 兜底。
+  static const double checkboxTapTargetSize = 44;
 
   /// Expand/collapse arrow size.
   static const double expandArrowSize = 20;
@@ -221,8 +232,9 @@ abstract final class AppTokens {
     borderRadius: BorderRadius.all(Radius.circular(checkboxRadius)),
   );
 
-  /// 任务树每级缩进量（61 §4.3，替代 [treeIndent]=28 用于扁平行子任务缩进）。
-  static const double treeIndentLevel = 24;
+  /// 任务树每级缩进量（61 §4.3，替代 [treeIndent]=28 用于扁平行子任务缩进；
+  /// 用户打磨要求 2：24 → 20 适度收紧）。
+  static const double treeIndentLevel = 20;
 
   /// 行尾展开/折叠箭头尺寸（61 §4.5，比 AppBar/树内 [expandArrowSize] 20 稍小）。
   static const double expandArrowSizeRow = 16;
@@ -235,11 +247,13 @@ abstract final class AppTokens {
   /// 相对时间文字颜色（「距开始 X 天」，61 §4.4，与 colorPriorityMedium 同值）。
   static const Color colorDateRelative = Color(0xFFF4A74A);
 
-  /// 任务行最小高度（一级任务行，61 §3.2）。
-  static const double taskRowMinHeight = 56;
+  /// 任务行最小高度（一级任务行，61 §3.2；用户打磨要求 3：56 → 52，
+  /// 勾选框 48dp 触控不变，行高仍由内容撑起可点性下限）。
+  static const double taskRowMinHeight = 48;
 
-  /// 任务行最小高度（子任务行，61 §3.2）。
-  static const double taskRowCompactMinHeight = 48;
+  /// 任务行最小高度（子任务行，61 §3.2；用户打磨要求 3：48 → 44——实际
+  /// 行高由 48dp 勾选框触控区撑起，最小高度下调不影响可点性）。
+  static const double taskRowCompactMinHeight = 44;
 
   // ── 状态反馈（M5 任务 1，50-ui-ux.md §6.3）──
 

@@ -155,7 +155,9 @@ class AppDrawer extends ConsumerWidget {
               ),
             ),
             const Divider(),
-            // ── 底部：「新建项目」（图标 + 文字，复用项目表单对话框）──
+            // ── 底部：「新建项目」（图标 + 文字，复用项目表单对话框）
+            //    右侧并排设置入口（用户打磨要求 4：设置按钮移出 AppBar，
+            //    窄屏入口在抽屉底部）。
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppTokens.spaceXs,
@@ -163,35 +165,51 @@ class AppDrawer extends ConsumerWidget {
                 AppTokens.spaceXs,
                 AppTokens.spaceSm,
               ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(AppTokens.radiusChip),
-                  onTap: () => _showNewProjectDialog(context, ref),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppTokens.spaceMd,
-                      vertical: AppTokens.spaceSm,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.add,
-                          size: AppTokens.expandArrowSize,
-                          color: theme.colorScheme.primary,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusChip,
                         ),
-                        const SizedBox(width: AppTokens.spaceMd),
-                        Text(
-                          l10n.newProject,
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: AppTokens.textTitleWeight,
+                        onTap: () => _showNewProjectDialog(context, ref),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppTokens.spaceMd,
+                            vertical: AppTokens.spaceSm,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.add,
+                                size: AppTokens.expandArrowSize,
+                                color: theme.colorScheme.primary,
+                              ),
+                              const SizedBox(width: AppTokens.spaceMd),
+                              Text(
+                                l10n.newProject,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: AppTokens.textTitleWeight,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
+                  // 设置入口（同高、垂直居中；先关抽屉再跳转）。
+                  // 用 push 而非 go：go('/settings') 会替换整个导航栈，
+                  // 设置页将无路可返（router.dart /settings 注释；Bug 2 回归）。
+                  IconButton(
+                    tooltip: l10n.settings,
+                    icon: const Icon(Icons.settings_outlined, size: 22),
+                    onPressed: () => _openSettings(context),
+                  ),
+                ],
               ),
             ),
           ],
@@ -204,6 +222,12 @@ class AppDrawer extends ConsumerWidget {
   void _go(BuildContext context, String path) {
     Navigator.of(context).pop();
     context.go(path);
+  }
+
+  /// 关闭抽屉并推入设置页（push 保持导航栈，设置页可返回任务页）。
+  void _openSettings(BuildContext context) {
+    Navigator.of(context).pop();
+    context.push('/settings');
   }
 
   Future<void> _showNewProjectDialog(

@@ -131,16 +131,13 @@ class AppShell extends StatelessWidget {
               )
             : null,
         title: Text(title),
+        // 用户打磨要求 4：设置入口移出 AppBar（窄屏 → 抽屉底部；
+        // 宽屏 → NavigationRail 底部），AppBar 仅保留搜索 + 作用域操作。
         actions: [
           IconButton(
             tooltip: l10n.search,
             icon: const Icon(Icons.search, size: 22),
             onPressed: () => context.push('/search'),
-          ),
-          IconButton(
-            tooltip: l10n.settings,
-            icon: const Icon(Icons.settings_outlined, size: 22),
-            onPressed: () => context.push('/settings'),
           ),
           // 作用域专属操作（追加在尾部）。
           ...?actions,
@@ -165,6 +162,16 @@ class AppShell extends StatelessWidget {
                         label: Text(d.label),
                       ),
                   ],
+                  // 用户打磨要求 4：宽屏设置入口放在 Rail 底部
+                  //（Material 惯例：Gmail/Docs 风格 trailing）。
+                  trailing: Padding(
+                    padding: const EdgeInsets.only(bottom: AppTokens.spaceMd),
+                    child: IconButton(
+                      tooltip: l10n.settings,
+                      icon: const Icon(Icons.settings_outlined, size: 22),
+                      onPressed: () => context.push('/settings'),
+                    ),
+                  ),
                 ),
                 const VerticalDivider(width: 1, thickness: 1),
                 Expanded(child: child),

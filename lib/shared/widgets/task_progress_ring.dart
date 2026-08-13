@@ -6,9 +6,10 @@ import '../../core/theme/app_tokens.dart';
 /// 任务进度环（滴答式，55-ui-redesign-proposal.md §5 progressRing）。
 ///
 /// 有子任务任务的派生完成度表达：圆形进度环 + 百分比数字，放在行尾。
-/// - 圆环尺寸/线宽走 [AppTokens.progressRingSize] / [AppTokens.progressRingWidth]；
+/// - 圆环尺寸/线宽走 [AppTokens.progressRingSize] / [AppTokens.progressRingWidth]
+///   （用户打磨要求 1：24/2.5 → 18/2，更小更轻）；
 /// - 完成（≥1.0）用 [AppTokens.colorDone]，进行中用 [AppTokens.colorInProgress]；
-/// - 百分比数字用主题 bodySmall（令牌字号），随明暗主题自动适配。
+/// - 百分比数字用 [AppTokens.progressPercentSize]（10sp，小一号）。
 ///
 /// 无障碍（NFR-06）：整组件用 [Semantics] 暴露「进度 + 完成百分比」，
 /// 子级（圆环 + 数字）用 [ExcludeSemantics] 排除，避免读屏重复播报。
@@ -51,6 +52,7 @@ class TaskProgressRing extends StatelessWidget {
               '$percent%',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
+                fontSize: AppTokens.progressPercentSize,
               ),
             ),
           ],

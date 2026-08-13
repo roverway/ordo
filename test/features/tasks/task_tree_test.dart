@@ -3,7 +3,8 @@
 // Covers DoD: multi-level tree rendering, expand/collapse, empty state, derived status badge.
 // Pure function tests: buildTreeNodes / TreeExpandNotifier / derivedStatus / progress.
 
-import 'package:flutter/gestures.dart' show kLongPressTimeout;
+import 'package:flutter/gestures.dart'
+    show kLongPressTimeout, kSecondaryMouseButton;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -227,7 +228,10 @@ Future<TodoRepository> _pumpTreeWithDb(
   return repo;
 }
 
-/// 长按任务行并拖到 [target] 行指定纵向位置（dy 为目标**行**高度的比例，0~1）。
+/// 长按任务行**行体任意位置**并拖到 [target] 行指定纵向位置
+/// （dy 为目标**行**高度的比例，0~1）。
+/// 用户打磨要求（恢复整行拖拽）：LongPressDraggable 恢复包裹整行，
+/// 行尾把手已删除，起拖点 = 行体中心。
 Future<void> _dragToRow(
   WidgetTester tester,
   String draggedTitle,
@@ -424,17 +428,17 @@ void main() {
       expect(childRow.style, TaskRowStyle.compact);
     });
 
-    testWidgets('卡片头与子任务行之间、子行之间均用 Divider 分隔', (tester) async {
+    testWidgets('子行间无 Divider（用户打磨要求 2：去掉行分隔线）', (tester) async {
       await _pumpTree(tester, [
         _task('r', title: 'Root'),
         _task('c1', parentId: 'r', title: 'C1', sortOrder: 1),
         _task('c2', parentId: 'r', title: 'C2', sortOrder: 2),
       ]);
-      // 结构：头部 ─ Divider ─ C1 ─ Divider ─ C2。
-      expect(find.byType(Divider), findsNWidgets(2));
+      // 用户打磨要求 2：卡片内子行不再用 Divider 分隔（行间靠间距区分）。
+      expect(find.byType(Divider), findsNothing);
     });
 
-    testWidgets('折叠一级卡片隐藏展开区（含 Divider）', (tester) async {
+    testWidgets('折叠一级卡片隐藏展开区', (tester) async {
       await _pumpTree(
         tester,
         [
@@ -444,7 +448,6 @@ void main() {
         expandState: {'r': false},
       );
       expect(find.text('Child'), findsNothing);
-      expect(find.byType(Divider), findsNothing);
     });
   });
 
@@ -472,6 +475,53 @@ void main() {
       expect(childBox.shape, isA<RoundedRectangleBorder>());
       expect(rootBox.side?.color, AppTokens.colorInProgress);
       expect(childBox.side?.color, AppTokens.colorPriorityHigh);
+    });
+
+    testWidgets('行尾无拖拽把手（用户打磨要求：恢复整行拖拽，把手已删除）', (tester) async {
+      await _pumpTree(tester, [
+        _task('r', title: 'Root'),
+        _task('c', parentId: 'r', title: 'Child', sortOrder: 1),
+      ]);
+      expect(find.byType(TaskRow), findsNWidgets(2));
+      expect(find.byIcon(Icons.drag_handle), findsNothing);
+    });
+
+    testWidgets('单行任务行高明显低于多行任务（用户打磨要求 4）', (tester) async {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final dayAfter = today.add(const Duration(days: 2));
+      final dayAfterNext = today.add(const Duration(days: 3));
+      await _pumpTree(tester, [
+        _task('plain', title: 'Plain', sortOrder: 0),
+        // 多行任务：描述 + 日期行（后天开始 → 显示相对时间）。
+        _task(
+          'rich',
+          title: 'Rich',
+          description: '有描述',
+          startAt: dayAfter.millisecondsSinceEpoch,
+          endAt: dayAfterNext.millisecondsSinceEpoch,
+          sortOrder: 1,
+        ),
+      ]);
+      double rowHeight(String title) => tester
+          .getSize(
+            find.ancestor(of: find.text(title), matching: find.byType(TaskRow)),
+          )
+          .height;
+      final plain = rowHeight('Plain');
+      final rich = rowHeight('Rich');
+      // 单行（一级，minHeight 48）显著低于多行（描述+日期自然撑开）。
+      expect(plain, lessThan(rich));
+      expect(plain, lessThanOrEqualTo(48));
+    });
+
+    testWidgets('勾选框触控区 ≥44（NFR-06 取舍下限，用户打磨要求 4）', (tester) async {
+      await _pumpTree(tester, [_task('a', title: 'A')]);
+      final box = tester.widget<Checkbox>(find.byType(Checkbox).first);
+      final size = tester.getSize(find.byType(Checkbox).first);
+      expect(box.shape, isA<RoundedRectangleBorder>());
+      expect(size.width, greaterThanOrEqualTo(44));
+      expect(size.height, greaterThanOrEqualTo(44));
     });
 
     testWidgets('行尾显示子任务数 + 展开箭头，无子任务不显示', (tester) async {
@@ -568,8 +618,14 @@ void main() {
     });
   });
 
-  group('derived status badge', () {
-    testWidgets('all done children show check_circle', (tester) async {
+  group('derived status（用户打磨要求 1：状态小圆点已移除，派生状态仍传入）', () {
+    /// 取指定任务行的 derivedStatus 参数。
+    TaskStatus? derivedOf(WidgetTester tester, String title) => tester
+        .widgetList<TaskRow>(find.byType(TaskRow))
+        .firstWhere((r) => r.task.title == title)
+        .derivedStatus;
+
+    testWidgets('all done children derive done status', (tester) async {
       await _pumpTree(tester, [
         _task('r', title: 'P'),
         _task(
@@ -587,9 +643,12 @@ void main() {
           sortOrder: 2,
         ),
       ]);
-      expect(find.byIcon(Icons.check_circle), findsWidgets);
+      expect(derivedOf(tester, 'P'), TaskStatus.done);
+      // 用户打磨要求 1：行内不再渲染状态小圆点图标。
+      expect(find.byIcon(Icons.check_circle), findsNothing);
+      expect(find.byIcon(Icons.radio_button_checked), findsNothing);
     });
-    testWidgets('inProgress child shows radio_button_checked', (tester) async {
+    testWidgets('inProgress child derives inProgress status', (tester) async {
       await _pumpTree(tester, [
         _task('r', title: 'P'),
         _task(
@@ -607,7 +666,7 @@ void main() {
           sortOrder: 2,
         ),
       ]);
-      expect(find.byIcon(Icons.radio_button_checked), findsWidgets);
+      expect(derivedOf(tester, 'P'), TaskStatus.inProgress);
     });
     testWidgets('leaf node has null derivedStatus', (tester) async {
       await _pumpTree(tester, [
@@ -720,7 +779,7 @@ void main() {
         _task('b', title: 'B', parentId: 'a', sortOrder: 0),
       ]);
 
-      // 长按 B（子级）后拖到底部空白落点区。
+      // 长按 B（子级，行体中心）后拖到底部空白落点区。
       final dragStart = tester.getCenter(find.text('B'));
       final gesture = await tester.startGesture(dragStart);
       await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
@@ -823,17 +882,27 @@ void main() {
     });
   });
 
-  group('行菜单（键盘兜底）', () {
-    /// 定位某任务行的 more_vert 菜单按钮。
-    Finder rowMenuButton(String title) => find.descendant(
-      of: find.ancestor(of: find.text(title), matching: find.byType(TaskRow)),
-      matching: find.byIcon(Icons.more_vert),
-    );
-
+  group('行菜单（用户打磨要求：桌面右键触发，无 more_vert 按钮）', () {
     Future<void> openMenu(WidgetTester tester, String title) async {
-      await tester.tap(rowMenuButton(title));
+      // 桌面右键（secondary button）→ InkWell.onSecondaryTap → 底部菜单；
+      // 与整行长按拖拽不冲突（右键 ≠ 长按）。
+      await tester.tap(find.text(title), buttons: kSecondaryMouseButton);
       await tester.pumpAndSettle();
     }
+
+    testWidgets('行尾无 more_vert，右键打开菜单；行体长按不弹菜单（整行拖拽）', (tester) async {
+      await _pumpTree(tester, [_task('a', title: 'A', sortOrder: 0)]);
+      expect(find.byIcon(Icons.more_vert), findsNothing);
+      // 桌面右键 → 菜单可达（编辑项在菜单首行）。
+      await openMenu(tester, 'A');
+      expect(find.text('编辑'), findsOneWidget);
+      // 关闭菜单后：行体长按不再弹菜单（与整行 LongPressDraggable 互斥）。
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+      await tester.longPress(find.text('A'));
+      await tester.pumpAndSettle();
+      expect(find.text('编辑'), findsNothing);
+    });
 
     testWidgets('根级任务菜单显示 上移/下移/缩进 且不显示 缩出', (tester) async {
       await _pumpTree(tester, [
