@@ -113,18 +113,21 @@ class TaskListPage extends ConsumerWidget {
       _ => const <Widget>[],
     };
 
-    // FAB 显示条件（56-task-scope-page.md §3.2）：
-    // 今日常驻；收件箱恒显示（内置收件箱项目由 ensureInboxProject 幂等保证存在，
-    // 且 TaskTree 空态文案「还没有任务，点击下方按钮新建」依赖底部 FAB，
-    // 空收件箱也必须保留 FAB——旧版空态「添加任务」按钮已移除）；项目存在时。
-    // loading/error 态隐藏 FAB（与旧页面只在 data 态渲染 FAB 一致；error 态点 FAB
-    // 会对不存在的 projectId 抛 RepositoryException）。
+    // FAB 显示条件（56-task-scope-page.md §3.2）：今日/收件箱/项目均在
+    // **data 态**显示（loading/error 隐藏，与旧页面只在 data 态渲染 FAB 一致）。
     final showFab = switch (scope) {
       TodayTaskScope() => true,
-      // 收件箱项目恒存在（ensureInboxProject 幂等），TaskTree 空态文案
-      // 「还没有任务，点击下方按钮新建」依赖底部 FAB，空收件箱也必须显示 FAB
-      //（不再有旧版空态「添加任务」按钮）。
-      InboxTaskScope() => true,
+      // 与项目作用域同款守卫：仅 data 态显示。收件箱项目行由 ensureInboxProject
+      // 幂等保证存在，故 data 态恒为 true——空收件箱也保留 FAB（TaskTree 空态
+      // 文案「还没有任务，点击下方按钮新建」依赖底部 FAB，旧版空态「添加任务」
+      // 按钮已移除）。
+      InboxTaskScope() =>
+        ref
+            .watch(projectsStreamProvider)
+            .maybeWhen(
+              data: (projects) => projects.any((p) => p.id == inboxProjectId),
+              orElse: () => false,
+            ),
       ProjectTaskScope(:final projectId) =>
         ref
             .watch(projectsStreamProvider)
