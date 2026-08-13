@@ -424,8 +424,8 @@ void main() {
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
 
-    // 同步分组入口存在（go 跳转；/settings/sync 为 /settings 子路由，
-    // 栈为 root→settings→sync，AppBar 自动出现返回箭头）。
+    // 同步分组入口存在（push 跳转；/settings/sync 为 /settings 子路由，
+    // 栈为 任务页→settings→sync，AppBar 自动出现返回箭头）。
     await tester.tap(find.text('同步设置'));
     await tester.pumpAndSettle();
 
@@ -438,5 +438,14 @@ void main() {
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
     expect(find.text('设置'), findsOneWidget);
+
+    // 设置页仍有返回箭头，点它回到正常任务页（Bug 2 回归：
+    // go 会丢弃栈底的 /today，push 必须一路可返）。
+    expect(find.byType(BackButton), findsOneWidget);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    // /today 空态唯一文案，证明已回到今日页（标题「今日」与底栏重复，
+    // 不宜用标题断言）。
+    expect(find.text('今天还没有任务'), findsOneWidget);
   });
 }

@@ -128,7 +128,11 @@ class SettingsPage extends ConsumerWidget {
                     const Icon(Icons.chevron_right),
                   ],
                 ),
-                onTap: () => context.go('/settings/sync'),
+                // 用 push 而非 go：go('/settings/sync') 会把整个导航栈替换为
+                // [settings, sync]，丢掉了进入设置前的任务页（/today 等），
+                // 导致从设置页无法返回 —— 用户实测 bug。push 保留完整栈
+                // [任务页, settings, sync]，返回箭头一路可用。
+                onTap: () => context.push('/settings/sync'),
               ),
             ],
           ),
