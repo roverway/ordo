@@ -9,7 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:todo/core/db/database.dart';
 import 'package:todo/core/db/repositories/todo_repository.dart';
@@ -58,7 +57,7 @@ Future<void> _pumpInbox(
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
 
-  final prefs = await SharedPreferences.getInstance();
+  final cache = AppSettingsCache();
   final db = openTestDatabase();
   final repo = TodoRepository(database: db);
 
@@ -97,7 +96,7 @@ Future<void> _pumpInbox(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
+        appSettingsCacheProvider.overrideWithValue(cache),
         todoRepositoryProvider.overrideWithValue(repo),
         inboxProjectProvider.overrideWithValue(AsyncData(inboxProject)),
         projectTasksProvider(
@@ -125,7 +124,7 @@ Future<void> _pumpInbox(
 
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    // No locale set → defaults to zh (Chinese).
   });
 
   group('收件箱任务树 — 与项目页一致的树形渲染（Bug 3）', () {

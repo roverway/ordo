@@ -21,7 +21,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:todo/core/db/database.dart';
 import 'package:todo/core/db/tables.dart';
@@ -68,7 +67,7 @@ Future<StreamController<List<Tag>>> _pump(
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
 
-  final prefs = await SharedPreferences.getInstance();
+  final cache = AppSettingsCache();
   final tagsController = StreamController<List<Tag>>();
   addTearDown(tagsController.close);
 
@@ -92,7 +91,7 @@ Future<StreamController<List<Tag>>> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
+        appSettingsCacheProvider.overrideWithValue(cache),
         todoRepositoryProvider.overrideWithValue(repo),
         tagsStreamProvider.overrideWith((ref) => tagsController.stream),
         tagTasksProvider.overrideWith(
@@ -121,7 +120,7 @@ Future<List<Tag>> _sortedTags(TodoRepository repo) async =>
 
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    // No locale set → defaults to zh (Chinese).
   });
 
   group('sortTagsByName', () {

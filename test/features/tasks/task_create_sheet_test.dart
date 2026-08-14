@@ -10,7 +10,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:todo/core/db/database.dart';
 import 'package:todo/core/db/repositories/todo_repository.dart';
@@ -40,7 +39,7 @@ Future<void> _openSheet(
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
 
-  final prefs = await SharedPreferences.getInstance();
+  final cache = AppSettingsCache();
   final project = projectId == null
       ? null
       : Project(
@@ -55,7 +54,7 @@ Future<void> _openSheet(
         );
 
   final overrides = [
-    sharedPreferencesProvider.overrideWithValue(prefs),
+    appSettingsCacheProvider.overrideWithValue(cache),
     todoRepositoryProvider.overrideWithValue(repo),
     projectsStreamProvider.overrideWithValue(
       AsyncData(project == null ? const <Project>[] : [project]),
@@ -114,7 +113,7 @@ Future<TodoRepository> _repo(String projectId) async {
 
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    // No locale set → defaults to zh (Chinese).
   });
 
   testWidgets('结构渲染：顶部清单名 + 标题输入 + 三个选项行', (tester) async {

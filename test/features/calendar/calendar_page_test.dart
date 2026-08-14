@@ -19,7 +19,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:todo/core/db/database.dart';
 import 'package:todo/core/db/tables.dart';
@@ -83,7 +82,7 @@ Future<StreamController<Map<DateTime, List<Task>>>> _pump(
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
 
-  final prefs = await SharedPreferences.getInstance();
+  final cache = AppSettingsCache();
   final bucketsController = StreamController<Map<DateTime, List<Task>>>();
   addTearDown(bucketsController.close);
 
@@ -109,7 +108,7 @@ Future<StreamController<Map<DateTime, List<Task>>>> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
+        appSettingsCacheProvider.overrideWithValue(cache),
         todoRepositoryProvider.overrideWithValue(repo),
         calendarStateProvider.overrideWith(() => _FixedCalendarNotifier(state)),
         calendarBucketsProvider.overrideWith((ref) => bucketsController.stream),
@@ -168,7 +167,7 @@ Future<StreamController<Map<DateTime, List<Task>>>> _pump(
 
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    // No locale set → defaults to zh (Chinese).
   });
 
   testWidgets('月视图：跨天/仅截止日/无时间/月外任务的显示规则（§9.2）', (tester) async {

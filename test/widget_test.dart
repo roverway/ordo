@@ -9,7 +9,6 @@ import 'package:flutter/gestures.dart' show kLongPressTimeout;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:todo/app.dart';
 import 'package:todo/core/db/database.dart';
@@ -32,6 +31,7 @@ import 'helpers/db_test_setup.dart';
 /// [projectTasks]：项目任务树种子数据（默认空列表，测试树渲染用）。
 /// [folders]：抽屉文件夹渲染数据（62-folder-nav 测试用，默认空）。
 /// [provideTestDatabase] 为 true 时返回真实仓库（拖拽/增删改断言用）。
+/// [settingsCache]：设备本地偏好内存缓存（默认新建；主题/语言持久化断言用）。
 Future<TodoRepository?> pumpApp(
   WidgetTester tester,
   Size logicalSize, {
@@ -39,14 +39,15 @@ Future<TodoRepository?> pumpApp(
   List<Project>? projects,
   List<Task>? projectTasks,
   List<Folder>? folders,
+  AppSettingsCache? settingsCache,
 }) async {
   tester.view.physicalSize = logicalSize;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
 
-  final prefs = await SharedPreferences.getInstance();
+  final cache = settingsCache ?? AppSettingsCache();
   final overrides = [
-    sharedPreferencesProvider.overrideWithValue(prefs),
+    appSettingsCacheProvider.overrideWithValue(cache),
     projectsStreamProvider.overrideWithValue(
       AsyncData(projects ?? const <Project>[]),
     ),
@@ -240,7 +241,6 @@ Future<void> _dragInDrawer(
 void main() {
   setUp(() {
     // No locale set → defaults to zh (Chinese).
-    SharedPreferences.setMockInitialValues({});
   });
 
   testWidgets(
@@ -702,7 +702,8 @@ void main() {
   testWidgets('Settings: theme mode & language switch persist instantly', (
     tester,
   ) async {
-    await pumpApp(tester, const Size(400, 800));
+    final cache = AppSettingsCache();
+    await pumpApp(tester, const Size(400, 800), settingsCache: cache);
 
     // 用户打磨要求 4：设置入口移出 AppBar，窄屏入口在抽屉底部
     //（新建项目行右侧）。
@@ -723,15 +724,14 @@ void main() {
     await tester.tap(find.text('深色'));
     await tester.pumpAndSettle();
 
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getString(themeModePrefKey), ThemeMode.dark.name);
+    expect(cache.get(themeModePrefKey), ThemeMode.dark.name);
     final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(materialApp.themeMode, ThemeMode.dark);
 
     await tester.tap(find.text('English'));
     await tester.pumpAndSettle();
 
-    expect(prefs.getString(localePrefKey), 'en');
+    expect(cache.get(localePrefKey), 'en');
     expect(find.text('Settings'), findsOneWidget);
   });
 

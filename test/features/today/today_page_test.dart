@@ -15,7 +15,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:todo/core/db/database.dart';
@@ -96,7 +95,7 @@ Future<TodoRepository> _pumpToday(
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
 
-  final prefs = await SharedPreferences.getInstance();
+  final cache = AppSettingsCache();
   final db = openTestDatabase();
   final repo = TodoRepository(database: db);
 
@@ -175,7 +174,7 @@ Future<TodoRepository> _pumpToday(
   );
 
   final overrides = [
-    sharedPreferencesProvider.overrideWithValue(prefs),
+    appSettingsCacheProvider.overrideWithValue(cache),
     todoRepositoryProvider.overrideWithValue(repo),
     todayViewProvider.overrideWithValue(AsyncData(view)),
     // 新建弹窗依赖的 Provider 一并覆盖（fake_async 下避免 drift 流残留 Timer）。
@@ -225,7 +224,7 @@ Finder _checkboxOf(WidgetTester tester, String title) {
 
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    // No locale set → defaults to zh (Chinese).
   });
 
   group('buildTodayView 纯逻辑', () {

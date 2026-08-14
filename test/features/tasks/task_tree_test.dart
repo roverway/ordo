@@ -9,7 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:todo/core/db/database.dart';
@@ -78,7 +77,7 @@ Future<void> _pumpTree(
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
-  final prefs = await SharedPreferences.getInstance();
+  final cache = AppSettingsCache();
   final db = openTestDatabase();
   final repo = TodoRepository(database: db);
   // 预插入项目（满足 FK 约束）。
@@ -95,7 +94,7 @@ Future<void> _pumpTree(
         ),
       );
   final overrides = [
-    sharedPreferencesProvider.overrideWithValue(prefs),
+    appSettingsCacheProvider.overrideWithValue(cache),
     todoRepositoryProvider.overrideWithValue(repo),
     projectsStreamProvider.overrideWithValue(
       AsyncData([
@@ -161,7 +160,7 @@ Future<TodoRepository> _pumpTreeWithDb(
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
-  final prefs = await SharedPreferences.getInstance();
+  final cache = AppSettingsCache();
   final db = openTestDatabase();
   final repo = TodoRepository(database: db);
   await db
@@ -193,7 +192,7 @@ Future<TodoRepository> _pumpTreeWithDb(
         );
   }
   final overrides = [
-    sharedPreferencesProvider.overrideWithValue(prefs),
+    appSettingsCacheProvider.overrideWithValue(cache),
     todoRepositoryProvider.overrideWithValue(repo),
     projectsStreamProvider.overrideWithValue(
       AsyncData([
@@ -276,7 +275,7 @@ Future<void> _dragToRow(
 
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    // No locale set → defaults to zh (Chinese).
   });
 
   group('buildTreeNodes', () {
