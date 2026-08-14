@@ -94,16 +94,48 @@ class TaskListPage extends ConsumerWidget {
                     .where((p) => p.id == projectId)
                     .firstOrNull;
                 if (project == null) return const <Widget>[];
+                // 编辑/删除收纳进三点菜单（用户打磨：AppBar 只留一个 more_vert）。
                 return [
-                  IconButton(
-                    tooltip: l10n.editProject,
-                    icon: const Icon(Icons.edit_outlined),
-                    onPressed: () => _editProject(context, ref, project),
-                  ),
-                  IconButton(
-                    tooltip: l10n.deleteProject,
-                    icon: const Icon(Icons.delete_outlined),
-                    onPressed: () => _deleteProject(context, ref, project),
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert),
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        _editProject(context, ref, project);
+                      } else {
+                        _deleteProject(context, ref, project);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem<String>(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.edit_outlined, size: 20),
+                            SizedBox(width: AppTokens.spaceMd),
+                            Text(l10n.edit),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem<String>(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.delete_outlined,
+                              size: 20,
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                            SizedBox(width: AppTokens.spaceMd),
+                            Text(
+                              l10n.delete,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ];
               },

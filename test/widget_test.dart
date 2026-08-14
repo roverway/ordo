@@ -342,7 +342,10 @@ void main() {
     // 汉堡/紧凑底栏常驻（此前 ProjectDetailPage 自带 Scaffold 导致消失）。
     expect(find.byIcon(Icons.menu), findsOneWidget);
     expect(find.byType(CompactBottomBar), findsOneWidget);
-    // 项目作用域 AppBar：默认搜索/设置 + 编辑/删除（D2）。
+    // 项目作用域 AppBar：默认搜索/设置 + 三点菜单（编辑/删除收纳在菜单内，D2）。
+    expect(find.byIcon(Icons.more_vert), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
     expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
     expect(find.byIcon(Icons.delete_outlined), findsOneWidget);
   });
@@ -375,7 +378,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // AppBar 删除 → 确认对话框 → 确认后跳转 /today（新首页）。
+    // AppBar 三点菜单 → 删除 → 确认对话框 → 确认后跳转 /today（新首页）。
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.delete_outlined));
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsOneWidget);

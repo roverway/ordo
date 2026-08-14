@@ -493,6 +493,10 @@ void main() {
         projects: projects,
       );
 
+      // 编辑/删除收纳在 AppBar 三点菜单内。
+      expect(find.byIcon(Icons.more_vert), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
       expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
       expect(find.byIcon(Icons.delete_outlined), findsOneWidget);
     });
@@ -515,6 +519,8 @@ void main() {
         projects: projects,
       );
 
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
       await tester.tap(find.byIcon(Icons.delete_outlined));
       await tester.pumpAndSettle();
 
@@ -540,6 +546,8 @@ void main() {
         projects: projects,
       );
 
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
       await tester.tap(find.byIcon(Icons.delete_outlined));
       await tester.pumpAndSettle();
 
@@ -574,6 +582,8 @@ void main() {
         projects: projects,
       );
 
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
       await tester.tap(find.byIcon(Icons.delete_outlined));
       await tester.pumpAndSettle();
       await tester.tap(find.text('删除'));
