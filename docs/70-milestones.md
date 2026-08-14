@@ -203,6 +203,26 @@
 
 ---
 
+## M7 — 细节动效打磨（`docs/63-motion-polish.md`）
+
+**目标**：克制轻盈的细节动效提升使用质感（勾选/错落/转场/弹窗/按压/FAB），支持 reduced motion，零第三方依赖。
+
+**任务**：
+1. 共享基建：`lib/core/utils/motion.dart`（统一时长/曲线入口 + `MediaQuery.disableAnimations` 降级）。
+2. 批 1 微交互：任务完成勾选弹性（`TweenSequence` + `easeOutBack`）、列表逐项错落入场（`StaggeredFadeSlide`，>15 项封顶平铺）、文件夹树展开 `AnimatedSize`。
+3. 批 2 页面级：路由滑动式转场（`CustomTransitionPage` + `SlideTransition`）、抽屉滑入曲线、进度环数值平滑过渡。
+4. 批 3 弹性氛围：底部弹窗弹簧入场、卡片按压抬升（阴影 + scale 0.98）、FAB 按压回弹。
+
+**DoD**：
+- [ ] 9 项动效全部落地（勾选/错落/树展开/转场/抽屉/进度环/弹窗/卡片按压/FAB）
+- [ ] reduced motion 降级生效（位移/缩放 → 淡入/瞬时），有降级测试覆盖
+- [ ] 现有 widget 测试全绿（动画不破坏 `pumpAndSettle` 时序）；新增 reduced motion 测试
+- [ ] 零新增依赖（全部 Flutter 内置 API + `motion*` 令牌，无魔法值）
+- [ ] `flutter analyze` 0 error；`flutter test` 全绿；`dart format` 通过
+- [ ] 文档同步：50-ui-ux §2.5（统一动效入口与落地清单）/ 63-motion-polish
+
+---
+
 ## 里程碑依赖图
 
 ```

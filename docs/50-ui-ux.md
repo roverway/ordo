@@ -54,14 +54,25 @@
 | `textBody` | 16 / w400 |
 | `textCaption` | 12 / w400 |
 
-### 2.5 动效（Folme 风格弹簧）
+### 2.5 动效（Folme 风格弹簧，M7 打磨后统一入口）
 
 | 令牌 | 值 | 用途 |
 |---|---|---|
-| `motionSpring` | 弹簧曲线（如 `Curves.easeOutBack` 变体） | 列表项、卡片 |
-| `motionFast` | 150ms | 微交互 |
-| `motionNormal` | 250ms | 页面过渡 |
-| `motionSlow` | 350ms | 弹层 |
+| `motionSpring` | 弹簧曲线（`Curves.easeOutCubic`） | 列表项、卡片 |
+| `motionFast` | 150ms | 微交互（勾选/按压/FAB） |
+| `motionNormal` | 250ms | 页面转场、树展开、进度环 |
+| `motionSlow` | 350ms | 弹层/底部弹窗 |
+| `motionStaggerDelay` | 50ms | 列表错落入场逐项间隔 |
+
+> **统一入口（M7，`docs/63-motion-polish.md`）**：所有自定义动画经 `lib/core/utils/motion.dart`
+> 选取时长/曲线（`motionDuration`/`motionNormal/Fast/Slow`/`motionCurve`/`motionBounceCurve`）。
+> **reduced motion（NFR-06）**：系统开启「减弱动态效果」时（`MediaQuery.disableAnimations`）自动
+> 降级——位移/缩放类动画退化为纯淡入或瞬时。零第三方动画依赖（全部 Flutter 内置 API）。
+>
+> M7 已落地动效：任务完成勾选弹性（`TweenSequence` 关键帧 + `easeOutBack`）、列表逐项错落入场
+> （`StaggeredFadeSlide`，>15 项封顶平铺）、文件夹树展开（`AnimatedSize`）、路由滑动式转场
+> （`CustomTransitionPage` + `SlideTransition`）、抽屉滑入曲线、进度环数值平滑过渡、
+> 底部弹窗弹簧入场、卡片按压抬升（阴影 + scale 0.98）、FAB 按压回弹。
 
 ## 3. 主题
 
