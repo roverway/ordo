@@ -24,7 +24,7 @@
 | 范围 | **全面统一**：主题/语言/隐藏已完成全部迁至 settings 表；文件夹展开已在 settings 表，不动 |
 | 存储介质 | **统一到 settings 表（含 SharedPreferences 一次性迁移）** |
 | 设置页入口 | **不加**（保持任务页三点菜单切换，仅状态持久化） |
-| 依赖 | **移除 shared_preferences**（迁移后无使用方；属依赖清理非升级，符合 §3-7 精神） |
+| 依赖 | **保留 shared_preferences 为仅迁移用途**（§3.5；一次性迁移需读取旧值，迁移完成后不再读写，后续版本可移除） |
 
 ## 3. 设计
 
@@ -114,7 +114,7 @@ appSettingsCacheProvider.overrideWithValue(cache)
 | `lib/features/settings/settings_providers.dart` | 删 sharedPreferencesProvider；新增 AppSettingsCache + appSettingsCacheProvider；themeMode/locale 改写 |
 | `lib/features/tasks/task_providers.dart` | hideCompletedTasksProvider 持久化 |
 | `lib/main.dart` | 缓存注入 + 一次性迁移 + 预载 |
-| `pubspec.yaml` / `pubspec.lock` | 移除 shared_preferences |
+| `pubspec.yaml` | 保留 shared_preferences（仅迁移用途，附注释） |
 | 10 个测试文件 | prefs 注入 → cache 注入 |
 | 新增测试 | 持久化回归 + 迁移测试 |
 
@@ -122,7 +122,7 @@ appSettingsCacheProvider.overrideWithValue(cache)
 
 - `40-data-model.md` §2.5：确认「主题/语言/隐藏已完成/文件夹展开」均存 settings 表（文档已符合，补 hide_completed 说明）。
 - `10-requirements.md`：FR-SET-01/02 持久化介质说明（settings 表）。
-- `20-tech-stack.md`：依赖表移除 shared_preferences。
+- `20-tech-stack.md`：依赖表更新为「shared_preferences 保留（仅迁移用途，后续可移除）」。.
 - `70-milestones.md`：新增 M8。
 
 ## 6. 验证
@@ -132,4 +132,4 @@ appSettingsCacheProvider.overrideWithValue(cache)
 
 ## 7. 里程碑
 
-新增 **M8 — 本地偏好统一持久化**。DoD：三偏好统一到 settings 表、SharedPreferences 移除、一次性迁移、测试全绿、文档同步。
+新增 **M8 — 本地偏好统一持久化**。DoD：三偏好统一到 settings 表、shared_preferences 转仅迁移用途（保留）、一次性迁移、测试全绿、文档同步。

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/db/database.dart';
@@ -369,10 +370,17 @@ class HideCompletedTasksNotifier extends Notifier<bool> {
   }
 
   /// 切换隐藏状态并持久化（写内存缓存 + 穿透 settings 表）。
+  ///
+  /// 评审跟进：先更新 [state]，穿透写失败仅丢失持久化、不阻断切换。
   Future<void> toggle() async {
+    final cache = ref.read(appSettingsCacheProvider);
     final next = !state;
-    await ref.read(appSettingsCacheProvider).set(_key, next ? '1' : '0');
     state = next;
+    try {
+      await cache.set(_key, next ? '1' : '0');
+    } catch (e) {
+      debugPrint('hideCompleted 持久化失败：${e.runtimeType}');
+    }
   }
 }
 

@@ -231,7 +231,7 @@
 1. 共享基建：`AppSettingsCache`（settings 表内存同步镜像，attach + seed + 穿透写）+ `appSettingsCacheProvider`。
 2. `themeModeProvider`/`localeProvider` 改写为读缓存（消费方零改动）；`hideCompletedTasksProvider` 持久化（key `hide_completed`）。
 3. `main.dart` 启动链路：缓存注入 → attach → SharedPreferences 一次性迁移（theme_mode/locale，仅缺失时写）→ seed 预载。
-4. 移除 `shared_preferences` 依赖（pubspec + lock）。
+4. `shared_preferences` 转**仅迁移用途**（保留依赖，附注释；一次性迁移读取旧值后不再读写，后续版本可移除）。
 5. 测试改造：10 个测试文件 prefs 注入 → 内存缓存注入；新增持久化回归测试 + 迁移测试。
 
 **DoD**：

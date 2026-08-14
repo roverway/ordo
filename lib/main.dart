@@ -20,7 +20,13 @@ Future<void> main() async {
   final cache = container.read(appSettingsCacheProvider);
   cache.attach(repo.settings);
   // 一次性迁移：SharedPreferences → settings 表（theme_mode/locale，仅缺失时）。
-  await migrateLegacyPrefs(container, repo);
+  // 评审跟进：启动期迁移失败不阻止应用启动（容错——DB 异常时跳过迁移，
+  // 后续 seed 用 settings 表现有值；迁移幂等，下次启动可重试）。
+  try {
+    await migrateLegacyPrefs(container, repo);
+  } catch (e) {
+    debugPrint('本地偏好迁移失败（跳过，继续启动）：${e.runtimeType}');
+  }
   // 预载 settings 表 → 内存缓存（迁移结果已并入）。
   cache.seed(await repo.settings.getAll());
 

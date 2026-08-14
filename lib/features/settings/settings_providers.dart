@@ -9,6 +9,11 @@ import '../../core/db/daos/settings_dao.dart';
 /// （避免主题闪烁）。启动时 main() 预载 settings 表到本缓存，providers 同步读、
 /// 写时穿透到 [SettingsDao]（异步）。
 ///
+/// **写入约束（评审 #5）**：`theme_mode` / `locale` / `hide_completed` 这三个
+/// key 的偏好**只能经本缓存的 [set] 写入**——直接写 [SettingsDao] 会让缓存
+/// 与 DB 失步（providers 读的是缓存）。同步配置类 key（lastSyncedAt/deviceId/
+/// 墓碑等）不经本缓存，直接走 DAO，互不干扰。
+///
 /// 注入时序（main）：容器创建时 override 空实例 → 读 repo →
 /// `attach(repo.settings)` → `seed(getAll())`。测试用不 attach 的纯内存实例
 /// （写只进内存 Map，不落库）。
@@ -62,9 +67,17 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
   }
 
   /// 切换主题模式并持久化（写内存缓存 + 穿透 settings 表）。
+  ///
+  /// 评审跟进：先更新 [state]（UI 即时生效），穿透写失败仅丢失持久化、
+  /// 不阻断切换——偏好类写入失败不应让用户操作静默失效或产生未处理异步错误。
   Future<void> setThemeMode(ThemeMode mode) async {
-    await ref.read(appSettingsCacheProvider).set(themeModePrefKey, mode.name);
+    final cache = ref.read(appSettingsCacheProvider);
     state = mode;
+    try {
+      await cache.set(themeModePrefKey, mode.name);
+    } catch (e) {
+      debugPrint('setThemeMode 持久化失败：${e.runtimeType}');
+    }
   }
 }
 
@@ -88,10 +101,15 @@ class LocaleNotifier extends Notifier<Locale> {
   }
 
   /// 切换语言并持久化（写内存缓存 + 穿透 settings 表）。
+  ///
+  /// 评审跟进：先更新 [state]，穿透写失败仅丢失持久化、不阻断切换。
   Future<void> setLocale(Locale locale) async {
-    await ref
-        .read(appSettingsCacheProvider)
-        .set(localePrefKey, locale.languageCode);
+    final cache = ref.read(appSettingsCacheProvider);
     state = locale;
+    try {
+      await cache.set(localePrefKey, locale.languageCode);
+    } catch (e) {
+      debugPrint('setLocale 持久化失败：${e.runtimeType}');
+    }
   }
 }
