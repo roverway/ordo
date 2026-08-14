@@ -404,6 +404,235 @@ void main() {
     });
   });
 
+  group('文件夹（Folder）', () {
+    /// 断言某文件夹组内项目 sortOrder 连续（0..n-1）。
+    Future<void> expectProjectGroupContinuous(String? folderId) async {
+      final group = await repo.projects.getAllInFolder(folderId);
+      for (var i = 0; i < group.length; i++) {
+        expect(group[i].sortOrder, i, reason: '组内 sortOrder 应连续 0..n-1');
+      }
+    }
+
+    test('createFolder：名称校验（1–50）+ sortOrder 递增', () async {
+      // 空名 / 超长拒绝。
+      expect(
+        () => repo.createFolder(name: ''),
+        throwsA(isA<RepositoryException>()),
+      );
+      expect(
+        () => repo.createFolder(name: 'x' * 51),
+        throwsA(isA<RepositoryException>()),
+      );
+
+      final f1 = await repo.createFolder(name: '工作');
+      expect(f1.deleted, 0);
+      expect(f1.createdAt, greaterThan(0));
+      expect(f1.sortOrder, 0);
+
+      final f2 = await repo.createFolder(name: '生活');
+      expect(f2.sortOrder, 1, reason: 'sortOrder 递增追加到末尾');
+
+      // 50 字符边界允许，继续递增。
+      final ok = await repo.createFolder(name: 'x' * 50);
+      expect(ok.name.length, 50);
+      expect(ok.sortOrder, 2);
+    });
+
+    test('renameFolder：正常重命名 + 不存在拒绝 + 名称校验', () async {
+      final f = await repo.createFolder(name: '工作');
+      await repo.renameFolder(f.id, name: '工作2');
+      final renamed = (await repo.folders.getById(f.id))!;
+      expect(renamed.name, '工作2');
+      expect(renamed.updatedAt, greaterThanOrEqualTo(f.updatedAt));
+
+      expect(
+        () => repo.renameFolder('missing', name: 'x'),
+        throwsA(isA<RepositoryException>()),
+      );
+      expect(
+        () => repo.renameFolder(f.id, name: ''),
+        throwsA(isA<RepositoryException>()),
+      );
+      expect(
+        () => repo.renameFolder(f.id, name: 'x' * 51),
+        throwsA(isA<RepositoryException>()),
+      );
+      // 校验失败不改名。
+      expect((await repo.folders.getById(f.id))!.name, '工作2');
+    });
+
+    test('moveProjectToFolder：入夹 / 组内重排，sortOrder 连续', () async {
+      final f1 = await repo.createFolder(name: 'F1');
+      final p1 = await repo.createProject(name: 'P1', color: 0);
+      final p2 = await repo.createProject(name: 'P2', color: 0);
+      await repo.createProject(name: 'P3', color: 0);
+
+      // 入夹：p1、p2 → f1。
+      await repo.moveProjectToFolder(p1.id, folderId: f1.id, newIndex: 0);
+      await repo.moveProjectToFolder(p2.id, folderId: f1.id, newIndex: 1);
+      expect((await repo.projects.getById(p1.id))!.folderId, f1.id);
+
+      // 组内重排：p2 移到 index 0。
+      await repo.moveProjectToFolder(p2.id, folderId: f1.id, newIndex: 0);
+      var inF1 = await repo.projects.getAllInFolder(f1.id);
+      expect(inF1.map((p) => p.name).toList(), ['P2', 'P1']);
+      await expectProjectGroupContinuous(f1.id);
+
+      // 未分组组（p3 仍在）不受影响且连续。
+      await expectProjectGroupContinuous(null);
+
+      // 不存在的目标文件夹拒绝。
+      expect(
+        () => repo.moveProjectToFolder(p1.id, folderId: 'nope', newIndex: 0),
+        throwsA(isA<RepositoryException>()),
+      );
+      // 不存在的项目拒绝。
+      expect(
+        () => repo.moveProjectToFolder('nope', newIndex: 0),
+        throwsA(isA<RepositoryException>()),
+      );
+      // 失败后数据未变。
+      inF1 = await repo.projects.getAllInFolder(f1.id);
+      expect(inF1.map((p) => p.name).toList(), ['P2', 'P1']);
+    });
+
+    test('moveProjectToFolder：出夹回未分组 + 跨组移动', () async {
+      final f1 = await repo.createFolder(name: 'F1');
+      final f2 = await repo.createFolder(name: 'F2');
+      final p1 = await repo.createProject(name: 'P1', color: 0);
+      final p2 = await repo.createProject(name: 'P2', color: 0);
+      await repo.createProject(name: 'P3', color: 0);
+      await repo.moveProjectToFolder(p1.id, folderId: f1.id, newIndex: 0);
+      await repo.moveProjectToFolder(p2.id, folderId: f1.id, newIndex: 1);
+
+      // 跨组移动：p1 → f2。
+      await repo.moveProjectToFolder(p1.id, folderId: f2.id, newIndex: 0);
+      expect((await repo.projects.getById(p1.id))!.folderId, f2.id);
+      var inF1 = await repo.projects.getAllInFolder(f1.id);
+      expect(inF1.map((p) => p.name).toList(), ['P2']);
+      expect(inF1.single.sortOrder, 0, reason: '旧组删除空位后重排');
+      var inF2 = await repo.projects.getAllInFolder(f2.id);
+      expect(inF2.map((p) => p.name).toList(), ['P1']);
+      expect(inF2.single.sortOrder, 0);
+
+      // 出夹：p1 → 未分组。
+      await repo.moveProjectToFolder(p1.id, folderId: null, newIndex: 0);
+      expect((await repo.projects.getById(p1.id))!.folderId, isNull);
+      final ungrouped = await repo.projects.getAllInFolder(null);
+      expect(ungrouped.map((p) => p.name).toList(), ['P1', 'P3']);
+      await expectProjectGroupContinuous(null);
+
+      // 出夹后 f2 组为空。
+      inF2 = await repo.projects.getAllInFolder(f2.id);
+      expect(inF2, isEmpty);
+
+      // 旧组 f1 保持连续。
+      inF1 = await repo.projects.getAllInFolder(f1.id);
+      expect(inF1.map((p) => p.name).toList(), ['P2']);
+      await expectProjectGroupContinuous(f1.id);
+    });
+
+    test('moveProjectToFolder：newIndex 越界 clamp', () async {
+      final f1 = await repo.createFolder(name: 'F1');
+      final p1 = await repo.createProject(name: 'P1', color: 0);
+      final p2 = await repo.createProject(name: 'P2', color: 0);
+
+      // newIndex 超大 → clamp 到末尾。
+      await repo.moveProjectToFolder(p1.id, folderId: f1.id, newIndex: 99);
+      await repo.moveProjectToFolder(p2.id, folderId: f1.id, newIndex: 99);
+      final inF1 = await repo.projects.getAllInFolder(f1.id);
+      expect(inF1.map((p) => p.name).toList(), ['P1', 'P2']);
+      await expectProjectGroupContinuous(f1.id);
+    });
+
+    test('deleteFolder：项目解收纳回未分组 + sortOrder 重排连续 + 墓碑写入', () async {
+      final f = await repo.createFolder(name: 'F');
+      final p1 = await repo.createProject(name: 'P1', color: 0);
+      final p2 = await repo.createProject(name: 'P2', color: 0);
+      await repo.moveProjectToFolder(p1.id, folderId: f.id, newIndex: 0);
+      await repo.moveProjectToFolder(p2.id, folderId: f.id, newIndex: 1);
+
+      await repo.deleteFolder(f.id);
+
+      // 文件夹行已硬删。
+      expect(await repo.folders.getById(f.id), isNull);
+      // 项目解收纳回未分组（不级联删项目）。
+      final ungrouped = await repo.projects.getAllInFolder(null);
+      expect(ungrouped.map((p) => p.name).toList(), ['P1', 'P2']);
+      await expectProjectGroupContinuous(null);
+      expect(await repo.projects.getById(p1.id), isNotNull);
+      expect(await repo.projects.getById(p2.id), isNotNull);
+      // 文件夹墓碑写入（type = 'folder'）。
+      final tombstones = await repo.readTombstones();
+      expect(tombstones.any((t) => t.type == 'folder' && t.id == f.id), isTrue);
+      // 项目未写墓碑。
+      expect(
+        tombstones.any(
+          (t) => t.type == 'project' && (t.id == p1.id || t.id == p2.id),
+        ),
+        isFalse,
+      );
+
+      // 不存在文件夹拒绝。
+      expect(
+        () => repo.deleteFolder('missing'),
+        throwsA(isA<RepositoryException>()),
+      );
+    });
+
+    test('deleteFolder：已有未分组项目与新解收纳项目整体重排连续', () async {
+      final f = await repo.createFolder(name: 'F');
+      // 未分组已有项目（sortOrder 0）。
+      await repo.createProject(name: 'P1', color: 0);
+      // 文件夹内项目（sortOrder 0）。
+      final p2 = await repo.createProject(name: 'P2', color: 0);
+      await repo.moveProjectToFolder(p2.id, folderId: f.id, newIndex: 0);
+
+      await repo.deleteFolder(f.id);
+
+      final ungrouped = await repo.projects.getAllInFolder(null);
+      expect(ungrouped.map((p) => p.name).toList(), ['P1', 'P2']);
+      await expectProjectGroupContinuous(null);
+    });
+
+    test('moveFolder：重排文件夹顺序且 sortOrder 连续', () async {
+      final f1 = await repo.createFolder(name: 'A');
+      final f2 = await repo.createFolder(name: 'B');
+      await repo.createFolder(name: 'C');
+
+      await repo.moveFolder(f1.id, newIndex: 2);
+      var all = await repo.folders.getAll();
+      expect(all.map((f) => f.name).toList(), ['B', 'C', 'A']);
+      for (var i = 0; i < all.length; i++) {
+        expect(all[i].sortOrder, i);
+      }
+
+      // 越界 clamp。
+      await repo.moveFolder(f2.id, newIndex: 99);
+      all = await repo.folders.getAll();
+      expect(all.map((f) => f.name).toList(), ['C', 'A', 'B']);
+
+      // 不存在文件夹拒绝。
+      expect(
+        () => repo.moveFolder('missing', newIndex: 0),
+        throwsA(isA<RepositoryException>()),
+      );
+    });
+
+    test('exportAll 包含 folders', () async {
+      final f1 = await repo.createFolder(name: 'F1');
+      await repo.createFolder(name: 'F2');
+      final p = await repo.createProject(name: 'P', color: 0);
+      await repo.moveProjectToFolder(p.id, folderId: f1.id, newIndex: 0);
+
+      final data = await repo.exportAll();
+      expect(data.folders.map((f) => f.id).toList(), containsAll([f1.id]));
+      expect(data.folders.every((f) => f.deleted == 0), isTrue);
+      // 项目快照携带 folderId。
+      expect(data.projects.single.folderId, f1.id);
+    });
+  });
+
   group('收件箱（Inbox）', () {
     test('ensureInboxProject 幂等：重复调用只创建一条', () async {
       final first = await repo.ensureInboxProject('收件箱');

@@ -58,6 +58,8 @@ class TaskPriorityConverter extends TypeConverter<TaskPriority, int> {
 /// 项目表（docs/40-data-model.md §2.1）。
 ///
 /// 参与同步：必须带 id / updatedAt / deleted 三字段（AGENTS.md §3-3）。
+/// v4 起 [folderId] 归属文件夹，NULL = 未分组；**sortOrder 语义由全局改为
+/// 文件夹内排序**（docs/62-folder-nav.md §4.3），分组在 UI/Provider 层做。
 class Projects extends Table {
   TextColumn get id => text()();
   TextColumn get name => text().withLength(min: 1, max: 100)();
@@ -66,6 +68,33 @@ class Projects extends Table {
   /// 描述（可选，纯文本，最多 500 字符）。
   TextColumn get description =>
       text().withLength(max: 500).withDefault(const Constant(''))();
+
+  /// 所属文件夹（NULL = 未分组），FK → folders.id（docs/62-folder-nav.md §4.2）。
+  TextColumn get folderId => text().nullable().references(Folders, #id)();
+  IntColumn get sortOrder => integer()();
+
+  /// UTC 毫秒。
+  IntColumn get createdAt => integer()();
+
+  /// UTC 毫秒（同步字段）。
+  IntColumn get updatedAt => integer()();
+
+  /// 墓碑标记（同步字段），0=正常 / 1=已删除。
+  IntColumn get deleted => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 文件夹表（docs/62-folder-nav.md §4.1）。
+///
+/// 参与同步：必须带 id / updatedAt / deleted 三字段（AGENTS.md §3-3）。
+/// 单层结构（D2：文件夹直接装项目，不嵌套）；删除语义 = 仅解除收纳（D3）。
+class Folders extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text().withLength(min: 1, max: 50)();
+
+  /// 文件夹间排序（0..n-1 连续，docs/62-folder-nav.md §4.3）。
   IntColumn get sortOrder => integer()();
 
   /// UTC 毫秒。

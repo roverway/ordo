@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:drift/drift.dart';
 
+import '../daos/folder_dao.dart';
 import '../daos/project_dao.dart';
 import '../daos/settings_dao.dart';
 import '../daos/tag_dao.dart';
@@ -45,10 +46,11 @@ const String _kSyncTombstonesKey = 'sync_tombstones';
 const String _kTombstoneTypeProject = 'project';
 const String _kTombstoneTypeTask = 'task';
 const String _kTombstoneTypeTag = 'tag';
+const String _kTombstoneTypeFolder = 'folder';
 
 /// 墓碑条目（docs/40-data-model.md §7 / 60-sync-design.md §8）。
 ///
-/// type ∈ project/task/tag；id 为被删记录 UUID；updatedAt 为删除时刻
+/// type ∈ project/task/tag/folder；id 为被删记录 UUID；updatedAt 为删除时刻
 /// （UTC 毫秒，LWW 依据）。序列化格式与 SyncEngine 侧约定一致。
 class TombstoneEntry {
   const TombstoneEntry({
@@ -57,7 +59,7 @@ class TombstoneEntry {
     required this.updatedAt,
   });
 
-  /// 类型：project / task / tag。
+  /// 类型：project / task / tag / folder。
   final String type;
 
   /// 被删记录 UUID。
@@ -94,6 +96,7 @@ class RepositoryExportData {
     this.tasks = const [],
     this.tags = const [],
     this.taskTagIds = const {},
+    this.folders = const [],
   });
 
   /// 全部活跃项目（deleted=0）。
@@ -107,6 +110,9 @@ class RepositoryExportData {
 
   /// 每任务当前关联的 tagId 列表（task_tags 联表，不参与同步、快照内嵌）。
   final Map<String, List<String>> taskTagIds;
+
+  /// 全部活跃文件夹（deleted=0，docs/62-folder-nav.md §5.1）。
+  final List<Folder> folders;
 }
 
 /// 合并结果应用操作（docs/60-sync-design.md §4 应用规则 / D2）。
@@ -119,18 +125,28 @@ class MergedApplyOperation {
     this.upsertProjects = const [],
     this.upsertTasks = const [],
     this.upsertTags = const [],
+    this.upsertFolders = const [],
     this.hardDeleteProjectIds = const [],
     this.hardDeleteTaskIds = const [],
     this.hardDeleteTagIds = const [],
+    this.hardDeleteFolderIds = const [],
     this.taskTagLinks = const {},
   });
 
   final List<Project> upsertProjects;
   final List<Task> upsertTasks;
   final List<Tag> upsertTags;
+
+  /// 文件夹 upsert（docs/62-folder-nav.md §5.4；须在 projects 之前写入，
+  /// projects.folderId 有外键依赖）。
+  final List<Folder> upsertFolders;
+
   final List<String> hardDeleteProjectIds;
   final List<String> hardDeleteTaskIds;
   final List<String> hardDeleteTagIds;
+
+  /// 文件夹硬删（docs/62-folder-nav.md §5.4；删除前须解除 project 引用）。
+  final List<String> hardDeleteFolderIds;
 
   /// taskId → tagId 列表，全量重建（先删该 task 的所有关联再批量插入）。
   final Map<String, List<String>> taskTagLinks;
@@ -151,6 +167,7 @@ class TodoRepository {
   final AppDatabase database;
 
   late final ProjectDao projects = ProjectDao(database);
+  late final FolderDao folders = FolderDao(database);
   late final TaskDao tasks = TaskDao(database);
   late final TagDao tags = TagDao(database);
   late final SettingsDao settings = SettingsDao(database);
@@ -302,6 +319,163 @@ class TodoRepository {
     });
     await onDataChanged?.call();
   }
+
+  // ──────────────────────────── Folders ────────────────────────────
+
+  /// 新建文件夹（name 1–50 字符；sortOrder 自动追加到末尾，docs/62-folder-nav.md §7.1）。
+  Future<Folder> createFolder({required String name}) async {
+    _checkTextLength(name, 1, 50, '文件夹名');
+    final now = _nowMs();
+    final folder = FoldersCompanion.insert(
+      id: newUuid(),
+      name: name,
+      sortOrder: await _nextFolderSortOrder(),
+      createdAt: now,
+      updatedAt: now,
+    );
+    await folders.insert(folder);
+    await onDataChanged?.call();
+    return (await folders.getById(folder.id.value))!;
+  }
+
+  /// 重命名文件夹（name 1–50 字符；不存在抛 [RepositoryException]），刷新 updatedAt。
+  Future<void> renameFolder(String id, {required String name}) async {
+    final existing = await folders.getById(id);
+    if (existing == null) throw RepositoryException('文件夹不存在：$id');
+    _checkTextLength(name, 1, 50, '文件夹名');
+    await folders.updateById(
+      id,
+      FoldersCompanion(name: Value(name), updatedAt: Value(_nowMs())),
+    );
+    await onDataChanged?.call();
+  }
+
+  /// 删除文件夹：**仅解除收纳**（D3，不级联删项目）。
+  ///
+  /// 同一事务：文件夹内项目 `folderId` 置 NULL 回未分组（保留各自 sortOrder，
+  /// 随后重排未分组组使其连续）→ 硬删文件夹行 → 写文件夹墓碑。
+  /// 同步行为（62-folder-nav.md §5.3）：合并后 reconciliation 清理悬空引用。
+  Future<void> deleteFolder(String id) async {
+    await database.transaction(() async {
+      final existing = await folders.getById(id);
+      if (existing == null) throw RepositoryException('文件夹不存在：$id');
+
+      final now = _nowMs();
+
+      // 1. 解收纳：该文件夹内项目回未分组。
+      await (database.update(
+        database.projects,
+      )..where((p) => p.folderId.equals(id))).write(
+        ProjectsCompanion(folderId: const Value(null), updatedAt: Value(now)),
+      );
+
+      // 2. 重排未分组组 sortOrder 连续（解收纳前置于行删除前，满足外键约束）。
+      await _renumberProjectGroup(null, now);
+
+      // 3. 硬删文件夹行。
+      await folders.deleteById(id);
+
+      // 4. 文件夹墓碑（type = 'folder'）。
+      await _appendTombstones([
+        TombstoneEntry(type: _kTombstoneTypeFolder, id: id, updatedAt: now),
+      ]);
+    });
+    await onDataChanged?.call();
+  }
+
+  /// 移动项目到文件夹（入夹 / 出夹 / 组内重排），[newIndex] 为目标组内插入位置
+  /// （0-based，clamp 到 0..len；[folderId] 为 null = 未分组）。
+  ///
+  /// 仿 [moveTask] 的事务模式（40-data-model.md §5.3）：同一事务内更新
+  /// project.folderId + 重排**新旧两组** sortOrder 使其连续（NULL 也是独立一组）。
+  Future<void> moveProjectToFolder(
+    String projectId, {
+    String? folderId,
+    required int newIndex,
+  }) async {
+    await database.transaction(() async {
+      final project = await projects.getById(projectId);
+      if (project == null) throw RepositoryException('项目不存在：$projectId');
+      if (folderId != null) {
+        final folder = await folders.getById(folderId);
+        if (folder == null) throw RepositoryException('文件夹不存在：$folderId');
+      }
+
+      final now = _nowMs();
+      final oldGroupId = project.folderId;
+
+      // 新旧两组（去掉节点自身），按 sortOrder 升序。
+      final oldGroup = (await projects.getAllInFolder(
+        oldGroupId,
+      )).where((p) => p.id != projectId).toList();
+      final newGroup = (await projects.getAllInFolder(
+        folderId,
+      )).where((p) => p.id != projectId).toList();
+
+      final targetGroup = List<Project>.of(newGroup);
+      final index = newIndex.clamp(0, targetGroup.length);
+      targetGroup.insert(index, project);
+
+      // 写节点本身（folderId + 新 sortOrder + updatedAt）。
+      await projects.updateById(
+        projectId,
+        ProjectsCompanion(
+          folderId: Value(folderId),
+          sortOrder: Value(index),
+          updatedAt: Value(now),
+        ),
+      );
+
+      // 重排新组（节点自身已更新，跳过）。
+      for (var i = 0; i < targetGroup.length; i++) {
+        final p = targetGroup[i];
+        if (p.id == projectId || p.sortOrder == i) continue;
+        await projects.updateById(
+          p.id,
+          ProjectsCompanion(sortOrder: Value(i), updatedAt: Value(now)),
+        );
+      }
+
+      // 重排旧组（新组与旧组为同一组时跳过）。
+      if (oldGroupId != folderId) {
+        for (var i = 0; i < oldGroup.length; i++) {
+          final p = oldGroup[i];
+          if (p.sortOrder == i) continue;
+          await projects.updateById(
+            p.id,
+            ProjectsCompanion(sortOrder: Value(i), updatedAt: Value(now)),
+          );
+        }
+      }
+    });
+    await onDataChanged?.call();
+  }
+
+  /// 文件夹排序移动：[newIndex] 为最终列表中的位置（0-based），重排 sortOrder
+  /// 0..n-1 连续（docs/62-folder-nav.md §4.3）。
+  Future<void> moveFolder(String folderId, {required int newIndex}) async {
+    await database.transaction(() async {
+      final all = await folders.getAll();
+      final index = all.indexWhere((f) => f.id == folderId);
+      if (index < 0) throw RepositoryException('文件夹不存在：$folderId');
+      final list = [...all]..removeAt(index);
+      final clamped = newIndex.clamp(0, list.length);
+      list.insert(clamped, all[index]);
+      final now = _nowMs();
+      for (var i = 0; i < list.length; i++) {
+        final f = list[i];
+        if (f.sortOrder == i) continue;
+        await folders.updateById(
+          f.id,
+          FoldersCompanion(sortOrder: Value(i), updatedAt: Value(now)),
+        );
+      }
+    });
+    await onDataChanged?.call();
+  }
+
+  /// 全部未删除文件夹（按 sortOrder 升序），供 Provider/UI 聚合使用。
+  Future<List<Folder>> getAllFolders() => folders.getAll();
 
   // ───────────────────────────── Tasks ─────────────────────────────
 
@@ -675,6 +849,7 @@ class TodoRepository {
     final projects = await this.projects.getAll();
     final tasks = await this.tasks.getAllActive();
     final tags = await this.tags.getAll();
+    final folders = await this.folders.getAll();
     final taskTagIds = <String, List<String>>{};
     for (final t in tasks) {
       taskTagIds[t.id] = await this.tags.tagIdsForTask(t.id);
@@ -683,6 +858,7 @@ class TodoRepository {
       projects: projects,
       tasks: tasks,
       tags: tags,
+      folders: folders,
       taskTagIds: taskTagIds,
     );
   }
@@ -692,12 +868,22 @@ class TodoRepository {
   /// - upsert：按 id 存在则更新、不存在则插入；**updatedAt 以快照值为权威**，
   ///   绝不覆盖为当前时间（LWW 依赖，40-data-model.md §4）；
   /// - hardDelete：物理删除兜底（DB 本就不保留墓碑行）；
-  /// - taskTagLinks：先删该 task 的全部关联再批量插入（全量重建）。
+  /// - taskTagLinks：先删该 task 的全部关联再批量插入（全量重建）；
+  /// - folders（62-folder-nav.md §5.4）：upsert 先于 projects 写入
+  ///   （projects.folderId 外键依赖）；硬删前先解除项目引用（folderId 置
+  ///   NULL，D3 仅解除收纳语义）。
   ///
   /// 防御性过滤：引用已删/不存在项目或标签的悬空记录在事务内剔除
-  /// （reconcileTagIds 只清理 tagIds，不清理 projectId，见 60-sync-design §7）。
+  /// （reconcileTagIds 只清理 tagIds，不清理 projectId，见 60-sync-design §7；
+  /// 悬空 folderId 由 reconcileFolderIds 在合并阶段清理，见 62-folder-nav §5.2）。
   Future<void> applyMerged(MergedApplyOperation ops) async {
     await database.transaction(() async {
+      // 0. 文件夹先写（projects.folderId 有外键依赖，docs/62-folder-nav.md §5.4）。
+      for (final f in ops.upsertFolders) {
+        await database
+            .into(database.folders)
+            .insertOnConflictUpdate(f.toCompanion(false));
+      }
       // 1. 项目/标签先写（task 与 task_tags 有外键依赖）。
       for (final p in ops.upsertProjects) {
         await database
@@ -769,6 +955,17 @@ class TodoRepository {
         await tasks.deleteManyByIds(ids);
         await projects.deleteById(projectId);
       }
+      for (final folderId in ops.hardDeleteFolderIds) {
+        // 文件夹删除语义 = 仅解除收纳（62-folder-nav.md D3）：先解除项目
+        // 引用（合并结果已由 reconcileFolderIds 置 null，此处兜底保证本地库
+        // 无悬空 FK），再物理删行（62-folder-nav.md §5.4）。
+        await (database.update(database.projects)
+              ..where((p) => p.folderId.equals(folderId)))
+            .write(ProjectsCompanion(folderId: const Value(null)));
+        await (database.delete(
+          database.folders,
+        )..where((f) => f.id.equals(folderId))).go();
+      }
     });
   }
 
@@ -821,6 +1018,27 @@ class TodoRepository {
   Future<int> _nextProjectSortOrder() async {
     final all = await projects.getAll();
     return all.isEmpty ? 0 : (all.last.sortOrder + 1);
+  }
+
+  /// 下一个文件夹 sortOrder（当前活跃文件夹数，追加到末尾）。
+  Future<int> _nextFolderSortOrder() async {
+    final all = await folders.getAll();
+    return all.isEmpty ? 0 : (all.last.sortOrder + 1);
+  }
+
+  /// 重排某文件夹组内项目的 sortOrder（0..n-1 连续）。事务内调用。
+  ///
+  /// [folderId] 为 null 时重排未分组组。跳过排序已正确的位置以减少写放大。
+  Future<void> _renumberProjectGroup(String? folderId, int now) async {
+    final group = await projects.getAllInFolder(folderId);
+    for (var i = 0; i < group.length; i++) {
+      final p = group[i];
+      if (p.sortOrder == i) continue;
+      await projects.updateById(
+        p.id,
+        ProjectsCompanion(sortOrder: Value(i), updatedAt: Value(now)),
+      );
+    }
   }
 
   /// 解析任务所属项目 id：未传 [projectId] 时默认内置收件箱（产品决策 #3）。

@@ -24,6 +24,22 @@ class ProjectDao {
         .get();
   }
 
+  /// 某文件夹组内的全部未删除项目，按 sortOrder 升序。
+  ///
+  /// [folderId] 为 null 时查未分组组（folderId IS NULL）；排序语义为
+  /// **组内排序**（docs/62-folder-nav.md §4.3），跨组调用方自行分组。
+  Future<List<Project>> getAllInFolder(String? folderId) async {
+    final query = _db.select(_db.projects)
+      ..where((p) => p.deleted.equals(0))
+      ..orderBy([(p) => OrderingTerm.asc(p.sortOrder)]);
+    if (folderId == null) {
+      query.where((p) => p.folderId.isNull());
+    } else {
+      query.where((p) => p.folderId.equals(folderId));
+    }
+    return query.get();
+  }
+
   /// 按 id 查询（含已删除墓碑行，供同步/级联使用）。
   Future<Project?> getById(String id) {
     return (_db.select(
