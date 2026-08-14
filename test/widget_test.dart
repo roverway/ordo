@@ -814,6 +814,29 @@ void main() {
       findsOneWidget,
     );
 
+    // 展开态：箭头朝下（expand_more），行尾三点菜单可见（des-1 需求 1/2）。
+    expect(
+      find.descendant(
+        of: find.byType(Drawer),
+        matching: find.byIcon(Icons.expand_more),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(Drawer),
+        matching: find.byIcon(Icons.chevron_left),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(Drawer),
+        matching: find.byIcon(Icons.more_vert),
+      ),
+      findsOneWidget,
+    );
+
     // 点击文件夹行 → 折叠：夹内项目行隐藏，未分组区不受影响。
     await tester.tap(
       find.descendant(of: find.byType(Drawer), matching: find.text('工作夹')),
@@ -827,6 +850,28 @@ void main() {
       find.descendant(of: find.byType(Drawer), matching: find.text('项目B')),
       findsOneWidget,
     );
+    // 折叠态：箭头朝左（chevron_left），三点菜单隐藏（des-1 需求 1/2）。
+    expect(
+      find.descendant(
+        of: find.byType(Drawer),
+        matching: find.byIcon(Icons.chevron_left),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(Drawer),
+        matching: find.byIcon(Icons.expand_more),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(Drawer),
+        matching: find.byIcon(Icons.more_vert),
+      ),
+      findsNothing,
+    );
 
     // 再点 → 展开恢复。
     await tester.tap(
@@ -835,6 +880,21 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       find.descendant(of: find.byType(Drawer), matching: find.text('项目A')),
+      findsOneWidget,
+    );
+    // 展开恢复：菜单与向下箭头回到可见。
+    expect(
+      find.descendant(
+        of: find.byType(Drawer),
+        matching: find.byIcon(Icons.more_vert),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(Drawer),
+        matching: find.byIcon(Icons.expand_more),
+      ),
       findsOneWidget,
     );
   });

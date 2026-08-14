@@ -18,10 +18,14 @@ import 'loading_view.dart';
 ///
 /// - 顶部：应用名（无账号体系，不做头像）。
 /// - 系统组（无分隔线）：今日 / 收集箱 / 日历 / 标签。
-/// - 细分隔线 + 项目区（62-folder-nav.md §6.1）：
-///   - 文件夹组（每个文件夹一行 + 其内项目行，展开/折叠）；
+/// - 细分隔线 + 项目区（62-folder-nav.md §6.1，des-1 优化）：
+///   - 文件夹组：文件夹行（图标 + 名称 + 汇总数 + [⋯ 仅展开] + 展开箭头
+///     在行最右）+ 展开时**树状圆角连线**缩进的项目行；
 ///   - 未分组区（小标题 + 平铺项目行；收件箱仍排除）；
 /// - 细分隔线 + 底部「新建文件夹」+「新建项目」+ 设置。
+///
+/// 行间距统一由 [AppTokens.drawerRowSpacing] 提供（系统组/文件夹/项目行
+/// 垂直节奏一致，des-1 需求 4）。
 ///
 /// 拖拽（62-folder-nav.md §6.2，复用 task_tree 的 LongPressDraggable +
 /// DragTarget 模式）：
@@ -313,22 +317,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
         for (final folder in grouping.folders) {
           final expanded = expandState[folder.id] ?? true;
           children.add(
-            _buildFolderRow(context, l10n, grouping, folder, expanded),
+            _buildFolderGroup(context, l10n, grouping, folder, expanded),
           );
-          if (expanded) {
-            for (final project
-                in grouping.folderProjects[folder.id] ?? const <Project>[]) {
-              children.add(
-                _buildProjectRow(
-                  context,
-                  l10n,
-                  project,
-                  grouping,
-                  indent: AppTokens.folderIndent,
-                ),
-              );
-            }
-          }
         }
         final showUngrouped =
             grouping.folders.isNotEmpty || grouping.ungrouped.isNotEmpty;
@@ -376,10 +366,120 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     return sum;
   }
 
-  /// 文件夹行：[展开/折叠箭头] [文件夹图标] 名称 [汇总未完成数] [⋯ 菜单]。
+  /// 文件夹整组（文件夹行 + 展开时的树状项目区，des-1）。
+  ///
+  /// 树状区只在外层垂直方向上**不加任何间距**——行间距完全由各行的
+  /// [AppTokens.drawerRowSpacing] 外层 padding 提供，与系统组行一致。
+  Widget _buildFolderGroup(
+    BuildContext context,
+    AppLocalizations l10n,
+    ProjectGrouping grouping,
+    Folder folder,
+    bool expanded,
+  ) {
+    final projects = grouping.folderProjects[folder.id] ?? const <Project>[];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildFolderRow(context, l10n, grouping, folder, expanded),
+        if (expanded && projects.isNotEmpty)
+          _buildFolderTree(context, l10n, grouping, projects),
+      ],
+    );
+  }
+
+  /// 文件夹展开后的树状项目区（des-1 需求 3）。
+  ///
+  /// - 一条**渐变竖线**（顶部浓 → 底部渐隐，圆角顶端）贯穿整组项目，
+  ///   横向位置与文件夹行图标中心对齐（[AppTokens.folderTreeIndent]）；
+  /// - 每个项目行左侧一条**水平短线**连接到竖线，形成树状连线；
+  /// - 项目行内容整体缩进（竖线位置 + 短线宽度），层级清晰。
+  Widget _buildFolderTree(
+    BuildContext context,
+    AppLocalizations l10n,
+    ProjectGrouping grouping,
+    List<Project> projects,
+  ) {
+    final lineColor = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Padding(
+      // 左缩进 = 竖线位置；右侧与行级 padding 对齐（行自身还有 spaceXs）。
+      padding: EdgeInsets.only(
+        left: AppTokens.folderTreeIndent,
+        right: AppTokens.spaceXs,
+      ),
+      child: Stack(
+        children: [
+          // 渐变竖线（贯穿整组项目高度）。
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            child: Container(
+              width: AppTokens.folderTreeLineWidth,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    lineColor.withValues(
+                      alpha: AppTokens.folderTreeLineAlphaStart,
+                    ),
+                    lineColor.withValues(
+                      alpha: AppTokens.folderTreeLineAlphaEnd,
+                    ),
+                  ],
+                ),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(AppTokens.folderTreeLineRadius),
+                ),
+              ),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < projects.length; i++)
+                _buildProjectTreeRow(context, l10n, grouping, projects[i]),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 树状区内的单个项目行：左侧水平短线连接竖线，内容右移短线宽度。
+  Widget _buildProjectTreeRow(
+    BuildContext context,
+    AppLocalizations l10n,
+    ProjectGrouping grouping,
+    Project project,
+  ) {
+    final lineColor = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Stack(
+      children: [
+        // 水平短线：从竖线（x=0）延伸到项目行内容起点，垂直居中。
+        Positioned.fill(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Container(
+              width: AppTokens.folderTreeConnectorWidth,
+              height: AppTokens.folderTreeLineWidth,
+              color: lineColor.withValues(alpha: AppTokens.folderTreeStubAlpha),
+            ),
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.only(left: AppTokens.folderTreeConnectorWidth),
+          child: _buildProjectRow(context, l10n, project, grouping, indent: 0),
+        ),
+      ],
+    );
+  }
+
+  /// 文件夹行：[文件夹图标] 名称 [汇总未完成数] [⋯ 菜单(仅展开)] [展开箭头]。
   ///
   /// - 点击行切换展开/折叠（62-folder-nav.md §6.1）；
-  /// - 行尾菜单：重命名 / 删除（§6.3）；
+  /// - 行尾菜单：重命名 / 删除（§6.3），**仅展开时显示**（des-1 需求 2）；
   /// - 拖拽（§6.2）：文件夹行自身可拖拽排序；同时作为**项目入夹**与
   ///   **文件夹重排**的落点；折叠时作为项目落点自动展开。
   Widget _buildFolderRow(
@@ -503,9 +603,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     final highlight = _targetColor(context, isDragTarget, isInvalidDragTarget);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(
+      padding: EdgeInsets.symmetric(
         horizontal: AppTokens.spaceXs,
-        vertical: 2,
+        vertical: AppTokens.drawerRowSpacing / 2,
       ),
       child: Material(
         color: highlight ?? Colors.transparent,
@@ -521,12 +621,6 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
             ),
             child: Row(
               children: [
-                Icon(
-                  expanded ? Icons.expand_more : Icons.chevron_right,
-                  size: AppTokens.expandArrowSize,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: AppTokens.spaceXxs),
                 Icon(
                   Icons.folder_outlined,
                   size: AppTokens.expandArrowSize,
@@ -551,26 +645,37 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
-                // 行尾菜单：重命名 / 删除（§6.3）。
-                PopupMenuButton<String>(
-                  tooltip: l10n.folderActions,
-                  icon: Icon(
-                    Icons.more_vert,
-                    size: AppTokens.expandArrowSizeRow,
-                    color: colorScheme.onSurfaceVariant,
+                // 行尾菜单：重命名 / 删除（§6.3）——仅展开时显示（des-1
+                // 需求 2：折叠态保持简洁，只留名称 + 箭头）。
+                if (expanded) ...[
+                  const SizedBox(width: AppTokens.spaceXs),
+                  PopupMenuButton<String>(
+                    tooltip: l10n.folderActions,
+                    icon: Icon(
+                      Icons.more_vert,
+                      size: AppTokens.expandArrowSizeRow,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    onSelected: (action) =>
+                        _handleFolderMenu(context, l10n, folder, action),
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'rename',
+                        child: Text(l10n.renameFolder),
+                      ),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Text(l10n.deleteFolder),
+                      ),
+                    ],
                   ),
-                  onSelected: (action) =>
-                      _handleFolderMenu(context, l10n, folder, action),
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'rename',
-                      child: Text(l10n.renameFolder),
-                    ),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Text(l10n.deleteFolder),
-                    ),
-                  ],
+                ],
+                const SizedBox(width: AppTokens.spaceXxs),
+                // 展开箭头（最右侧，des-1 需求 1）：展开 = 向下，折叠 = 向左。
+                Icon(
+                  expanded ? Icons.expand_more : Icons.chevron_left,
+                  size: AppTokens.expandArrowSize,
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ],
             ),
@@ -917,11 +1022,12 @@ class _DrawerTile extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Padding(
+      // 垂直间距与系统组/文件夹行统一（des-1 需求 4，drawerRowSpacing）。
       padding: EdgeInsets.fromLTRB(
         AppTokens.spaceXs + indent,
-        AppTokens.spaceXxs - 2,
+        AppTokens.drawerRowSpacing / 2,
         AppTokens.spaceXs,
-        AppTokens.spaceXxs - 2,
+        AppTokens.drawerRowSpacing / 2,
       ),
       child: Material(
         color:

@@ -259,11 +259,37 @@ abstract final class AppTokens {
   /// （标题/描述/标签/日期等）整体淡化，勾选/进度环等交互控件保持全不透明。
   static const double doneContentOpacity = 0.55;
 
-  // ── 文件夹（62-folder-nav.md §6.5）──
+  // ── 抽屉（55-ui-redesign §3.1 / 62-folder-nav.md §6.1，des-1 垂直节奏优化）──
 
-  /// 抽屉文件夹下项目行的缩进量（62-folder-nav.md §6.1：项目行缩进到
-  /// 所属文件夹下，视觉上形成层级）。
-  static const double folderIndent = 16;
+  /// 抽屉行统一垂直间距（系统组 / 文件夹行 / 项目行一致）。
+  ///
+  /// 每行上下各留 `spacing / 2` 外间距，行间净距 = [drawerRowSpacing]，
+  /// 保证整个抽屉的垂直节奏统一（des-1 需求 4）。
+  static const double drawerRowSpacing = 4;
+
+  // ── 文件夹树状连线（62-folder-nav.md §6.1，des-1 视觉优化）──
+
+  /// 树状连线竖线的横向位置：与文件夹行图标中心对齐
+  /// （= 行外 padding spaceXs + 行内 padding spaceSm + 图标半径 expandArrowSize/2）。
+  static const double folderTreeIndent = 30;
+
+  /// 树状连线竖线宽度（细线，滴答式克制风格）。
+  static const double folderTreeLineWidth = 2;
+
+  /// 树状连线竖线顶部圆角（与文件夹行衔接处，squircle 风格）。
+  static const double folderTreeLineRadius = 2;
+
+  /// 树状连线竖线渐变起始不透明度（顶部，最浓）。
+  static const double folderTreeLineAlphaStart = 0.45;
+
+  /// 树状连线竖线渐变结束不透明度（底部，渐隐出层级感）。
+  static const double folderTreeLineAlphaEnd = 0.12;
+
+  /// 树状连线横向短线宽度（连接竖线与项目行内容）。
+  static const double folderTreeConnectorWidth = 12;
+
+  /// 树状连线横向短线不透明度（比竖线中段稍浓，突出连接点）。
+  static const double folderTreeStubAlpha = 0.35;
 
   /// 抽屉/项目页分组小标题图标尺寸（62-folder-nav.md §6.1/§6.4）。
   static const double folderHeaderIconSize = 16;
