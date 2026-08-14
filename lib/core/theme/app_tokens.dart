@@ -125,6 +125,26 @@ abstract final class AppTokens {
   /// Staggered list entrance delay per item.
   static const Duration motionStaggerDelay = Duration(milliseconds: 50);
 
+  /// 列表错落入场上限：超过该数量的列表不再错落（长列表直接平铺，
+  /// 控制总错落时长 ≤ 15×50ms + 250ms ≈ 1s，docs/63-motion-polish.md §5 B）。
+  static const int motionMaxStaggerItems = 15;
+
+  /// 列表错落入场上移距离（fade + slide-up，docs/63-motion-polish.md §5 B）。
+  static const double motionStaggerSlideOffset = 8;
+
+  /// 勾选弹性幅度：勾选时勾选框 scale 1 → [checkboxBounceScale] → 1
+  /// （docs/63-motion-polish.md §5 A）。
+  static const double checkboxBounceScale = 1.15;
+
+  /// 取消勾选弹性幅度：scale 1 → [checkboxBounceShrink] → 1（同曲线反向）。
+  static const double checkboxBounceShrink = 0.85;
+
+  /// 卡片按压轻微缩放（project_card / 任务卡片，docs/63-motion-polish.md §5 H）。
+  static const double cardPressScale = 0.98;
+
+  /// FAB 按压缩放（docs/63-motion-polish.md §5 I：按压回弹）。
+  static const double fabPressScale = 0.9;
+
   // ── Elevation / Shadow ──
 
   /// Card shadow elevation (resting).

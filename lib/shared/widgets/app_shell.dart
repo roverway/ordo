@@ -119,6 +119,21 @@ class AppShell extends StatelessWidget {
     return Scaffold(
       // 窄屏抽屉：宽度（屏宽 × drawerWidthRatio）由 AppDrawer 自身提供
       //（评审问题 5：接线 0.78 令牌）；右侧遮罩点击关闭由 Scaffold scrim 提供。
+      //
+      // 抽屉动效契约（docs/63-motion-polish.md §5 E）：easeOutCubic 风格 +
+      // motionNormal 时长 + scrim 同步淡入。经评估（克制优先），保持 Material
+      // `Scaffold.drawer` 原生机制即可满足，**不再引入自定义 DrawerController**：
+      // - Flutter 3.38 的 DrawerControllerState 用 `AnimationController.fling()`
+      //   （临界阻尼弹簧，settle ≈ 246ms，与 motionNormal 250ms 令牌基本一致）
+      //   驱动宽度揭示，位移曲线与 easeOutCubic 观感一致；scrim 透明度随同一
+      //   controller value 同步淡入（drawer.dart `_buildDrawer`）；
+      // - reduced motion：框架原生降级——`SemanticsBinding.disableAnimations`
+      //   时 fling 速度放大 200 倍，抽屉近乎瞬时开合（animation_controller.dart
+      //   `fling` 的 `AnimationBehavior.normal` 分支）；
+      // - 抽屉内容关闭依赖 AppDrawer._go/_openSettings 的 `Navigator.pop()`
+      //   （抽屉的 LocalHistoryEntry）+ `_navigating` 防双击竞态（246ms 窗口）。
+      //   若换成自管 overlay 抽屉会改变 pop 语义、引入新的竞态窗口，违背
+      //   63-motion-polish §6「不破坏现有 _navigating 防竞态」约束。
       drawer: narrow ? const AppDrawer() : null,
       appBar: AppBar(
         // 仅窄屏显示汉堡入口；宽屏由 Rail 承担导航。
