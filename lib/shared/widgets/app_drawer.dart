@@ -18,14 +18,16 @@ import 'loading_view.dart';
 ///
 /// - 顶部：应用名（无账号体系，不做头像）。
 /// - 系统组（无分隔线）：今日 / 收集箱 / 日历 / 标签。
-/// - 细分隔线 + 项目区（62-folder-nav.md §6.1，des-1 优化）：
-///   - 文件夹组：文件夹行（图标 + 名称 + 汇总数 + [⋯ 仅展开] + 展开箭头
-///     在行最右）+ 展开时**树状圆角连线**缩进的项目行；
+/// - 细分隔线 + 项目区（62-folder-nav.md §6.1，des-1/des-2 优化）：
+///   - 文件夹组：文件夹行（**与系统组行左对齐**；图标 + 名称 + 汇总数 +
+///     [⋯ 仅展开] + 展开箭头在行最右；展开/折叠**高度不变**）+ 展开时
+///     树状连线缩进的项目行（自上而下由淡转浓的渐变竖线 + 圆角转角 +
+///     更紧凑的行间距）；
 ///   - 未分组区（小标题 + 平铺项目行；收件箱仍排除）；
 /// - 细分隔线 + 底部「新建文件夹」+「新建项目」+ 设置。
 ///
-/// 行间距统一由 [AppTokens.drawerRowSpacing] 提供（系统组/文件夹/项目行
-/// 垂直节奏一致，des-1 需求 4）。
+/// 行间距：系统组/文件夹行/未分组行统一 [AppTokens.drawerRowSpacing]；
+/// 树状区内项目行用更紧凑的 [AppTokens.folderTreeRowSpacing]（des-2 需求 2b）。
 ///
 /// 拖拽（62-folder-nav.md §6.2，复用 task_tree 的 LongPressDraggable +
 /// DragTarget 模式）：
@@ -388,89 +390,102 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     );
   }
 
-  /// 文件夹展开后的树状项目区（des-1 需求 3）。
+  /// 文件夹展开后的树状项目区（des-1 需求 3 + des-2 需求 3 重绘）。
   ///
-  /// - 一条**渐变竖线**（顶部浓 → 底部渐隐，圆角顶端）贯穿整组项目，
-  ///   横向位置与文件夹行图标中心对齐（[AppTokens.folderTreeIndent]）；
-  /// - 每个项目行左侧一条**水平短线**连接到竖线，形成树状连线；
-  /// - 项目行内容整体缩进（竖线位置 + 短线宽度），层级清晰。
+  /// 竖线由**每个项目行的连接器分段绘制**（[_FolderTreeConnectorPainter]）：
+  /// - 渐变方向自上而下由淡转浓（[folderTreeLineAlphaStart] → [End]），
+  ///   每行的渐变端点按「行位置占整组的比例」衔接，拼接后呈一条连续渐变线；
+  /// - 竖线只覆盖到最下方项目的水平短线为止（末行半高 + 圆角收口），
+  ///   不超出最后一行；
+  /// - 转角处用圆头（StrokeCap.round）绘制，形成圆角转角而非直角。
   Widget _buildFolderTree(
     BuildContext context,
     AppLocalizations l10n,
     ProjectGrouping grouping,
     List<Project> projects,
   ) {
-    final lineColor = Theme.of(context).colorScheme.onSurfaceVariant;
     return Padding(
-      // 左缩进 = 竖线位置；右侧与行级 padding 对齐（行自身还有 spaceXs）。
+      // 左缩进 = 竖线位置（与文件夹行图标中心对齐）；右侧与行级 padding
+      // 对齐（行自身还有 spaceXs）。
       padding: EdgeInsets.only(
         left: AppTokens.folderTreeIndent,
         right: AppTokens.spaceXs,
       ),
-      child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 渐变竖线（贯穿整组项目高度）。
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            child: Container(
-              width: AppTokens.folderTreeLineWidth,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    lineColor.withValues(
-                      alpha: AppTokens.folderTreeLineAlphaStart,
-                    ),
-                    lineColor.withValues(
-                      alpha: AppTokens.folderTreeLineAlphaEnd,
-                    ),
-                  ],
-                ),
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(AppTokens.folderTreeLineRadius),
-                ),
-              ),
+          for (var i = 0; i < projects.length; i++)
+            _buildProjectTreeRow(
+              context,
+              l10n,
+              grouping,
+              projects[i],
+              index: i,
+              total: projects.length,
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (var i = 0; i < projects.length; i++)
-                _buildProjectTreeRow(context, l10n, grouping, projects[i]),
-            ],
-          ),
         ],
       ),
     );
   }
 
-  /// 树状区内的单个项目行：左侧水平短线连接竖线，内容右移短线宽度。
+  /// 树状区内的单个项目行：左侧连接器（竖线分段 + 水平短线）连接竖线，
+  /// 内容右移短线宽度。行间距用更紧凑的 [AppTokens.folderTreeRowSpacing]。
   Widget _buildProjectTreeRow(
     BuildContext context,
     AppLocalizations l10n,
     ProjectGrouping grouping,
-    Project project,
-  ) {
+    Project project, {
+    required int index,
+    required int total,
+  }) {
     final lineColor = Theme.of(context).colorScheme.onSurfaceVariant;
+    // 渐变浓度参数：本行竖线段自上而下的浓度端点（末行在半高处已到最浓）。
+    final start = AppTokens.folderTreeLineAlphaStart;
+    final end = AppTokens.folderTreeLineAlphaEnd;
+    final isLast = index == total - 1;
+    final double alphaTop;
+    final double alphaBottom;
+    final double stubAlpha;
+    if (isLast) {
+      alphaTop = _lerpAlpha(start, end, total == 1 ? 0 : (total - 1) / total);
+      alphaBottom = end;
+      // 末行竖线在肘处已达最浓，短线同浓。
+      stubAlpha = end;
+    } else {
+      alphaTop = _lerpAlpha(start, end, index / total);
+      alphaBottom = _lerpAlpha(start, end, (index + 1) / total);
+      // 短线处 = 本行竖线中点的浓度。
+      stubAlpha = _lerpAlpha(alphaTop, alphaBottom, 0.5);
+    }
+
     return Stack(
       children: [
-        // 水平短线：从竖线（x=0）延伸到项目行内容起点，垂直居中。
-        Positioned.fill(
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Container(
-              width: AppTokens.folderTreeConnectorWidth,
-              height: AppTokens.folderTreeLineWidth,
-              color: lineColor.withValues(alpha: AppTokens.folderTreeStubAlpha),
+        // 连接器：竖线分段（渐变）+ 水平短线（圆角转角）。
+        Positioned(
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: AppTokens.folderTreeConnectorWidth,
+          child: CustomPaint(
+            painter: _FolderTreeConnectorPainter(
+              color: lineColor,
+              isLast: isLast,
+              alphaTop: alphaTop,
+              alphaBottom: alphaBottom,
+              stubAlpha: stubAlpha,
             ),
           ),
         ),
         Padding(
           padding: EdgeInsets.only(left: AppTokens.folderTreeConnectorWidth),
-          child: _buildProjectRow(context, l10n, project, grouping, indent: 0),
+          child: _buildProjectRow(
+            context,
+            l10n,
+            project,
+            grouping,
+            indent: 0,
+            rowSpacing: AppTokens.folderTreeRowSpacing,
+          ),
         ),
       ],
     );
@@ -615,8 +630,10 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
           onTap: () =>
               ref.read(folderExpandProvider.notifier).toggle(folder.id),
           child: Padding(
+            // 行内左 padding 与系统组行（_DrawerTile）一致（spaceMd），
+            // 保证文件夹行 leading 与系统组行左对齐（des-2 需求 1）。
             padding: const EdgeInsets.symmetric(
-              horizontal: AppTokens.spaceSm,
+              horizontal: AppTokens.spaceMd,
               vertical: AppTokens.spaceSm,
             ),
             child: Row(
@@ -626,7 +643,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                   size: AppTokens.expandArrowSize,
                   color: colorScheme.primary,
                 ),
-                const SizedBox(width: AppTokens.spaceSm),
+                const SizedBox(width: AppTokens.spaceMd),
                 Expanded(
                   child: Text(
                     folder.name,
@@ -646,28 +663,33 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                   ),
                 ),
                 // 行尾菜单：重命名 / 删除（§6.3）——仅展开时显示（des-1
-                // 需求 2：折叠态保持简洁，只留名称 + 箭头）。
+                // 需求 2）。按钮固定 20×20（与图标/箭头同高），使展开/折叠
+                // 状态下文件夹行高度不变（des-2 需求 2a）。
                 if (expanded) ...[
                   const SizedBox(width: AppTokens.spaceXs),
-                  PopupMenuButton<String>(
-                    tooltip: l10n.folderActions,
-                    icon: Icon(
-                      Icons.more_vert,
-                      size: AppTokens.expandArrowSizeRow,
-                      color: colorScheme.onSurfaceVariant,
+                  SizedBox.square(
+                    dimension: AppTokens.expandArrowSize,
+                    child: PopupMenuButton<String>(
+                      tooltip: l10n.folderActions,
+                      padding: EdgeInsets.zero,
+                      icon: Icon(
+                        Icons.more_vert,
+                        size: AppTokens.expandArrowSizeRow,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      onSelected: (action) =>
+                          _handleFolderMenu(context, l10n, folder, action),
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'rename',
+                          child: Text(l10n.renameFolder),
+                        ),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Text(l10n.deleteFolder),
+                        ),
+                      ],
                     ),
-                    onSelected: (action) =>
-                        _handleFolderMenu(context, l10n, folder, action),
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'rename',
-                        child: Text(l10n.renameFolder),
-                      ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: Text(l10n.deleteFolder),
-                      ),
-                    ],
                   ),
                 ],
                 const SizedBox(width: AppTokens.spaceXxs),
@@ -687,6 +709,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 
   /// 项目行：色点 + 名称 + 未完成数（文件夹下缩进 [indent]）。
   ///
+  /// [rowSpacing]：行垂直间距（树状区用更紧凑的 [AppTokens.folderTreeRowSpacing]，
+  /// 其余用全局 [AppTokens.drawerRowSpacing]）。
   /// 拖拽（§6.2）：项目行可拖拽（入夹/出夹/组内重排），同时作为同组
   /// 项目行的重排落点（跨组落点同样按目标组内索引插入）。
   Widget _buildProjectRow(
@@ -695,6 +719,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     Project project,
     ProjectGrouping grouping, {
     required double indent,
+    double rowSpacing = AppTokens.drawerRowSpacing,
   }) {
     final projectKey = '$_projectDragPrefix${project.id}';
     final isDragTarget = _dragTargetKey == projectKey;
@@ -724,6 +749,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
           l10n,
           project,
           indent: indent,
+          rowSpacing: rowSpacing,
           isDragging: true,
         ),
       ),
@@ -778,6 +804,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
             l10n,
             project,
             indent: indent,
+            rowSpacing: rowSpacing,
             isDragTarget: isDragTarget,
             isInvalidDragTarget: isInvalid,
             isDragging: isDragging,
@@ -793,6 +820,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     AppLocalizations l10n,
     Project project, {
     required double indent,
+    double rowSpacing = AppTokens.drawerRowSpacing,
     bool isDragTarget = false,
     bool isInvalidDragTarget = false,
     bool isDragging = false,
@@ -817,6 +845,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       selected: path == '/projects/${project.id}',
       onTap: () => _go(context, '/projects/${project.id}'),
       indent: indent,
+      rowSpacing: rowSpacing,
       dragHighlightColor: _targetColor(
         context,
         isDragTarget,
@@ -992,6 +1021,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 ///
 /// 选中态：secondaryContainer 浅色药丸 + 圆角（colorScheme 派生，不硬编码）。
 /// [indent]：文件夹下项目行的缩进（62-folder-nav.md §6.1）；
+/// [rowSpacing]：行垂直间距（树状区内用更紧凑的 folderTreeRowSpacing）；
 /// [dragHighlightColor]：拖拽悬停目标时的高亮底色（非 null 覆盖选中态底色）。
 class _DrawerTile extends StatelessWidget {
   const _DrawerTile({
@@ -1001,6 +1031,7 @@ class _DrawerTile extends StatelessWidget {
     required this.onTap,
     this.trailing,
     this.indent = 0,
+    this.rowSpacing = AppTokens.drawerRowSpacing,
     this.dragHighlightColor,
   });
 
@@ -1013,6 +1044,9 @@ class _DrawerTile extends StatelessWidget {
   /// 额外左缩进（文件夹下项目行）。
   final double indent;
 
+  /// 行垂直间距（上下各留 `spacing / 2`）。
+  final double rowSpacing;
+
   /// 拖拽目标高亮（合法/非法由调用方决定颜色）。
   final Color? dragHighlightColor;
 
@@ -1022,12 +1056,13 @@ class _DrawerTile extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Padding(
-      // 垂直间距与系统组/文件夹行统一（des-1 需求 4，drawerRowSpacing）。
+      // 垂直间距与系统组/文件夹行统一（des-1 需求 4，drawerRowSpacing；
+      // 树状区内可传入更紧凑的 folderTreeRowSpacing，des-2 需求 2b）。
       padding: EdgeInsets.fromLTRB(
         AppTokens.spaceXs + indent,
-        AppTokens.drawerRowSpacing / 2,
+        rowSpacing / 2,
         AppTokens.spaceXs,
-        AppTokens.drawerRowSpacing / 2,
+        rowSpacing / 2,
       ),
       child: Material(
         color:
@@ -1072,4 +1107,89 @@ class _DrawerTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 线性插值：`a + (b - a) * t`（树状连线逐行渐变浓度用，des-2 需求 3）。
+double _lerpAlpha(double a, double b, double t) => a + (b - a) * t;
+
+/// 文件夹树状连线行连接器（des-2 需求 3 自绘）。
+///
+/// 每行绘制：
+/// - **竖线分段**：沿行高自上而下渐变（顶部 [alphaTop] → 底部 [alphaBottom]），
+///   各行的端点浓度按「行位置占整组比例」衔接，拼接后呈一条连续渐变线；
+///   末行（[isLast]）竖线只画到行中线（水平短线处），圆头收口，不再向下延伸；
+/// - **水平短线**：从竖线到内容起点，浓度 [stubAlpha] 与所在行竖线一致；
+/// - 所有线端用 `StrokeCap.round` 圆头——转角处自然呈现圆角而非直角。
+///
+/// 颜色派生自 colorScheme.onSurfaceVariant（明暗主题自适应），
+/// 线宽/渐变浓度走 AppTokens。
+class _FolderTreeConnectorPainter extends CustomPainter {
+  _FolderTreeConnectorPainter({
+    required this.color,
+    required this.isLast,
+    required this.alphaTop,
+    required this.alphaBottom,
+    required this.stubAlpha,
+  });
+
+  /// 连线基色（onSurfaceVariant，明暗自适应）。
+  final Color color;
+
+  /// 是否为整组最后一行（竖线只到中线 + 圆角收口）。
+  final bool isLast;
+
+  /// 本行竖线顶部的渐变浓度（0~1）。
+  final double alphaTop;
+
+  /// 本行竖线底部的渐变浓度（0~1）。
+  final double alphaBottom;
+
+  /// 水平短线浓度（0~1）。
+  final double stubAlpha;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final lineWidth = AppTokens.folderTreeLineWidth;
+    final halfHeight = size.height / 2;
+    final trunkX = lineWidth / 2;
+
+    // 竖线分段：渐变画刷只覆盖本行要画的区间（末行为上半段）。
+    final segmentHeight = isLast ? halfHeight : size.height;
+    final verticalPaint = Paint()
+      ..strokeWidth = lineWidth
+      ..strokeCap = StrokeCap.round
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          color.withValues(alpha: alphaTop),
+          color.withValues(alpha: alphaBottom),
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, segmentHeight));
+
+    canvas.drawLine(
+      Offset(trunkX, 0),
+      Offset(trunkX, segmentHeight),
+      verticalPaint,
+    );
+
+    // 水平短线：从竖线到内容起点，圆头两端。
+    final stubPaint = Paint()
+      ..strokeWidth = lineWidth
+      ..strokeCap = StrokeCap.round
+      ..color = color.withValues(alpha: stubAlpha);
+    canvas.drawLine(
+      Offset(trunkX, halfHeight),
+      Offset(size.width, halfHeight),
+      stubPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_FolderTreeConnectorPainter oldDelegate) =>
+      oldDelegate.color != color ||
+      oldDelegate.isLast != isLast ||
+      oldDelegate.alphaTop != alphaTop ||
+      oldDelegate.alphaBottom != alphaBottom ||
+      oldDelegate.stubAlpha != stubAlpha;
 }

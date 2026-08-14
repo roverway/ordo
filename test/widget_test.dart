@@ -899,6 +899,51 @@ void main() {
     );
   });
 
+  testWidgets('Drawer: 文件夹行与系统组左对齐 + 展开/折叠高度与位置不变（des-2）', (tester) async {
+    final folder = _folder('f1', '工作夹');
+    final p1 = _projectInFolder('p1', '项目A', 'f1');
+    await pumpApp(
+      tester,
+      const Size(400, 800),
+      provideTestDatabase: true,
+      folders: [folder],
+      projects: [p1],
+    );
+
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+
+    final inDrawer = find.byType(Drawer);
+
+    // 需求 1：文件夹行 leading（文件夹图标）与系统组行（收件箱）leading 左对齐。
+    final folderIconLeft = tester.getTopLeft(
+      find.descendant(
+        of: inDrawer,
+        matching: find.byIcon(Icons.folder_outlined),
+      ),
+    );
+    final inboxIconLeft = tester.getTopLeft(
+      find.descendant(
+        of: inDrawer,
+        matching: find.byIcon(Icons.inbox_outlined),
+      ),
+    );
+    expect(folderIconLeft.dx, inboxIconLeft.dx);
+
+    // 需求 2a：展开/折叠切换时文件夹行自身高度与顶部位置不变。
+    final folderRow = find
+        .ancestor(of: find.text('工作夹'), matching: find.byType(Material))
+        .first;
+    final expandedHeight = tester.getSize(folderRow).height;
+    final expandedTop = tester.getTopLeft(folderRow).dy;
+
+    await tester.tap(find.descendant(of: inDrawer, matching: find.text('工作夹')));
+    await tester.pumpAndSettle();
+
+    expect(tester.getSize(folderRow).height, expandedHeight);
+    expect(tester.getTopLeft(folderRow).dy, expandedTop);
+  });
+
   testWidgets('Drawer: 文件夹行汇总未完成数为夹内项目之和（真实值）', (tester) async {
     final folder = _folder('f1', '工作夹');
     final p1 = _projectInFolder('p1', '项目A', 'f1');
