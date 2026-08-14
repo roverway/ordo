@@ -13,6 +13,7 @@ import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_view.dart';
+import '../../../shared/widgets/staggered_fade_slide.dart';
 import '../../projects/project_providers.dart';
 import '../task_providers.dart';
 import 'task_row.dart';
@@ -124,16 +125,22 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
               );
             }
             final root = roots[index];
-            return _buildCard(
-              context,
-              root,
-              childrenOf,
-              repo,
-              expandState,
-              // 派生计数/进度/拖拽落位均基于**全量**任务集索引（计数不随
-              // 「隐藏已完成任务」变化；treeNodes 仍用过滤后的可见集）。
-              childrenIndexAll: childrenIndexAll,
-              byIdAll: byIdAll,
+            // B 批（des-4 需求 1）：一级卡片逐项错落入场——仅首次构建播放，
+            // 数据刷新/拖拽重建不重放（StaggeredFadeSlide 一次性 controller）；
+            // 子行随卡片一起进入，不叠加重复错落。
+            return StaggeredFadeSlide(
+              index: index,
+              child: _buildCard(
+                context,
+                root,
+                childrenOf,
+                repo,
+                expandState,
+                // 派生计数/进度/拖拽落位均基于**全量**任务集索引（计数不随
+                // 「隐藏已完成任务」变化；treeNodes 仍用过滤后的可见集）。
+                childrenIndexAll: childrenIndexAll,
+                byIdAll: byIdAll,
+              ),
             );
           },
         );
@@ -217,9 +224,9 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
       // 用户打磨要求 4：一级卡片底部间距 spaceXxs→spaceXs，
       // 与卡片↔屏幕左右边缘距离（列表水平 padding spaceXs）相等。
       padding: const EdgeInsets.only(bottom: AppTokens.spaceXs),
-      // H 批：卡片按压反馈（docs/63-motion-polish.md §5 H）——阴影抬升
-      // （shadowCardElevated 系列 + blur/offset 抬升）+ 轻微 scale 0.98，
-      // motionFast + motionCurve；抬手恢复，不影响点击/拖拽。
+      // H 批（des-4 需求 2 减弱）：卡片按压仅保留**几乎无感**的轻微 scale
+      // （cardPressScaleSubtle 0.995），去掉阴影抬升；motionFast + motionCurve，
+      // 抬手恢复，不影响点击/拖拽。
       child: Listener(
         onPointerDown: (_) {
           if (mounted) setState(() => _cardPressed = true);
@@ -231,33 +238,20 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
           if (mounted) setState(() => _cardPressed = false);
         },
         child: AnimatedScale(
-          scale: _cardPressed ? AppTokens.cardPressScale : 1,
+          scale: _cardPressed ? AppTokens.cardPressScaleSubtle : 1,
           duration: motionFast(context),
           curve: motionCurve(context),
-          child: AnimatedContainer(
-            duration: motionFast(context),
-            curve: motionCurve(context),
+          child: Container(
             decoration: BoxDecoration(
               color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
               borderRadius: BorderRadius.circular(AppTokens.radiusCard),
               boxShadow: [
                 BoxShadow(
-                  color: _cardPressed
-                      ? (isDark
-                            ? AppTokens.shadowCardDarkElevated
-                            : AppTokens.shadowCardElevated)
-                      : (isDark
-                            ? AppTokens.shadowCardDark
-                            : AppTokens.shadowCard),
-                  blurRadius: _cardPressed
-                      ? AppTokens.shadowBlurElevated
-                      : AppTokens.shadowBlurRest,
-                  offset: Offset(
-                    0,
-                    _cardPressed
-                        ? AppTokens.shadowOffsetYElevated
-                        : AppTokens.shadowOffsetY,
-                  ),
+                  color: isDark
+                      ? AppTokens.shadowCardDark
+                      : AppTokens.shadowCard,
+                  blurRadius: AppTokens.shadowBlurRest,
+                  offset: const Offset(0, AppTokens.shadowOffsetY),
                 ),
               ],
             ),
@@ -276,16 +270,28 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
                     byIdAll: byIdAll,
                   ),
                   // 用户打磨要求 2：去掉子行间 Divider（行间靠间距区分）。
-                  if (rootNode.isExpanded && children.isNotEmpty)
-                    _buildChildrenSection(
-                      context,
-                      children,
-                      childrenOf,
-                      repo,
-                      expandState,
-                      childrenIndexAll: childrenIndexAll,
-                      byIdAll: byIdAll,
-                    ),
+                  // des-4 需求 3：子任务区高度经 AnimatedSize 平滑过渡
+                  // （展开/折叠），子行错落见 _buildChildrenSection。
+                  AnimatedSize(
+                    duration: motionNormal(context),
+                    curve: motionCurve(context),
+                    alignment: Alignment.topCenter,
+                    clipBehavior: Clip.hardEdge,
+                    child: rootNode.isExpanded && children.isNotEmpty
+                        ? _buildChildrenSection(
+                            context,
+                            children,
+                            childrenOf,
+                            repo,
+                            expandState,
+                            childrenIndexAll: childrenIndexAll,
+                            byIdAll: byIdAll,
+                            // 仅「显式展开」时播放子行错落：进页面默认展开
+                            // 不重复动画（首帧入场已由列表错落统一承担）。
+                            animateRows: expandState[rootNode.task.id] == true,
+                          )
+                        : const SizedBox(width: double.infinity),
+                  ),
                 ],
               ),
             ),
@@ -297,6 +303,12 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
 
   /// 卡片展开区：紧凑子任务行（用户打磨要求 2：无 Divider，行间靠间距
   /// 区分），有子任务的子行递归缩进展开（至 3 级）。
+  ///
+  /// des-4 需求 3：展开/折叠时高度经 [AnimatedSize] 平滑过渡（motionNormal +
+  /// motionCurve，clip 使行随高度渐进露出）；子行逐项错落滑入
+  /// （[StaggeredFadeSlide]，间隔 [AppTokens.motionTreeStaggerDelay] 30ms）——
+  /// **仅显式展开时播放**（[animateRows]；进页面默认展开不重复动画），
+  /// 折叠时子行瞬时移除、高度快速收起（不逐项慢）。reduced motion 全瞬时。
   Widget _buildChildrenSection(
     BuildContext context,
     List<TreeNode> children,
@@ -305,33 +317,48 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     Map<String, bool> expandState, {
     required Map<String?, List<Task>> childrenIndexAll,
     required Map<String, Task> byIdAll,
+    required bool animateRows,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var i = 0; i < children.length; i++) ...[
-          _buildDraggableRow(
-            context,
-            children[i],
-            repo,
-            expandState,
-            style: TaskRowStyle.compact,
-            childrenIndexAll: childrenIndexAll,
-            byIdAll: byIdAll,
-          ),
-          if (children[i].isExpanded &&
-              (childrenOf[children[i].task.id]?.isNotEmpty ?? false))
-            _buildChildrenSection(
-              context,
-              childrenOf[children[i].task.id]!,
-              childrenOf,
-              repo,
-              expandState,
-              childrenIndexAll: childrenIndexAll,
-              byIdAll: byIdAll,
+    return AnimatedSize(
+      duration: motionNormal(context),
+      curve: motionCurve(context),
+      alignment: Alignment.topCenter,
+      clipBehavior: Clip.hardEdge,
+      child: children.isEmpty
+          ? const SizedBox(width: double.infinity)
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < children.length; i++) ...[
+                  StaggeredFadeSlide(
+                    index: i,
+                    interval: AppTokens.motionTreeStaggerDelay,
+                    animateOnBuild: animateRows,
+                    child: _buildDraggableRow(
+                      context,
+                      children[i],
+                      repo,
+                      expandState,
+                      style: TaskRowStyle.compact,
+                      childrenIndexAll: childrenIndexAll,
+                      byIdAll: byIdAll,
+                    ),
+                  ),
+                  if (children[i].isExpanded &&
+                      (childrenOf[children[i].task.id]?.isNotEmpty ?? false))
+                    _buildChildrenSection(
+                      context,
+                      childrenOf[children[i].task.id]!,
+                      childrenOf,
+                      repo,
+                      expandState,
+                      childrenIndexAll: childrenIndexAll,
+                      byIdAll: byIdAll,
+                      animateRows: expandState[children[i].task.id] == true,
+                    ),
+                ],
+              ],
             ),
-        ],
-      ],
     );
   }
 

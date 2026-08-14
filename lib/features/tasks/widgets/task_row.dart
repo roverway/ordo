@@ -92,7 +92,8 @@ class TaskRow extends StatefulWidget {
 class _TaskRowState extends State<TaskRow> {
   bool _hovered = false;
 
-  /// H 批：按压态（卡片按压反馈：轻微 scale 0.98 + 行底色加深）。
+  /// H 批（des-4 需求 2 减弱）：按压态仅保留几乎无感的轻微 scale
+  /// （cardPressScaleSubtle 0.995），不再加深行底色。
   bool _pressed = false;
 
   /// 行背景（61 §2/§4.7）：扁平行无自身卡片底，透明底 + 仅拖拽/悬停态叠加色。
@@ -106,8 +107,8 @@ class _TaskRowState extends State<TaskRow> {
     if (widget.isDragging) {
       return colorScheme.surfaceContainerHighest.withValues(alpha: 0.5);
     }
-    if (_hovered || _pressed) {
-      // 扁平行：悬停/按压给轻微底色反馈（替代卡片阴影抬升）。
+    if (_hovered) {
+      // 扁平行：悬停给轻微底色反馈（替代卡片阴影抬升）。
       return colorScheme.surfaceContainerHighest.withValues(alpha: 0.4);
     }
     return Colors.transparent;
@@ -177,8 +178,9 @@ class _TaskRowState extends State<TaskRow> {
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
-      // H 批：按压反馈（docs/63-motion-polish.md §5 H）——轻微 scale 0.98 +
-      // 行底色加深；抬手恢复。不改变点击/长按拖拽手势（视觉变换不影响命中）。
+      // H 批（des-4 需求 2 减弱）：按压仅保留几乎无感的轻微 scale
+      // （cardPressScaleSubtle 0.995）；抬手恢复。不改变点击/长按拖拽手势
+      // （视觉变换不影响命中）。
       // mounted 守卫：整行拖拽时源行被 childWhenDragging 替换（dispose），
       // 指针 up/cancel 仍会路由到本 Listener，避免 setState after dispose。
       child: Listener(
@@ -192,7 +194,7 @@ class _TaskRowState extends State<TaskRow> {
           if (mounted) setState(() => _pressed = false);
         },
         child: AnimatedScale(
-          scale: _pressed ? AppTokens.cardPressScale : 1,
+          scale: _pressed ? AppTokens.cardPressScaleSubtle : 1,
           duration: motionFast(context),
           curve: motionCurve(context),
           child: AnimatedContainer(

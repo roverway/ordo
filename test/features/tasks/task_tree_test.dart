@@ -749,6 +749,60 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Child'), findsOneWidget);
     });
+
+    testWidgets('显式展开时子行错落入场播放；默认展开不重放（des-4 需求 3）', (tester) async {
+      await _pumpTree(tester, [
+        _task('r', title: 'Root'),
+        _task('c', parentId: 'r', title: 'Child', sortOrder: 1),
+      ]);
+      // 默认展开（从未显式操作）→ 子行错落不播放，直接可见。
+      expect(find.text('Child'), findsOneWidget);
+
+      // 折叠 → 子区收起。
+      await tester.tap(find.byIcon(Icons.arrow_right).first);
+      await tester.pumpAndSettle();
+      expect(find.text('Child'), findsNothing);
+
+      // 再次展开 → 子行错落入场播放：展开触发的首帧内存在尚未到位的
+      // 错落 FadeTransition（opacity < 1；TaskRow 内部 AnimatedOpacity 等
+      // 其它 FadeTransition 恒为 1.0，可区分），settle 后全部到位。
+      await tester.tap(find.byIcon(Icons.arrow_right).first);
+      await tester.pump();
+      final childFades = find.ancestor(
+        of: find.text('Child'),
+        matching: find.byType(FadeTransition),
+      );
+      final midFlight = tester
+          .widgetList<FadeTransition>(childFades)
+          .any((f) => f.opacity.value < 1.0);
+      expect(midFlight, isTrue);
+      await tester.pumpAndSettle();
+      final settled = tester
+          .widgetList<FadeTransition>(childFades)
+          .every((f) => f.opacity.value == 1.0);
+      expect(settled, isTrue);
+    });
+
+    testWidgets('reduced motion：一级卡片入场错落瞬时降级（NFR-06）', (tester) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+
+      await _pumpTree(tester, [
+        _task('r', title: 'Root'),
+        _task('c', parentId: 'r', title: 'Child', sortOrder: 1),
+      ]);
+
+      // 错落入场瞬时到位：卡片最近的 FadeTransition（StaggeredFadeSlide）
+      // 已到 opacity 1（无中间帧）。
+      final cardFade = find.ancestor(
+        of: find.text('Root'),
+        matching: find.byType(FadeTransition),
+      );
+      expect(tester.widget<FadeTransition>(cardFade.first).opacity.value, 1.0);
+    });
   });
 
   group('derivedStatus integration', () {

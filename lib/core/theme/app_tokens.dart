@@ -132,6 +132,10 @@ abstract final class AppTokens {
   /// 列表错落入场上移距离（fade + slide-up，docs/63-motion-polish.md §5 B）。
   static const double motionStaggerSlideOffset = 8;
 
+  /// 任务树子任务区展开错落间隔（比列表入场 50ms 更短，树内行多；
+  /// des-4 需求 3：每次展开播放）。
+  static const Duration motionTreeStaggerDelay = Duration(milliseconds: 30);
+
   /// 勾选弹性幅度：勾选时勾选框 scale 1 → [checkboxBounceScale] → 1
   /// （docs/63-motion-polish.md §5 A）。
   static const double checkboxBounceScale = 1.15;
@@ -141,6 +145,10 @@ abstract final class AppTokens {
 
   /// 卡片按压轻微缩放（project_card / 任务卡片，docs/63-motion-polish.md §5 H）。
   static const double cardPressScale = 0.98;
+
+  /// 任务列表按压缩放（des-4 需求 2：0.98 → 0.995，克制到「几乎无感」，
+  /// 仅保留轻微的按压反馈；项目卡片仍用 [cardPressScale]）。
+  static const double cardPressScaleSubtle = 0.995;
 
   /// FAB 按压缩放（docs/63-motion-polish.md §5 I：按压回弹）。
   static const double fabPressScale = 0.9;
