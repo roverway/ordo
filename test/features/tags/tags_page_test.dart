@@ -96,7 +96,7 @@ Future<StreamController<List<Tag>>> _pump(
         todoRepositoryProvider.overrideWithValue(repo),
         tagsStreamProvider.overrideWith((ref) => tagsController.stream),
         tagTasksProvider.overrideWith(
-          (ref, tagId) async => tagTasks[tagId] ?? const <Task>[],
+          (ref, tagId) => Stream.value(tagTasks[tagId] ?? const <Task>[]),
         ),
         allActiveTasksProvider.overrideWith(
           (ref) => Stream.value(allActiveTasks),

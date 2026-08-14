@@ -21,11 +21,11 @@ final tagsStreamProvider = StreamProvider<List<Tag>>((ref) {
   return repo.tags.watchAll().map(sortTagsByName);
 });
 
-/// 某标签下的全部未删除任务（FutureProvider，自动刷新）。
-final tagTasksProvider = FutureProvider.family<List<Task>, String>((
+/// 某标签下的全部未删除任务（StreamProvider，DB 变更自动刷新）。
+final tagTasksProvider = StreamProvider.family<List<Task>, String>((
   ref,
   tagId,
 ) {
   final repo = ref.watch(todoRepositoryProvider);
-  return repo.tags.tasksForTag(tagId);
+  return repo.tags.watchTasksForTag(tagId);
 });

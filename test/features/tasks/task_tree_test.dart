@@ -108,7 +108,7 @@ Future<void> _pumpTree(
     ),
     // 标签注入（61 §4.4：一级与子行均展示；测试用预设数据）。
     taskTagsProvider.overrideWith(
-      (ref, taskId) async => taskTags[taskId] ?? const <Tag>[],
+      (ref, taskId) => Stream.value(taskTags[taskId] ?? const <Tag>[]),
     ),
   ];
   final router = GoRouter(
@@ -200,6 +200,8 @@ Future<TodoRepository> _pumpTreeWithDb(
     treeExpandProvider.overrideWith2(
       (arg) => _TestTreeExpandNotifier(expandState),
     ),
+    // 标签流须覆盖：taskTagsProvider 是真实 drift watch 流，fake_async 下残留 Timer。
+    taskTagsProvider.overrideWith((ref, taskId) => Stream.value(const <Tag>[])),
   ];
   final router = GoRouter(
     initialLocation: '/projects/p1',

@@ -118,7 +118,9 @@ Future<StreamController<Map<DateTime, List<Task>>>> _pump(
         allActiveTasksProvider.overrideWith(
           (ref) => Stream.value(const <Task>[]),
         ),
-        taskTagsProvider.overrideWith((ref, taskId) async => const <Tag>[]),
+        taskTagsProvider.overrideWith(
+          (ref, taskId) => Stream.value(const <Tag>[]),
+        ),
         // 新建弹窗 watch 的 drift 流也须覆盖（fake_async 下避免残留 Timer）。
         projectsStreamProvider.overrideWithValue(
           AsyncData([

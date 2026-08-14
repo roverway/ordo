@@ -71,6 +71,21 @@ class TagDao {
     return rows.map((r) => r.readTable(_db.tags)).toList();
   }
 
+  /// 某任务关联的全部标签（流式：DB 变更自动刷新，任务列表展示用）。
+  Stream<List<Tag>> watchTagsForTask(String taskId) {
+    final query =
+        _db.select(_db.tags).join([
+            innerJoin(_db.taskTags, _db.taskTags.tagId.equalsExp(_db.tags.id)),
+          ])
+          ..where(
+            _db.taskTags.taskId.equals(taskId) & _db.tags.deleted.equals(0),
+          )
+          ..orderBy([OrderingTerm.asc(_db.tags.sortOrder)]);
+    return query.watch().map(
+      (rows) => rows.map((r) => r.readTable(_db.tags)).toList(),
+    );
+  }
+
   /// 某标签关联的全部未删除任务。
   Future<List<Task>> tasksForTag(String tagId) async {
     final query =
@@ -86,6 +101,24 @@ class TagDao {
           ..orderBy([OrderingTerm.asc(_db.tasks.sortOrder)]);
     final rows = await query.get();
     return rows.map((r) => r.readTable(_db.tasks)).toList();
+  }
+
+  /// 某标签关联的全部未删除任务（流式：DB 变更自动刷新，标签详情页用）。
+  Stream<List<Task>> watchTasksForTag(String tagId) {
+    final query =
+        _db.select(_db.tasks).join([
+            innerJoin(
+              _db.taskTags,
+              _db.taskTags.taskId.equalsExp(_db.tasks.id),
+            ),
+          ])
+          ..where(
+            _db.taskTags.tagId.equals(tagId) & _db.tasks.deleted.equals(0),
+          )
+          ..orderBy([OrderingTerm.asc(_db.tasks.sortOrder)]);
+    return query.watch().map(
+      (rows) => rows.map((r) => r.readTable(_db.tasks)).toList(),
+    );
   }
 
   /// 某任务当前关联的 tagId 列表。
