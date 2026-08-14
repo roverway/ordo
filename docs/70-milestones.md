@@ -223,6 +223,27 @@
 
 ---
 
+## M8 — 本地偏好统一持久化（`docs/64-local-preferences.md`）
+
+**目标**：设备本地偏好统一到 Drift settings 表（消除 SharedPreferences 双机制 + 修复文档分歧），「隐藏已完成任务」由会话级改持久化。
+
+**任务**：
+1. 共享基建：`AppSettingsCache`（settings 表内存同步镜像，attach + seed + 穿透写）+ `appSettingsCacheProvider`。
+2. `themeModeProvider`/`localeProvider` 改写为读缓存（消费方零改动）；`hideCompletedTasksProvider` 持久化（key `hide_completed`）。
+3. `main.dart` 启动链路：缓存注入 → attach → SharedPreferences 一次性迁移（theme_mode/locale，仅缺失时写）→ seed 预载。
+4. 移除 `shared_preferences` 依赖（pubspec + lock）。
+5. 测试改造：10 个测试文件 prefs 注入 → 内存缓存注入；新增持久化回归测试 + 迁移测试。
+
+**DoD**：
+- [ ] 主题/语言/隐藏已完成/文件夹展开全部存 settings 表，无 SharedPreferences 残留
+- [ ] 重启保留：主题、语言、隐藏已完成（持久化回归测试覆盖）
+- [ ] 一次性迁移：SharedPreferences 旧值仅当 settings 表缺失时写入（迁移测试）
+- [ ] 测试基建统一（10 文件注入点改造）；全量测试全绿
+- [ ] `flutter analyze` 0 error；`flutter test` 全绿；`dart format` 通过
+- [ ] 文档同步：40-data-model §2.5 / 10-requirements FR-SET / 20-tech-stack（依赖移除）/ 64-local-preferences
+
+---
+
 ## 里程碑依赖图
 
 ```

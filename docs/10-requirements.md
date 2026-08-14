@@ -153,9 +153,9 @@
 ## 10. 设置（FR-SET）
 
 - **FR-SET-01** 主题设置：跟随系统 / 浅色 / 深色。
-  - AC：切换即时生效并持久化。
+  - AC：切换即时生效并持久化（M8 起存 settings 表 `theme_mode`，`docs/64-local-preferences.md`）。
 - **FR-SET-02** 语言设置：简体中文 / English（跟随系统可选）。
-  - AC：切换即时生效并持久化；所有文案走 ARB。
+  - AC：切换即时生效并持久化（M8 起存 settings 表 `locale`）；所有文案走 ARB。
 - **FR-SET-03** 同步设置：类型（WebDAV/S3）、连接参数、自动同步开关、WiFi-only、立即同步按钮、测试连接。
   - AC：见 FR-SYNC-01/02/07。
 

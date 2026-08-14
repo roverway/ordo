@@ -94,7 +94,7 @@ folders  1 ──── N projects  （folderId，可空 = 未分组，62-folder
 | key | TEXT | PK |
 | value | TEXT | NOT NULL |
 
-存储：主题模式、语言、同步开关、WiFi-only、lastSyncedAt 等**非敏感**偏好。**同步凭据禁止存这里**（走 `flutter_secure_storage`，见 `60-sync-design.md` §9）。
+存储：主题模式（`theme_mode`）、语言（`locale`）、显示/隐藏已完成任务（`hide_completed`）、文件夹展开状态（`folder_expanded_*`）、同步开关、WiFi-only、lastSyncedAt 等**非敏感**偏好（M8 起统一于此，`docs/64-local-preferences.md`；SharedPreferences 已移除）。**同步凭据禁止存这里**（走 `flutter_secure_storage`，见 `60-sync-design.md` §9）。
 
 ## 3. 枚举
 

@@ -24,7 +24,7 @@
 | `connectivity_plus` | 网络状态检测 | wifiOnly 自动同步判定（移动端真实检测；M5 接入，2026-08 锁定 7.3.1） |
 | `uuid` | UUID v4 生成 | 所有记录主键 |
 | `path_provider` | 应用目录 | 数据库文件位置 |
-| `shared_preferences` | 非敏感设置 | 主题/语言/同步开关等非敏感偏好（凭据除外） |
+| `shared_preferences` | 一次性迁移来源（M8） | **保留但仅迁移用途**（`docs/64-local-preferences.md`）：M8 起本地偏好统一存 settings 表，本包仅用于 `migrateLegacyPrefs` 读取旧版 `theme_mode`/`locale` 值（一次性）；迁移完成后不再读写，后续版本可移除 |
 | `dart:io` GZipCodec | gzip 压缩 | 快照压缩（同步）；标准库自带，零第三方依赖，isolate 可用（`archive` 不再引入） |
 
 ## 3. UI 风格选型（重要决策）
