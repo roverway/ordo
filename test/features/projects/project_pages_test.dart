@@ -2,6 +2,7 @@
 //
 // 覆盖 DoD：卡片列表、新建对话框验证、删除确认、项目详情空态。
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,12 +20,29 @@ import 'package:todo/features/tasks/task_providers.dart';
 import '../../helpers/db_test_setup.dart';
 
 /// 构造测试用 Project。
-Project _project(String id, String name, {int color = 0xFF3482FF}) => Project(
+Project _project(
+  String id,
+  String name, {
+  int color = 0xFF3482FF,
+  String? folderId,
+  int sortOrder = 0,
+}) => Project(
   id: id,
   name: name,
   color: color,
   description: '',
-  sortOrder: 0,
+  folderId: folderId,
+  sortOrder: sortOrder,
+  createdAt: 0,
+  updatedAt: 0,
+  deleted: 0,
+);
+
+/// 构造测试用 Folder。
+Folder _folder(String id, String name, {int sortOrder = 0}) => Folder(
+  id: id,
+  name: name,
+  sortOrder: sortOrder,
   createdAt: 0,
   updatedAt: 0,
   deleted: 0,
@@ -36,6 +54,7 @@ Future<void> _pump(
   required String initialLocation,
   required List<GoRoute> routes,
   List<Project> projects = const [],
+  List<Folder> folders = const [],
   Size size = const Size(400, 800),
 }) async {
   tester.view.physicalSize = size;
@@ -46,6 +65,20 @@ Future<void> _pump(
   final db = openTestDatabase();
   final repo = TodoRepository(database: db);
 
+  // 预插入文件夹（满足 projects.folderId 外键约束，须先于项目插入）。
+  for (final f in folders) {
+    await db
+        .into(db.folders)
+        .insertOnConflictUpdate(
+          FoldersCompanion.insert(
+            id: f.id,
+            name: f.name,
+            sortOrder: f.sortOrder,
+            createdAt: f.createdAt,
+            updatedAt: f.updatedAt,
+          ),
+        );
+  }
   // 预插入项目（满足 FK 约束）。
   for (final p in projects) {
     await db
@@ -55,6 +88,7 @@ Future<void> _pump(
             id: p.id,
             name: p.name,
             color: p.color,
+            folderId: Value(p.folderId),
             sortOrder: p.sortOrder,
             createdAt: p.createdAt,
             updatedAt: p.updatedAt,
@@ -66,6 +100,7 @@ Future<void> _pump(
     sharedPreferencesProvider.overrideWithValue(prefs),
     todoRepositoryProvider.overrideWithValue(repo),
     projectsStreamProvider.overrideWithValue(AsyncData(projects)),
+    foldersStreamProvider.overrideWithValue(AsyncData(folders)),
     projectTasksProvider.overrideWith(
       (ref, projectId) => Stream.value(const <Task>[]),
     ),
@@ -128,6 +163,54 @@ void main() {
       expect(find.text('个人'), findsOneWidget);
       expect(find.byType(FloatingActionButton), findsOneWidget);
       expect(find.text('还没有项目'), findsNothing);
+    });
+
+    testWidgets('按文件夹分组展示：文件夹分组头 + 卡片 + 未分组区（D5）', (tester) async {
+      final projects = [
+        _project('p1', '项目A', folderId: 'f1', sortOrder: 0),
+        _project('p2', '项目B', folderId: 'f1', sortOrder: 1),
+        _project('p3', '项目C', folderId: null, sortOrder: 0),
+      ];
+
+      await _pump(
+        tester,
+        initialLocation: '/projects',
+        routes: [
+          GoRoute(path: '/projects', builder: (_, _) => const ProjectsPage()),
+          GoRoute(path: '/projects/:id', builder: (_, _) => const Scaffold()),
+        ],
+        projects: projects,
+        folders: [_folder('f1', '工作夹')],
+      );
+
+      // 文件夹分组头 + 夹内卡片。
+      expect(find.text('工作夹'), findsOneWidget);
+      expect(find.text('项目A'), findsOneWidget);
+      expect(find.text('项目B'), findsOneWidget);
+      // 未分组区头 + 未分组卡片。
+      expect(find.text('未分组'), findsOneWidget);
+      expect(find.text('项目C'), findsOneWidget);
+      // 无文件夹 → 不出现未分组区；有文件夹 → 空态不出现。
+      expect(find.text('还没有项目'), findsNothing);
+    });
+
+    testWidgets('有文件夹但无未分组项目：不渲染空的未分组区', (tester) async {
+      final projects = [_project('p1', '项目A', folderId: 'f1')];
+
+      await _pump(
+        tester,
+        initialLocation: '/projects',
+        routes: [
+          GoRoute(path: '/projects', builder: (_, _) => const ProjectsPage()),
+          GoRoute(path: '/projects/:id', builder: (_, _) => const Scaffold()),
+        ],
+        projects: projects,
+        folders: [_folder('f1', '工作夹')],
+      );
+
+      expect(find.text('工作夹'), findsOneWidget);
+      expect(find.text('项目A'), findsOneWidget);
+      expect(find.text('未分组'), findsNothing);
     });
 
     testWidgets('FAB 点击弹出新建项目对话框', (tester) async {

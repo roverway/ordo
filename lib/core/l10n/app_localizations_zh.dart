@@ -414,6 +414,35 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addProject => '添加项目';
 
   @override
+  String get folder => '文件夹';
+
+  @override
+  String get ungrouped => '未分组';
+
+  @override
+  String get newFolder => '新建文件夹';
+
+  @override
+  String get renameFolder => '重命名文件夹';
+
+  @override
+  String get folderName => '文件夹名称';
+
+  @override
+  String get folderActions => '文件夹操作';
+
+  @override
+  String get deleteFolder => '删除文件夹';
+
+  @override
+  String deleteFolderConfirm(Object name) {
+    return '确定要删除文件夹「$name」吗？';
+  }
+
+  @override
+  String get deleteFolderWarning => '其中的项目将回到未分组，项目本身不会被删除。';
+
+  @override
   String get dateAndReminder => '日期与提醒';
 
   @override

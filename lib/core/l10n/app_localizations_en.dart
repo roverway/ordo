@@ -419,6 +419,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addProject => 'Add project';
 
   @override
+  String get folder => 'Folder';
+
+  @override
+  String get ungrouped => 'Ungrouped';
+
+  @override
+  String get newFolder => 'New Folder';
+
+  @override
+  String get renameFolder => 'Rename Folder';
+
+  @override
+  String get folderName => 'Folder name';
+
+  @override
+  String get folderActions => 'Folder actions';
+
+  @override
+  String get deleteFolder => 'Delete Folder';
+
+  @override
+  String deleteFolderConfirm(Object name) {
+    return 'Delete folder \"$name\"?';
+  }
+
+  @override
+  String get deleteFolderWarning =>
+      'Projects inside will return to Ungrouped; the projects themselves are not deleted.';
+
+  @override
   String get dateAndReminder => 'Date & reminder';
 
   @override

@@ -4,6 +4,8 @@
 // wide = 5-destination NavigationRail.
 // Default locale is zh (Chinese); tests reflect this.
 
+import 'package:drift/drift.dart' show Value;
+import 'package:flutter/gestures.dart' show kLongPressTimeout;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -28,12 +30,15 @@ import 'helpers/db_test_setup.dart';
 ///
 /// [projects]：抽屉项目组渲染数据（窄屏导航测试用，默认空）。
 /// [projectTasks]：项目任务树种子数据（默认空列表，测试树渲染用）。
-Future<void> pumpApp(
+/// [folders]：抽屉文件夹渲染数据（62-folder-nav 测试用，默认空）。
+/// [provideTestDatabase] 为 true 时返回真实仓库（拖拽/增删改断言用）。
+Future<TodoRepository?> pumpApp(
   WidgetTester tester,
   Size logicalSize, {
   bool provideTestDatabase = false,
   List<Project>? projects,
   List<Task>? projectTasks,
+  List<Folder>? folders,
 }) async {
   tester.view.physicalSize = logicalSize;
   tester.view.devicePixelRatio = 1.0;
@@ -45,15 +50,34 @@ Future<void> pumpApp(
     projectsStreamProvider.overrideWithValue(
       AsyncData(projects ?? const <Project>[]),
     ),
+    foldersStreamProvider.overrideWithValue(
+      AsyncData(folders ?? const <Folder>[]),
+    ),
     // 立即 emit 指定任务列表（Stream.empty 永不 emit，会让任务树停在 loading）。
     projectTasksProvider.overrideWith(
       (ref, projectId) => Stream<List<Task>>.value(projectTasks ?? const []),
     ),
   ];
+  TodoRepository? repo;
 
   if (provideTestDatabase) {
     final db = openTestDatabase();
-    final repo = TodoRepository(database: db);
+    repo = TodoRepository(database: db);
+    // 预置固定 id 文件夹（拖拽/菜单用例需要）。须先于项目插入
+    //（projects.folderId 外键依赖 folders，62-folder-nav.md §4.2）。
+    for (final f in folders ?? const <Folder>[]) {
+      await db
+          .into(db.folders)
+          .insertOnConflictUpdate(
+            FoldersCompanion.insert(
+              id: f.id,
+              name: f.name,
+              sortOrder: f.sortOrder,
+              createdAt: f.createdAt,
+              updatedAt: f.updatedAt,
+            ),
+          );
+    }
     // 预置固定 id 项目（删除/编辑用例需要，跳过 UUID 生成）。
     for (final p in projects ?? const <Project>[]) {
       await db
@@ -63,6 +87,7 @@ Future<void> pumpApp(
               id: p.id,
               name: p.name,
               color: p.color,
+              folderId: Value(p.folderId),
               sortOrder: p.sortOrder,
               createdAt: p.createdAt,
               updatedAt: p.updatedAt,
@@ -105,6 +130,8 @@ Future<void> pumpApp(
     );
     overrides.addAll([
       inboxProjectProvider.overrideWithValue(AsyncData(dummyProject)),
+      // 无真实 DB：文件夹展开状态不落库，静态空状态（默认全部展开）。
+      folderExpandProvider.overrideWith(_TestFolderExpandNotifier.new),
       // M3 视图 provider：无真实 DB 时给空数据。否则落到真实仓库的流
       // 在测试里不结束（loading 转圈），pumpAndSettle 超时。
       todayViewProvider.overrideWithValue(
@@ -125,6 +152,7 @@ Future<void> pumpApp(
     ProviderScope(overrides: overrides, child: const TodoApp()),
   );
   await tester.pumpAndSettle();
+  return repo;
 }
 
 /// 测试用任务种子（项目任务树渲染/计数断言用）。
@@ -150,6 +178,64 @@ Task _seedTask(
   updatedAt: 0,
   deleted: 0,
 );
+
+/// 测试用 FolderExpandNotifier：build() 直接返回空状态（无真实 DB 时用，
+/// 避免落到真实仓库读取 settings 表）。
+class _TestFolderExpandNotifier extends FolderExpandNotifier {
+  @override
+  Future<Map<String, bool>> build() async => const {};
+}
+
+/// 测试用文件夹种子。
+Folder _folder(String id, String name, {int sortOrder = 0}) => Folder(
+  id: id,
+  name: name,
+  sortOrder: sortOrder,
+  createdAt: 0,
+  updatedAt: 0,
+  deleted: 0,
+);
+
+/// 测试用项目种子（可指定所属文件夹与组内 sortOrder，62-folder-nav 用）。
+Project _projectInFolder(
+  String id,
+  String name,
+  String? folderId, {
+  int sortOrder = 0,
+  int color = 0xFF4A6CF7,
+}) => Project(
+  id: id,
+  name: name,
+  color: color,
+  description: '',
+  folderId: folderId,
+  sortOrder: sortOrder,
+  createdAt: 0,
+  updatedAt: 0,
+  deleted: 0,
+);
+
+/// 在抽屉内长按 [draggedText] 所在行并拖到 [targetText] 所在行中心
+/// （62-folder-nav 拖拽测试；复用 task_tree 的 startGesture 手势序列）。
+Future<void> _dragInDrawer(
+  WidgetTester tester,
+  String draggedText,
+  String targetText,
+) async {
+  final inDrawer = find.byType(Drawer);
+  final dragStart = tester.getCenter(
+    find.descendant(of: inDrawer, matching: find.text(draggedText)),
+  );
+  final targetPoint = tester.getCenter(
+    find.descendant(of: inDrawer, matching: find.text(targetText)),
+  );
+  final gesture = await tester.startGesture(dragStart);
+  await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
+  await gesture.moveTo(targetPoint);
+  await tester.pump(const Duration(milliseconds: 50));
+  await gesture.up();
+  await tester.pumpAndSettle();
+}
 
 void main() {
   setUp(() {
@@ -689,5 +775,254 @@ void main() {
     // /today 空态唯一文案，证明已回到今日页（标题「今日」与底栏重复，
     // 不宜用标题断言）。
     expect(find.text('今天还没有任务'), findsOneWidget);
+  });
+
+  // ────────────────────────────────────────
+  // 抽屉文件夹（62-folder-nav.md §6，车道 D）
+  // ────────────────────────────────────────
+
+  testWidgets('Drawer: 文件夹分组显示 + 折叠/展开 + 未分组区', (tester) async {
+    final folder = _folder('f1', '工作夹');
+    final folderProject = _projectInFolder('p1', '项目A', 'f1');
+    final ungroupedProject = _projectInFolder('p2', '项目B', null);
+    await pumpApp(
+      tester,
+      const Size(400, 800),
+      provideTestDatabase: true,
+      folders: [folder],
+      projects: [folderProject, ungroupedProject],
+    );
+
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+
+    // 文件夹行（名称）+ 夹内项目行 + 未分组区小标题 + 未分组项目行。
+    expect(
+      find.descendant(of: find.byType(Drawer), matching: find.text('工作夹')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: find.byType(Drawer), matching: find.text('项目A')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: find.byType(Drawer), matching: find.text('未分组')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: find.byType(Drawer), matching: find.text('项目B')),
+      findsOneWidget,
+    );
+
+    // 点击文件夹行 → 折叠：夹内项目行隐藏，未分组区不受影响。
+    await tester.tap(
+      find.descendant(of: find.byType(Drawer), matching: find.text('工作夹')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: find.byType(Drawer), matching: find.text('项目A')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: find.byType(Drawer), matching: find.text('项目B')),
+      findsOneWidget,
+    );
+
+    // 再点 → 展开恢复。
+    await tester.tap(
+      find.descendant(of: find.byType(Drawer), matching: find.text('工作夹')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: find.byType(Drawer), matching: find.text('项目A')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Drawer: 文件夹行汇总未完成数为夹内项目之和（真实值）', (tester) async {
+    final folder = _folder('f1', '工作夹');
+    final p1 = _projectInFolder('p1', '项目A', 'f1');
+    final p2 = _projectInFolder('p2', '项目B', 'f1');
+    await pumpApp(
+      tester,
+      const Size(400, 800),
+      provideTestDatabase: true,
+      folders: [folder],
+      projects: [p1, p2],
+    );
+
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+
+    // 两个项目都无任务 → 文件夹汇总 0（与项目行同样真实值口径）。
+    expect(
+      find.descendant(of: find.byType(Drawer), matching: find.text('0')),
+      findsNWidgets(3), // 文件夹汇总 + 两个项目行
+    );
+  });
+
+  testWidgets('Drawer: 拖拽项目入夹（未分组项目 → 文件夹行）', (tester) async {
+    final folder = _folder('f1', '工作夹');
+    final p1 = _projectInFolder('p1', '项目A', null);
+    final p2 = _projectInFolder('p2', '项目B', 'f1');
+    final repo = (await pumpApp(
+      tester,
+      const Size(400, 800),
+      provideTestDatabase: true,
+      folders: [folder],
+      projects: [p1, p2],
+    ))!;
+
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+
+    // 长按「项目A」（未分组）拖到文件夹行「工作夹」→ 入夹。
+    await _dragInDrawer(tester, '项目A', '工作夹');
+
+    final after = (await repo.projects.getById('p1'))!;
+    expect(after.folderId, 'f1');
+  });
+
+  testWidgets('Drawer: 拖拽项目出夹（夹内项目 → 未分组区）', (tester) async {
+    final folder = _folder('f1', '工作夹');
+    final p1 = _projectInFolder('p1', '项目A', 'f1');
+    final repo = (await pumpApp(
+      tester,
+      const Size(400, 800),
+      provideTestDatabase: true,
+      folders: [folder],
+      projects: [p1],
+    ))!;
+
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+
+    // 长按「项目A」（夹内）拖到未分组区小标题 → 出夹。
+    await _dragInDrawer(tester, '项目A', '未分组');
+
+    final after = (await repo.projects.getById('p1'))!;
+    expect(after.folderId, isNull);
+  });
+
+  testWidgets('Drawer: 拖拽项目到同组项目行 → 组内重排', (tester) async {
+    final folder = _folder('f1', '工作夹');
+    final pA = _projectInFolder('pa', '项目A', 'f1', sortOrder: 0);
+    final pB = _projectInFolder('pb', '项目B', 'f1', sortOrder: 1);
+    final repo = (await pumpApp(
+      tester,
+      const Size(400, 800),
+      provideTestDatabase: true,
+      folders: [folder],
+      projects: [pA, pB],
+    ))!;
+
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+
+    // 长按「项目A」拖到「项目B」行 → 插到 B 前（A 的 sortOrder > B）。
+    await _dragInDrawer(tester, '项目A', '项目B');
+
+    final a = (await repo.projects.getById('pa'))!;
+    final b = (await repo.projects.getById('pb'))!;
+    expect(a.folderId, 'f1');
+    expect(a.sortOrder, greaterThan(b.sortOrder));
+  });
+  testWidgets('Drawer: 新建文件夹入口弹出名称弹窗并落库', (tester) async {
+    final repo = (await pumpApp(
+      tester,
+      const Size(400, 800),
+      provideTestDatabase: true,
+    ))!;
+
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+
+    // 底部「新建文件夹」→ 名称弹窗（移动端为 BottomSheet）。
+    await tester.tap(
+      find.descendant(of: find.byType(Drawer), matching: find.text('新建文件夹')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(BottomSheet), findsOneWidget);
+
+    await tester.enterText(find.byType(TextFormField), '新文件夹');
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    final folders = await repo.folders.getAll();
+    expect(folders.length, 1);
+    expect(folders.single.name, '新文件夹');
+  });
+
+  testWidgets('Drawer: 文件夹菜单重命名', (tester) async {
+    final folder = _folder('f1', '工作夹');
+    final repo = (await pumpApp(
+      tester,
+      const Size(400, 800),
+      provideTestDatabase: true,
+      folders: [folder],
+    ))!;
+
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+
+    // 文件夹行尾菜单 → 重命名 → 名称弹窗预填 → 保存。
+    await tester.tap(
+      find
+          .descendant(
+            of: find.byType(Drawer),
+            matching: find.byIcon(Icons.more_vert),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('重命名文件夹'));
+    await tester.pumpAndSettle();
+    expect(find.byType(BottomSheet), findsOneWidget);
+
+    await tester.enterText(find.byType(TextFormField), '生活夹');
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    expect((await repo.folders.getById('f1'))!.name, '生活夹');
+  });
+
+  testWidgets('Drawer: 删除文件夹确认（明示项目回未分组）后项目回未分组', (tester) async {
+    final folder = _folder('f1', '工作夹');
+    final p1 = _projectInFolder('p1', '项目A', 'f1');
+    final repo = (await pumpApp(
+      tester,
+      const Size(400, 800),
+      provideTestDatabase: true,
+      folders: [folder],
+      projects: [p1],
+    ))!;
+
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find
+          .descendant(
+            of: find.byType(Drawer),
+            matching: find.byIcon(Icons.more_vert),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('删除文件夹'));
+    await tester.pumpAndSettle();
+
+    // 确认框：标题 + 明示「项目将回到未分组」。
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.text('删除文件夹'), findsOneWidget);
+    expect(find.textContaining('回到未分组'), findsOneWidget);
+
+    await tester.tap(find.text('删除'));
+    await tester.pumpAndSettle();
+
+    // 删除文件夹 → 项目回未分组，文件夹硬删。
+    final after = (await repo.projects.getById('p1'))!;
+    expect(after.folderId, isNull);
+    expect(await repo.folders.getById('f1'), isNull);
   });
 }

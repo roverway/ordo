@@ -860,6 +860,60 @@ abstract class AppLocalizations {
   /// **'添加项目'**
   String get addProject;
 
+  /// No description provided for @folder.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件夹'**
+  String get folder;
+
+  /// No description provided for @ungrouped.
+  ///
+  /// In zh, this message translates to:
+  /// **'未分组'**
+  String get ungrouped;
+
+  /// No description provided for @newFolder.
+  ///
+  /// In zh, this message translates to:
+  /// **'新建文件夹'**
+  String get newFolder;
+
+  /// No description provided for @renameFolder.
+  ///
+  /// In zh, this message translates to:
+  /// **'重命名文件夹'**
+  String get renameFolder;
+
+  /// No description provided for @folderName.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件夹名称'**
+  String get folderName;
+
+  /// No description provided for @folderActions.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件夹操作'**
+  String get folderActions;
+
+  /// No description provided for @deleteFolder.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除文件夹'**
+  String get deleteFolder;
+
+  /// No description provided for @deleteFolderConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'确定要删除文件夹「{name}」吗？'**
+  String deleteFolderConfirm(Object name);
+
+  /// No description provided for @deleteFolderWarning.
+  ///
+  /// In zh, this message translates to:
+  /// **'其中的项目将回到未分组，项目本身不会被删除。'**
+  String get deleteFolderWarning;
+
   /// No description provided for @dateAndReminder.
   ///
   /// In zh, this message translates to:

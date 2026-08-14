@@ -259,6 +259,15 @@ abstract final class AppTokens {
   /// （标题/描述/标签/日期等）整体淡化，勾选/进度环等交互控件保持全不透明。
   static const double doneContentOpacity = 0.55;
 
+  // ── 文件夹（62-folder-nav.md §6.5）──
+
+  /// 抽屉文件夹下项目行的缩进量（62-folder-nav.md §6.1：项目行缩进到
+  /// 所属文件夹下，视觉上形成层级）。
+  static const double folderIndent = 16;
+
+  /// 抽屉/项目页分组小标题图标尺寸（62-folder-nav.md §6.1/§6.4）。
+  static const double folderHeaderIconSize = 16;
+
   // ── 状态反馈（M5 任务 1，50-ui-ux.md §6.3）──
 
   /// 统一加载指示器尺寸（LoadingView）。
