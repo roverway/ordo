@@ -12,7 +12,8 @@ import 'shared/widgets/lifecycle_sync_listener.dart';
 /// Application root: assembles theme, l10n, and routing.
 ///
 /// Theme (light/dark/system) and language (zh/en) are driven by settings
-/// providers, persisted to SharedPreferences, and switch instantly.
+/// providers, persisted to the Drift settings table (via AppSettingsCache,
+/// docs/64-local-preferences.md), and switch instantly.
 class TodoApp extends ConsumerWidget {
   const TodoApp({super.key});
 

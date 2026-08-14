@@ -40,6 +40,9 @@ dependencies:
   cupertino_icons: ^1.0.8
   go_router: ^17.5.0
   flutter_riverpod: ^3.3.2
+  # 仅保留用于一次性迁移（M8，docs/64-local-preferences.md §3.3）：
+  # main.dart migrateLegacyPrefs 读取旧 theme_mode/locale 并写入 settings 表。
+  # 迁移机制上线并确认所有存量用户升级后，可随后续清理一并移除。
   shared_preferences: ^2.5.5
   drift: 2.31.0
   drift_flutter: 0.2.8

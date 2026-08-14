@@ -16,7 +16,7 @@ const String appVersion = '1.0.0';
 /// Settings page: Appearance (theme/language) + About.
 ///
 /// Theme mode (system/light/dark) and language (zh/en) switch instantly
-/// and persist via SharedPreferences (FR-SET-01 / FR-SET-02).
+/// and persist via the Drift settings table (docs/64-local-preferences.md).
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
 

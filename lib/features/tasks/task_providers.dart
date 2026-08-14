@@ -353,15 +353,27 @@ final taskFormProvider = NotifierProvider<TaskFormNotifier, TaskFormState>(
   TaskFormNotifier.new,
 );
 
-/// 是否隐藏已完成任务（会话级全局状态，用户要求）。
+/// 是否隐藏已完成任务（settings 表持久化，docs/64-local-preferences.md §3.2）。
 ///
 /// 默认 false = 显示全部；仅项目任务树（TaskListPage 项目作用域）消费，
-/// 切换即时生效（TaskTree 过滤在 build 内 watch 本 provider）。
+/// 切换即时生效（TaskTree 过滤在 build 内 watch 本 provider）并持久化
+/// （重启保留）。settings key = `hide_completed`：'1' = 隐藏 / '0' 或缺失 = 显示。
 class HideCompletedTasksNotifier extends Notifier<bool> {
-  @override
-  bool build() => false;
+  /// settings 表 key（设备本地，不同步）。
+  static const String _key = 'hide_completed';
 
-  void toggle() => state = !state;
+  @override
+  bool build() {
+    final value = ref.watch(appSettingsCacheProvider).get(_key);
+    return value == '1';
+  }
+
+  /// 切换隐藏状态并持久化（写内存缓存 + 穿透 settings 表）。
+  Future<void> toggle() async {
+    final next = !state;
+    await ref.read(appSettingsCacheProvider).set(_key, next ? '1' : '0');
+    state = next;
+  }
 }
 
 final hideCompletedTasksProvider =
