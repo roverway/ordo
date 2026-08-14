@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/utils/motion.dart';
 
 /// 任务进度环（滴答式，55-ui-redesign-proposal.md §5 progressRing）。
 ///
@@ -11,8 +12,14 @@ import '../../core/theme/app_tokens.dart';
 /// - 完成（≥1.0）用 [AppTokens.colorDone]，进行中用 [AppTokens.colorInProgress]；
 /// - 百分比数字用 [AppTokens.progressPercentSize]（10sp，小一号）。
 ///
+/// 动效（docs/63-motion-polish.md §5 F）：value 变化时圆环用
+/// [TweenAnimationBuilder] 平滑扫过——时长 `motionNormal`、曲线 `motionCurve`
+/// （easeOutCubic）；reduced motion 自动降级为瞬时到位（时长零）。
+/// 百分比数字与圆环共用同一动画值，避免「数字先跳、圆环后到」的割裂感。
+///
 /// 无障碍（NFR-06）：整组件用 [Semantics] 暴露「进度 + 完成百分比」，
-/// 子级（圆环 + 数字）用 [ExcludeSemantics] 排除，避免读屏重复播报。
+/// 子级（圆环 + 数字）用 [ExcludeSemantics] 排除，避免读屏重复播报；
+/// Semantics label 始终取**最终值**（不随动画播报中间值）。
 ///
 /// 颜色/尺寸/间距一律使用 [AppTokens]/colorScheme（AGENTS.md §3-9）。
 class TaskProgressRing extends StatelessWidget {
@@ -30,32 +37,41 @@ class TaskProgressRing extends StatelessWidget {
     return Semantics(
       label: AppLocalizations.of(context).progressPercent(percent),
       child: ExcludeSemantics(
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: AppTokens.progressRingSize,
-              height: AppTokens.progressRingSize,
-              child: CircularProgressIndicator(
-                value: value,
-                strokeWidth: AppTokens.progressRingWidth,
-                backgroundColor: colorScheme.surfaceContainerHighest,
-                valueColor: AlwaysStoppedAnimation(
-                  value >= 1.0
-                      ? AppTokens.colorDone
-                      : AppTokens.colorInProgress,
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(end: value),
+          duration: motionNormal(context),
+          curve: motionCurve(context),
+          builder: (context, animatedValue, _) {
+            final animatedPercent = (animatedValue * 100).round();
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: AppTokens.progressRingSize,
+                  height: AppTokens.progressRingSize,
+                  child: CircularProgressIndicator(
+                    value: animatedValue,
+                    strokeWidth: AppTokens.progressRingWidth,
+                    backgroundColor: colorScheme.surfaceContainerHighest,
+                    // 颜色按**最终**完成度切换（不随动画闪烁）。
+                    valueColor: AlwaysStoppedAnimation(
+                      value >= 1.0
+                          ? AppTokens.colorDone
+                          : AppTokens.colorInProgress,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(width: AppTokens.spaceXxs),
-            Text(
-              '$percent%',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-                fontSize: AppTokens.progressPercentSize,
-              ),
-            ),
-          ],
+                const SizedBox(width: AppTokens.spaceXxs),
+                Text(
+                  '$animatedPercent%',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: AppTokens.progressPercentSize,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

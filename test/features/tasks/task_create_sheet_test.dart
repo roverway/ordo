@@ -27,12 +27,14 @@ import '../../helpers/db_test_setup.dart';
 ///
 /// [projectId] 传 null 时走「缺省收件箱」路径；[inboxOverride] 可控制
 /// inboxProjectProvider 的解析时机（评审问题 2 的时序回归测试用）。
+/// [settle] 为 false 时不 pumpAndSettle（reduced motion 瞬时转场测试逐帧观察用）。
 Future<void> _openSheet(
   WidgetTester tester, {
   required TodoRepository repo,
   String? projectId = 'p1',
   String? parentId,
   Future<Project> Function(Ref ref)? inboxOverride,
+  bool settle = true,
 }) async {
   tester.view.physicalSize = const Size(400, 800);
   tester.view.devicePixelRatio = 1.0;
@@ -87,7 +89,9 @@ Future<void> _openSheet(
     ),
   );
   await tester.tap(find.text('打开弹窗'));
-  await tester.pumpAndSettle();
+  if (settle) {
+    await tester.pumpAndSettle();
+  }
 }
 
 /// 准备内存 DB + Repository，并预插入项目（FK）。
@@ -128,6 +132,39 @@ void main() {
     // 子任务区（1 级任务展示）。
     expect(find.text('子任务'), findsOneWidget);
     expect(find.text('添加子任务'), findsOneWidget);
+  });
+
+  testWidgets('reduced motion：弹窗瞬时到位（无弹性滑入，63-motion-polish §5 G 降级）', (
+    tester,
+  ) async {
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+
+    final repo = await _repo('p1');
+    // 不 settle：逐帧观察入场转场。首帧后路由入栈、页面已构建。
+    await _openSheet(tester, repo: repo, settle: false);
+    await tester.pump();
+    expect(find.byType(TaskCreateSheet), findsOneWidget);
+
+    // 降级路径：转场时长为零（motionSlow → Duration.zero）。
+    final route = ModalRoute.of(tester.element(find.byType(TaskCreateSheet)))!;
+    expect(route.transitionDuration, Duration.zero);
+
+    // 再 pump 一帧后：自管 SlideTransition 已到终点（无弹性回弹残留）。
+    await tester.pump();
+    final slide = tester.widget<SlideTransition>(
+      find
+          .ancestor(
+            of: find.byType(TaskCreateSheet),
+            matching: find.byType(SlideTransition),
+          )
+          .first,
+    );
+    expect(slide.position.value, Offset.zero);
+
+    // 收尾：无待处理动画/定时器。
+    await tester.pumpAndSettle();
   });
 
   testWidgets('自动保存：输入标题后点击遮罩关闭 → 任务落库', (tester) async {

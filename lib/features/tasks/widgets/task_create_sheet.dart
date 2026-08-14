@@ -16,6 +16,7 @@ import '../../../core/db/repositories/todo_repository.dart';
 import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../core/utils/motion.dart';
 import '../../projects/project_providers.dart';
 import '../task_providers.dart';
 import 'task_editor.dart';
@@ -37,7 +38,19 @@ class TaskCreateSheet extends ConsumerStatefulWidget {
   final int? initialStartAt;
   final int? initialEndAt;
 
-  /// 打开新建任务底部弹窗（滴答式，isScrollControlled + viewInsets 适配键盘）。
+  /// 打开新建任务底部弹窗（滴答式，viewInsets 适配键盘）。
+  ///
+  /// 入场转场（docs/63-motion-polish.md §5 G）：slide-up + `motionBounceCurve`
+  /// （easeOutBack 弹性）+ `motionSlow`（350ms），遮罩随同一动画同步淡入
+  /// （showGeneralDialog 的 barrier 用默认 linear curve 淡入）。
+  /// reduced motion 自动降级：时长为零（瞬时到位）+ 曲线退化为 easeOut。
+  ///
+  /// 说明：改用 [showGeneralDialog] 而非 [showModalBottomSheet]，是因为后者的
+  /// 转场曲线由框架内部 `_modalBottomSheetCurve`（legacyDecelerate）固定，
+  /// `transitionAnimationController` 只能改时长、无法注入弹性曲线；而框架
+  /// 自管 controller 又无法从静态方法获得 vsync。若未来评审认为 easeOutBack
+  /// 弹性过度，可把下方 `motionBounceCurve` 换成 `motionCurve`（easeOutCubic，
+  /// 63-motion-polish §5 G「回退」路径），其余结构不变。
   ///
   /// - [projectId] 缺省时默认落入内置收件箱（产品决策 #3）；
   /// - [parentId] 非空 = 创建子任务（此时不展示子任务区，层级受 3 级上限约束）。
@@ -48,31 +61,66 @@ class TaskCreateSheet extends ConsumerStatefulWidget {
     int? initialStartAt,
     int? initialEndAt,
   }) {
-    return showModalBottomSheet<void>(
+    return showGeneralDialog<void>(
       context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      // 关闭走 PopScope 拦截 → 自动保存 → 手动 pop；拖拽下滑与拦截逻辑冲突，
-      // 显式关闭（避免 canPop:false 时拖拽「滑下去又弹回」的割裂感）。
-      enableDrag: false,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppTokens.radiusDialog),
-        ),
-      ),
-      builder: (sheetContext) => Padding(
-        // 键盘弹出时弹窗整体上移，内容区保持输入可见（55-ui-redesign §4.1）。
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
-        ),
-        child: TaskCreateSheet(
-          projectId: projectId,
-          parentId: parentId,
-          initialStartAt: initialStartAt,
-          initialEndAt: initialEndAt,
-        ),
-      ),
+      // 遮罩点击关闭（走 PopScope 拦截 → 自动保存 → 手动 pop；与
+      // showModalBottomSheet 的 barrierDismissible 语义一致）。
+      barrierDismissible: true,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      // 与 showModalBottomSheet 默认遮罩同色（Material 常量，非散落魔法值）。
+      barrierColor: Colors.black54,
+      transitionDuration: motionSlow(context),
+      transitionBuilder: (dialogContext, animation, secondaryAnimation, child) {
+        // 弹性滑入：自底部整屏上滑，easeOutBack 的 ~10% 过冲带来轻微回弹。
+        // reduced motion 时 motionBounceCurve → easeOut 且时长为零 → 瞬时。
+        final slide = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+            .animate(
+              CurvedAnimation(
+                parent: animation,
+                curve: motionBounceCurve(dialogContext),
+              ),
+            );
+        return SlideTransition(position: slide, child: child);
+      },
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        final sheetTheme = Theme.of(dialogContext).bottomSheetTheme;
+        return Align(
+          // 底部对齐：保持底部弹窗形态（60–65% 高、顶部圆角、遮罩、
+          // 键盘 viewInsets 上移；等效 showModalBottomSheet isScrollControlled）。
+          alignment: Alignment.bottomCenter,
+          child: SafeArea(
+            // 与 showModalBottomSheet(useSafeArea: true) 一致：底部安全区
+            // 不设 padding（sheet 背景铺满屏幕底沿）。
+            bottom: false,
+            child: Material(
+              color: Theme.of(dialogContext).colorScheme.surface,
+              // 与框架 M3 默认 modalElevation 对齐（AppTokens.elevationCard=1.0）。
+              elevation:
+                  sheetTheme.modalElevation ??
+                  sheetTheme.elevation ??
+                  AppTokens.elevationCard,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(AppTokens.radiusDialog),
+                ),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Padding(
+                // 键盘弹出时弹窗整体上移，内容区保持输入可见（55-ui-redesign §4.1）。
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewInsetsOf(dialogContext).bottom,
+                ),
+                child: TaskCreateSheet(
+                  projectId: projectId,
+                  parentId: parentId,
+                  initialStartAt: initialStartAt,
+                  initialEndAt: initialEndAt,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
