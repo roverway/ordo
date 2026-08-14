@@ -998,6 +998,80 @@ void main() {
       expect((await repo.projects.getById(p.id))!.name, 'P');
     });
 
+    test('B 检并发写竞态：初判陈旧 mtime 超差但新鲜复检一致 → 同步成功（修复回归）', () async {
+      await enableSync(repo);
+      // 本地空 → 分支 A。远端快照本身健康（exportedAt = 当前写时刻）。
+      final exportedAt = DateTime.now().toUtc().millisecondsSinceEpoch;
+      seedRemote(
+        remoteSnapshot(
+          exportedAt: exportedAt,
+          projects: [projectRec(id: 'p-race', name: '远端项目')],
+        ),
+      );
+      // 服务器时钟正常 → A 检不触发。
+      remote.serverNowValue = DateTime.now().toUtc();
+
+      // 模拟并发写竞态：第一次 lastModified（download 前取 mtime）返回比
+      // exportedAt 早 10 分钟的陈旧值（>5min 容差 → B 检初判命中）；第二次
+      // lastModified（_decodeAndVerify 内的新鲜复检）返回与 exportedAt 一致
+      // 的当前写时刻 → 复检不超差 → 不得误报时钟偏差。
+      final stale = DateTime.fromMillisecondsSinceEpoch(
+        exportedAt - const Duration(minutes: 10).inMilliseconds,
+        isUtc: true,
+      );
+      final fresh = DateTime.fromMillisecondsSinceEpoch(
+        exportedAt,
+        isUtc: true,
+      );
+      var lmCalls = 0;
+      remote.onBeforeLastModified = () async {
+        lmCalls++;
+        remote.remoteModifiedAt = lmCalls == 1 ? stale : fresh;
+      };
+
+      final engine = await buildEngine(); // confirmClockSkew == null
+      final result = await engine.run();
+
+      expect(lmCalls, 2, reason: 'download 前一次 + B 检新鲜复检一次');
+      expect(result.ok, isTrue, reason: '新鲜复检通过 → 不得误报时钟偏差');
+      expect(engine.state.status, SyncStateStatus.success);
+      expect(engine.state.errorCode, isNull);
+      expect(remote.uploadCount, 0, reason: '本地空 → 分支 A 不上传');
+      expect((await repo.projects.getById('p-race'))!.name, '远端项目');
+    });
+
+    test('B 检真实对端时钟偏差：新鲜复检仍超差且无确认回调 → 拒绝（复检路径）', () async {
+      await enableSync(repo);
+      // 本地空 → 分支 A。远端快照 exportedAt = 当前写时刻，但服务器记录的
+      // 写时刻比 exportedAt 早 10 分钟（对端时钟偏慢）→ 无论初判还是新鲜
+      // 复检均超差 → 真实时钟偏差，应被拒。
+      final exportedAt = DateTime.now().toUtc().millisecondsSinceEpoch;
+      seedRemote(
+        remoteSnapshot(
+          deviceId: 'other-device',
+          exportedAt: exportedAt,
+          projects: [projectRec(id: 'p-skew', name: '另一设备项目')],
+        ),
+      );
+      remote.serverNowValue = DateTime.now().toUtc(); // A 检不触发。
+      remote.remoteModifiedAt = DateTime.fromMillisecondsSinceEpoch(
+        exportedAt - const Duration(minutes: 10).inMilliseconds,
+        isUtc: true,
+      );
+
+      final engine = await buildEngine(); // confirmClockSkew == null → 直接拒绝
+      final result = await engine.run();
+
+      expect(remote.lastModifiedCount, 2, reason: '初判一次 + 新鲜复检一次');
+      expect(result.ok, isFalse);
+      expect(engine.state.status, SyncStateStatus.error);
+      expect(result.errorCode, SyncErrorCode.clockSkew);
+      expect(engine.state.errorCode, SyncErrorCode.clockSkew);
+      expect(engine.state.errorMessage, contains('时钟偏差'));
+      expect((await repo.projects.getById('p-skew')), isNull);
+      expect(await repo.settings.get(SyncSettingsKeys.lastSyncedAt), isNull);
+    });
+
     test('serverNow 为 null（模拟 S3）→ A 检跳过、B 检正常不触发', () async {
       await enableSync(repo);
       // 本地空 → 分支 A（A 检依赖 store.serverNow()）。

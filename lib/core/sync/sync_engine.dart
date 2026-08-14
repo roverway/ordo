@@ -296,6 +296,10 @@ class SyncEngine {
       if (localEmpty) {
         // 分支 A（§5）：本地空 + 远端有 → 下载 → 校验（schema/时钟）→ 应用。
         // 本地无贡献，不上传。
+        // B 检（§11）需服务器写时刻：先取 mtime 再下载（若并发写落在取 mtime
+        // 与 download 之间，下载到的是更新版本，_decodeAndVerify 内的新鲜复检
+        // 会以当前写时刻复核，不会误报）。
+        final lastModified = await store.lastModified();
         final bytes = await store.download();
         if (bytes == null) {
           // 竞态：远端刚被删且本地空 → 无事可做，仍记成功。
@@ -304,8 +308,7 @@ class SyncEngine {
         final remote = await _decodeAndVerify(
           bytes,
           store,
-          // B 检（§11）需服务器写时刻；仅在此获取一次（PROPFIND）。
-          lastModified: await store.lastModified(),
+          lastModified: lastModified,
         );
         final merged = merge(
           SnapshotData(
@@ -535,11 +538,16 @@ class SyncEngine {
   ///     （`|remote.exportedAt - lastModified| > 5min`）。exportedAt 与
   ///     lastModified 度量同一写时刻（远端快照写入时 exportedAt=当时客户端
   ///     时间、lastModified=服务器记录的写入时间），lastModified 为 null →
-  ///     跳过（fail-open）。
+  ///     跳过（fail-open）。B 检初判命中时用新鲜 `store.lastModified()` 复检
+  ///     一次（仅此时多一次 PROPFIND，见下），消除并发写竞态导致的误报。
   ///
-  /// [store] 用于 A 检（[RemoteStore.serverNow]）；[lastModified] 用于 B 检，
-  /// **由调用方传入可复用的值**（分支 C 读改写循环复用已获取的
-  /// lastModifiedBefore，不增加冗余 PROPFIND RTT；分支 A 在调用前获取一次）。
+  /// [store] 用于 A 检（[RemoteStore.serverNow]）与 B 检新鲜复检
+  /// （[RemoteStore.lastModified]）；[lastModified] 用于 B 检初判，**由调用方
+  /// 传入可复用的值**（分支 C 读改写循环复用已获取的 lastModifiedBefore，不
+  /// 增加冗余 PROPFIND RTT；分支 A 在调用前获取一次）。B 检初判命中时，用
+  /// `store.lastModified()` 取新鲜 mtime 复检：并发写已落盘时新鲜 mtime 即
+  /// 下载快照的写时刻，|exportedAt - fresh| ≈ 0 → 不误报；仍超差才视为真实
+  /// 对端时钟偏差（复检取不到 mtime 时 fail-open，保留原判定）。
   ///
   /// NFR-02（§9）：快照解析在 isolate 中执行，不阻塞 UI。
   /// - [decodeSnapshot] 是顶层纯函数（不捕获外层上下文、无平台通道/Flutter
@@ -572,9 +580,21 @@ class SyncEngine {
     // B 检（§11）：对端（上一上传者）时钟 vs 服务器写时刻。lastModified 为
     // null（无写时刻可参考）→ 跳过（fail-open）。
     final lmMs = lastModified?.toUtc().millisecondsSinceEpoch;
-    final bSkew =
+    var bSkew =
         lmMs != null &&
         (remote.exportedAt - lmMs).abs() > _kClockSkewToleranceMs;
+    if (bSkew) {
+      // 并发写竞态消除（评审发现）：传入的 lastModified 可能与下载快照不来自
+      // 同一次写操作。用新鲜 lastModified 复检一次——并发写已落盘时，当前写
+      // 时刻即下载快照的写时刻，|exportedAt - fresh| ≈ 0；仍超差才视为真实
+      // 对端时钟偏差（仅 B 检命中时多一次 PROPFIND，fail-open 语义不变：
+      // 复检取不到 mtime 时保留原判定）。
+      final freshLm = await store.lastModified();
+      final freshLmMs = freshLm?.toUtc().millisecondsSinceEpoch;
+      if (freshLmMs != null) {
+        bSkew = (remote.exportedAt - freshLmMs).abs() > _kClockSkewToleranceMs;
+      }
+    }
     if (aSkew || bSkew) {
       final confirmed = _confirmClockSkew != null && await _confirmClockSkew();
       if (!confirmed) {
