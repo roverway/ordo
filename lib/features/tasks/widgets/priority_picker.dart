@@ -3,17 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
-
-/// 优先级旗帜颜色（滴答式 红/橙/蓝/无，55-ui-redesign §4.1）。
-///
-/// 「无」用中性灰（[AppTokens.colorCancelled]）而非透明——顶部栏旗帜在无优先级时
-/// 仍需可见可点（滴答清单为灰色旗帜），避免图标隐形导致入口丢失。
-Color priorityColor(TaskPriority priority) => switch (priority) {
-  TaskPriority.high => AppTokens.colorPriorityHigh,
-  TaskPriority.medium => AppTokens.colorPriorityMedium,
-  TaskPriority.low => AppTokens.colorPriorityLow,
-  TaskPriority.none => AppTokens.colorCancelled,
-};
+import '../../../core/theme/priority_color.dart';
 
 /// 优先级本地化名称。
 String priorityLabel(AppLocalizations l10n, TaskPriority priority) =>

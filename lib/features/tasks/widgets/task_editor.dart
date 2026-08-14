@@ -27,8 +27,10 @@ import '../../../core/db/repositories/todo_repository.dart';
 import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../core/theme/priority_color.dart';
 import '../../../core/utils/dates.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
+import '../../../shared/widgets/tag_chip.dart';
 import '../../projects/project_providers.dart';
 import '../../projects/widgets/project_form_dialog.dart';
 import '../../tags/tag_providers.dart';
@@ -351,7 +353,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
       controller: widget.controller.titleController,
       autofocus: true,
       // 长标题自动换行（用户要求）：maxLines: null = 不限行数，随输入自动
-      // 增高；键盘回车由平台改为换行（单行 next 动作随之失效，属预期取舍）。
+      // 增高；键盘回车由平台改为换行（单行 next 动作失效，无 textInputAction）。
       maxLines: null,
       // 规格：18 / w600（titleLarge = textTitleSize / textTitleWeight）。
       style: theme.textTheme.titleLarge,
@@ -362,7 +364,6 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
         isDense: true,
         contentPadding: EdgeInsets.zero,
       ),
-      textInputAction: TextInputAction.next,
       onChanged: (v) => ref.read(taskFormProvider.notifier).updateTitle(v),
     );
   }
@@ -399,7 +400,6 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
   /// 外观与任务行/扁平行标签 chip 完全一致（0.12 色底 + 色字 w500 +
   /// [AppTokens.radiusChip]）；无交互（display-only）。
   Widget _buildSelectedTagChips(BuildContext context, TaskFormState formState) {
-    final theme = Theme.of(context);
     final tags = ref.watch(tagsStreamProvider).value ?? const <Tag>[];
     final selectedTags = [
       for (final id in formState.selectedTagIds)
@@ -408,28 +408,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
     return Wrap(
       spacing: AppTokens.spaceXs,
       runSpacing: AppTokens.spaceXs,
-      children: [
-        for (final tag in selectedTags)
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTokens.spaceXs,
-              vertical: 2,
-            ),
-            decoration: BoxDecoration(
-              color: Color(tag.color).withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(AppTokens.radiusChip),
-            ),
-            child: Text(
-              tag.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Color(tag.color),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-      ],
+      children: [for (final tag in selectedTags) TagChip(tag: tag)],
     );
   }
 

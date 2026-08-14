@@ -4,12 +4,10 @@ import '../../core/db/database.dart';
 import '../../core/db/tables.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/priority_color.dart';
 import '../../core/utils/dates.dart';
-import '../../features/tasks/widgets/priority_picker.dart';
+import 'tag_chip.dart';
 import 'task_progress_ring.dart';
-
-/// 已完成任务内容区透明度（降低与背景对比度，用户要求）。
-const _kDoneOpacity = 0.55;
 
 /// 扁平行任务行（今日/日历/标签/搜索视图共用，61-task-list-redesign.md §6 阶段 3）。
 ///
@@ -144,7 +142,9 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                         // 已完成 → 内容区整体淡化（勾选/进度环保持全不透明，
                         // 行仍可交互；strikethrough + onSurfaceVariant 保留）。
                         child: AnimatedOpacity(
-                          opacity: widget.isDone ? _kDoneOpacity : 1,
+                          opacity: widget.isDone
+                              ? AppTokens.doneContentOpacity
+                              : 1,
                           duration: AppTokens.motionFast,
                           curve: AppTokens.motionSpring,
                           child: Column(
@@ -298,45 +298,7 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                                             right: AppTokens
                                                                 .spaceXxs,
                                                           ),
-                                                      child: Container(
-                                                        padding:
-                                                            const EdgeInsets.symmetric(
-                                                              horizontal:
-                                                                  AppTokens
-                                                                      .spaceXs,
-                                                              vertical: 2,
-                                                            ),
-                                                        decoration: BoxDecoration(
-                                                          color:
-                                                              Color(
-                                                                tag.color,
-                                                              ).withValues(
-                                                                alpha: 0.12,
-                                                              ),
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                AppTokens
-                                                                    .radiusChip,
-                                                              ),
-                                                        ),
-                                                        child: Text(
-                                                          tag.name,
-                                                          maxLines: 1,
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                          style: theme
-                                                              .textTheme
-                                                              .bodySmall
-                                                              ?.copyWith(
-                                                                color: Color(
-                                                                  tag.color,
-                                                                ),
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w500,
-                                                              ),
-                                                        ),
-                                                      ),
+                                                      child: TagChip(tag: tag),
                                                     ),
                                                   ),
                                                 ),

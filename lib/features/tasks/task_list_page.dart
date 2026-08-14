@@ -99,10 +99,12 @@ class TaskListPage extends ConsumerWidget {
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert),
                     onSelected: (value) {
-                      if (value == 'edit') {
-                        _editProject(context, ref, project);
-                      } else {
-                        _deleteProject(context, ref, project);
+                      // 显式 switch：未来新增菜单项不会落入默认分支误触发删除。
+                      switch (value) {
+                        case 'edit':
+                          _editProject(context, ref, project);
+                        case 'delete':
+                          _deleteProject(context, ref, project);
                       }
                     },
                     itemBuilder: (context) => [

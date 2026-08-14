@@ -4,12 +4,10 @@ import '../../../core/db/database.dart';
 import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../core/theme/priority_color.dart';
 import '../../../core/utils/dates.dart';
+import '../../../shared/widgets/tag_chip.dart';
 import '../../../shared/widgets/task_progress_ring.dart';
-import 'priority_picker.dart';
-
-/// 已完成任务内容区透明度（降低与背景对比度，用户要求）。
-const _kDoneOpacity = 0.55;
 
 /// 任务行渲染形态（57-task-page-polish.md §4.2，D1/D7；61-task-list-redesign.md §4）。
 ///
@@ -247,7 +245,7 @@ class _TaskRowState extends State<TaskRow> {
                       // 展开箭头保持全不透明，行仍可交互；strikethrough +
                       // onSurfaceVariant 保留）。
                       child: AnimatedOpacity(
-                        opacity: isDone ? _kDoneOpacity : 1,
+                        opacity: isDone ? AppTokens.doneContentOpacity : 1,
                         duration: AppTokens.motionFast,
                         curve: AppTokens.motionSpring,
                         child: Column(
@@ -356,43 +354,7 @@ class _TaskRowState extends State<TaskRow> {
                                                           right: AppTokens
                                                               .spaceXxs,
                                                         ),
-                                                    child: Container(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal:
-                                                                AppTokens
-                                                                    .spaceXs,
-                                                            vertical: 2,
-                                                          ),
-                                                      decoration: BoxDecoration(
-                                                        color: Color(tag.color)
-                                                            .withValues(
-                                                              alpha: 0.12,
-                                                            ),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              AppTokens
-                                                                  .radiusChip,
-                                                            ),
-                                                      ),
-                                                      child: Text(
-                                                        tag.name,
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        style: theme
-                                                            .textTheme
-                                                            .bodySmall
-                                                            ?.copyWith(
-                                                              color: Color(
-                                                                tag.color,
-                                                              ),
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w500,
-                                                            ),
-                                                      ),
-                                                    ),
+                                                    child: TagChip(tag: tag),
                                                   ),
                                                 ),
                                               ),

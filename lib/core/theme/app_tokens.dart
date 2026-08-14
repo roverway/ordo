@@ -255,6 +255,10 @@ abstract final class AppTokens {
   /// 行高由 48dp 勾选框触控区撑起，最小高度下调不影响可点性）。
   static const double taskRowCompactMinHeight = 44;
 
+  /// 已完成任务内容区透明度（降低与背景对比度）：完成态任务行内容区
+  /// （标题/描述/标签/日期等）整体淡化，勾选/进度环等交互控件保持全不透明。
+  static const double doneContentOpacity = 0.55;
+
   // ── 状态反馈（M5 任务 1，50-ui-ux.md §6.3）──
 
   /// 统一加载指示器尺寸（LoadingView）。
