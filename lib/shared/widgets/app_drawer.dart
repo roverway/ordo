@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/db/database.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/utils/motion.dart';
 import '../../features/projects/project_providers.dart';
 import '../../features/projects/widgets/folder_name_dialog.dart';
 import '../../features/projects/widgets/project_form_dialog.dart';
@@ -368,10 +369,12 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     return sum;
   }
 
-  /// 文件夹整组（文件夹行 + 展开时的树状项目区，des-1）。
+  /// 文件夹整组（文件夹行 + 展开时的树状项目区，des-1；C 批 AnimatedSize）。
   ///
   /// 树状区只在外层垂直方向上**不加任何间距**——行间距完全由各行的
   /// [AppTokens.drawerRowSpacing] 外层 padding 提供，与系统组行一致。
+  /// 展开/折叠用 [AnimatedSize]（motionNormal + motionCurve）平滑过渡高度，
+  /// 树状连线随布局自然延伸（docs/63-motion-polish.md §5 C）。
   Widget _buildFolderGroup(
     BuildContext context,
     AppLocalizations l10n,
@@ -384,8 +387,16 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildFolderRow(context, l10n, grouping, folder, expanded),
-        if (expanded && projects.isNotEmpty)
-          _buildFolderTree(context, l10n, grouping, projects),
+        // 折叠 = 空子树（高度 0）；reduced motion 下时长归零瞬时切换。
+        AnimatedSize(
+          duration: motionNormal(context),
+          curve: motionCurve(context),
+          alignment: Alignment.topCenter,
+          clipBehavior: Clip.hardEdge,
+          child: expanded && projects.isNotEmpty
+              ? _buildFolderTree(context, l10n, grouping, projects)
+              : const SizedBox(width: double.infinity),
+        ),
       ],
     );
   }

@@ -490,4 +490,46 @@ void main() {
 
     expect(find.byType(TaskCreateSheet), findsOneWidget);
   });
+
+  testWidgets('reduced motion：错落入场与勾选弹性瞬时降级（NFR-06）', (tester) async {
+    // 系统开启「减弱动态效果」→ motion.dart 时长/曲线全部降级。
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+
+    final today = _todayStart();
+    final startAt = DateTime(
+      today.year,
+      today.month,
+      today.day,
+      9,
+    ).millisecondsSinceEpoch;
+    await _pumpToday(
+      tester,
+      tasks: [
+        _task('t1', title: '任务A', startAt: startAt),
+        _task('t2', title: '任务B', startAt: startAt),
+      ],
+    );
+
+    // B 错落入场瞬时到位：tile 最近的 FadeTransition 已到 opacity 1
+    //（reduced 下 motionNormal 归零，无中间帧）。
+    final tileFade = tester.widget<FadeTransition>(
+      find
+          .ancestor(of: find.text('任务A'), matching: find.byType(FadeTransition))
+          .first,
+    );
+    expect(tileFade.opacity.value, 1.0);
+
+    // A 勾选弹性瞬时：勾选框最近的 ScaleTransition 保持 1.0（不缩放）。
+    final checkboxScale = tester.widget<ScaleTransition>(
+      find
+          .ancestor(
+            of: _checkboxOf(tester, '任务A'),
+            matching: find.byType(ScaleTransition),
+          )
+          .first,
+    );
+    expect(checkboxScale.scale.value, 1.0);
+  });
 }

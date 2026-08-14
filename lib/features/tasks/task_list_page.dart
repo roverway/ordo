@@ -7,12 +7,14 @@ import '../../core/db/repositories/todo_repository.dart';
 import '../../core/db/tables.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/utils/motion.dart';
 import '../../shared/widgets/app_shell.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/loading_view.dart';
 import '../../shared/widgets/simple_task_tile.dart';
+import '../../shared/widgets/staggered_fade_slide.dart';
 import '../projects/project_providers.dart';
 import '../projects/widgets/project_form_dialog.dart';
 import '../today/today_providers.dart';
@@ -229,7 +231,7 @@ class TaskListPage extends ConsumerWidget {
 
   Widget _buildFab(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return FloatingActionButton(
+    return _BouncingFab(
       tooltip: l10n.newTask,
       onPressed: () => switch (scope) {
         // 今日缺省收件箱（des-3 幂等）；收件箱/项目显式传 projectId（§3.2）。
@@ -324,6 +326,8 @@ class _TodayBody extends ConsumerWidget {
     final repo = ref.read(todoRepositoryProvider);
     final todayHeaderColor = Theme.of(context).colorScheme.onSurfaceVariant;
 
+    // B 批：列表行逐项错落入场（仅首次 build 播放；长列表自动平铺）。
+    var tileIndex = 0;
     return ListView(
       // 卡片行（SimpleTaskTile）不内置水平 margin，由列表提供页面留白。
       padding: const EdgeInsets.symmetric(
@@ -333,11 +337,19 @@ class _TodayBody extends ConsumerWidget {
       children: [
         if (view.overdue.isNotEmpty) ...[
           _SectionHeader(title: l10n.overdue, color: AppTokens.colorOverdue),
-          for (final v in view.overdue) _buildTile(context, repo, v),
+          for (final v in view.overdue)
+            StaggeredFadeSlide(
+              index: tileIndex++,
+              child: _buildTile(context, repo, v),
+            ),
         ],
         if (view.today.isNotEmpty) ...[
           _SectionHeader(title: l10n.today, color: todayHeaderColor),
-          for (final v in view.today) _buildTile(context, repo, v),
+          for (final v in view.today)
+            StaggeredFadeSlide(
+              index: tileIndex++,
+              child: _buildTile(context, repo, v),
+            ),
         ],
       ],
     );
@@ -424,6 +436,84 @@ class _SectionHeader extends StatelessWidget {
         style: theme.textTheme.titleSmall?.copyWith(
           color: color,
           fontWeight: AppTokens.textTitleWeight,
+        ),
+      ),
+    );
+  }
+}
+
+/// FAB 按压回弹（docs/63-motion-polish.md §5 I）。
+///
+/// 按压时 scale 缩至 [AppTokens.fabPressScale]，抬手沿 [motionBounceCurve]
+/// 回弹（motionFast）；FloatingActionButton 自带的 Material 涟漪保留。
+/// reduced motion：时长归零 → 不缩放（无位移，纯点击）。
+class _BouncingFab extends StatefulWidget {
+  const _BouncingFab({
+    required this.tooltip,
+    required this.onPressed,
+    required this.child,
+  });
+
+  final String tooltip;
+  final VoidCallback onPressed;
+  final Widget child;
+
+  @override
+  State<_BouncingFab> createState() => _BouncingFabState();
+}
+
+class _BouncingFabState extends State<_BouncingFab>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late Animation<double> _scale;
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this);
+    _scale = Tween<double>(begin: 1.0, end: 1.0).animate(_controller);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_ready) return;
+    _ready = true;
+    _controller.duration = motionFast(context);
+    _scale = Tween<double>(begin: 1.0, end: AppTokens.fabPressScale).animate(
+      CurvedAnimation(parent: _controller, curve: motionBounceCurve(context)),
+    );
+  }
+
+  void _onDown(PointerDownEvent _) {
+    if (!mounted || _controller.duration == Duration.zero) return;
+    _controller.forward();
+  }
+
+  void _onUp(PointerEvent _) {
+    if (!mounted || _controller.duration == Duration.zero) return;
+    _controller.reverse();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      onPointerDown: _onDown,
+      onPointerUp: _onUp,
+      onPointerCancel: _onUp,
+      child: ScaleTransition(
+        scale: _scale,
+        child: FloatingActionButton(
+          tooltip: widget.tooltip,
+          onPressed: widget.onPressed,
+          child: widget.child,
         ),
       ),
     );

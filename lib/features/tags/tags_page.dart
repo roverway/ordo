@@ -11,6 +11,7 @@ import '../../shared/widgets/confirm_dialog.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/loading_view.dart';
+import '../../shared/widgets/staggered_fade_slide.dart';
 import '../projects/project_providers.dart';
 import 'tag_providers.dart';
 
@@ -52,11 +53,16 @@ class TagsPage extends ConsumerWidget {
                 itemCount: tags.length,
                 itemBuilder: (context, index) {
                   final tag = tags[index];
-                  return _TagListTile(
-                    tag: tag,
-                    onTap: () => context.push('/tags/${tag.id}'),
-                    onMenuEdit: () => _showEditTagDialog(context, ref, tag),
-                    onMenuDelete: () => _showDeleteTagDialog(context, ref, tag),
+                  // B 批：逐项错落入场（仅首次 build；长列表超出上限自动平铺）。
+                  return StaggeredFadeSlide(
+                    index: index,
+                    child: _TagListTile(
+                      tag: tag,
+                      onTap: () => context.push('/tags/${tag.id}'),
+                      onMenuEdit: () => _showEditTagDialog(context, ref, tag),
+                      onMenuDelete: () =>
+                          _showDeleteTagDialog(context, ref, tag),
+                    ),
                   );
                 },
               ),

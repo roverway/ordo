@@ -7,6 +7,7 @@ import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/derived.dart';
+import '../../../core/utils/motion.dart';
 import '../../../core/utils/tree.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/empty_state.dart';
@@ -45,6 +46,9 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
 
   /// 当前拖拽悬停目标行的位置：false=上半（同级排序），true=下半（成为子级）。
   bool _dropAsChild = false;
+
+  /// H 批：一级卡片是否处于按压态（阴影抬升 + 轻微 scale 0.98）。
+  bool _cardPressed = false;
 
   /// 每行 GlobalKey，用于在 onMove 时换算悬停位置（上半/下半）。
   /// 覆盖两类行：一级卡片头与卡片内紧凑子行（每个任务 id 唯一）。
@@ -213,44 +217,78 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
       // 用户打磨要求 4：一级卡片底部间距 spaceXxs→spaceXs，
       // 与卡片↔屏幕左右边缘距离（列表水平 padding spaceXs）相等。
       padding: const EdgeInsets.only(bottom: AppTokens.spaceXs),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
-          borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-          boxShadow: [
-            BoxShadow(
-              color: isDark ? AppTokens.shadowCardDark : AppTokens.shadowCard,
-              blurRadius: AppTokens.shadowBlurRest,
-              offset: const Offset(0, AppTokens.shadowOffsetY),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildDraggableRow(
-                context,
-                rootNode,
-                repo,
-                expandState,
-                style: TaskRowStyle.cardHeader,
-                childrenIndexAll: childrenIndexAll,
-                byIdAll: byIdAll,
-              ),
-              // 用户打磨要求 2：去掉子行间 Divider（行间靠间距区分）。
-              if (rootNode.isExpanded && children.isNotEmpty)
-                _buildChildrenSection(
-                  context,
-                  children,
-                  childrenOf,
-                  repo,
-                  expandState,
-                  childrenIndexAll: childrenIndexAll,
-                  byIdAll: byIdAll,
+      // H 批：卡片按压反馈（docs/63-motion-polish.md §5 H）——阴影抬升
+      // （shadowCardElevated 系列 + blur/offset 抬升）+ 轻微 scale 0.98，
+      // motionFast + motionCurve；抬手恢复，不影响点击/拖拽。
+      child: Listener(
+        onPointerDown: (_) {
+          if (mounted) setState(() => _cardPressed = true);
+        },
+        onPointerUp: (_) {
+          if (mounted) setState(() => _cardPressed = false);
+        },
+        onPointerCancel: (_) {
+          if (mounted) setState(() => _cardPressed = false);
+        },
+        child: AnimatedScale(
+          scale: _cardPressed ? AppTokens.cardPressScale : 1,
+          duration: motionFast(context),
+          curve: motionCurve(context),
+          child: AnimatedContainer(
+            duration: motionFast(context),
+            curve: motionCurve(context),
+            decoration: BoxDecoration(
+              color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
+              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+              boxShadow: [
+                BoxShadow(
+                  color: _cardPressed
+                      ? (isDark
+                            ? AppTokens.shadowCardDarkElevated
+                            : AppTokens.shadowCardElevated)
+                      : (isDark
+                            ? AppTokens.shadowCardDark
+                            : AppTokens.shadowCard),
+                  blurRadius: _cardPressed
+                      ? AppTokens.shadowBlurElevated
+                      : AppTokens.shadowBlurRest,
+                  offset: Offset(
+                    0,
+                    _cardPressed
+                        ? AppTokens.shadowOffsetYElevated
+                        : AppTokens.shadowOffsetY,
+                  ),
                 ),
-            ],
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildDraggableRow(
+                    context,
+                    rootNode,
+                    repo,
+                    expandState,
+                    style: TaskRowStyle.cardHeader,
+                    childrenIndexAll: childrenIndexAll,
+                    byIdAll: byIdAll,
+                  ),
+                  // 用户打磨要求 2：去掉子行间 Divider（行间靠间距区分）。
+                  if (rootNode.isExpanded && children.isNotEmpty)
+                    _buildChildrenSection(
+                      context,
+                      children,
+                      childrenOf,
+                      repo,
+                      expandState,
+                      childrenIndexAll: childrenIndexAll,
+                      byIdAll: byIdAll,
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

@@ -9,6 +9,7 @@ import '../../shared/widgets/app_shell.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/loading_view.dart';
+import '../../shared/widgets/staggered_fade_slide.dart';
 import 'project_providers.dart';
 import 'widgets/project_card.dart';
 import 'widgets/project_form_dialog.dart';
@@ -45,6 +46,9 @@ class ProjectsPage extends ConsumerWidget {
               ),
             );
           }
+          // B 批：卡片逐项错落入场（仅首次 build；分组头不参与，作为锚点
+          // 即时呈现）。
+          var cardIndex = 0;
           return Stack(
             children: [
               ListView(
@@ -61,9 +65,12 @@ class ProjectsPage extends ConsumerWidget {
                     for (final project
                         in grouping.folderProjects[folder.id] ??
                             const <Project>[])
-                      ProjectCard(
-                        project: project,
-                        onTap: () => context.push('/projects/${project.id}'),
+                      StaggeredFadeSlide(
+                        index: cardIndex++,
+                        child: ProjectCard(
+                          project: project,
+                          onTap: () => context.push('/projects/${project.id}'),
+                        ),
                       ),
                   ],
                   // 未分组区（无文件夹时同样展示，保持分组结构一致）。
@@ -73,9 +80,12 @@ class ProjectsPage extends ConsumerWidget {
                       title: l10n.ungrouped,
                     ),
                     for (final project in ungrouped)
-                      ProjectCard(
-                        project: project,
-                        onTap: () => context.push('/projects/${project.id}'),
+                      StaggeredFadeSlide(
+                        index: cardIndex++,
+                        child: ProjectCard(
+                          project: project,
+                          onTap: () => context.push('/projects/${project.id}'),
+                        ),
                       ),
                   ],
                 ],
