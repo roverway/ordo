@@ -344,6 +344,18 @@ abstract class AppLocalizations {
   /// **'编辑'**
   String get edit;
 
+  /// No description provided for @showCompletedTasks.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示已完成任务'**
+  String get showCompletedTasks;
+
+  /// No description provided for @hideCompletedTasks.
+  ///
+  /// In zh, this message translates to:
+  /// **'隐藏已完成任务'**
+  String get hideCompletedTasks;
+
   /// No description provided for @newTask.
   ///
   /// In zh, this message translates to:

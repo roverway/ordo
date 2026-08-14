@@ -94,13 +94,19 @@ class TaskListPage extends ConsumerWidget {
                     .where((p) => p.id == projectId)
                     .firstOrNull;
                 if (project == null) return const <Widget>[];
-                // 编辑/删除收纳进三点菜单（用户打磨：AppBar 只留一个 more_vert）。
+                // 编辑/删除收纳进三点菜单（用户打磨：AppBar 只留一个 more_vert）；
+                // 「显示已完成任务」为首项（可勾选开关，与编辑/删除间用 Divider 分隔）。
+                final hideDone = ref.watch(hideCompletedTasksProvider);
                 return [
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert),
                     onSelected: (value) {
                       // 显式 switch：未来新增菜单项不会落入默认分支误触发删除。
                       switch (value) {
+                        case 'toggleCompleted':
+                          ref
+                              .read(hideCompletedTasksProvider.notifier)
+                              .toggle();
                         case 'edit':
                           _editProject(context, ref, project);
                         case 'delete':
@@ -108,6 +114,28 @@ class TaskListPage extends ConsumerWidget {
                       }
                     },
                     itemBuilder: (context) => [
+                      // 名称随状态表达**可执行动作**：显示中 →「隐藏已完成任务」，
+                      // 已隐藏 →「显示已完成任务」；眼睛图标同态（睁/闭眼）。
+                      PopupMenuItem<String>(
+                        value: 'toggleCompleted',
+                        child: Row(
+                          children: [
+                            Icon(
+                              hideDone
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              size: 20,
+                            ),
+                            SizedBox(width: AppTokens.spaceMd),
+                            Text(
+                              hideDone
+                                  ? l10n.showCompletedTasks
+                                  : l10n.hideCompletedTasks,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuDivider(),
                       PopupMenuItem<String>(
                         value: 'edit',
                         child: Row(

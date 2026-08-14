@@ -353,6 +353,22 @@ final taskFormProvider = NotifierProvider<TaskFormNotifier, TaskFormState>(
   TaskFormNotifier.new,
 );
 
+/// 是否隐藏已完成任务（会话级全局状态，用户要求）。
+///
+/// 默认 false = 显示全部；仅项目任务树（TaskListPage 项目作用域）消费，
+/// 切换即时生效（TaskTree 过滤在 build 内 watch 本 provider）。
+class HideCompletedTasksNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void toggle() => state = !state;
+}
+
+final hideCompletedTasksProvider =
+    NotifierProvider<HideCompletedTasksNotifier, bool>(
+      HideCompletedTasksNotifier.new,
+    );
+
 /// 项目未完成任务数 Provider。
 ///
 /// 统计口径与 [projectProgressProvider] 一致：父任务按**派生状态**（§6.1）计数，

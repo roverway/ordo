@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:todo/app.dart';
 import 'package:todo/core/db/database.dart';
 import 'package:todo/core/db/repositories/todo_repository.dart';
+import 'package:todo/core/db/tables.dart';
 import 'package:todo/core/theme/app_tokens.dart';
 import 'package:todo/features/calendar/calendar_providers.dart';
 import 'package:todo/features/projects/project_providers.dart';
@@ -26,11 +27,13 @@ import 'helpers/db_test_setup.dart';
 /// Build and pump the app at a given logical size.
 ///
 /// [projects]：抽屉项目组渲染数据（窄屏导航测试用，默认空）。
+/// [projectTasks]：项目任务树种子数据（默认空列表，测试树渲染用）。
 Future<void> pumpApp(
   WidgetTester tester,
   Size logicalSize, {
   bool provideTestDatabase = false,
   List<Project>? projects,
+  List<Task>? projectTasks,
 }) async {
   tester.view.physicalSize = logicalSize;
   tester.view.devicePixelRatio = 1.0;
@@ -42,9 +45,9 @@ Future<void> pumpApp(
     projectsStreamProvider.overrideWithValue(
       AsyncData(projects ?? const <Project>[]),
     ),
-    // 立即 emit 空列表（Stream.empty 永不 emit，会让任务树停在 loading）。
+    // 立即 emit 指定任务列表（Stream.empty 永不 emit，会让任务树停在 loading）。
     projectTasksProvider.overrideWith(
-      (ref, projectId) => Stream<List<Task>>.value(const []),
+      (ref, projectId) => Stream<List<Task>>.value(projectTasks ?? const []),
     ),
   ];
 
@@ -123,6 +126,30 @@ Future<void> pumpApp(
   );
   await tester.pumpAndSettle();
 }
+
+/// 测试用任务种子（项目任务树渲染/计数断言用）。
+Task _seedTask(
+  String id,
+  String title,
+  TaskStatus status, {
+  String? parentId,
+  int sortOrder = 0,
+}) => Task(
+  id: id,
+  projectId: 'p1',
+  parentId: parentId,
+  title: title,
+  description: '',
+  notes: '',
+  status: status,
+  sortOrder: sortOrder,
+  startAt: null,
+  endAt: null,
+  priority: TaskPriority.none,
+  createdAt: 0,
+  updatedAt: 0,
+  deleted: 0,
+);
 
 void main() {
   setUp(() {
@@ -348,6 +375,138 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
     expect(find.byIcon(Icons.delete_outlined), findsOneWidget);
+  });
+
+  testWidgets('项目菜单：切换「显示已完成任务」隐藏/恢复已完成任务', (tester) async {
+    final project = Project(
+      id: 'p1',
+      name: '工作',
+      color: 0xFF4A6CF7,
+      description: '',
+      sortOrder: 0,
+      createdAt: 0,
+      updatedAt: 0,
+      deleted: 0,
+    );
+    await pumpApp(
+      tester,
+      const Size(400, 800),
+      projects: [project],
+      projectTasks: [
+        _seedTask('t-done', '已完成任务', TaskStatus.done),
+        _seedTask('t-todo', '待办任务', TaskStatus.todo),
+      ],
+    );
+
+    // 进入项目页（抽屉 → 项目名）。
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: find.byType(Drawer), matching: find.text('工作')),
+    );
+    await tester.pumpAndSettle();
+
+    // 1. 初始（hideCompleted=false）：已完成 + 待办均显示。
+    expect(find.text('已完成任务'), findsOneWidget);
+    expect(find.text('待办任务'), findsOneWidget);
+
+    // 2. 三点菜单：首项名称 = 可执行动作（显示中 →「隐藏已完成任务」），
+    //    眼睛睁眼（visibility_outlined，无闭眼图标）。
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    expect(find.text('隐藏已完成任务'), findsOneWidget);
+    expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.visibility_off_outlined), findsNothing);
+
+    // 3. 点击「隐藏已完成任务」→ 已完成任务行消失，待办仍在，树保持有效。
+    await tester.tap(find.text('隐藏已完成任务'));
+    await tester.pumpAndSettle();
+    expect(find.text('已完成任务'), findsNothing);
+    expect(find.text('待办任务'), findsOneWidget);
+
+    // 4. 再次打开菜单：名称变为「显示已完成任务」、眼睛闭眼（隐藏中）；
+    //    点击 → 已完成任务恢复。
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    expect(find.text('显示已完成任务'), findsOneWidget);
+    expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.visibility_outlined), findsNothing);
+    await tester.tap(find.text('显示已完成任务'));
+    await tester.pumpAndSettle();
+    expect(find.text('已完成任务'), findsOneWidget);
+    expect(find.text('待办任务'), findsOneWidget);
+  });
+
+  testWidgets('隐藏已完成任务时行尾「未完成/总数」分母保持真实总数', (tester) async {
+    final project = Project(
+      id: 'p1',
+      name: '工作',
+      color: 0xFF4A6CF7,
+      description: '',
+      sortOrder: 0,
+      createdAt: 0,
+      updatedAt: 0,
+      deleted: 0,
+    );
+    await pumpApp(
+      tester,
+      const Size(400, 800),
+      projects: [project],
+      projectTasks: [
+        _seedTask('t-parent', '父任务', TaskStatus.todo),
+        _seedTask(
+          't-child-done',
+          '子任务-完成',
+          TaskStatus.done,
+          parentId: 't-parent',
+          sortOrder: 1,
+        ),
+        _seedTask(
+          't-child-todo',
+          '子任务-待办',
+          TaskStatus.todo,
+          parentId: 't-parent',
+          sortOrder: 2,
+        ),
+      ],
+    );
+
+    // 进入项目页（抽屉 → 项目名）。
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: find.byType(Drawer), matching: find.text('工作')),
+    );
+    await tester.pumpAndSettle();
+
+    // 1. 初始（默认展开）：父任务行「未完成/总数」= 1/2（1 未完成 / 2 总数），
+    //    完成 + 待办两个子行均可见。
+    expect(find.text('父任务'), findsOneWidget);
+    expect(find.text('1/2'), findsOneWidget);
+    expect(find.text('子任务-完成'), findsOneWidget);
+    expect(find.text('子任务-待办'), findsOneWidget);
+
+    // 2. 隐藏已完成（菜单当前为显示中 → 名称「隐藏已完成任务」）→ 完成子行
+    //    消失，父任务仍在，计数**仍为 1/2**（非 1/1）。
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('隐藏已完成任务'));
+    await tester.pumpAndSettle();
+    expect(find.text('子任务-完成'), findsNothing);
+    expect(find.text('子任务-待办'), findsOneWidget);
+    expect(find.text('父任务'), findsOneWidget);
+    expect(find.text('1/2'), findsOneWidget);
+    expect(find.text('1/1'), findsNothing);
+
+    // 3. 恢复显示（菜单当前为隐藏中 → 名称「显示已完成任务」）→ 完成子行
+    //    返回，计数仍为 1/2。
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('显示已完成任务'));
+    await tester.pumpAndSettle();
+    expect(find.text('子任务-完成'), findsOneWidget);
+    expect(find.text('子任务-待办'), findsOneWidget);
+    expect(find.text('1/2'), findsOneWidget);
   });
 
   testWidgets('Project scope: delete project navigates to /today (D5)', (

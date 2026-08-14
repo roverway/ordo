@@ -41,6 +41,8 @@
   "save": "Save",
   "delete": "Delete",
   "edit": "Edit",
+  "showCompletedTasks": "Show completed tasks",
+  "hideCompletedTasks": "Hide completed tasks",
   "newTask": "New Task",
   "addTask": "Add a task",
   "newSubtask": "New Subtask",

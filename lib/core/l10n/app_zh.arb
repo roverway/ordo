@@ -41,6 +41,8 @@
   "save": "保存",
   "delete": "删除",
   "edit": "编辑",
+  "showCompletedTasks": "显示已完成任务",
+  "hideCompletedTasks": "隐藏已完成任务",
   "newTask": "新建任务",
   "addTask": "添加任务",
   "newSubtask": "新建子任务",
