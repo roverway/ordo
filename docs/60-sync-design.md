@@ -17,18 +17,22 @@
 - **墓碑**：删除 = 本地硬删 + 快照中保留 `deleted=true` 墓碑，向其他设备传播删除。
 - **双远端实现**：WebDAV 与 S3 兼容桶，统一 `RemoteStore` 抽象。
 
-## 3. 快照格式（schemaVersion = 1）
+## 3. 快照格式（schemaVersion = 2）
+
+> v2（M6，62-folder-nav.md §5）：新增 `folders` 数组；`projects` 记录新增 `folderId` 字段。
+> **双端影响**：v2 快照被旧版本应用读取 → 拒绝同步并提示升级（§5 分支）。v1 旧快照（无 folders/folderId）可兼容读（字段缺失回退默认值）。
 
 远端对象键（默认）：`todo/data.json.gz`（前缀可配置）。
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "deviceId": "uuid-of-this-device",
   "exportedAt": 1720000000000,
   "projects": [
     { "id": "uuid", "name": "工作", "color": 4283215696,
-      "sortOrder": 0, "createdAt": 1720000000000, "updatedAt": 1720000000000, "deleted": false }
+      "folderId": null, "sortOrder": 0,
+      "createdAt": 1720000000000, "updatedAt": 1720000000000, "deleted": false }
   ],
   "tasks": [
     { "id": "uuid", "projectId": "uuid", "parentId": null,
@@ -41,19 +45,24 @@
   "tags": [
     { "id": "uuid", "name": "重要", "color": 4283215696,
       "sortOrder": 0, "createdAt": 1720000000000, "updatedAt": 1720000000000, "deleted": false }
+  ],
+  "folders": [
+    { "id": "uuid", "name": "个人", "sortOrder": 0,
+      "createdAt": 1720000000000, "updatedAt": 1720000000000, "deleted": false }
   ]
 }
 ```
 
 - 时间一律 UTC 毫秒整数；`deleted` 为布尔。
 - **tagIds 内嵌于 task 记录**：使「任务 + 标签关联」作为一条记录原子合并，避免联表冲突。
+- **folderId 内嵌于 project 记录**：项目归属随记录原子合并；文件夹删除后经 `reconcileFolderIds` 清理悬空引用（§7）。
 - 快照不含 settings（设备本地）与凭据（安全存储）。
 
 ## 4. 合并算法（MergeEngine，纯函数）
 
 ```
 merge(local, remote):
-  for type in [projects, tasks, tags]:
+  for type in [projects, tasks, tags, folders]:
     map = {}
     for row in local[type]:  map[row.id] = row
     for row in remote[type]:
@@ -64,7 +73,8 @@ merge(local, remote):
       else:
         map[row.id] = row
     result[type] = map.values
-  result = reconcileTagIds(result)   # §7
+  result = reconcileTagIds(result)     # §7
+  result = reconcileFolderIds(result)  # §7（v2，62-folder-nav.md §5.2）
   return result
 ```
 
@@ -92,6 +102,8 @@ merge(local, remote):
 - 合并后：对每个 task 的 `tagIds`，删除指向「不存在或 `deleted=true`」的 tag 的引用。
 - 目的：标签在 A 设备删除、任务在 B 设备保留时，不产生悬空引用。
 - 实现：`reconcileTagIds(merged)` 纯函数，**必须单测**。
+- **文件夹（v2，62-folder-nav.md §5.2）**：`reconcileFolderIds(merged)` 纯函数，对每个 project 的 `folderId`，
+  若指向「不存在或 `deleted=true`」的文件夹则置 null（回未分组），防止悬空 FK。**必须单测**。
 
 ## 8. 墓碑清理
 

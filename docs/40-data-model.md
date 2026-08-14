@@ -8,11 +8,13 @@
 projects 1 ──── N tasks
 tasks    N ──── M tags      （经 task_tags 联表）
 tasks    1 ──── N tasks     （parentId 自引用，最多 3 级）
+folders  1 ──── N projects  （folderId，可空 = 未分组，62-folder-nav.md）
 ```
 
 - 项目删除 → 级联删除其下所有任务（含子树）。
 - 任务删除 → 级联删除其所有后代。
 - 标签删除 → 仅解除引用（task_tags 行删除），任务保留。
+- 文件夹删除 → 仅解除收纳（其中项目 folderId 置 NULL 回未分组），项目保留。
 
 ## 2. 表结构
 
@@ -24,10 +26,24 @@ tasks    1 ──── N tasks     （parentId 自引用，最多 3 级）
 | name | TEXT | NOT NULL, 1–100 字符 | 项目名 |
 | color | INTEGER | NOT NULL | ARGB 颜色值 |
 | description | TEXT | NOT NULL DEFAULT '' | 描述（可选，纯文本） |
-| sortOrder | INTEGER | NOT NULL | 项目间排序 |
+| folderId | TEXT | NULL, FK→folders.id | 所属文件夹；NULL = 未分组（v4 起，62-folder-nav.md §4） |
+| sortOrder | INTEGER | NOT NULL | **文件夹组内**排序（v4 起语义：同 folderId 组内排序，NULL 为未分组组） |
 | createdAt | INTEGER | NOT NULL | UTC 毫秒 |
 | updatedAt | INTEGER | NOT NULL | UTC 毫秒（同步字段） |
 | deleted | INTEGER | NOT NULL DEFAULT 0 | 墓碑（同步字段） |
+
+### 2.1a folders（v4 新增）
+
+| 字段 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| id | TEXT | PK | UUID v4 |
+| name | TEXT | NOT NULL, 1–50 字符 | 文件夹名 |
+| sortOrder | INTEGER | NOT NULL | 文件夹间排序（0..n-1 连续） |
+| createdAt | INTEGER | NOT NULL | UTC 毫秒 |
+| updatedAt | INTEGER | NOT NULL | UTC 毫秒（同步字段） |
+| deleted | INTEGER | NOT NULL DEFAULT 0 | 墓碑（同步字段） |
+
+> 单层结构（不嵌套，D2，`62-folder-nav.md`）。参与同步（快照 v2 起）。
 
 ### 2.2 tasks
 
@@ -107,6 +123,7 @@ tasks    1 ──── N tasks     （parentId 自引用，最多 3 级）
 - 所有时间存 **UTC 毫秒整数**（`DateTime.millisecondsSinceEpoch`），仅 UI 层按本地时区格式化（`core/utils/dates.dart`）。
 - `startAt`/`endAt` 语义：开始时间 / 截止时间，均可选；同时设置时 `endAt >= startAt`。
 - `sortOrder`：同级内从 0 递增；拖拽移动时重排同级（见 §5.3）。
+- **文件夹排序（v4 起）**：`folders.sortOrder` 为文件夹间排序（0..n-1 连续）；`projects.sortOrder` 为**文件夹组内**排序（同 folderId 一组，NULL = 未分组组）。展示顺序 = 文件夹按 sortOrder → 各文件夹内项目按 sortOrder → 未分组区项目按 sortOrder（62-folder-nav.md §4.3）。
 
 ## 5. 校验规则（写入/移动前强制）
 
@@ -167,6 +184,7 @@ double progress(Task root, List<Task> subtree):
 | 删除任务 | 硬删该任务 + 级联硬删所有后代（事务） | 每个被删任务在快照中保留墓碑（deleted=true） |
 | 删除项目 | 硬删项目 + 级联硬删其下所有任务（含子树） | 同上，逐条墓碑 |
 | 删除标签 | 硬删标签 + 删除 task_tags 引用行 | 标签墓碑；合并后 reconciliation 清理悬空 tagIds |
+| 删除文件夹（v4） | 硬删文件夹 + 其中项目 `folderId` 置 NULL（回未分组，事务） | 文件夹墓碑；合并后 reconciliation 清理悬空 folderId（`reconcileFolderIds`） |
 
 - 墓碑仅存在于快照，本地 DB 不保留已删行（`40-data-model.md` §7 与 `60-sync-design.md` §6 一致）。
 - 墓碑清理：快照压缩时清理 >90 天的墓碑（`60-sync-design.md` §8）。
@@ -186,6 +204,7 @@ double progress(Task root, List<Task> subtree):
 | 1 | 初始 schema | M1 建全部 5 张表 |
 | 2 | `tasks.priority` | 新增优先级列（INTEGER NOT NULL DEFAULT 0），`m.addColumn(tasks, tasks.priority)`；旧行默认 `none` |
 | 3 | `projects.description` | 新增描述列（TEXT NOT NULL DEFAULT ''），`m.addColumn(projects, projects.description)`；旧行默认 `''` |
+| 4 | `folders` 表 + `projects.folderId` | 新增 folders 表（`m.createTable(folders)`）+ folderId 列（TEXT NULL，`m.addColumn(projects, projects.folderId)`）；旧行默认未分组（62-folder-nav.md §7.1） |
 
 ## 9. 数据量假设
 

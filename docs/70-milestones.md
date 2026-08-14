@@ -180,6 +180,29 @@
 
 ---
 
+## M6 — 文件夹导航（`docs/62-folder-nav.md`）
+
+**目标**：侧边栏抽屉文件夹收纳项目 + 展开/折叠 + 拖拽调整归属与排序 + 同步（快照 v2）。
+
+**任务**：
+1. 数据层：`folders` 表 + `projects.folderId`（schema v3→v4 迁移）+ FolderDao + Repository（createFolder/renameFolder/deleteFolder/moveProjectToFolder/moveFolder，仿 moveTask 事务重排）。
+2. 同步层：快照 schemaVersion 1→2（folders 数组 + project.folderId）、MergeEngine 加 folders 类型、`reconcileFolderIds` 纯函数、SyncEngine 导出/应用接线、folder 墓碑类型。
+3. UI 层：抽屉项目区改造（文件夹组 + 未分组区 + 新建文件夹入口）、项目行/文件夹行 LongPressDraggable + DragTarget 拖拽（入夹/出夹/组内排序/文件夹排序）、折叠状态设备本地持久化、/projects 页分组展示。
+4. l10n（zh/en）+ 新设计令牌 + Widget 测试。
+
+**DoD**：
+- [ ] 抽屉项目区：文件夹展开/折叠正常；项目入夹/出夹/组内排序正确；未分组区在文件夹之后
+- [ ] 文件夹拖拽排序正确；点击 vs 长按无冲突
+- [ ] 删除文件夹 → 项目回未分组（确认框明示），不删项目
+- [ ] 排序连续性：任一移动/删除后组内 sortOrder 0..n-1 连续
+- [ ] 同步：文件夹增删改/移动跨端正确；一端删除文件夹后他端项目归属修复；v1 快照兼容读
+- [ ] 计数恒为真实值（不受会话级过滤影响）
+- [ ] 宽屏 /projects 页分组展示一致
+- [ ] `flutter analyze` 0 error；`flutter test` 全绿；`dart format` 通过
+- [ ] 文档同步：40-data-model / 60-sync-design / 50-ui-ux / 10-requirements（FR-FLD）/ 62-folder-nav
+
+---
+
 ## 里程碑依赖图
 
 ```
