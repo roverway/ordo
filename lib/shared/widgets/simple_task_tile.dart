@@ -7,6 +7,7 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/theme/priority_color.dart';
 import '../../core/utils/dates.dart';
 import '../../core/utils/motion.dart';
+import 'checkbox_bounce.dart';
 import 'tag_chip.dart';
 import 'task_progress_ring.dart';
 
@@ -112,12 +113,12 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                       // 方形勾选（61 §4.2；有子任务 → 禁用，状态由子任务派生）。
                       // 触控区 44（与 TaskRow 一致的取舍），视觉 24 居中。
                       // A 批：勾选/取消时勾选框 scale 弹性脉冲（1→1.15→1 /
-                      // 1→0.85→1，_CheckboxBounce），勾线本身由 Material
+                      // 1→0.85→1，CheckboxBounce），勾线本身由 Material
                       // Checkbox 的勾动画淡入。
                       SizedBox(
                         width: AppTokens.checkboxTapTargetSize,
                         height: AppTokens.checkboxTapTargetSize,
-                        child: _CheckboxBounce(
+                        child: CheckboxBounce(
                           isDone: widget.isDone,
                           child: widget.hasChildren
                               ? Tooltip(
@@ -343,105 +344,5 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
         ),
       ),
     );
-  }
-}
-
-/// 勾选弹性（docs/63-motion-polish.md §5 A）：完成态变化时对勾选框做一次
-/// scale 脉冲——勾选 1 → [AppTokens.checkboxBounceScale] → 1，取消
-/// 1 → [AppTokens.checkboxBounceShrink] → 1（TweenSequence 关键帧，
-/// 段内曲线 [motionBounceCurve]，时长 [motionFast]）；
-/// reduced motion：时长归零 → 瞬时到位（不缩放）。
-class _CheckboxBounce extends StatefulWidget {
-  const _CheckboxBounce({required this.isDone, required this.child});
-
-  final bool isDone;
-  final Widget child;
-
-  @override
-  State<_CheckboxBounce> createState() => _CheckboxBounceState();
-}
-
-class _CheckboxBounceState extends State<_CheckboxBounce>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late Animation<double> _scale;
-  bool _ready = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(vsync: this);
-    _scale = Tween<double>(begin: 1.0, end: 1.0).animate(_controller);
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_ready) return;
-    _ready = true;
-    _controller.duration = motionFast(context);
-    // 首帧不播放（避免进列表就弹一下）。
-    _controller.value = 1.0;
-  }
-
-  @override
-  void didUpdateWidget(covariant _CheckboxBounce oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.isDone == widget.isDone) return;
-    if (_controller.duration == Duration.zero) {
-      // reduced：瞬时到位。
-      _controller.value = 1.0;
-      return;
-    }
-    final bounce = motionBounceCurve(context);
-    if (widget.isDone) {
-      // 勾选：放大回弹。
-      _scale = TweenSequence<double>([
-        TweenSequenceItem(
-          tween: Tween(
-            begin: 1.0,
-            end: AppTokens.checkboxBounceScale,
-          ).chain(CurveTween(curve: bounce)),
-          weight: 55,
-        ),
-        TweenSequenceItem(
-          tween: Tween(
-            begin: AppTokens.checkboxBounceScale,
-            end: 1.0,
-          ).chain(CurveTween(curve: Curves.easeInOut)),
-          weight: 45,
-        ),
-      ]).animate(_controller);
-    } else {
-      // 取消完成：缩小回弹。
-      _scale = TweenSequence<double>([
-        TweenSequenceItem(
-          tween: Tween(
-            begin: 1.0,
-            end: AppTokens.checkboxBounceShrink,
-          ).chain(CurveTween(curve: bounce)),
-          weight: 55,
-        ),
-        TweenSequenceItem(
-          tween: Tween(
-            begin: AppTokens.checkboxBounceShrink,
-            end: 1.0,
-          ).chain(CurveTween(curve: Curves.easeInOut)),
-          weight: 45,
-        ),
-      ]).animate(_controller);
-    }
-    _controller.forward(from: 0);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ScaleTransition(scale: _scale, child: widget.child);
   }
 }

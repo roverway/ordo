@@ -270,8 +270,11 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
                     byIdAll: byIdAll,
                   ),
                   // 用户打磨要求 2：去掉子行间 Divider（行间靠间距区分）。
-                  // des-4 需求 3：子任务区高度经 AnimatedSize 平滑过渡
-                  // （展开/折叠），子行错落见 _buildChildrenSection。
+                  // des-4 需求 3 + 评审 #3：**唯一**的 AnimatedSize 高度过渡层
+                  // （motionNormal + motionCurve，clip 使行随高度渐进露出）。
+                  // 任意层级（一级展开/孙级展开或折叠）的高度变化都经本层
+                  // 动画（RenderAnimatedSize 在子级尺寸变化时自动重启动画），
+                  // 内层不再重复包 AnimatedSize；子行错落见 _buildChildrenSection。
                   AnimatedSize(
                     duration: motionNormal(context),
                     curve: motionCurve(context),
@@ -304,11 +307,17 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
   /// 卡片展开区：紧凑子任务行（用户打磨要求 2：无 Divider，行间靠间距
   /// 区分），有子任务的子行递归缩进展开（至 3 级）。
   ///
-  /// des-4 需求 3：展开/折叠时高度经 [AnimatedSize] 平滑过渡（motionNormal +
-  /// motionCurve，clip 使行随高度渐进露出）；子行逐项错落滑入
-  /// （[StaggeredFadeSlide]，间隔 [AppTokens.motionTreeStaggerDelay] 30ms）——
-  /// **仅显式展开时播放**（[animateRows]；进页面默认展开不重复动画），
-  /// 折叠时子行瞬时移除、高度快速收起（不逐项慢）。reduced motion 全瞬时。
+  /// des-4 需求 3：子行逐项错落滑入（[StaggeredFadeSlide]，间隔
+  /// [AppTokens.motionTreeStaggerDelay] 30ms）——**仅显式展开时播放**
+  /// （[animateRows]；进页面默认展开不重复动画），折叠时子行瞬时移除、
+  /// 高度快速收起（不逐项慢）。reduced motion 全瞬时。
+  ///
+  /// **高度过渡只有一层**（评审 #3 清理）：本方法不再内包 [AnimatedSize]，
+  /// 由卡片级（[_buildCard]）那一个 AnimatedSize 统一承担——`RenderAnimatedSize`
+  /// 在**子级尺寸变化**时（`_layoutStable` 检测 `child.size != 目标`）会自动
+  /// 重启动画追平新高度，因此**任意层级**（一级展开/孙级展开或折叠）的高度
+  /// 变化都被卡片级外层覆盖；内层若再包一个，仅在顶层展开后重建时是新建的
+  /// （首帧即目标尺寸，不产生动画），属于冗余层，已删除。
   Widget _buildChildrenSection(
     BuildContext context,
     List<TreeNode> children,
@@ -319,46 +328,38 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     required Map<String, Task> byIdAll,
     required bool animateRows,
   }) {
-    return AnimatedSize(
-      duration: motionNormal(context),
-      curve: motionCurve(context),
-      alignment: Alignment.topCenter,
-      clipBehavior: Clip.hardEdge,
-      child: children.isEmpty
-          ? const SizedBox(width: double.infinity)
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (var i = 0; i < children.length; i++) ...[
-                  StaggeredFadeSlide(
-                    index: i,
-                    interval: AppTokens.motionTreeStaggerDelay,
-                    animateOnBuild: animateRows,
-                    child: _buildDraggableRow(
-                      context,
-                      children[i],
-                      repo,
-                      expandState,
-                      style: TaskRowStyle.compact,
-                      childrenIndexAll: childrenIndexAll,
-                      byIdAll: byIdAll,
-                    ),
-                  ),
-                  if (children[i].isExpanded &&
-                      (childrenOf[children[i].task.id]?.isNotEmpty ?? false))
-                    _buildChildrenSection(
-                      context,
-                      childrenOf[children[i].task.id]!,
-                      childrenOf,
-                      repo,
-                      expandState,
-                      childrenIndexAll: childrenIndexAll,
-                      byIdAll: byIdAll,
-                      animateRows: expandState[children[i].task.id] == true,
-                    ),
-                ],
-              ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < children.length; i++) ...[
+          StaggeredFadeSlide(
+            index: i,
+            interval: AppTokens.motionTreeStaggerDelay,
+            animateOnBuild: animateRows,
+            child: _buildDraggableRow(
+              context,
+              children[i],
+              repo,
+              expandState,
+              style: TaskRowStyle.compact,
+              childrenIndexAll: childrenIndexAll,
+              byIdAll: byIdAll,
             ),
+          ),
+          if (children[i].isExpanded &&
+              (childrenOf[children[i].task.id]?.isNotEmpty ?? false))
+            _buildChildrenSection(
+              context,
+              childrenOf[children[i].task.id]!,
+              childrenOf,
+              repo,
+              expandState,
+              childrenIndexAll: childrenIndexAll,
+              byIdAll: byIdAll,
+              animateRows: expandState[children[i].task.id] == true,
+            ),
+        ],
+      ],
     );
   }
 

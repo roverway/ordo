@@ -783,6 +783,33 @@ void main() {
       expect(settled, isTrue);
     });
 
+    testWidgets('孙级展开高度动画由单层 AnimatedSize 承担（评审 #3 回归）', (tester) async {
+      await _pumpTree(
+        tester,
+        [
+          _task('r', title: 'Root'),
+          _task('b', parentId: 'r', title: 'B', sortOrder: 1),
+          _task('c', parentId: 'b', title: 'C', sortOrder: 1),
+        ],
+        expandState: {'r': true, 'b': false},
+      );
+
+      // 清理后整棵树只有卡片级一个 AnimatedSize（内层冗余已删除）。
+      expect(find.byType(AnimatedSize), findsOneWidget);
+
+      // 显式展开孙级任务 b（Root 展开、B 折叠 → 第 2 个箭头是 B 的）。
+      await tester.tap(find.byIcon(Icons.arrow_right).at(1));
+      await tester.pump(); // 单帧：高度动画刚启动（尺寸仍在旧值）。
+      final heightDuring = tester.getSize(find.byType(AnimatedSize)).height;
+      await tester.pumpAndSettle();
+      final heightSettled = tester.getSize(find.byType(AnimatedSize)).height;
+
+      // 若内层 AnimatedSize 被误删且外层未覆盖孙级变化，首帧即到位
+      //（heightDuring == heightSettled）；实际外层会重定向动画追平 →
+      // 首帧小于终值，证明孙级展开仍有平滑高度过渡。
+      expect(heightSettled, greaterThan(heightDuring));
+    });
+
     testWidgets('reduced motion：一级卡片入场错落瞬时降级（NFR-06）', (tester) async {
       tester.platformDispatcher.accessibilityFeaturesTestValue =
           FakeAccessibilityFeatures(disableAnimations: true);
