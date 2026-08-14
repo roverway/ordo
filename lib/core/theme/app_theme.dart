@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'app_tokens.dart';
 
@@ -32,6 +33,13 @@ abstract final class AppTheme {
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0.5,
+        // 状态栏图标明暗（用户反馈：顶部时间/wifi/信号/电量看不清）：
+        // AppBar 背景为透明，Flutter 按透明（luminance=0）误判为深色 → 默认
+        // 浅色图标，落在浅色页面底（surfacePageLight）上几乎不可见。
+        // 按主题明暗显式指定：浅色主题用深色图标、深色主题用浅色图标。
+        systemOverlayStyle: isDark
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark,
         titleTextStyle: TextStyle(
           fontSize: AppTokens.textHeadingSize,
           fontWeight: AppTokens.textHeadingWeight,
