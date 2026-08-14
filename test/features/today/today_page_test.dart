@@ -521,6 +521,16 @@ void main() {
     );
     expect(tileFade.opacity.value, 1.0);
 
+    // 回归（评审发现）：index ≥ 1 的项其错落 **延迟** 也必须随 reduced-motion
+    // 归零——修复前 delay 未降级，第二项起会在整段延迟期保持 opacity 0
+    // 后瞬间弹出（逐项弹出正是减弱动态效果要消除的动效）。
+    final secondFade = tester.widget<FadeTransition>(
+      find
+          .ancestor(of: find.text('任务B'), matching: find.byType(FadeTransition))
+          .first,
+    );
+    expect(secondFade.opacity.value, 1.0);
+
     // A 勾选弹性瞬时：勾选框最近的 ScaleTransition 保持 1.0（不缩放）。
     final checkboxScale = tester.widget<ScaleTransition>(
       find

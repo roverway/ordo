@@ -91,10 +91,13 @@ class _StaggeredFadeSlideState extends State<StaggeredFadeSlide>
     }
 
     // reduced motion：motionNormal 归零 → 瞬时到位（不再播放动画）。
+    // 注意 delay（逐项错落延迟）也必须随 reduced-motion 归零——否则 index ≥ 1
+    // 的项会在整个延迟段保持 opacity 0 后瞬间弹出（逐项弹出正是减弱动态
+    // 效果要消除的动效，评审发现）。两者同时归零 total 才为 zero。
     final normal = motionNormal(context);
-    final delay = Duration(
-      milliseconds: widget.index * widget.interval.inMilliseconds,
-    );
+    final delay = isReducedMotion(context)
+        ? Duration.zero
+        : Duration(milliseconds: widget.index * widget.interval.inMilliseconds);
     final total = normal + delay;
     if (total == Duration.zero) {
       _controller.value = 1.0;
