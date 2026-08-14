@@ -60,6 +60,9 @@ class SubtaskRow {
 
   final TextEditingController controller;
 
+  /// 行内标题输入的焦点（用户要求：添加新行后自动聚焦到新行输入框）。
+  final FocusNode focusNode = FocusNode();
+
   bool get isNew => id == null;
 }
 
@@ -155,6 +158,7 @@ class TaskEditorController extends ChangeNotifier {
     if (row.id != null) removedSubtaskIds.add(row.id!);
     subtaskRows.remove(row);
     row.controller.dispose();
+    row.focusNode.dispose();
     notifyListeners();
   }
 
@@ -175,6 +179,7 @@ class TaskEditorController extends ChangeNotifier {
     notesController.dispose();
     for (final row in subtaskRows) {
       row.controller.dispose();
+      row.focusNode.dispose();
     }
     super.dispose();
   }
@@ -253,6 +258,8 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final formState = ref.watch(taskFormProvider);
     ref.listen(taskFormProvider, (previous, next) => _syncControllers(next));
 
@@ -274,6 +281,39 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
         // ② 描述：默认内联展示（59 讨论定稿，替代 ⋯ 菜单开关）；备注仍由 ⋯ 菜单开关（D8）。
         const SizedBox(height: AppTokens.spaceSm),
         _buildDescriptionNotes(context, l10n),
+        // ②.5 日期展示行（用户反馈：已设开始/截止日期在编辑器正文不可见，
+        // 仅工具栏弹层内可见）：form 驱动实时展示，纯展示无交互（工具栏
+        // 日期图标仍是唯一交互入口）；无已设日期不渲染。
+        if (formState.startAt != null || formState.endAt != null) ...[
+          const SizedBox(height: AppTokens.spaceXs),
+          Row(
+            children: [
+              Icon(
+                Icons.calendar_today_outlined,
+                size: 14,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: AppTokens.spaceXxs),
+              Expanded(
+                child: Text(
+                  formatDateRange(formState.startAt, formState.endAt, l10n),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+        // ②.6 已选标签 chips（用户要求）：form 驱动实时预览，纯展示无交互，
+        // 外观与任务行/扁平行标签 chip 一致；无已选标签不渲染。
+        // 顺序与任务列表行一致（日期在上、标签在底部）。
+        if (formState.selectedTagIds.isNotEmpty) ...[
+          const SizedBox(height: AppTokens.spaceXs),
+          _buildSelectedTagChips(context, formState),
+        ],
         // ③ 子任务列表（仅 1 级任务展示）。
         if (widget.showSubtasks) ...[
           const SizedBox(height: AppTokens.spaceXs),
@@ -310,6 +350,9 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
     return TextField(
       controller: widget.controller.titleController,
       autofocus: true,
+      // 长标题自动换行（用户要求）：maxLines: null = 不限行数，随输入自动
+      // 增高；键盘回车由平台改为换行（单行 next 动作随之失效，属预期取舍）。
+      maxLines: null,
       // 规格：18 / w600（titleLarge = textTitleSize / textTitleWeight）。
       style: theme.textTheme.titleLarge,
       decoration: InputDecoration(
@@ -350,6 +393,46 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
     );
   }
 
+  // ── 已选标签 chips（form 驱动实时预览，纯展示无交互）────────────
+
+  /// 已选标签 chips（用户要求）：顺序按 [TaskFormState.selectedTagIds] 保持，
+  /// 外观与任务行/扁平行标签 chip 完全一致（0.12 色底 + 色字 w500 +
+  /// [AppTokens.radiusChip]）；无交互（display-only）。
+  Widget _buildSelectedTagChips(BuildContext context, TaskFormState formState) {
+    final theme = Theme.of(context);
+    final tags = ref.watch(tagsStreamProvider).value ?? const <Tag>[];
+    final selectedTags = [
+      for (final id in formState.selectedTagIds)
+        if (tags.any((t) => t.id == id)) tags.firstWhere((t) => t.id == id),
+    ];
+    return Wrap(
+      spacing: AppTokens.spaceXs,
+      runSpacing: AppTokens.spaceXs,
+      children: [
+        for (final tag in selectedTags)
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTokens.spaceXs,
+              vertical: 2,
+            ),
+            decoration: BoxDecoration(
+              color: Color(tag.color).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+            ),
+            child: Text(
+              tag.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Color(tag.color),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   // ── 子任务区（圆形复选框 + 拖拽排序 + 新增行）───────────────────
 
   Widget _buildSubtasks(BuildContext context, AppLocalizations l10n) {
@@ -378,19 +461,31 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                 index: index,
                 row: row,
                 onRemove: () => _confirmRemoveSubtask(row),
-                onSubmitted: widget.controller.addSubtask,
+                onSubmitted: _addSubtaskAndFocus,
                 // 输入即通知（状态派生禁用实时依据，D7）。
                 onChanged: widget.controller.notifySubtasksChanged,
               );
             },
           ),
         TextButton.icon(
-          onPressed: widget.controller.addSubtask,
+          onPressed: _addSubtaskAndFocus,
           icon: const Icon(Icons.add, size: 18),
           label: Text(l10n.addSubtask),
         ),
       ],
     );
+  }
+
+  /// 添加子任务行并聚焦新行输入框（用户要求：点击/回车后光标直接落在新行，
+  /// 等待输入子任务标题）。首帧后聚焦：新行 TextField 需先完成 build 挂载
+  /// FocusNode。addSubtask 恒追加到末尾，rows.last 即新行。
+  void _addSubtaskAndFocus() {
+    widget.controller.addSubtask();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final rows = widget.controller.subtaskRows;
+      if (rows.isNotEmpty) rows.last.focusNode.requestFocus();
+    });
   }
 
   /// 删除子任务行：新建行直接移除；现有行带确认弹窗（级联硬删）。
@@ -640,6 +735,9 @@ class _SubtaskRowTile extends StatelessWidget {
         Expanded(
           child: TextField(
             controller: row.controller,
+            // 行内持有焦点（用户要求：新增行后自动聚焦，行移除/控制器
+            // dispose 时释放）。
+            focusNode: row.focusNode,
             decoration: InputDecoration(
               hintText: l10n.subtaskHint,
               border: InputBorder.none,

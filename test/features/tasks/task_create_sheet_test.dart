@@ -2,7 +2,8 @@
 //
 // 覆盖：结构渲染（顶部清单名/标题输入/选项行）、自动保存（输入标题后关闭 →
 // 复用 taskFormProvider.save 落库）、空内容关闭不落库、有内容但标题为空 →
-// 提示并停留、优先级选择持久化、收件箱解析期间输入不被清空（评审问题 2 回归）。
+// 提示并停留、优先级选择持久化、收件箱解析期间输入不被清空（评审问题 2 回归）、
+// 添加子任务后焦点自动移到新行输入框（用户要求）。
 
 import 'dart:async';
 
@@ -242,5 +243,33 @@ void main() {
     final all = await repo.tasks.getAllByProject(inboxProjectId);
     expect(all, hasLength(1));
     expect(all.single.title, '等待期间输入');
+  });
+
+  testWidgets('添加子任务后焦点自动移到新行输入框（用户要求）', (tester) async {
+    final repo = await _repo('p1');
+    await _openSheet(tester, repo: repo);
+
+    // 子任务行输入框使用显式 focusNode（行内状态），标题/描述框没有
+    // （TextField 未传 focusNode 时内部自管、widget.focusNode == null）。
+    List<TextField> subtaskFields() => tester
+        .widgetList<TextField>(find.byType(TextField))
+        .where((w) => w.focusNode != null)
+        .toList();
+
+    expect(subtaskFields(), isEmpty);
+
+    // 点击「添加子任务」→ 新行出现且获得焦点（光标直接落在新行等待输入）。
+    await tester.tap(find.text('添加子任务'));
+    await tester.pumpAndSettle();
+    expect(subtaskFields(), hasLength(1));
+    expect(subtaskFields().single.focusNode!.hasFocus, isTrue);
+
+    // 新行输入内容后回车（onSubmitted）→ 追加下一行并再次聚焦（与按钮同 UX）。
+    await tester.enterText(find.byType(TextField).last, '子任务一');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(subtaskFields(), hasLength(2));
+    expect(subtaskFields().last.focusNode!.hasFocus, isTrue);
+    expect(subtaskFields().first.focusNode!.hasFocus, isFalse);
   });
 }
