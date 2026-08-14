@@ -67,11 +67,17 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
 
     return tasksAsync.when(
       data: (tasks) {
+        // 全量任务集索引（一次构建、整棵树共享）：_buildTaskRow 每行与
+        // 隐藏过滤复用，避免每行重算 O(n) 索引（打开任务页变慢的主因）。
+        final childrenIndexAll = indexChildrenByParent(tasks);
+        final byIdAll = indexTasksById(tasks);
         // 隐藏已完成任务（会话级，用户要求）：按**有效状态**过滤——有直接
         // 子任务的任务用派生状态（derivedStatus），叶子用自身 status。在
         // treeNodes / 计数 / 拖拽逻辑之前过滤，整棵可见树保持一致。
         final hideDone = ref.watch(hideCompletedTasksProvider);
-        final visibleTasks = hideDone ? _filterDoneTasks(tasks) : tasks;
+        final visibleTasks = hideDone
+            ? _filterDoneTasks(tasks, childrenIndexAll)
+            : tasks;
         if (visibleTasks.isEmpty) {
           return _buildEmptyState(context, l10n);
         }
@@ -109,6 +115,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
               // 派生计数/进度基于**全量**任务集（用户要求：计数不随
               // 「隐藏已完成任务」变化；treeNodes 仍用过滤后的可见集）。
               fullTasks: tasks,
+              childrenIndexAll: childrenIndexAll,
+              byIdAll: byIdAll,
             );
           },
         );
@@ -127,9 +135,12 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
   ///
   /// 按**有效状态**判定：有直接子任务的任务用派生状态（derivedStatus），
   /// 叶子用自身 status。done 任务的整棵子树均为 done（派生语义），可见
-  /// 任务不会引用被隐藏的父级，树结构保持一致。
-  List<Task> _filterDoneTasks(List<Task> tasks) {
-    final childrenIndex = indexChildrenByParent(tasks);
+  /// 任务不会引用被隐藏的父级，树结构保持一致。[childrenIndex] 为调用方
+  /// 预构建的全量任务集索引（复用，避免重复 O(n) 扫描）。
+  List<Task> _filterDoneTasks(
+    List<Task> tasks,
+    Map<String?, List<Task>> childrenIndex,
+  ) {
     return tasks.where((t) {
       final children = childrenIndex[t.id] ?? const <Task>[];
       final eff = children.isEmpty ? t.status : derivedStatus(t, children);
@@ -171,6 +182,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     TodoRepository repo,
     Map<String, bool> expandState, {
     required List<Task> fullTasks,
+    required Map<String?, List<Task>> childrenIndexAll,
+    required Map<String, Task> byIdAll,
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -205,6 +218,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
                 expandState,
                 style: TaskRowStyle.cardHeader,
                 fullTasks: fullTasks,
+                childrenIndexAll: childrenIndexAll,
+                byIdAll: byIdAll,
               ),
               // 用户打磨要求 2：去掉子行间 Divider（行间靠间距区分）。
               if (rootNode.isExpanded && children.isNotEmpty)
@@ -216,6 +231,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
                   repo,
                   expandState,
                   fullTasks: fullTasks,
+                  childrenIndexAll: childrenIndexAll,
+                  byIdAll: byIdAll,
                 ),
             ],
           ),
@@ -234,6 +251,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     TodoRepository repo,
     Map<String, bool> expandState, {
     required List<Task> fullTasks,
+    required Map<String?, List<Task>> childrenIndexAll,
+    required Map<String, Task> byIdAll,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -247,6 +266,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
             expandState,
             style: TaskRowStyle.compact,
             fullTasks: fullTasks,
+            childrenIndexAll: childrenIndexAll,
+            byIdAll: byIdAll,
           ),
           if (children[i].isExpanded &&
               (childrenOf[children[i].task.id]?.isNotEmpty ?? false))
@@ -258,6 +279,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
               repo,
               expandState,
               fullTasks: fullTasks,
+              childrenIndexAll: childrenIndexAll,
+              byIdAll: byIdAll,
             ),
         ],
       ],
@@ -281,6 +304,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     TodoRepository repo,
     Map<String, bool> expandState, {
     required List<Task> fullTasks,
+    required Map<String?, List<Task>> childrenIndexAll,
+    required Map<String, Task> byIdAll,
     required TaskRowStyle style,
   }) {
     return LongPressDraggable<String>(
@@ -329,6 +354,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
           expandState,
           style: style,
           fullTasks: fullTasks,
+          childrenIndexAll: childrenIndexAll,
+          byIdAll: byIdAll,
           isDragging: true,
         ),
       ),
@@ -477,6 +504,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
               expandState,
               style: style,
               fullTasks: fullTasks,
+              childrenIndexAll: childrenIndexAll,
+              byIdAll: byIdAll,
               isDragTarget: _dragTargetId == node.task.id,
               isInvalidDragTarget:
                   _isInvalidDragTarget && _dragTargetId == node.task.id,
@@ -603,6 +632,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     TodoRepository repo,
     Map<String, bool> expandState, {
     required List<Task> fullTasks,
+    required Map<String?, List<Task>> childrenIndexAll,
+    required Map<String, Task> byIdAll,
     TaskRowStyle style = TaskRowStyle.cardHeader,
     bool isDragTarget = false,
     bool isInvalidDragTarget = false,
@@ -611,9 +642,10 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
   }) {
     // 派生计数/进度/完成度一律基于**全量**任务集（用户要求：子任务
     // 「未完成/总数」不随「隐藏已完成任务」开关变化）；行是否渲染仍由
-    // 过滤后的 treeNodes（node.hasChildren）决定。
-    final childrenIndex = indexChildrenByParent(fullTasks);
-    final byId = indexTasksById(fullTasks);
+    // 过滤后的 treeNodes（node.hasChildren）决定。索引由 build() 一次
+    // 构建后整树共享，避免每行重算 O(n)。
+    final childrenIndex = childrenIndexAll;
+    final byId = byIdAll;
     final directChildren = childrenIndex[node.task.id] ?? const <Task>[];
     // 未完成子任务数：用每个子任务的有效状态（有子任务的按派生状态）判定，
     // 与勾选框/派生语义一致（AGENTS.md §3-2）；仅 done 视为完成。
