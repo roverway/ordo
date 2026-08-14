@@ -631,6 +631,37 @@ void main() {
       // 项目快照携带 folderId。
       expect(data.projects.single.folderId, f1.id);
     });
+
+    test('applyMerged 同步路径删除文件夹：解收纳后未分组组 sortOrder 连续', () async {
+      // 场景（评审发现）：设备 B 有文件夹 F 内项目 P1/P2（sortOrder 0,1），
+      // 另有未分组 Q1/Q2（sortOrder 0,1）。设备 A 删除 F，B 同步合并后
+      // reconcileFolderIds 已置 folderId=null，hardDeleteFolderIds 含 F。
+      // 先建未分组项目（占据未分组组 sortOrder 0/1），再建项目入夹——
+      // 解收纳后 P1/P2 保留组内 sortOrder 0/1 与 Q 冲突，验证重排修复。
+      final f = await repo.createFolder(name: 'F');
+      await repo.createProject(name: 'Q1', color: 0);
+      await repo.createProject(name: 'Q2', color: 0);
+      final p1 = await repo.createProject(name: 'P1', color: 0);
+      final p2 = await repo.createProject(name: 'P2', color: 0);
+      await repo.moveProjectToFolder(p1.id, folderId: f.id, newIndex: 0);
+      await repo.moveProjectToFolder(p2.id, folderId: f.id, newIndex: 1);
+
+      await repo.applyMerged(MergedApplyOperation(hardDeleteFolderIds: [f.id]));
+
+      // 文件夹行已硬删。
+      expect(await repo.folders.getById(f.id), isNull);
+      // 项目全部解收纳回未分组（不级联删项目）。
+      final ungrouped = await repo.projects.getAllInFolder(null);
+      expect(
+        ungrouped.map((p) => p.name).toSet(),
+        {'Q1', 'Q2', 'P1', 'P2'},
+        reason: '解收纳后 4 个项目都应在未分组组（顺序不依赖同值 sortOrder 的读取次序）',
+      );
+      // 修复核心：未分组组 sortOrder 重排连续（修复前会存在同值冲突）。
+      await expectProjectGroupContinuous(null);
+      expect(await repo.projects.getById(p1.id), isNotNull);
+      expect(await repo.projects.getById(p2.id), isNotNull);
+    });
   });
 
   group('收件箱（Inbox）', () {

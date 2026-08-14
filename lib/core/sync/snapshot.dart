@@ -31,7 +31,8 @@ class SnapshotData {
     this.folders = const [],
   });
 
-  /// 快照格式版本，当前为 1（§3）。合法性由 snapshot_codec 校验。
+  /// 快照格式版本，当前为 2（§3 / 62-folder-nav.md §5.1；v2 新增 folders +
+  /// project.folderId）。合法性由 snapshot_codec 校验（支持区间 [1,2]）。
   final int schemaVersion;
 
   /// 导出本快照的设备 ID（UUID）。

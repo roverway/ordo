@@ -966,6 +966,12 @@ class TodoRepository {
           database.folders,
         )..where((f) => f.id.equals(folderId))).go();
       }
+      // 与本地 deleteFolder 一致（62-folder-nav.md §4.3）：解收纳后重排未分组
+      // 组 sortOrder 连续。同步路径此前缺失（评审发现），否则与本地删除路径
+      // 不一致，未分组组可能出现同值 sortOrder 导致显示顺序不确定（自愈）。
+      if (ops.hardDeleteFolderIds.isNotEmpty) {
+        await _renumberProjectGroup(null, _nowMs());
+      }
     });
   }
 
