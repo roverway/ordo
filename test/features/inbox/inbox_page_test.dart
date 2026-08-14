@@ -106,6 +106,11 @@ Future<void> _pumpInbox(
         // 新建弹窗 watch 的 drift 流也须覆盖（fake_async 下避免残留 Timer）。
         projectsStreamProvider.overrideWithValue(AsyncData([inboxProject])),
         tagsStreamProvider.overrideWithValue(const AsyncData(<Tag>[])),
+        // 任务行标签流也须覆盖：taskTagsProvider 是真实 drift watch 流，
+        // fake_async 下残留 Timer（与 task_tree_test 的 _pumpTreeWithDb 一致）。
+        taskTagsProvider.overrideWith(
+          (ref, taskId) => Stream.value(const <Tag>[]),
+        ),
       ],
       child: MaterialApp.router(
         routerConfig: router,
