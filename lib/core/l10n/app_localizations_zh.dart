@@ -140,6 +140,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get hideCompletedTasks => '隐藏已完成任务';
 
   @override
+  String get allTasksCompleted => '全部任务已完成';
+
+  @override
   String get newTask => '新建任务';
 
   @override

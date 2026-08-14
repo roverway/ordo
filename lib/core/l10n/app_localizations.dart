@@ -356,6 +356,12 @@ abstract class AppLocalizations {
   /// **'隐藏已完成任务'**
   String get hideCompletedTasks;
 
+  /// No description provided for @allTasksCompleted.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部任务已完成'**
+  String get allTasksCompleted;
+
   /// No description provided for @newTask.
   ///
   /// In zh, this message translates to:

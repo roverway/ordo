@@ -509,6 +509,51 @@ void main() {
     expect(find.text('1/2'), findsOneWidget);
   });
 
+  testWidgets('项目仅含已完成任务且隐藏开启 → 显示「全部任务已完成」空态（F4）', (tester) async {
+    final project = Project(
+      id: 'p1',
+      name: '工作',
+      color: 0xFF4A6CF7,
+      description: '',
+      sortOrder: 0,
+      createdAt: 0,
+      updatedAt: 0,
+      deleted: 0,
+    );
+    await pumpApp(
+      tester,
+      const Size(400, 800),
+      projects: [project],
+      projectTasks: [_seedTask('t-done', '已完成任务', TaskStatus.done)],
+    );
+
+    // 进入项目页（抽屉 → 项目名）。
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: find.byType(Drawer), matching: find.text('工作')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('已完成任务'), findsOneWidget);
+
+    // 隐藏已完成 → 全部被隐藏 → 专用空态「全部任务已完成」（区别于
+    // 「还没有任务」的普通空态）。
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('隐藏已完成任务'));
+    await tester.pumpAndSettle();
+    expect(find.text('已完成任务'), findsNothing);
+    expect(find.text('全部任务已完成'), findsOneWidget);
+
+    // 恢复显示 → 任务返回、空态消失。
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('显示已完成任务'));
+    await tester.pumpAndSettle();
+    expect(find.text('已完成任务'), findsOneWidget);
+    expect(find.text('全部任务已完成'), findsNothing);
+  });
+
   testWidgets('Project scope: delete project navigates to /today (D5)', (
     tester,
   ) async {

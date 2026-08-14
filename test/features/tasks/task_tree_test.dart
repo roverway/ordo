@@ -59,12 +59,21 @@ class _TestTreeExpandNotifier extends TreeExpandNotifier {
   Map<String, bool> build() => _initial;
 }
 
+/// 测试用 HideCompletedTasksNotifier，build() 返回预设值。
+class _TestHideCompletedNotifier extends HideCompletedTasksNotifier {
+  _TestHideCompletedNotifier(this._initial);
+  final bool _initial;
+  @override
+  bool build() => _initial;
+}
+
 Future<void> _pumpTree(
   WidgetTester tester,
   List<Task> tasks, {
   Map<String, bool> expandState = const {},
   Size size = const Size(400, 800),
   Map<String, List<Tag>> taskTags = const {},
+  bool hideCompleted = false,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
@@ -103,6 +112,9 @@ Future<void> _pumpTree(
       ]),
     ),
     projectTasksProvider.overrideWith((ref, projectId) => Stream.value(tasks)),
+    hideCompletedTasksProvider.overrideWith(
+      () => _TestHideCompletedNotifier(hideCompleted),
+    ),
     treeExpandProvider.overrideWith2(
       (arg) => _TestTreeExpandNotifier(expandState),
     ),
@@ -144,6 +156,7 @@ Future<TodoRepository> _pumpTreeWithDb(
   List<Task> tasks, {
   Map<String, bool> expandState = const {},
   Size size = const Size(400, 800),
+  bool hideCompleted = false,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
@@ -197,6 +210,9 @@ Future<TodoRepository> _pumpTreeWithDb(
       ]),
     ),
     projectTasksProvider.overrideWith((ref, projectId) => Stream.value(tasks)),
+    hideCompletedTasksProvider.overrideWith(
+      () => _TestHideCompletedNotifier(hideCompleted),
+    ),
     treeExpandProvider.overrideWith2(
       (arg) => _TestTreeExpandNotifier(expandState),
     ),
@@ -546,6 +562,35 @@ void main() {
       expect(find.byIcon(Icons.arrow_right), findsOneWidget);
     });
 
+    testWidgets('隐藏已完成（F1 回归）：A 存储 done 但有未完成子任务 C → P/A/C 全保留', (
+      tester,
+    ) async {
+      // 可达状态：A 先完成（存储 done），后新增子任务 C（createTask 不重置
+      // 父级存储状态）→ A 的有效状态由 C 派生为 todo。hide ON 时若按一级
+      // derivedStatus 判定，P 读 A 的**存储** done 被隐藏、A/C 悬空成一级；
+      // 递归判定（整棵子树全部 done 才隐藏）应保留 P/A/C 整条链。
+      await _pumpTree(tester, [
+        _task('p', title: 'P', status: TaskStatus.todo),
+        _task(
+          'a',
+          parentId: 'p',
+          title: 'A',
+          status: TaskStatus.done,
+          sortOrder: 1,
+        ),
+        _task(
+          'c',
+          parentId: 'a',
+          title: 'C',
+          status: TaskStatus.todo,
+          sortOrder: 1,
+        ),
+      ], hideCompleted: true);
+      expect(find.text('P'), findsOneWidget);
+      expect(find.text('A'), findsOneWidget);
+      expect(find.text('C'), findsOneWidget);
+    });
+
     testWidgets('描述文字显示在标题下方（有内容才渲染）', (tester) async {
       await _pumpTree(tester, [
         _task('r', title: 'Root', description: '这是一段描述'),
@@ -881,6 +926,32 @@ void main() {
       after = await repo.tasks.getByProject('p1');
       expect(after.firstWhere((t) => t.id == 'b').parentId, isNull);
       expect(after.firstWhere((t) => t.id == 'a').parentId, 'c'); // 未变。
+    });
+
+    testWidgets('隐藏已完成（F2 回归）：「回到 1 级」落点按**全量**根计数落位', (tester) async {
+      final repo = await _pumpTreeWithDb(tester, [
+        _task('r1', title: 'R1', sortOrder: 0),
+        _task('rh', title: 'RH', status: TaskStatus.done, sortOrder: 1),
+        _task('b', title: 'B', parentId: 'r1', sortOrder: 0),
+      ], hideCompleted: true);
+
+      // RH 被隐藏。长按 B 拖到「回到 1 级」落点 → newIndex 应为**全量**根计数
+      // 2（R1=0、RH=1 之后），而非可见根计数 1（会与隐藏行 sortOrder 冲突）。
+      final dragStart = tester.getCenter(find.text('B'));
+      final gesture = await tester.startGesture(dragStart);
+      await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
+      await tester.pump(const Duration(milliseconds: 50));
+      final dropZone = find.textContaining('回到 1 级');
+      expect(dropZone, findsOneWidget);
+      await gesture.moveTo(tester.getCenter(dropZone));
+      await tester.pump(const Duration(milliseconds: 50));
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      final after = await repo.tasks.getByProject('p1');
+      final b = after.firstWhere((t) => t.id == 'b');
+      expect(b.parentId, isNull);
+      expect(b.sortOrder, 2);
     });
   });
 

@@ -67,19 +67,28 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
 
     return tasksAsync.when(
       data: (tasks) {
+        if (tasks.isEmpty) {
+          return _buildEmptyState(context, l10n);
+        }
         // 全量任务集索引（一次构建、整棵树共享）：_buildTaskRow 每行与
         // 隐藏过滤复用，避免每行重算 O(n) 索引（打开任务页变慢的主因）。
         final childrenIndexAll = indexChildrenByParent(tasks);
         final byIdAll = indexTasksById(tasks);
-        // 隐藏已完成任务（会话级，用户要求）：按**有效状态**过滤——有直接
-        // 子任务的任务用派生状态（derivedStatus），叶子用自身 status。在
-        // treeNodes / 计数 / 拖拽逻辑之前过滤，整棵可见树保持一致。
+        // 隐藏已完成任务（会话级，用户要求）：按**递归有效状态**过滤——叶子
+        // 看自身 status，有子任务的**整棵子树**全部递归 done 才隐藏（F1 修复：
+        // 避免「A 存储 done 但有未完成子任务」时父级被隐藏导致可见子树悬空）。
+        // 在 treeNodes / 计数 / 拖拽逻辑之前过滤，整棵可见树保持一致。
         final hideDone = ref.watch(hideCompletedTasksProvider);
         final visibleTasks = hideDone
             ? _filterDoneTasks(tasks, childrenIndexAll)
             : tasks;
         if (visibleTasks.isEmpty) {
-          return _buildEmptyState(context, l10n);
+          // 任务存在但全部被隐藏（hide ON 且全部已完成）→ 专用空态，
+          // 与「还没有任务」（tasks.isEmpty）区分（F4）。
+          return EmptyState(
+            icon: Icons.check_circle_outline,
+            message: l10n.allTasksCompleted,
+          );
         }
 
         final treeNodes = buildTreeNodes(
@@ -102,19 +111,23 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
           itemBuilder: (context, index) {
             // 拖拽进行时在列表末尾追加"回到 1 级"落点（FR-TSK-07）。
             if (index >= roots.length) {
-              return _buildRootDropZone(context, visibleTasks, repo, l10n);
+              return _buildRootDropZone(
+                context,
+                visibleTasks,
+                repo,
+                l10n,
+                childrenIndexAll,
+              );
             }
             final root = roots[index];
             return _buildCard(
               context,
               root,
               childrenOf,
-              visibleTasks,
               repo,
               expandState,
-              // 派生计数/进度基于**全量**任务集（用户要求：计数不随
+              // 派生计数/进度/拖拽落位均基于**全量**任务集索引（计数不随
               // 「隐藏已完成任务」变化；treeNodes 仍用过滤后的可见集）。
-              fullTasks: tasks,
               childrenIndexAll: childrenIndexAll,
               byIdAll: byIdAll,
             );
@@ -133,19 +146,28 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
 
   /// 过滤出未完成任务的可见集合（用户要求：隐藏已完成任务）。
   ///
-  /// 按**有效状态**判定：有直接子任务的任务用派生状态（derivedStatus），
-  /// 叶子用自身 status。done 任务的整棵子树均为 done（派生语义），可见
-  /// 任务不会引用被隐藏的父级，树结构保持一致。[childrenIndex] 为调用方
+  /// **递归**判定（F1 修复）：叶子按自身 status；有子任务的**整棵子树**全部
+  /// 递归 done 才视为 done 并隐藏——避免「A 存储 done 但后来新增了未完成
+  /// 子任务 C（createTask 不重置父级存储状态）」时 A 被隐藏、其可见子树
+  /// 悬空成一级任务。cancelled ≠ done，保持可见。[childrenIndex] 为调用方
   /// 预构建的全量任务集索引（复用，避免重复 O(n) 扫描）。
   List<Task> _filterDoneTasks(
     List<Task> tasks,
     Map<String?, List<Task>> childrenIndex,
   ) {
-    return tasks.where((t) {
+    final doneMap = <String, bool>{};
+    bool isDoneRecursive(Task t) {
+      final cached = doneMap[t.id];
+      if (cached != null) return cached;
       final children = childrenIndex[t.id] ?? const <Task>[];
-      final eff = children.isEmpty ? t.status : derivedStatus(t, children);
-      return eff != TaskStatus.done;
-    }).toList();
+      final done = children.isEmpty
+          ? t.status == TaskStatus.done
+          : children.every(isDoneRecursive);
+      doneMap[t.id] = done;
+      return done;
+    }
+
+    return tasks.where((t) => !isDoneRecursive(t)).toList();
   }
 
   /// 将扁平先序 [treeNodes] 分组成「父任务 id → 直接子节点列表」。
@@ -178,10 +200,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     BuildContext context,
     TreeNode rootNode,
     Map<String, List<TreeNode>> childrenOf,
-    List<Task> tasks,
     TodoRepository repo,
     Map<String, bool> expandState, {
-    required List<Task> fullTasks,
     required Map<String?, List<Task>> childrenIndexAll,
     required Map<String, Task> byIdAll,
   }) {
@@ -213,11 +233,9 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
               _buildDraggableRow(
                 context,
                 rootNode,
-                tasks,
                 repo,
                 expandState,
                 style: TaskRowStyle.cardHeader,
-                fullTasks: fullTasks,
                 childrenIndexAll: childrenIndexAll,
                 byIdAll: byIdAll,
               ),
@@ -227,10 +245,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
                   context,
                   children,
                   childrenOf,
-                  tasks,
                   repo,
                   expandState,
-                  fullTasks: fullTasks,
                   childrenIndexAll: childrenIndexAll,
                   byIdAll: byIdAll,
                 ),
@@ -247,10 +263,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     BuildContext context,
     List<TreeNode> children,
     Map<String, List<TreeNode>> childrenOf,
-    List<Task> tasks,
     TodoRepository repo,
     Map<String, bool> expandState, {
-    required List<Task> fullTasks,
     required Map<String?, List<Task>> childrenIndexAll,
     required Map<String, Task> byIdAll,
   }) {
@@ -261,11 +275,9 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
           _buildDraggableRow(
             context,
             children[i],
-            tasks,
             repo,
             expandState,
             style: TaskRowStyle.compact,
-            fullTasks: fullTasks,
             childrenIndexAll: childrenIndexAll,
             byIdAll: byIdAll,
           ),
@@ -275,10 +287,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
               context,
               childrenOf[children[i].task.id]!,
               childrenOf,
-              tasks,
               repo,
               expandState,
-              fullTasks: fullTasks,
               childrenIndexAll: childrenIndexAll,
               byIdAll: byIdAll,
             ),
@@ -300,10 +310,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
   Widget _buildDraggableRow(
     BuildContext context,
     TreeNode node,
-    List<Task> tasks,
     TodoRepository repo,
     Map<String, bool> expandState, {
-    required List<Task> fullTasks,
     required Map<String?, List<Task>> childrenIndexAll,
     required Map<String, Task> byIdAll,
     required TaskRowStyle style,
@@ -349,11 +357,9 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
         child: _buildTaskRow(
           context,
           node,
-          tasks,
           repo,
           expandState,
           style: style,
-          fullTasks: fullTasks,
           childrenIndexAll: childrenIndexAll,
           byIdAll: byIdAll,
           isDragging: true,
@@ -375,12 +381,13 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
               return false;
             }
 
-            final byId = indexTasksById(tasks);
-            final draggedTask = byId[draggedId];
-            final targetTask = byId[targetId];
+            // 防环/深度校验基于**全量**索引（F2 修复：隐藏已完成后可见集的
+            // 子树深度会少算，可能放行超深落点）。
+            final draggedTask = byIdAll[draggedId];
+            final targetTask = byIdAll[targetId];
             if (draggedTask != null && targetTask != null) {
               // 检查是否是后代（防环，§5.2）。
-              if (isDescendantOf(targetTask, draggedTask, byId)) {
+              if (isDescendantOf(targetTask, draggedTask, byIdAll)) {
                 setState(() {
                   _dragTargetId = targetId;
                   _isInvalidDragTarget = true;
@@ -394,8 +401,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
               if (!_fitsDepthLimit(
                 draggedTask,
                 targetTask,
-                byId,
-                tasks,
+                byIdAll,
+                childrenIndexAll,
                 _dropAsChild,
               )) {
                 setState(() {
@@ -426,15 +433,16 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
             final isLowerHalf = local.dy > box.size.height / 2;
             if (isLowerHalf == _dropAsChild) return;
 
-            final byId = indexTasksById(tasks);
-            final draggedTask = byId[_draggingTaskId];
-            final targetTask = byId[node.task.id];
+            // 深度校验基于**全量**索引（F2 修复：隐藏已完成后可见集子树
+            // 深度少算会放行超深落点）。
+            final draggedTask = byIdAll[_draggingTaskId];
+            final targetTask = byIdAll[node.task.id];
             if (draggedTask == null || targetTask == null) return;
             final fits = _fitsDepthLimit(
               draggedTask,
               targetTask,
-              byId,
-              tasks,
+              byIdAll,
+              childrenIndexAll,
               isLowerHalf,
             );
             setState(() {
@@ -453,21 +461,21 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
               return;
             }
 
-            final byId = indexTasksById(tasks);
-            final draggedTask = byId[draggedId];
-            final targetTask = byId[targetId];
+            final draggedTask = byIdAll[draggedId];
+            final targetTask = byIdAll[targetId];
 
             if (draggedTask == null || targetTask == null) return;
 
             final String? newParentId;
             final int newIndex;
             if (_dropAsChild) {
-              // 成为目标的子级：追加到目标现有子任务末尾。
+              // 成为目标的子级：追加到目标**全量**现有子任务末尾（F2 修复：
+              // 隐藏的 done 兄弟仍占位，newIndex 必须按全量计数）。
               newParentId = targetId;
-              final childrenIndex = indexChildrenByParent(tasks);
-              newIndex = (childrenIndex[targetId] ?? const <Task>[]).length;
+              newIndex = (childrenIndexAll[targetId] ?? const <Task>[]).length;
             } else {
-              // 同级排序：目标的父级作为新父级，插到目标之前。
+              // 同级排序：目标的父级作为新父级，插到目标之前（sortOrder 为
+              // 全量 DB 字段，天然全量）。
               newParentId = targetTask.parentId;
               newIndex = targetTask.sortOrder;
             }
@@ -499,11 +507,9 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
             return _buildTaskRow(
               context,
               node,
-              tasks,
               repo,
               expandState,
               style: style,
-              fullTasks: fullTasks,
               childrenIndexAll: childrenIndexAll,
               byIdAll: byIdAll,
               isDragTarget: _dragTargetId == node.task.id,
@@ -522,14 +528,14 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
   ///
   /// [asChild] 为 true 时新父级 = 目标自身（成为子级）；
   /// false 时新父级 = 目标的父级（同级排序）。提升为 1 级恒满足。
+  /// 基于**全量**索引（F2 修复：可见集子树深度在隐藏 done 子任务时会少算）。
   bool _fitsDepthLimit(
     Task dragged,
     Task target,
     Map<String, Task> byId,
-    List<Task> tasks,
+    Map<String?, List<Task>> childrenIndex,
     bool asChild,
   ) {
-    final childrenIndex = indexChildrenByParent(tasks);
     final nodeSubtree = subtreeDepthOf(dragged, childrenIndex);
     if (nodeSubtree > 3) return false;
 
@@ -547,6 +553,7 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     List<Task> tasks,
     TodoRepository repo,
     AppLocalizations l10n,
+    Map<String?, List<Task>> childrenIndexAll,
   ) {
     final colorScheme = Theme.of(context).colorScheme;
     return DragTarget<String>(
@@ -559,8 +566,9 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
           await repo.moveTask(
             draggedTask.id,
             newParentId: null,
-            newIndex:
-                (indexChildrenByParent(tasks)[null] ?? const <Task>[]).length,
+            // 追加到**全量**根级末尾（F2 修复：隐藏的 done 根仍占位，
+            // 否则新行 sortOrder 会与隐藏行冲突/插错位置）。
+            newIndex: (childrenIndexAll[null] ?? const <Task>[]).length,
           );
         } catch (e) {
           if (context.mounted) {
@@ -628,10 +636,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
   Widget _buildTaskRow(
     BuildContext context,
     TreeNode node,
-    List<Task> tasks,
     TodoRepository repo,
     Map<String, bool> expandState, {
-    required List<Task> fullTasks,
     required Map<String?, List<Task>> childrenIndexAll,
     required Map<String, Task> byIdAll,
     TaskRowStyle style = TaskRowStyle.cardHeader,
@@ -654,10 +660,20 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
       final eff = cChildren.isNotEmpty ? derivedStatus(c, cChildren) : c.status;
       return eff != TaskStatus.done;
     }).length;
-    final subtree = getSubtreeIds(
-      node.task.id,
-      fullTasks,
-    ).map((id) => byId[id]).whereType<Task>().toList();
+    // 子树（进度用）：从全量索引收集，替代 getSubtreeIds 内部重复建索引
+    // （F3 修复，保持每行 O(子树) 而非 O(n)）。
+    final subtree = <Task>[];
+    void collectSubtree(String id) {
+      final t = byId[id];
+      if (t != null) {
+        subtree.add(t);
+        for (final child in childrenIndex[id] ?? const <Task>[]) {
+          collectSubtree(child.id);
+        }
+      }
+    }
+
+    collectSubtree(node.task.id);
     final effectiveStatus = directChildren.isNotEmpty
         ? derivedStatus(node.task, directChildren)
         : null;
@@ -696,8 +712,14 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
         }
       },
       onTap: () => context.push('/task/${node.task.id}'),
-      onMenuAction: (action) =>
-          _handleMenuAction(context, action, node.task, tasks, repo),
+      onMenuAction: (action) => _handleMenuAction(
+        context,
+        action,
+        node.task,
+        childrenIndexAll,
+        byIdAll,
+        repo,
+      ),
       derivedStatus: effectiveStatus,
       progressValue: progressValue,
       tags: tags,
@@ -712,7 +734,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     BuildContext context,
     String action,
     Task task,
-    List<Task> tasks,
+    Map<String?, List<Task>> childrenIndexAll,
+    Map<String, Task> byIdAll,
     TodoRepository repo,
   ) async {
     final l10n = AppLocalizations.of(context);
@@ -724,13 +747,13 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
           '/task/new?projectId=${task.projectId}&parentId=${task.id}',
         );
       case 'moveUp':
-        await _moveTask(task, tasks, repo, -1, l10n);
+        await _moveTask(task, childrenIndexAll, repo, -1, l10n);
       case 'moveDown':
-        await _moveTask(task, tasks, repo, 1, l10n);
+        await _moveTask(task, childrenIndexAll, repo, 1, l10n);
       case 'indent':
-        await _indentTask(task, tasks, repo, l10n);
+        await _indentTask(task, childrenIndexAll, repo, l10n);
       case 'outdent':
-        await _outdentTask(task, tasks, repo, l10n);
+        await _outdentTask(task, childrenIndexAll, byIdAll, repo, l10n);
       case 'delete':
         final confirmed = await showConfirmDialog(
           context: context,
@@ -766,15 +789,16 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
 
   Future<void> _moveTask(
     Task task,
-    List<Task> tasks,
+    Map<String?, List<Task>> childrenIndexAll,
     TodoRepository repo,
     int direction,
     AppLocalizations l10n,
   ) async {
-    final childrenIndex = indexChildrenByParent(tasks);
+    // 兄弟列表基于**全量**索引（F2 修复：隐藏的 done 兄弟仍占位，否则
+    // newIndex 相对可见集计算会插错位置）。
     final siblings = task.parentId == null
-        ? (childrenIndex[null] ?? const <Task>[])
-        : (childrenIndex[task.parentId] ?? const <Task>[]);
+        ? (childrenIndexAll[null] ?? const <Task>[])
+        : (childrenIndexAll[task.parentId] ?? const <Task>[]);
     final sortedSiblings = List<Task>.from(siblings)
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     final currentIndex = sortedSiblings.indexWhere((t) => t.id == task.id);
@@ -800,14 +824,14 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
 
   Future<void> _indentTask(
     Task task,
-    List<Task> tasks,
+    Map<String?, List<Task>> childrenIndexAll,
     TodoRepository repo,
     AppLocalizations l10n,
   ) async {
-    final childrenIndex = indexChildrenByParent(tasks);
+    // 兄弟列表与子级计数基于**全量**索引（F2 修复，同 _moveTask）。
     final siblings = task.parentId == null
-        ? (childrenIndex[null] ?? const <Task>[])
-        : (childrenIndex[task.parentId] ?? const <Task>[]);
+        ? (childrenIndexAll[null] ?? const <Task>[])
+        : (childrenIndexAll[task.parentId] ?? const <Task>[]);
     final sortedSiblings = List<Task>.from(siblings)
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     final currentIndex = sortedSiblings.indexWhere((t) => t.id == task.id);
@@ -815,7 +839,7 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
 
     // 新父级 = 上一个兄弟。
     final newParent = sortedSiblings[currentIndex - 1];
-    final newParentChildren = childrenIndex[newParent.id] ?? const <Task>[];
+    final newParentChildren = childrenIndexAll[newParent.id] ?? const <Task>[];
 
     try {
       await repo.moveTask(
@@ -834,20 +858,20 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
 
   Future<void> _outdentTask(
     Task task,
-    List<Task> tasks,
+    Map<String?, List<Task>> childrenIndexAll,
+    Map<String, Task> byIdAll,
     TodoRepository repo,
     AppLocalizations l10n,
   ) async {
     if (task.parentId == null) return;
 
-    final byId = indexTasksById(tasks);
-    final parent = byId[task.parentId];
+    final parent = byIdAll[task.parentId];
     if (parent == null) return;
 
-    // 提升到父级的同级，排在父级之后。
+    // 提升到父级的同级，排在父级之后（F2 修复：同级列表基于全量索引）。
     final grandparentChildren = parent.parentId == null
-        ? (indexChildrenByParent(tasks)[null] ?? const <Task>[])
-        : (indexChildrenByParent(tasks)[parent.parentId] ?? const <Task>[]);
+        ? (childrenIndexAll[null] ?? const <Task>[])
+        : (childrenIndexAll[parent.parentId] ?? const <Task>[]);
     final sortedGrandparent = List<Task>.from(grandparentChildren)
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     final parentIndex = sortedGrandparent.indexWhere((t) => t.id == parent.id);
