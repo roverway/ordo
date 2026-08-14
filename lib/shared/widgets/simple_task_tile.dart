@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../../core/db/database.dart';
+import '../../core/db/tables.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/dates.dart';
+import '../../features/tasks/widgets/priority_picker.dart';
 import 'task_progress_ring.dart';
+
+/// 已完成任务内容区透明度（降低与背景对比度，用户要求）。
+const _kDoneOpacity = 0.55;
 
 /// 扁平行任务行（今日/日历/标签/搜索视图共用，61-task-list-redesign.md §6 阶段 3）。
 ///
@@ -136,194 +141,222 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                       ),
                       const SizedBox(width: AppTokens.spaceXxs),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
+                        // 已完成 → 内容区整体淡化（勾选/进度环保持全不透明，
+                        // 行仍可交互；strikethrough + onSurfaceVariant 保留）。
+                        child: AnimatedOpacity(
+                          opacity: widget.isDone ? _kDoneOpacity : 1,
+                          duration: AppTokens.motionFast,
+                          curve: AppTokens.motionSpring,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  // 优先级旗帜（用户要求：与编辑器工具栏同一
+                                  // flag 图标/配色）；无优先级不渲染，行布局
+                                  // 与改造前完全一致。
+                                  if (widget.task.priority !=
+                                      TaskPriority.none) ...[
+                                    Icon(
+                                      Icons.flag_outlined,
+                                      size: 14,
+                                      color: priorityColor(
+                                        widget.task.priority,
+                                      ),
+                                    ),
+                                    const SizedBox(width: AppTokens.spaceXxs),
+                                  ],
+                                  Expanded(
+                                    child: Text(
+                                      widget.task.title,
+                                      style: theme.textTheme.bodyLarge
+                                          ?.copyWith(
+                                            decoration: widget.isDone
+                                                ? TextDecoration.lineThrough
+                                                : null,
+                                            color: widget.isDone
+                                                ? colorScheme.onSurfaceVariant
+                                                : widget.isOverdue
+                                                ? AppTokens.colorOverdue
+                                                : colorScheme.onSurface,
+                                          ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  // 逾期徽标。
+                                  if (widget.isOverdue)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        left: AppTokens.spaceXxs,
+                                      ),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: AppTokens.spaceXs,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppTokens.colorOverdue
+                                              .withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(
+                                            AppTokens.radiusChip,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          l10n.overdue,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: AppTokens.colorOverdue,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              // 描述文字（61 §4.4）：标题下方灰色小字。
+                              if (widget.task.description.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: AppTokens.spaceXxs,
+                                  ),
                                   child: Text(
-                                    widget.task.title,
-                                    style: theme.textTheme.bodyLarge?.copyWith(
-                                      decoration: widget.isDone
-                                          ? TextDecoration.lineThrough
-                                          : null,
-                                      color: widget.isDone
-                                          ? colorScheme.onSurfaceVariant
-                                          : widget.isOverdue
-                                          ? AppTokens.colorOverdue
-                                          : colorScheme.onSurface,
+                                    widget.task.description,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                // 逾期徽标。
-                                if (widget.isOverdue)
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      left: AppTokens.spaceXxs,
-                                    ),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: AppTokens.spaceXs,
-                                        vertical: 2,
+                              // 日期行（61 §4.4）：标题下方独立行，范围灰色 +
+                              // 相对时间橙色强调。
+                              if (timeText.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: AppTokens.spaceXxs,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.calendar_today_outlined,
+                                        size: 11,
+                                        color: colorScheme.onSurfaceVariant,
                                       ),
-                                      decoration: BoxDecoration(
-                                        color: AppTokens.colorOverdue
-                                            .withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(
-                                          AppTokens.radiusChip,
+                                      const SizedBox(width: AppTokens.spaceXxs),
+                                      Expanded(
+                                        child: Text(
+                                          timeText,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: colorScheme
+                                                    .onSurfaceVariant,
+                                              ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
-                                      child: Text(
-                                        l10n.overdue,
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color: AppTokens.colorOverdue,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                      ),
-                                    ),
+                                      if (relativeText.isNotEmpty) ...[
+                                        const SizedBox(
+                                          width: AppTokens.spaceXs,
+                                        ),
+                                        Text(
+                                          relativeText,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color:
+                                                    AppTokens.colorDateRelative,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
-                              ],
-                            ),
-                            // 描述文字（61 §4.4）：标题下方灰色小字。
-                            if (widget.task.description.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  top: AppTokens.spaceXxs,
                                 ),
-                                child: Text(
-                                  widget.task.description,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
+                              // 标签 chips（61 §4.4）：底部独立行（≤2 + +N）。
+                              // 底部对称留白（用户要求）：bottom = top = spaceXxs，
+                              // 与行内元信息行间距节奏一致（行/卡片底部不再贴边）。
+                              if (widget.tags.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: AppTokens.spaceXxs,
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            // 标签 chips（61 §4.4）：描述下方独立行（≤2 + +N）。
-                            if (widget.tags.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  top: AppTokens.spaceXxs,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Flexible(
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          ...widget.tags
-                                              .take(2)
-                                              .map(
-                                                (tag) => Flexible(
-                                                  child: Padding(
-                                                    padding:
-                                                        const EdgeInsets.only(
-                                                          right: AppTokens
-                                                              .spaceXxs,
-                                                        ),
-                                                    child: Container(
+                                  child: Row(
+                                    children: [
+                                      Flexible(
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            ...widget.tags
+                                                .take(2)
+                                                .map(
+                                                  (tag) => Flexible(
+                                                    child: Padding(
                                                       padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal:
-                                                                AppTokens
-                                                                    .spaceXs,
-                                                            vertical: 2,
+                                                          const EdgeInsets.only(
+                                                            right: AppTokens
+                                                                .spaceXxs,
                                                           ),
-                                                      decoration: BoxDecoration(
-                                                        color: Color(tag.color)
-                                                            .withValues(
-                                                              alpha: 0.12,
+                                                      child: Container(
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                              horizontal:
+                                                                  AppTokens
+                                                                      .spaceXs,
+                                                              vertical: 2,
                                                             ),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              AppTokens
-                                                                  .radiusChip,
-                                                            ),
-                                                      ),
-                                                      child: Text(
-                                                        tag.name,
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        style: theme
-                                                            .textTheme
-                                                            .bodySmall
-                                                            ?.copyWith(
-                                                              color: Color(
+                                                        decoration: BoxDecoration(
+                                                          color:
+                                                              Color(
                                                                 tag.color,
+                                                              ).withValues(
+                                                                alpha: 0.12,
                                                               ),
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w500,
-                                                            ),
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                AppTokens
+                                                                    .radiusChip,
+                                                              ),
+                                                        ),
+                                                        child: Text(
+                                                          tag.name,
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          style: theme
+                                                              .textTheme
+                                                              .bodySmall
+                                                              ?.copyWith(
+                                                                color: Color(
+                                                                  tag.color,
+                                                                ),
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                              ),
+                                                        ),
                                                       ),
                                                     ),
                                                   ),
                                                 ),
+                                            if (widget.tags.length > 2)
+                                              Text(
+                                                '+${widget.tags.length - 2}',
+                                                style: theme.textTheme.bodySmall
+                                                    ?.copyWith(
+                                                      color: colorScheme
+                                                          .onSurfaceVariant,
+                                                    ),
                                               ),
-                                          if (widget.tags.length > 2)
-                                            Text(
-                                              '+${widget.tags.length - 2}',
-                                              style: theme.textTheme.bodySmall
-                                                  ?.copyWith(
-                                                    color: colorScheme
-                                                        .onSurfaceVariant,
-                                                  ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            // 日期行（61 §4.4）：标题下方独立行，范围灰色 +
-                            // 相对时间橙色强调。
-                            if (timeText.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  top: AppTokens.spaceXxs,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.calendar_today_outlined,
-                                      size: 11,
-                                      color: colorScheme.onSurfaceVariant,
-                                    ),
-                                    const SizedBox(width: AppTokens.spaceXxs),
-                                    Expanded(
-                                      child: Text(
-                                        timeText,
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color:
-                                                  colorScheme.onSurfaceVariant,
-                                            ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    if (relativeText.isNotEmpty) ...[
-                                      const SizedBox(width: AppTokens.spaceXs),
-                                      Text(
-                                        relativeText,
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color:
-                                                  AppTokens.colorDateRelative,
-                                              fontWeight: FontWeight.w500,
-                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ],
-                                  ],
+                                  ),
                                 ),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                       // 进度环 + 百分比（61 §4.4：行尾，有子任务任务的派生完成度）。

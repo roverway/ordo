@@ -537,9 +537,9 @@ void main() {
         of: find.text('Root'),
         matching: find.byType(TaskRow),
       );
-      // Root 有 2 个直接子任务 → 行尾数字 2。
+      // Root 有 2 个直接子任务（均未完成）→ 行尾「未完成/总数」= 2/2。
       expect(
-        find.descendant(of: rootRow, matching: find.text('2')),
+        find.descendant(of: rootRow, matching: find.text('2/2')),
         findsOneWidget,
       );
       // 只有有子任务的行渲染箭头（Root 一个；C1/C2/Leaf 无）。

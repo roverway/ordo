@@ -580,6 +580,13 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     final childrenIndex = indexChildrenByParent(tasks);
     final byId = indexTasksById(tasks);
     final directChildren = childrenIndex[node.task.id] ?? const <Task>[];
+    // 未完成子任务数：用每个子任务的有效状态（有子任务的按派生状态）判定，
+    // 与勾选框/派生语义一致（AGENTS.md §3-2）；仅 done 视为完成。
+    final incompleteChildren = directChildren.where((c) {
+      final cChildren = childrenIndex[c.id] ?? const <Task>[];
+      final eff = cChildren.isNotEmpty ? derivedStatus(c, cChildren) : c.status;
+      return eff != TaskStatus.done;
+    }).length;
     final subtree = getSubtreeIds(
       node.task.id,
       tasks,
@@ -602,6 +609,7 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
       hasChildren: node.hasChildren,
       isExpanded: node.isExpanded,
       childCount: directChildren.length,
+      incompleteChildCount: incompleteChildren,
       onToggleExpand: () {
         ref
             .read(treeExpandProvider(widget.projectId).notifier)
