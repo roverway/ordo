@@ -19,6 +19,8 @@
 //   10 快照损坏（decode 抛 FormatException）→ 不覆盖远端，错误可重试
 // 额外：上传优化（内容无变化跳过 upload）、认证失败不重试、
 //       时钟偏差被拒本地库不变、未启用 → skipped。
+// 文件夹（62-folder-nav.md §5.4）：文件夹增删改跨端同步、项目移动后
+//       folderId 传播、一端删除文件夹后另一端项目归属修复。
 
 import 'dart:async';
 import 'dart:math';
@@ -160,6 +162,7 @@ SnapshotData remoteSnapshot({
   List<ProjectRecord> projects = const [],
   List<TaskRecord> tasks = const [],
   List<TagRecord> tags = const [],
+  List<FolderRecord> folders = const [],
 }) {
   return SnapshotData(
     schemaVersion: kSnapshotSchemaVersion,
@@ -168,6 +171,7 @@ SnapshotData remoteSnapshot({
     projects: projects,
     tasks: tasks,
     tags: tags,
+    folders: folders,
   );
 }
 
@@ -175,6 +179,7 @@ ProjectRecord projectRec({
   required String id,
   String name = 'P',
   int color = 0,
+  String? folderId,
   int updatedAt = 100,
   int createdAt = 1,
   bool deleted = false,
@@ -183,6 +188,7 @@ ProjectRecord projectRec({
     id: id,
     name: name,
     color: color,
+    folderId: folderId,
     sortOrder: 0,
     createdAt: createdAt,
     updatedAt: updatedAt,
@@ -224,6 +230,23 @@ TagRecord tagRec({
     id: id,
     name: name,
     color: 0,
+    sortOrder: 0,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+    deleted: deleted,
+  );
+}
+
+FolderRecord folderRec({
+  required String id,
+  String name = 'FOLDER',
+  int updatedAt = 100,
+  int createdAt = 1,
+  bool deleted = false,
+}) {
+  return FolderRecord(
+    id: id,
+    name: name,
     sortOrder: 0,
     createdAt: createdAt,
     updatedAt: updatedAt,
@@ -517,6 +540,109 @@ void main() {
       expect(await repoB.tags.getById(tag.id), isNull);
       expect(await repoB.tags.tagIdsForTask(t.id), isEmpty);
       expect((await repoB.tasks.getById(t.id))!.title, 'T');
+    });
+  });
+
+  group('§5.4 文件夹跨端同步（62-folder-nav.md）', () {
+    test('文件夹增删改跨端同步（创建/重命名/删除 → 墓碑传播 + 他端硬删）', () async {
+      await enableSync(repo);
+      final f = await repo.createFolder(name: '工作');
+      final engineA = await buildEngine();
+      await engineA.run();
+      // A 上传后远端快照含文件夹。
+      expect(decode(remote.remoteBytes!).folders.map((x) => x.id), [f.id]);
+      expect(decode(remote.remoteBytes!).folders.single.name, '工作');
+
+      // B 首次同步 → 文件夹出现。
+      final dbB = openTestDatabase();
+      addTearDown(dbB.close);
+      final repoB = TodoRepository(database: dbB);
+      await enableSync(repoB);
+      final engineB = await buildEngine(repository: repoB);
+      await engineB.run();
+      expect((await repoB.folders.getById(f.id))!.name, '工作');
+
+      // A 重命名 → 同步 → B 同步后名称更新。
+      await repo.renameFolder(f.id, name: '工作夹');
+      await engineA.run();
+      expect(decode(remote.remoteBytes!).folders.single.name, '工作夹');
+      await engineB.run();
+      expect((await repoB.folders.getById(f.id))!.name, '工作夹');
+
+      // A 删除文件夹 → 同步 → 远端含 deleted=true 文件夹墓碑。
+      await repo.deleteFolder(f.id);
+      await engineA.run();
+      final remoteTomb = decode(
+        remote.remoteBytes!,
+      ).folders.singleWhere((x) => x.id == f.id);
+      expect(remoteTomb.deleted, isTrue);
+
+      // B 再同步 → 文件夹行硬删 + 文件夹墓碑保留在 B 的本地墓碑集合。
+      await engineB.run();
+      expect(await repoB.folders.getById(f.id), isNull);
+      final tomsB = await repoB.readTombstones();
+      expect(tomsB.any((e) => e.type == 'folder' && e.id == f.id), isTrue);
+    });
+
+    test('项目移动入夹后 folderId 跨端传播（远端快照含 folderId + B 端落库）', () async {
+      await enableSync(repo);
+      final f = await repo.createFolder(name: '归档');
+      final p = await repo.createProject(name: 'P', color: 0);
+      await repo.moveProjectToFolder(p.id, folderId: f.id, newIndex: 0);
+
+      final engineA = await buildEngine();
+      await engineA.run();
+
+      // 远端快照：folder 记录 + project.folderId 指向该文件夹。
+      final snap = decode(remote.remoteBytes!);
+      expect(snap.folders.single.id, f.id);
+      expect(snap.projects.singleWhere((x) => x.id == p.id).folderId, f.id);
+
+      // B 同步 → 本地项目 folderId 与文件夹一致。
+      final dbB = openTestDatabase();
+      addTearDown(dbB.close);
+      final repoB = TodoRepository(database: dbB);
+      await enableSync(repoB);
+      final engineB = await buildEngine(repository: repoB);
+      await engineB.run();
+      expect((await repoB.projects.getById(p.id))!.folderId, f.id);
+      expect((await repoB.folders.getById(f.id))!.name, '归档');
+    });
+
+    test('一端删除文件夹 → 另一端项目归属修复（folderId 置 null 回未分组）', () async {
+      await enableSync(repo);
+      final f = await repo.createFolder(name: '归档');
+      final p = await repo.createProject(name: 'P', color: 0);
+      await repo.moveProjectToFolder(p.id, folderId: f.id, newIndex: 0);
+      final engineA = await buildEngine();
+      await engineA.run();
+
+      // B 首次同步：folder + 项目挂载成功。
+      final dbB = openTestDatabase();
+      addTearDown(dbB.close);
+      final repoB = TodoRepository(database: dbB);
+      await enableSync(repoB);
+      final engineB = await buildEngine(repository: repoB);
+      await engineB.run();
+      expect((await repoB.projects.getById(p.id))!.folderId, f.id);
+
+      // A 删除文件夹（仅解除收纳，D3）→ 本地项目回未分组 → 同步。
+      await repo.deleteFolder(f.id);
+      expect(
+        (await repo.projects.getById(p.id))!.folderId,
+        isNull,
+        reason: 'A 本地项目回未分组',
+      );
+      await engineA.run();
+
+      // B 再同步 → 文件夹硬删、项目 folderId 修复为 null（reconcileFolderIds）。
+      await engineB.run();
+      expect(await repoB.folders.getById(f.id), isNull);
+      expect(
+        (await repoB.projects.getById(p.id))!.folderId,
+        isNull,
+        reason: 'B 端项目归属修复为未分组',
+      );
     });
   });
 

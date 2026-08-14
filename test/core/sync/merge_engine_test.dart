@@ -1,9 +1,11 @@
-// 合并引擎单元测试（docs/60-sync-design.md §4 / §7 / §14，纯函数层）。
+// 合并引擎单元测试（docs/60-sync-design.md §4 / §7 / §14，docs/62-folder-nav.md
+// §5.2，纯函数层）。
 //
 // 覆盖 §14 场景 1–4、8（合并函数层面）+ §4 边界：
 // 1 本地新增 / 2 远端新增 / 3 两端改同一 id（updatedAt + tie-break）/
 // 4 一端删除（墓碑传播）/ 8 标签删除后悬空引用清理。
-// 额外：跨类型不互相影响、空快照合并、同 updatedAt 确定性、纯函数不改入参。
+// 额外：文件夹 LWW 合并、reconcileFolderIds 悬空文件夹引用清理、
+// 跨类型不互相影响、空快照合并、同 updatedAt 确定性、纯函数不改入参。
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:todo/core/sync/merge_engine.dart';
@@ -14,6 +16,7 @@ ProjectRecord _project({
   String name = 'P',
   int color = 0,
   String description = '',
+  String? folderId,
   int sortOrder = 0,
   int createdAt = 1,
   int updatedAt = 1,
@@ -24,6 +27,7 @@ ProjectRecord _project({
     name: name,
     color: color,
     description: description,
+    folderId: folderId,
     sortOrder: sortOrder,
     createdAt: createdAt,
     updatedAt: updatedAt,
@@ -87,6 +91,24 @@ TagRecord _tag({
   );
 }
 
+FolderRecord _folder({
+  required String id,
+  String name = 'FOLDER',
+  int sortOrder = 0,
+  int createdAt = 1,
+  int updatedAt = 1,
+  bool deleted = false,
+}) {
+  return FolderRecord(
+    id: id,
+    name: name,
+    sortOrder: sortOrder,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+    deleted: deleted,
+  );
+}
+
 SnapshotData _snapshot({
   int schemaVersion = 1,
   String deviceId = 'local-device',
@@ -94,6 +116,7 @@ SnapshotData _snapshot({
   List<ProjectRecord> projects = const [],
   List<TaskRecord> tasks = const [],
   List<TagRecord> tags = const [],
+  List<FolderRecord> folders = const [],
 }) {
   return SnapshotData(
     schemaVersion: schemaVersion,
@@ -102,6 +125,7 @@ SnapshotData _snapshot({
     projects: projects,
     tasks: tasks,
     tags: tags,
+    folders: folders,
   );
 }
 
@@ -363,6 +387,195 @@ void main() {
       );
       final cleanResult = reconcileTagIds(clean);
       expect(cleanResult.tasks.single, same(clean.tasks.single));
+    });
+  });
+
+  group('§5.2 场景：文件夹 LWW 合并（folders 作为独立类型）', () {
+    test('单侧新增：本地/远端各自新增文件夹 → 合并结果含全部', () {
+      final local = _snapshot(
+        folders: [_folder(id: 'f1', name: '本地夹', updatedAt: 100)],
+      );
+      final remote = _snapshot(
+        folders: [_folder(id: 'f2', name: '远端夹', updatedAt: 200)],
+      );
+
+      final result = merge(
+        local,
+        remote,
+        localDeviceId: 'dev-a',
+        remoteDeviceId: 'dev-b',
+      );
+      expect(result.folders.map((f) => f.id), containsAll(['f1', 'f2']));
+      expect(result.folders.length, 2);
+    });
+
+    test('同 id 取 updatedAt 大者（与来源设备无关）', () {
+      final local = _snapshot(
+        folders: [_folder(id: 'f1', name: '旧名', updatedAt: 100)],
+      );
+      final remote = _snapshot(
+        folders: [_folder(id: 'f1', name: '新名', updatedAt: 300)],
+      );
+
+      final r1 = merge(local, remote, localDeviceId: 'a', remoteDeviceId: 'b');
+      expect(r1.folders.single.name, '新名');
+      expect(r1.folders.single.updatedAt, 300);
+
+      // 与参数顺序无关：LWW 只看 updatedAt。
+      final r2 = merge(remote, local, localDeviceId: 'a', remoteDeviceId: 'b');
+      expect(r2.folders.single.name, '新名');
+    });
+
+    test('updatedAt 相等 → tie-break 字典序，两端算出相同 winner', () {
+      final local = _snapshot(
+        deviceId: 'aaa',
+        folders: [_folder(id: 'f1', name: '来自aaa', updatedAt: 100)],
+      );
+      final remote = _snapshot(
+        deviceId: 'bbb',
+        folders: [_folder(id: 'f1', name: '来自bbb', updatedAt: 100)],
+      );
+
+      final fromA = merge(
+        local,
+        remote,
+        localDeviceId: 'aaa',
+        remoteDeviceId: 'bbb',
+      );
+      final fromB = merge(
+        remote,
+        local,
+        localDeviceId: 'bbb',
+        remoteDeviceId: 'aaa',
+      );
+
+      expect(fromA.folders.single.name, '来自bbb');
+      expect(fromB.folders.single.name, '来自bbb', reason: '两端必须算出相同 winner');
+    });
+
+    test('一端删除文件夹（墓碑）→ deleted=true 传播', () {
+      final local = _snapshot(
+        folders: [_folder(id: 'f1', deleted: true, updatedAt: 500)],
+      );
+      final remote = _snapshot(
+        folders: [_folder(id: 'f1', name: '旧夹', updatedAt: 100)],
+      );
+
+      final result = merge(
+        local,
+        remote,
+        localDeviceId: 'a',
+        remoteDeviceId: 'b',
+      );
+      expect(result.folders.single.deleted, isTrue);
+      expect(result.folders.single.updatedAt, 500);
+    });
+
+    test('folders 与其他类型互不影响（四类各自独立合并）', () {
+      final local = _snapshot(
+        projects: [_project(id: 'p1', updatedAt: 100)],
+        folders: [_folder(id: 'f1', updatedAt: 100)],
+      );
+      final remote = _snapshot(
+        tasks: [_task(id: 't1', projectId: 'p1', updatedAt: 200)],
+        folders: [_folder(id: 'f2', updatedAt: 200)],
+      );
+
+      final result = merge(
+        local,
+        remote,
+        localDeviceId: 'a',
+        remoteDeviceId: 'b',
+      );
+      expect(result.projects.single.id, 'p1');
+      expect(result.tasks.single.id, 't1');
+      expect(result.folders.map((f) => f.id), containsAll(['f1', 'f2']));
+    });
+  });
+
+  group('§5.2 场景：reconcileFolderIds 悬空文件夹引用清理', () {
+    test('folderId 指向不存在或 deleted=true 文件夹 → 置 null（回未分组）', () {
+      final merged = _snapshot(
+        projects: [
+          _project(id: 'p-live', folderId: 'f-live', updatedAt: 100),
+          _project(id: 'p-deleted', folderId: 'f-deleted', updatedAt: 100),
+          _project(id: 'p-missing', folderId: 'f-missing', updatedAt: 100),
+          _project(id: 'p-none', folderId: null, updatedAt: 100),
+        ],
+        folders: [
+          _folder(id: 'f-live', updatedAt: 100),
+          _folder(id: 'f-deleted', deleted: true, updatedAt: 200), // 墓碑
+          // 无 f-missing。
+        ],
+      );
+
+      final result = reconcileFolderIds(merged);
+
+      final byId = {for (final p in result.projects) p.id: p.folderId};
+      expect(byId, {
+        'p-live': 'f-live', // 存活文件夹 → 保留
+        'p-deleted': null, // 已删文件夹 → 置 null
+        'p-missing': null, // 不存在文件夹 → 置 null
+        'p-none': null, // 本就 null → 不变
+      });
+      // folders 原样保留。
+      expect(result.folders, same(merged.folders));
+    });
+
+    test('reconcileFolderIds 纯函数：返回新对象、不修改入参；无悬空时复用原记录', () {
+      final project = _project(id: 'p1', folderId: 'f-gone');
+      final merged = _snapshot(projects: [project], folders: []);
+
+      final result = reconcileFolderIds(merged);
+
+      expect(result.projects.single.folderId, isNull);
+      expect(
+        identical(result.projects.single, project),
+        isFalse,
+        reason: '清理后必须返回新 ProjectRecord',
+      );
+      expect(project.folderId, 'f-gone', reason: '入参不得被修改');
+      expect(identical(result, merged), isFalse);
+
+      // 无悬空引用时复用原记录（无谓拷贝应避免）。
+      final clean = _snapshot(
+        projects: [_project(id: 'p2', folderId: 'f-live')],
+        folders: [_folder(id: 'f-live')],
+      );
+      final cleanResult = reconcileFolderIds(clean);
+      expect(cleanResult.projects.single, same(clean.projects.single));
+    });
+
+    test('merge 结果同时清理悬空 tagIds 与 folderId（reconcile 组合不丢字段）', () {
+      final local = _snapshot(
+        projects: [
+          _project(id: 'p1', folderId: 'f-live', updatedAt: 100),
+          _project(id: 'p2', folderId: 'f-gone', updatedAt: 100),
+        ],
+        tasks: [
+          _task(id: 't1', projectId: 'p1', tagIds: ['tag-live', 'tag-gone']),
+        ],
+        tags: [_tag(id: 'tag-live')],
+        folders: [_folder(id: 'f-live')],
+      );
+      final remote = _snapshot();
+
+      final result = merge(
+        local,
+        remote,
+        localDeviceId: 'a',
+        remoteDeviceId: 'b',
+      );
+
+      expect(result.tasks.single.tagIds, ['tag-live'], reason: 'tagIds 悬空被清理');
+      final p2 = result.projects.singleWhere((p) => p.id == 'p2');
+      expect(p2.folderId, isNull, reason: 'folderId 悬空被清理');
+      expect(result.folders.single.id, 'f-live', reason: 'folders 字段不丢失');
+      expect(
+        result.projects.singleWhere((p) => p.id == 'p1').folderId,
+        'f-live',
+        reason: '存活引用保留',
+      );
     });
   });
 

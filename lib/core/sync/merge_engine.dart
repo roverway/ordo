@@ -1,12 +1,14 @@
-// LWW 合并引擎（docs/60-sync-design.md §4 / §7）。
+// LWW 合并引擎（docs/60-sync-design.md §4 / §7，docs/62-folder-nav.md §5.2）。
 //
 // 纯函数层：无 IO、无 DB、无全局状态；入参不被修改，始终返回**新对象**。
-// merge / reconcileTagIds 均为顶层函数，不捕获外层上下文，可安全用于 isolate。
+// merge / reconcileTagIds / reconcileFolderIds 均为顶层函数，不捕获外层
+// 上下文，可安全用于 isolate。
 //
 // 合并语义（§4）：
-// - projects/tasks/tags 各自以 id 为 key 合并；同 id 取 updatedAt 大者；
+// - projects/tasks/tags/folders 各自以 id 为 key 合并；同 id 取 updatedAt 大者；
 // - updatedAt 相等时比较 (deviceId, id) 字典序取大者（两端结果一致）；
-// - 合并后调用 reconcileTagIds 清理悬空标签引用（§7）。
+// - 合并后调用 reconcileTagIds 清理悬空标签引用（§7），调用
+//   reconcileFolderIds 清理悬空文件夹引用（62-folder-nav.md §5.2，防悬空 FK）。
 
 import 'snapshot.dart';
 
@@ -49,6 +51,14 @@ SnapshotData merge(
     localDeviceId: localDeviceId,
     remoteDeviceId: remoteDeviceId,
   );
+  final folders = _mergeType(
+    local.folders,
+    remote.folders,
+    idOf: (r) => r.id,
+    updatedAtOf: (r) => r.updatedAt,
+    localDeviceId: localDeviceId,
+    remoteDeviceId: remoteDeviceId,
+  );
 
   final merged = SnapshotData(
     schemaVersion: local.schemaVersion,
@@ -57,8 +67,10 @@ SnapshotData merge(
     projects: projects,
     tasks: tasks,
     tags: tags,
+    folders: folders,
   );
-  return reconcileTagIds(merged);
+  // 两个 reconcile 均返回新 SnapshotData（各自保留未处理的字段），顺序无关。
+  return reconcileFolderIds(reconcileTagIds(merged));
 }
 
 /// 清理标签孤儿引用（§7）：删除每个 task.tagIds 中指向「不存在于 tags 列表
@@ -88,6 +100,39 @@ SnapshotData reconcileTagIds(SnapshotData merged) {
     projects: merged.projects,
     tasks: tasks,
     tags: merged.tags,
+    folders: merged.folders,
+  );
+}
+
+/// 清理文件夹孤儿引用（docs/62-folder-nav.md §5.2，等价 §7 标签语义）：
+/// 每个 project 的 `folderId` 若指向「不存在于 folders 列表或 deleted=true」
+/// 的文件夹 → 置 null（回未分组），防止悬空 FK。
+///
+/// 纯函数：返回新快照；无悬空引用时复用原 ProjectRecord（不产生无谓拷贝）。
+SnapshotData reconcileFolderIds(SnapshotData merged) {
+  final aliveFolderIds = <String>{
+    for (final f in merged.folders)
+      if (!f.deleted) f.id,
+  };
+
+  final projects = <ProjectRecord>[];
+  for (final project in merged.projects) {
+    final folderId = project.folderId;
+    if (folderId != null && !aliveFolderIds.contains(folderId)) {
+      projects.add(_withFolderId(project, null));
+    } else {
+      projects.add(project);
+    }
+  }
+
+  return SnapshotData(
+    schemaVersion: merged.schemaVersion,
+    deviceId: merged.deviceId,
+    exportedAt: merged.exportedAt,
+    projects: projects,
+    tasks: merged.tasks,
+    tags: merged.tags,
+    folders: merged.folders,
   );
 }
 
@@ -163,5 +208,20 @@ TaskRecord _withTagIds(TaskRecord task, List<String> tagIds) {
     updatedAt: task.updatedAt,
     deleted: task.deleted,
     tagIds: tagIds,
+  );
+}
+
+/// 重建 [project] 的副本并替换 folderId（供 reconcileFolderIds 清理悬空引用）。
+ProjectRecord _withFolderId(ProjectRecord project, String? folderId) {
+  return ProjectRecord(
+    id: project.id,
+    name: project.name,
+    color: project.color,
+    description: project.description,
+    folderId: folderId,
+    sortOrder: project.sortOrder,
+    createdAt: project.createdAt,
+    updatedAt: project.updatedAt,
+    deleted: project.deleted,
   );
 }

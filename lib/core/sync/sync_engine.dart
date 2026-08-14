@@ -28,7 +28,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show compute, debugPrint;
 
-import '../db/database.dart' show Project, Tag, Task;
+import '../db/database.dart' show Folder, Project, Tag, Task;
 import '../db/repositories/todo_repository.dart';
 import '../db/tables.dart' show TaskPriority, TaskStatus;
 import '../security/secure_store.dart';
@@ -156,6 +156,7 @@ class _ClockSkewRejected implements Exception {
 const String _kTombstoneTypeProject = 'project';
 const String _kTombstoneTypeTask = 'task';
 const String _kTombstoneTypeTag = 'tag';
+const String _kTombstoneTypeFolder = 'folder';
 
 /// 同步引擎（docs/30-architecture §2 `core/sync/sync_engine.dart`）。
 class SyncEngine {
@@ -282,6 +283,7 @@ class SyncEngine {
           data.projects.isEmpty &&
           data.tasks.isEmpty &&
           data.tags.isEmpty &&
+          data.folders.isEmpty &&
           tombstones.isEmpty;
 
       if (!remoteExists) {
@@ -666,6 +668,7 @@ class SyncEngine {
           name: p.name,
           color: p.color,
           description: p.description,
+          folderId: p.folderId,
           sortOrder: p.sortOrder,
           createdAt: p.createdAt,
           updatedAt: p.updatedAt,
@@ -704,10 +707,22 @@ class SyncEngine {
           deleted: false,
         ),
     ];
+    final folders = <FolderRecord>[
+      for (final f in data.folders)
+        FolderRecord(
+          id: f.id,
+          name: f.name,
+          sortOrder: f.sortOrder,
+          createdAt: f.createdAt,
+          updatedAt: f.updatedAt,
+          deleted: false,
+        ),
+    ];
 
     final aliveProjectIds = {for (final p in projects) p.id};
     final aliveTaskIds = {for (final t in tasks) t.id};
     final aliveTagIds = {for (final t in tags) t.id};
+    final aliveFolderIds = {for (final f in folders) f.id};
     for (final tomb in tombstones) {
       switch (tomb.type) {
         case _kTombstoneTypeProject:
@@ -749,6 +764,18 @@ class SyncEngine {
               deleted: true,
             ),
           );
+        case _kTombstoneTypeFolder:
+          if (aliveFolderIds.contains(tomb.id)) continue;
+          folders.add(
+            FolderRecord(
+              id: tomb.id,
+              name: '',
+              sortOrder: 0,
+              createdAt: tomb.updatedAt,
+              updatedAt: tomb.updatedAt,
+              deleted: true,
+            ),
+          );
       }
     }
 
@@ -759,6 +786,7 @@ class SyncEngine {
       projects: projects,
       tasks: tasks,
       tags: tags,
+      folders: folders,
     );
   }
 
@@ -767,9 +795,11 @@ class SyncEngine {
     final upsertProjects = <Project>[];
     final upsertTasks = <Task>[];
     final upsertTags = <Tag>[];
+    final upsertFolders = <Folder>[];
     final hardDeleteProjectIds = <String>[];
     final hardDeleteTaskIds = <String>[];
     final hardDeleteTagIds = <String>[];
+    final hardDeleteFolderIds = <String>[];
     final taskTagLinks = <String, List<String>>{};
     for (final p in merged.projects) {
       if (p.deleted) {
@@ -793,13 +823,22 @@ class SyncEngine {
         upsertTags.add(_tagFromRecord(t));
       }
     }
+    for (final f in merged.folders) {
+      if (f.deleted) {
+        hardDeleteFolderIds.add(f.id);
+      } else {
+        upsertFolders.add(_folderFromRecord(f));
+      }
+    }
     return MergedApplyOperation(
       upsertProjects: upsertProjects,
       upsertTasks: upsertTasks,
       upsertTags: upsertTags,
+      upsertFolders: upsertFolders,
       hardDeleteProjectIds: hardDeleteProjectIds,
       hardDeleteTaskIds: hardDeleteTaskIds,
       hardDeleteTagIds: hardDeleteTagIds,
+      hardDeleteFolderIds: hardDeleteFolderIds,
       taskTagLinks: taskTagLinks,
     );
   }
@@ -827,6 +866,13 @@ class SyncEngine {
           id: t.id,
           updatedAt: t.updatedAt,
         ),
+    for (final f in merged.folders)
+      if (f.deleted)
+        TombstoneEntry(
+          type: _kTombstoneTypeFolder,
+          id: f.id,
+          updatedAt: f.updatedAt,
+        ),
   ];
 
   Project _projectFromRecord(ProjectRecord r) => Project(
@@ -834,6 +880,7 @@ class SyncEngine {
     name: r.name,
     color: r.color,
     description: r.description,
+    folderId: r.folderId,
     sortOrder: r.sortOrder,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
@@ -861,6 +908,15 @@ class SyncEngine {
     id: r.id,
     name: r.name,
     color: r.color,
+    sortOrder: r.sortOrder,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+    deleted: 0,
+  );
+
+  Folder _folderFromRecord(FolderRecord r) => Folder(
+    id: r.id,
+    name: r.name,
     sortOrder: r.sortOrder,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,

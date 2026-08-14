@@ -1,7 +1,8 @@
 // 快照编解码单元测试（docs/60-sync-design.md §3 / §12，纯函数层）。
 //
 // 覆盖：encode→decode 往返一致、gzip 压缩、schemaVersion 校验、损坏字节、
-// 字段级崩溃安全解析（缺失/越界/类型异常回退默认值）。
+// 字段级崩溃安全解析（缺失/越界/类型异常回退默认值）、
+// v2 新字段（folders + project.folderId）编解码、v1 旧快照字段兼容读。
 
 import 'dart:convert';
 import 'dart:io';
@@ -12,11 +13,11 @@ import 'package:todo/core/sync/snapshot.dart';
 import 'package:todo/core/sync/snapshot_codec.dart';
 
 /// 构造一份覆盖所有字段形态的样本快照：
-/// 中文/emoji/空字符串、null 字段（parentId/startAt）、deleted=true 墓碑、
-/// 非空与空 tagIds。
+/// 中文/emoji/空字符串、null 字段（parentId/startAt/folderId）、
+/// deleted=true 墓碑、非空与空 tagIds、folders 列表。
 SnapshotData _sampleSnapshot() {
   return SnapshotData(
-    schemaVersion: 1,
+    schemaVersion: 2,
     deviceId: 'device-uuid-1',
     exportedAt: 1720000000000,
     projects: [
@@ -25,6 +26,7 @@ SnapshotData _sampleSnapshot() {
         name: '工作',
         color: 4283215696,
         description: '描述',
+        folderId: 'folder-1',
         sortOrder: 0,
         createdAt: 1720000000000,
         updatedAt: 1720000001000,
@@ -89,6 +91,24 @@ SnapshotData _sampleSnapshot() {
         deleted: true, // 墓碑
       ),
     ],
+    folders: [
+      const FolderRecord(
+        id: 'folder-1',
+        name: '工作文件夹',
+        sortOrder: 0,
+        createdAt: 1720000000000,
+        updatedAt: 1720000007000,
+        deleted: false,
+      ),
+      const FolderRecord(
+        id: 'folder-2',
+        name: '已删除文件夹',
+        sortOrder: 1,
+        createdAt: 1720000000000,
+        updatedAt: 1720000008000,
+        deleted: true, // 墓碑
+      ),
+    ],
   );
 }
 
@@ -104,7 +124,7 @@ void main() {
       final decoded = decodeSnapshot(encodeSnapshot(snapshot));
 
       // 顶层与整棵 JSON 树逐字段一致。
-      expect(decoded.schemaVersion, 1);
+      expect(decoded.schemaVersion, 2);
       expect(decoded.deviceId, 'device-uuid-1');
       expect(decoded.exportedAt, 1720000000000);
       expect(decoded.toJson(), equals(snapshot.toJson()));
@@ -127,6 +147,14 @@ void main() {
 
       expect(decoded.projects[1].deleted, isTrue);
       expect(decoded.tags[1].deleted, isTrue);
+
+      // v2 新字段：folders 列表 + project.folderId 往返一致。
+      expect(decoded.projects.first.folderId, 'folder-1');
+      expect(decoded.projects[1].folderId, isNull);
+      expect(decoded.folders.map((f) => f.id), ['folder-1', 'folder-2']);
+      expect(decoded.folders.first.name, '工作文件夹');
+      expect(decoded.folders.first.sortOrder, 0);
+      expect(decoded.folders[1].deleted, isTrue);
     });
 
     test('toJson → fromJson 直接往返（不经 gzip）', () {
@@ -138,7 +166,7 @@ void main() {
     test('gzip 压缩后字节显著小于原文', () {
       final bigText = '这是一个可压缩的中文长文本段落 😀\n' * 2000;
       final snapshot = SnapshotData(
-        schemaVersion: 1,
+        schemaVersion: 2,
         deviceId: 'd',
         exportedAt: 1,
         projects: const [
@@ -181,17 +209,61 @@ void main() {
   });
 
   group('snapshot_codec 校验', () {
-    test('schemaVersion != 1 抛 SnapshotSchemaException', () {
-      final json = _sampleSnapshot().toJson()..['schemaVersion'] = 2;
+    test('schemaVersion=1（v1 旧快照）可正常 decode：结构级兼容读', () {
+      // v1 真实快照形态：schemaVersion=1、无 folders 键、project 记录无
+      // folderId 键（docs/62-folder-nav.md §5.1「v1 旧快照可兼容读」）。
+      final v1Json = <String, dynamic>{
+        'schemaVersion': 1,
+        'deviceId': 'old-device',
+        'exportedAt': 1720000000000,
+        'projects': [
+          {
+            'id': 'p1',
+            'name': '旧项目',
+            'color': 0,
+            'sortOrder': 0,
+            'createdAt': 1,
+            'updatedAt': 2,
+            'deleted': false,
+          },
+        ],
+        'tasks': [],
+        'tags': [],
+        // 无 'folders' 键。
+      };
+
+      final decoded = decodeSnapshot(_gzipJson(v1Json));
+      expect(decoded.schemaVersion, 1);
+      expect(decoded.folders, isEmpty, reason: 'v1 无 folders 键 → 空列表');
+      expect(
+        decoded.projects.single.folderId,
+        isNull,
+        reason: 'v1 project 无 folderId 键 → null',
+      );
+      expect(decoded.tasks, isEmpty);
+      expect(decoded.tags, isEmpty);
+    });
+
+    test('schemaVersion=99（未来版本）抛 SnapshotSchemaException', () {
+      final json = _sampleSnapshot().toJson()..['schemaVersion'] = 99;
       final bytes = _gzipJson(json);
 
       try {
         decodeSnapshot(bytes);
         fail('应抛出 SnapshotSchemaException');
       } on SnapshotSchemaException catch (e) {
-        expect(e.actual, 2);
-        expect(e.expected, 1);
+        expect(e.actual, 99);
+        expect(e.expected, kSnapshotSchemaVersion);
+        expect(e.toString(), contains('supports'), reason: '异常信息描述支持版本');
       }
+    });
+
+    test('schemaVersion=0（缺省回退 0，v0/损坏）抛 SnapshotSchemaException', () {
+      final json = _sampleSnapshot().toJson()..['schemaVersion'] = 0;
+      expect(
+        () => decodeSnapshot(_gzipJson(json)),
+        throwsA(isA<SnapshotSchemaException>()),
+      );
 
       // 缺 schemaVersion 同样拒绝（fromJson 回退 0）。
       final noVersion = _sampleSnapshot().toJson()..remove('schemaVersion');
@@ -224,7 +296,7 @@ void main() {
   group('snapshot_codec 崩溃安全解析', () {
     test('缺失/异常字段回退默认值（status 越界、deleted 为 int、缺 tagIds）', () {
       final json = <String, dynamic>{
-        'schemaVersion': 1,
+        'schemaVersion': 2,
         'deviceId': 'd',
         'exportedAt': 100,
         'projects': [
@@ -254,10 +326,11 @@ void main() {
           },
         ],
         'tags': [],
+        'folders': [],
       };
 
       final snapshot = decodeSnapshot(_gzipJson(json));
-      expect(snapshot.schemaVersion, 1);
+      expect(snapshot.schemaVersion, 2);
       expect(snapshot.projects.single.deleted, isTrue);
 
       final task = snapshot.tasks.single;
@@ -274,7 +347,7 @@ void main() {
 
     test('tagIds 非字符串元素被丢弃，deleted 非 0/1 值容错', () {
       final json = <String, dynamic>{
-        'schemaVersion': 1,
+        'schemaVersion': 2,
         'deviceId': 'd',
         'exportedAt': 0,
         'projects': [
@@ -306,6 +379,176 @@ void main() {
       expect(snapshot.projects.single.name, '');
       expect(snapshot.projects.single.deleted, isFalse);
       expect(snapshot.tasks.single.tagIds, ['keep', 'also']);
+    });
+  });
+
+  group('v2 新字段（folders + project.folderId）', () {
+    test('businessToJson 含 folders（上传 hash 必须覆盖新字段）', () {
+      final json = _sampleSnapshot().businessToJson();
+      expect(
+        json.containsKey('folders'),
+        isTrue,
+        reason: '上传 hash 必须含 folders',
+      );
+      final folders = json['folders'] as List;
+      expect(folders.length, 2);
+      expect(folders.first, containsPair('id', 'folder-1'));
+      expect(folders.first, containsPair('name', '工作文件夹'));
+    });
+
+    test('project.folderId 非字符串/异常类型 → null（崩溃安全）', () {
+      final json = <String, dynamic>{
+        'schemaVersion': 2,
+        'deviceId': 'd',
+        'exportedAt': 0,
+        'projects': [
+          {
+            'id': 'p1',
+            'name': 'P',
+            'folderId': 42, // 非字符串 → null
+            'sortOrder': 0,
+            'createdAt': 1,
+            'updatedAt': 2,
+            'deleted': false,
+          },
+          {
+            'id': 'p2',
+            'name': 'Q',
+            'folderId': {'nested': true}, // 非字符串 → null
+            'sortOrder': 1,
+            'createdAt': 1,
+            'updatedAt': 3,
+            'deleted': false,
+          },
+        ],
+        'tasks': [],
+        'tags': [],
+        'folders': [],
+      };
+
+      final snapshot = decodeSnapshot(_gzipJson(json));
+      expect(snapshot.projects[0].folderId, isNull);
+      expect(snapshot.projects[1].folderId, isNull);
+    });
+
+    test('folders 崩溃安全：缺失字段/非对象元素被跳过或回退默认值', () {
+      final json = <String, dynamic>{
+        'schemaVersion': 2,
+        'deviceId': 'd',
+        'exportedAt': 0,
+        'projects': [],
+        'tasks': [],
+        'tags': [],
+        'folders': [
+          {
+            'id': 'f1',
+            // 缺 name/sortOrder/createdAt/updatedAt/deleted。
+            'deleted': 1, // int → true
+          },
+          'not-a-map', // 非对象元素丢弃
+          null,
+          {
+            'id': 'f2',
+            'name': 'F2',
+            'sortOrder': 1,
+            'createdAt': 10,
+            'updatedAt': 20,
+            'deleted': false,
+          },
+        ],
+      };
+
+      final snapshot = decodeSnapshot(_gzipJson(json));
+      expect(snapshot.folders.map((f) => f.id), ['f1', 'f2']);
+      expect(snapshot.folders[0].name, '');
+      expect(snapshot.folders[0].sortOrder, 0);
+      expect(snapshot.folders[0].deleted, isTrue);
+      expect(snapshot.folders[1].name, 'F2');
+      expect(snapshot.folders[1].deleted, isFalse);
+    });
+
+    test('folders 键非 List（缺失/异常类型）→ 空列表', () {
+      final json = _sampleSnapshot().toJson()
+        ..remove('folders')
+        ..['folders'] = 'garbage'; // 非 List → 空
+      final snapshot = decodeSnapshot(_gzipJson(json));
+      expect(snapshot.folders, isEmpty);
+    });
+  });
+
+  group('v1 旧快照兼容读（schemaVersion=1，无 folders 键 / 无 folderId 键）', () {
+    test('v1 真实快照完整 decode 往返：结构级接受 + 字段级回退 + 重序列化一致', () {
+      // v1 真实快照形态：schemaVersion=1、无 folders 键、project 记录无 folderId 键。
+      final v1Json = <String, dynamic>{
+        'schemaVersion': 1,
+        'deviceId': 'old-device',
+        'exportedAt': 1720000000000,
+        'projects': [
+          {
+            'id': 'p1',
+            'name': '旧项目',
+            'color': 0,
+            'sortOrder': 0,
+            'createdAt': 1,
+            'updatedAt': 2,
+            'deleted': false,
+          },
+        ],
+        'tasks': [],
+        'tags': [],
+        // 无 'folders' 键（v1 无此字段）。
+      };
+
+      // 结构级：schemaVersion=1 在支持区间内，decodeSnapshot 不得拒绝。
+      final decoded = decodeSnapshot(_gzipJson(v1Json));
+      expect(decoded.schemaVersion, 1);
+      expect(decoded.folders, isEmpty, reason: 'v1 无 folders 键 → 空列表');
+      expect(
+        decoded.projects.single.folderId,
+        isNull,
+        reason: 'v1 project 无 folderId 键 → null',
+      );
+      // 字段级（fromJson 直接解析）结果一致。
+      final parsed = SnapshotData.fromJson(v1Json);
+      expect(parsed.folders, isEmpty);
+      expect(parsed.projects.single.folderId, isNull);
+
+      // 重序列化：decode → encode → decode 往返稳定，且补齐 folders 键（空数组）。
+      final reEncoded = encodeSnapshot(decoded);
+      final reDecoded = decodeSnapshot(reEncoded);
+      expect(reDecoded.schemaVersion, 1, reason: '重导出保持 v1 schemaVersion');
+      expect(reDecoded.folders, isEmpty);
+      expect(
+        reDecoded.toJson().containsKey('folders'),
+        isTrue,
+        reason: '重序列化补齐 folders 键（空数组）',
+      );
+    });
+
+    test('decodeSnapshot 接受无 folders/folderId 键的 v2 快照（兼容 v1 数据形态）', () {
+      // schemaVersion=2 但内容为 v1 数据形态（无新字段键）→ 不崩溃，回退默认值。
+      final json = <String, dynamic>{
+        'schemaVersion': 2,
+        'deviceId': 'd',
+        'exportedAt': 0,
+        'projects': [
+          {
+            'id': 'p1',
+            'name': 'P',
+            'color': 0,
+            'sortOrder': 0,
+            'createdAt': 1,
+            'updatedAt': 2,
+            'deleted': false,
+          },
+        ],
+        'tasks': [],
+        'tags': [],
+      };
+
+      final snapshot = decodeSnapshot(_gzipJson(json));
+      expect(snapshot.folders, isEmpty);
+      expect(snapshot.projects.single.folderId, isNull);
     });
   });
 }

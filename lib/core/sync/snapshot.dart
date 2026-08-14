@@ -1,6 +1,6 @@
-// 快照数据模型（docs/60-sync-design.md §3）。
+// 快照数据模型（docs/60-sync-design.md §3 / docs/62-folder-nav.md §5.1）。
 //
-// 纯 Dart 不可变数据类，字段严格对齐快照 JSON 格式（schemaVersion = 1）：
+// 纯 Dart 不可变数据类，字段严格对齐快照 JSON 格式（schemaVersion = 2）：
 // - 时间字段一律 UTC 毫秒整数（与 DB 层一致，docs/40-data-model.md §4）；
 // - deleted 在快照层为 bool（DB 层为 int 0/1）；
 // - status / priority 为枚举 index（0–3，顺序即存储值，见 tables.dart 的
@@ -17,7 +17,7 @@ const int _kStatusMax = 3;
 /// 任务优先级合法值上界（tables.dart TaskPriority 共 4 个：0–3）。
 const int _kPriorityMax = 3;
 
-/// 快照整体（§3）：schemaVersion + 设备元信息 + 三张参与同步的表。
+/// 快照整体（§3）：schemaVersion + 设备元信息 + 四张参与同步的表。
 ///
 /// 不可变：所有字段 final，列表字段请勿就地修改（合并引擎总是构造新对象）。
 class SnapshotData {
@@ -28,6 +28,7 @@ class SnapshotData {
     this.projects = const [],
     this.tasks = const [],
     this.tags = const [],
+    this.folders = const [],
   });
 
   /// 快照格式版本，当前为 1（§3）。合法性由 snapshot_codec 校验。
@@ -48,6 +49,9 @@ class SnapshotData {
   /// 标签记录列表。
   final List<TagRecord> tags;
 
+  /// 文件夹记录列表（docs/62-folder-nav.md §5.1，v2 起）。
+  final List<FolderRecord> folders;
+
   /// 解析快照 JSON。字段级崩溃安全：缺失/类型异常字段回退默认值，
   /// 列表元素非对象时跳过。
   factory SnapshotData.fromJson(Map<String, dynamic> json) {
@@ -61,6 +65,10 @@ class SnapshotData {
       ).map(ProjectRecord.fromJson).toList(),
       tasks: _readObjectList(json, 'tasks').map(TaskRecord.fromJson).toList(),
       tags: _readObjectList(json, 'tags').map(TagRecord.fromJson).toList(),
+      folders: _readObjectList(
+        json,
+        'folders',
+      ).map(FolderRecord.fromJson).toList(),
     );
   }
 
@@ -73,6 +81,7 @@ class SnapshotData {
       'projects': projects.map((r) => r.toJson()).toList(),
       'tasks': tasks.map((r) => r.toJson()).toList(),
       'tags': tags.map((r) => r.toJson()).toList(),
+      'folders': folders.map((r) => r.toJson()).toList(),
     };
   }
 
@@ -96,6 +105,7 @@ class SnapshotData {
       'projects': projects.map((r) => r.toJson()).toList(),
       'tasks': tasks.map((r) => r.toJson()).toList(),
       'tags': tags.map((r) => r.toJson()).toList(),
+      'folders': folders.map((r) => r.toJson()).toList(),
     };
   }
 }
@@ -111,6 +121,7 @@ class ProjectRecord {
     required this.updatedAt,
     required this.deleted,
     this.description = '',
+    this.folderId,
   });
 
   /// UUID。
@@ -124,6 +135,12 @@ class ProjectRecord {
 
   /// 描述（可选，DB 默认 ''）。
   final String description;
+
+  /// 所属文件夹 ID（NULL = 未分组，docs/62-folder-nav.md §4.2）。
+  ///
+  /// 崩溃安全读取：v1 旧快照的 project 记录无此键（或非字符串）→ null，
+  /// 保证旧快照可兼容读；合并后经 [reconcileFolderIds] 清理悬空引用。
+  final String? folderId;
 
   /// 项目间排序。
   final int sortOrder;
@@ -143,6 +160,7 @@ class ProjectRecord {
       name: _readString(json, 'name', fallback: ''),
       color: _readInt(json, 'color', fallback: 0),
       description: _readString(json, 'description', fallback: ''),
+      folderId: _readNullableString(json, 'folderId'),
       sortOrder: _readInt(json, 'sortOrder', fallback: 0),
       createdAt: _readInt(json, 'createdAt', fallback: 0),
       updatedAt: _readInt(json, 'updatedAt', fallback: 0),
@@ -156,6 +174,7 @@ class ProjectRecord {
       'name': name,
       'color': color,
       'description': description,
+      'folderId': folderId,
       'sortOrder': sortOrder,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
@@ -322,6 +341,58 @@ class TagRecord {
       'id': id,
       'name': name,
       'color': color,
+      'sortOrder': sortOrder,
+      'createdAt': createdAt,
+      'updatedAt': updatedAt,
+      'deleted': deleted,
+    };
+  }
+}
+
+/// 文件夹记录（docs/62-folder-nav.md §4.1 / §5.1，快照字段见 §3）。
+class FolderRecord {
+  const FolderRecord({
+    required this.id,
+    required this.name,
+    required this.sortOrder,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.deleted,
+  });
+
+  /// UUID。
+  final String id;
+
+  /// 文件夹名（1–50 字符）。
+  final String name;
+
+  /// 文件夹间排序（0..n-1 连续）。
+  final int sortOrder;
+
+  /// 创建时间（UTC 毫秒）。
+  final int createdAt;
+
+  /// 更新时间（UTC 毫秒，同步字段，LWW 依据）。
+  final int updatedAt;
+
+  /// 墓碑标记（true = 已删除）。
+  final bool deleted;
+
+  factory FolderRecord.fromJson(Map<String, dynamic> json) {
+    return FolderRecord(
+      id: _readString(json, 'id', fallback: ''),
+      name: _readString(json, 'name', fallback: ''),
+      sortOrder: _readInt(json, 'sortOrder', fallback: 0),
+      createdAt: _readInt(json, 'createdAt', fallback: 0),
+      updatedAt: _readInt(json, 'updatedAt', fallback: 0),
+      deleted: _readBool(json, 'deleted', fallback: false),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
       'sortOrder': sortOrder,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
