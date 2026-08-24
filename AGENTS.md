@@ -64,7 +64,7 @@ curl -s -o ~/.gradle/wrapper/dists/gradle-8.14-all/<hash>/gradle-8.14-all.zip \
 # <hash> 见 wrapper 缓存目录名（如 c2qonpi39x1mddn7hk5gh9iqj）
 ```
 
-## 2.6 Linux 开发环境（本机）
+## 2.6 Linux 开发环境
 
 环境变量已在 `~/.bashrc` 配置（`JAVA_HOME` / `ANDROID_HOME` / `ANDROID_SDK_ROOT` / `PATH`）：
 
@@ -73,9 +73,32 @@ curl -s -o ~/.gradle/wrapper/dists/gradle-8.14-all/<hash>/gradle-8.14-all.zip \
 | Flutter SDK (Linux) | `/mnt/Data/Personal/04_others/My_Development/FlutterSDK-Linux/flutter` |
 | JDK 17 (Temurin) | `/mnt/Data/Personal/04_others/My_Development/JDK/jdk-17.0.20+8` |
 | Android SDK (Linux) | `/mnt/Data/Personal/04_others/My_Development/AndroidSDK-Linux` |
-| Windows Flutter SDK（旧，仅 Windows 用） | `/mnt/Data/Personal/04_others/My_Development/FlutterSDK/flutter` |
 
-注意：**本机（Linux）只能构建 Android 与 Linux 桌面目标**，无法构建 Windows 桌面（Flutter 不支持 Linux→Windows 交叉编译）。Windows 版需在 Windows 机器上构建。若 shell 里 `flutter` 命令不可用，先执行 `source ~/.bashrc`。
+注意：**Linux 环境只能构建 Android 与 Linux 桌面目标**，无法构建 Windows 桌面（Flutter 不支持 Linux→Windows 交叉编译）。若 shell 里 `flutter` 命令不可用，先执行 `source ~/.bashrc`。
+
+## 2.7 Windows 开发环境
+
+Windows 环境相关工具及 SDK 路径说明：
+
+- **Shell**: 系统自带 PowerShell
+- **Git**: 通过 Scoop 安装
+- **SDK 目录**:
+
+| 组件 | 路径 |
+|---|---|
+| Flutter SDK | `D:\Personal\04_others\My_Development\FlutterSDK` |
+| JDK | `D:\Personal\04_others\My_Development\JDK` |
+| Android SDK | `D:\Personal\04_others\My_Development\AndroidSDK` |
+
+- **PowerShell 临时代理设置**（网络超时/需要代理时使用）：
+  ```powershell
+  $env:http_proxy="http://127.0.0.1:10808"
+  $env:https_proxy="http://127.0.0.1:10808"
+  # 跑 flutter test 前需清除代理
+  Remove-Item env:http_proxy, env:https_proxy
+  ```
+
+注意：在 Windows 环境下可构建 Windows 桌面应用与 Android 目标。
 
 ## 3. 硬性约束（违反即返工）
 
