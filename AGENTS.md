@@ -71,7 +71,7 @@ curl -s -o ~/.gradle/wrapper/dists/gradle-8.14-all/<hash>/gradle-8.14-all.zip \
 | 组件 | 路径 |
 |---|---|
 | Flutter SDK (Linux) | `/mnt/Data/Personal/04_others/My_Development/FlutterSDK-Linux/flutter` |
-| JDK 17 (Temurin) | `/mnt/Data/Personal/04_others/My_Development/JDK/jdk-17.0.20+8` |
+| JDK 17 (Temurin) | `/mnt/Data/Personal/04_others/My_Development/JDK-Linux/jdk-17.0.20+8` |
 | Android SDK (Linux) | `/mnt/Data/Personal/04_others/My_Development/AndroidSDK-Linux` |
 
 注意：**Linux 环境只能构建 Android 与 Linux 桌面目标**，无法构建 Windows 桌面（Flutter 不支持 Linux→Windows 交叉编译）。若 shell 里 `flutter` 命令不可用，先执行 `source ~/.bashrc`。
