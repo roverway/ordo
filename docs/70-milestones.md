@@ -244,6 +244,28 @@
 
 ---
 
+## M9 — 自定义筛选视图与多栏看板（`docs/65-custom-views-and-panels.md`）
+
+**目标**：提供灵活的多栏看板与分块仪表盘，支持多维度过滤、智能跨面板拖拽变更属性，以及完整跨端同步。
+
+**任务**：
+1. 数据模型与迁移：Drift `CustomViews` 表（Schema v5，`id`, `name`, `icon`, `color`, `sortOrder`, `layoutMode`, `panelsJson`, `createdAt`, `updatedAt`, `deleted`）。
+2. 纯函数筛选与排序引擎：`FilterCriteria`, `CustomViewPanelConfig`, `matchesFilter`, `sortPanelTasks`，支持同维度 OR / 跨维度 AND、项目/文件夹/标签/优先级/状态/日期/层级过滤。
+3. 跨设备同步：SnapshotData v3 格式扩展 `customViews`，LWW 合并引擎 + 悬空清理逻辑。
+4. UI 与交互：抽屉侧边栏自定义视图专属分区、宽屏横向看板 / 窄屏 TabBar 响应式切换、多维度筛选底部抽屉/弹窗、跨面板智能拖拽属性变更。
+5. 国际化与测试：中英文 ARB 本地化、DAO、Sync、Models、Providers 全套单测与集成测试。
+
+**DoD**：
+- [x] Schema v5 数据迁移无损，各版本迁移单测通过
+- [x] 纯函数筛选引擎单测覆盖多维度交集/并集与派生状态约束
+- [x] 快照编解码器 v3 与多端 LWW 同步测试全绿
+- [x] 智能跨面板拖拽判定（单一差异直接执行，歧义弹窗确认，派生状态拦截）
+- [x] 抽屉导航与多栏看板 / Tab 响应式切换正常
+- [x] `flutter analyze` 0 error；`flutter test` 558 测试全绿；`dart format .` 通过
+- [x] 文档同步：`docs/65-custom-views-and-panels.md` 与 `70-milestones.md`
+
+---
+
 ## 里程碑依赖图
 
 ```

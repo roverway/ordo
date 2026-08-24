@@ -17,7 +17,7 @@ import 'package:todo/core/sync/snapshot_codec.dart';
 /// deleted=true 墓碑、非空与空 tagIds、folders 列表。
 SnapshotData _sampleSnapshot() {
   return SnapshotData(
-    schemaVersion: 2,
+    schemaVersion: 3,
     deviceId: 'device-uuid-1',
     exportedAt: 1720000000000,
     projects: [
@@ -65,6 +65,8 @@ SnapshotData _sampleSnapshot() {
         parentId: 'task-1',
         title: '子任务',
         startAt: 1720000000000,
+        status: 0,
+        priority: 0,
         sortOrder: 1,
         createdAt: 1720000000000,
         updatedAt: 1720000004000,
@@ -109,6 +111,20 @@ SnapshotData _sampleSnapshot() {
         deleted: true, // 墓碑
       ),
     ],
+    customViews: [
+      const CustomViewRecord(
+        id: 'view-1',
+        name: '自定义看板',
+        icon: 'dashboard',
+        color: 0xFF123456,
+        sortOrder: 0,
+        layoutMode: 'kanban',
+        panelsJson: '[{"id":"p1","title":"待办"}]',
+        createdAt: 1720000000000,
+        updatedAt: 1720000009000,
+        deleted: false,
+      ),
+    ],
   );
 }
 
@@ -124,7 +140,7 @@ void main() {
       final decoded = decodeSnapshot(encodeSnapshot(snapshot));
 
       // 顶层与整棵 JSON 树逐字段一致。
-      expect(decoded.schemaVersion, 2);
+      expect(decoded.schemaVersion, 3);
       expect(decoded.deviceId, 'device-uuid-1');
       expect(decoded.exportedAt, 1720000000000);
       expect(decoded.toJson(), equals(snapshot.toJson()));
@@ -549,6 +565,42 @@ void main() {
       final snapshot = decodeSnapshot(_gzipJson(json));
       expect(snapshot.folders, isEmpty);
       expect(snapshot.projects.single.folderId, isNull);
+      expect(snapshot.customViews, isEmpty);
+    });
+
+    test('decodeSnapshot 接受包含 customViews 的 v3 快照', () {
+      final json = <String, dynamic>{
+        'schemaVersion': 3,
+        'deviceId': 'd',
+        'exportedAt': 0,
+        'projects': [],
+        'tasks': [],
+        'tags': [],
+        'folders': [],
+        'customViews': [
+          {
+            'id': 'cv-1',
+            'name': '看板视图',
+            'icon': 'view_kanban',
+            'color': 4283215696,
+            'sortOrder': 0,
+            'layoutMode': 'kanban',
+            'panelsJson': '[{"id":"p1","title":"待办"}]',
+            'createdAt': 1000,
+            'updatedAt': 2000,
+            'deleted': false,
+          },
+        ],
+      };
+
+      final snapshot = decodeSnapshot(_gzipJson(json));
+      expect(snapshot.customViews.length, 1);
+      final cv = snapshot.customViews.first;
+      expect(cv.id, 'cv-1');
+      expect(cv.name, '看板视图');
+      expect(cv.icon, 'view_kanban');
+      expect(cv.layoutMode, 'kanban');
+      expect(cv.panelsJson, '[{"id":"p1","title":"待办"}]');
     });
   });
 }

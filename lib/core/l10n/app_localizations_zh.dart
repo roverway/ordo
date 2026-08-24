@@ -643,4 +643,174 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get syncErrUnknown => '同步失败，请重试';
+
+  @override
+  String get customViews => '自定义视图';
+
+  @override
+  String get newCustomView => '新建视图';
+
+  @override
+  String get editCustomView => '编辑视图';
+
+  @override
+  String get deleteCustomView => '删除视图';
+
+  @override
+  String deleteCustomViewConfirm(String name) {
+    return '确定要删除视图「$name」吗？';
+  }
+
+  @override
+  String get viewName => '视图名称';
+
+  @override
+  String get viewNameHint => '请输入视图名称';
+
+  @override
+  String get viewIcon => '视图图标';
+
+  @override
+  String get viewColor => '视图颜色';
+
+  @override
+  String get viewLayout => '布局模式';
+
+  @override
+  String get layoutKanban => '多栏看板';
+
+  @override
+  String get layoutList => '列表视图';
+
+  @override
+  String get addPanel => '添加面板';
+
+  @override
+  String get editPanel => '编辑面板';
+
+  @override
+  String get deletePanel => '删除面板';
+
+  @override
+  String get panelTitle => '面板标题';
+
+  @override
+  String get panelTitleHint => '例如：待办、高优';
+
+  @override
+  String get filterCriteria => '筛选规则';
+
+  @override
+  String get filterByFolder => '所属文件夹';
+
+  @override
+  String get filterByProject => '所属项目';
+
+  @override
+  String get filterByTag => '标签';
+
+  @override
+  String get filterByPriority => '优先级';
+
+  @override
+  String get filterByStatus => '状态';
+
+  @override
+  String get filterByDate => '日期范围';
+
+  @override
+  String get filterByHierarchy => '任务层级';
+
+  @override
+  String get tagMatchAll => '匹配所有选中标签（AND）';
+
+  @override
+  String get tagMatchAny => '匹配任一选中标签（OR）';
+
+  @override
+  String get dateScopeAll => '全部日期';
+
+  @override
+  String get dateScopeToday => '今天';
+
+  @override
+  String get dateScopeTomorrow => '明天';
+
+  @override
+  String get dateScopeThisWeek => '本周';
+
+  @override
+  String get dateScopeOverdue => '已逾期';
+
+  @override
+  String get dateScopeNoDate => '无日期';
+
+  @override
+  String get hierarchyAll => '全部任务';
+
+  @override
+  String get hierarchyRootOnly => '仅根任务';
+
+  @override
+  String get hierarchySubtasksOnly => '仅子任务';
+
+  @override
+  String get presetTemplates => '快速预设模板';
+
+  @override
+  String get presetStatusKanban => '状态看板（待办/进行中/已完成）';
+
+  @override
+  String get presetPriorityKanban => '优先级看板（高/中/低/无）';
+
+  @override
+  String get saveAsCustomView => '保存为视图';
+
+  @override
+  String get saveAsCustomViewSuccess => '已成功保存为自定义视图';
+
+  @override
+  String get noCustomViews => '暂无自定义视图';
+
+  @override
+  String get noTasksInPanel => '面板无匹配任务';
+
+  @override
+  String get quickFilter => '快捷筛选';
+
+  @override
+  String get applyFilter => '应用筛选';
+
+  @override
+  String get resetFilter => '重置筛选';
+
+  @override
+  String get parentTaskDerivedStatusNotice => '该任务包含子任务，状态由子任务自动派生计算';
+
+  @override
+  String get sortBy => '排序方式';
+
+  @override
+  String get sortOrderManual => '自定义排序';
+
+  @override
+  String get sortOrderPriority => '按优先级';
+
+  @override
+  String get sortOrderDueDate => '按截止时间';
+
+  @override
+  String get sortOrderTitle => '按标题';
+
+  @override
+  String get sortAsc => '升序';
+
+  @override
+  String get sortDesc => '降序';
+
+  @override
+  String get treeView => '树状结构';
+
+  @override
+  String get flatView => '扁平列表';
 }

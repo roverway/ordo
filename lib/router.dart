@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 
 import 'core/utils/motion.dart';
 import 'features/calendar/calendar_page.dart';
+import 'features/custom_views/presentation/custom_view_editor_page.dart';
+import 'features/custom_views/presentation/custom_view_page.dart';
 import 'features/projects/projects_page.dart';
 import 'features/search/search_page.dart';
 import 'features/settings/settings_page.dart';
@@ -111,6 +113,25 @@ final GoRouter appRouter = GoRouter(
       pageBuilder: (context, state) {
         final id = state.pathParameters['id']!;
         return _slideFadePage(context, state, TaskEditPage(taskId: id));
+      },
+    ),
+    GoRoute(
+      path: '/custom_view/new',
+      pageBuilder: (context, state) =>
+          _slideFadePage(context, state, const CustomViewEditorPage()),
+    ),
+    GoRoute(
+      path: '/custom_view/:id',
+      pageBuilder: (context, state) {
+        final id = state.pathParameters['id']!;
+        return _slideFadePage(context, state, CustomViewPage(viewId: id));
+      },
+    ),
+    GoRoute(
+      path: '/custom_view/:id/edit',
+      pageBuilder: (context, state) {
+        final id = state.pathParameters['id']!;
+        return _slideFadePage(context, state, CustomViewEditorPage(viewId: id));
       },
     ),
     GoRoute(

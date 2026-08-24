@@ -6,6 +6,8 @@ import '../../core/db/database.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/motion.dart';
+import '../../features/custom_views/providers/custom_view_providers.dart';
+import '../../features/custom_views/widgets/icon_picker_dialog.dart';
 import '../../features/projects/project_providers.dart';
 import '../../features/projects/widgets/folder_name_dialog.dart';
 import '../../features/projects/widgets/project_form_dialog.dart';
@@ -210,6 +212,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                       onTap: () => _go(context, item.path),
                     ),
                   const Divider(),
+                  // ── 自定义视图区 ──
+                  ..._buildCustomViewsArea(context, l10n, path),
+                  const Divider(),
                   // ── 项目区（文件夹组 + 未分组区，62-folder-nav.md §6.1）──
                   ..._buildProjectArea(context, l10n),
                 ],
@@ -300,6 +305,95 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
           ),
         ),
       ),
+    );
+  }
+
+  // ─────────────────────── 自定义视图区 ───────────────────────
+
+  List<Widget> _buildCustomViewsArea(
+    BuildContext context,
+    AppLocalizations l10n,
+    String currentPath,
+  ) {
+    final customViewsAsync = ref.watch(customViewsStreamProvider);
+    final theme = Theme.of(context);
+
+    return customViewsAsync.when(
+      data: (views) {
+        if (views.isEmpty) {
+          return [
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTokens.spaceSm,
+                vertical: AppTokens.spaceXxs,
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    l10n.customViews,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: AppTokens.textTitleWeight,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    tooltip: l10n.newCustomView,
+                    icon: const Icon(Icons.add, size: 18),
+                    onPressed: () => _go(context, '/custom_view/new'),
+                  ),
+                ],
+              ),
+            ),
+          ];
+        }
+
+        return [
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTokens.spaceSm,
+              vertical: AppTokens.spaceXxs,
+            ),
+            child: Row(
+              children: [
+                Text(
+                  l10n.customViews,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: AppTokens.textTitleWeight,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  tooltip: l10n.newCustomView,
+                  icon: const Icon(Icons.add, size: 18),
+                  onPressed: () => _go(context, '/custom_view/new'),
+                ),
+              ],
+            ),
+          ),
+          ...views.map((CustomView view) {
+            final isSelected = currentPath == '/custom_view/${view.id}';
+            return _DrawerTile(
+              leading: Icon(
+                getCustomViewIcon(view.icon),
+                size: AppTokens.expandArrowSize,
+                color: Color(view.color),
+              ),
+              title: view.name,
+              selected: isSelected,
+              onTap: () => _go(context, '/custom_view/${view.id}'),
+            );
+          }),
+        ];
+      },
+      loading: () => const [
+        Padding(
+          padding: EdgeInsets.all(AppTokens.spaceXs),
+          child: LoadingView(compact: true),
+        ),
+      ],
+      error: (e, st) => const <Widget>[],
     );
   }
 

@@ -109,6 +109,32 @@ FolderRecord _folder({
   );
 }
 
+CustomViewRecord _customView({
+  required String id,
+  String name = 'VIEW',
+  String icon = 'dashboard',
+  int color = 0xFF123456,
+  int sortOrder = 0,
+  String layoutMode = 'kanban',
+  String panelsJson = '[]',
+  int createdAt = 1,
+  int updatedAt = 1,
+  bool deleted = false,
+}) {
+  return CustomViewRecord(
+    id: id,
+    name: name,
+    icon: icon,
+    color: color,
+    sortOrder: sortOrder,
+    layoutMode: layoutMode,
+    panelsJson: panelsJson,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+    deleted: deleted,
+  );
+}
+
 SnapshotData _snapshot({
   int schemaVersion = 1,
   String deviceId = 'local-device',
@@ -117,6 +143,7 @@ SnapshotData _snapshot({
   List<TaskRecord> tasks = const [],
   List<TagRecord> tags = const [],
   List<FolderRecord> folders = const [],
+  List<CustomViewRecord> customViews = const [],
 }) {
   return SnapshotData(
     schemaVersion: schemaVersion,
@@ -126,6 +153,7 @@ SnapshotData _snapshot({
     tasks: tasks,
     tags: tags,
     folders: folders,
+    customViews: customViews,
   );
 }
 
@@ -666,6 +694,80 @@ void main() {
       );
       final byId = {for (final p in result.projects) p.id: p.name};
       expect(byId, {'p1': 'B1', 'p2': 'A2', 'p3': 'B3'});
+    });
+  });
+
+  group('自定义视图 LWW 合并与 reconcileCustomViews', () {
+    test('自定义视图 LWW 合并：按 updatedAt 决出 winner', () {
+      final local = _snapshot(
+        customViews: [
+          _customView(id: 'cv1', name: '本地旧视图', updatedAt: 100),
+          _customView(id: 'cv2', name: '本地新视图', updatedAt: 300),
+        ],
+      );
+      final remote = _snapshot(
+        customViews: [
+          _customView(id: 'cv1', name: '远端新视图', updatedAt: 200),
+          _customView(id: 'cv2', name: '远端旧视图', updatedAt: 100),
+          _customView(id: 'cv3', name: '远端独有视图', updatedAt: 150),
+        ],
+      );
+
+      final result = merge(
+        local,
+        remote,
+        localDeviceId: 'a',
+        remoteDeviceId: 'b',
+      );
+
+      final byId = {for (final cv in result.customViews) cv.id: cv.name};
+      expect(byId, {'cv1': '远端新视图', 'cv2': '本地新视图', 'cv3': '远端独有视图'});
+    });
+
+    test('reconcileCustomViews 清理已删项目、标签与文件夹引用', () {
+      final merged = _snapshot(
+        projects: [
+          _project(id: 'p1', name: '存活项目', deleted: false),
+          _project(id: 'p2', name: '已删项目', deleted: true),
+        ],
+        tags: [
+          _tag(id: 't1', name: '存活标签', deleted: false),
+          _tag(id: 't2', name: '已删标签', deleted: true),
+        ],
+        folders: [
+          _folder(id: 'f1', name: '存活文件夹', deleted: false),
+          _folder(id: 'f2', name: '已删文件夹', deleted: true),
+        ],
+        customViews: [
+          _customView(
+            id: 'cv1',
+            panelsJson: '''
+[
+  {
+    "id": "panel-1",
+    "title": "面板1",
+    "filter": {
+      "folderIds": ["f1", "f2", "unassigned"],
+      "projectIds": ["p1", "p2"],
+      "tagIds": ["t1", "t2"]
+    }
+  }
+]
+''',
+          ),
+        ],
+      );
+
+      final reconciled = reconcileCustomViews(merged);
+      expect(reconciled.customViews.length, 1);
+      final cv = reconciled.customViews.first;
+      expect(cv.panelsJson.contains('"f2"'), isFalse);
+      expect(cv.panelsJson.contains('"f1"'), isTrue);
+      expect(cv.panelsJson.contains('"unassigned"'), isTrue);
+      expect(cv.panelsJson.contains('"p2"'), isFalse);
+      expect(cv.panelsJson.contains('"p1"'), isTrue);
+      expect(cv.panelsJson.contains('"t2"'), isFalse);
+      expect(cv.panelsJson.contains('"t1"'), isTrue);
     });
   });
 }

@@ -2687,6 +2687,625 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   }
 }
 
+class $CustomViewsTable extends CustomViews
+    with TableInfo<$CustomViewsTable, CustomView> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CustomViewsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 50,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
+  @override
+  late final GeneratedColumn<String> icon = GeneratedColumn<String>(
+    'icon',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('dashboard_outlined'),
+  );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<int> color = GeneratedColumn<int>(
+    'color',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0xFF3B82F6),
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _layoutModeMeta = const VerificationMeta(
+    'layoutMode',
+  );
+  @override
+  late final GeneratedColumn<String> layoutMode = GeneratedColumn<String>(
+    'layout_mode',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('kanban'),
+  );
+  static const VerificationMeta _panelsJsonMeta = const VerificationMeta(
+    'panelsJson',
+  );
+  @override
+  late final GeneratedColumn<String> panelsJson = GeneratedColumn<String>(
+    'panels_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<int> deleted = GeneratedColumn<int>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    icon,
+    color,
+    sortOrder,
+    layoutMode,
+    panelsJson,
+    createdAt,
+    updatedAt,
+    deleted,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'custom_views';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CustomView> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('icon')) {
+      context.handle(
+        _iconMeta,
+        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
+      );
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    if (data.containsKey('layout_mode')) {
+      context.handle(
+        _layoutModeMeta,
+        layoutMode.isAcceptableOrUnknown(data['layout_mode']!, _layoutModeMeta),
+      );
+    }
+    if (data.containsKey('panels_json')) {
+      context.handle(
+        _panelsJsonMeta,
+        panelsJson.isAcceptableOrUnknown(data['panels_json']!, _panelsJsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_panelsJsonMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CustomView map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CustomView(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      icon: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon'],
+      )!,
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}color'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      layoutMode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}layout_mode'],
+      )!,
+      panelsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}panels_json'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deleted'],
+      )!,
+    );
+  }
+
+  @override
+  $CustomViewsTable createAlias(String alias) {
+    return $CustomViewsTable(attachedDatabase, alias);
+  }
+}
+
+class CustomView extends DataClass implements Insertable<CustomView> {
+  /// 主键 UUID v4。
+  final String id;
+
+  /// 视图名称（1–50 字符）。
+  final String name;
+
+  /// 视图图标（Material Icons identifier 字符串，如 'dashboard_outlined'）。
+  final String icon;
+
+  /// 视图强调颜色（ARGB 32位整数，如 0xFF3B82F6）。
+  final int color;
+
+  /// 排序权重（0..n-1，用于侧边栏展示排序）。
+  final int sortOrder;
+
+  /// 布局模式：'kanban'(看板多列) 或 'list'(单列聚合)。
+  final String layoutMode;
+
+  /// 面板配置列表序列化 JSON 字符串。
+  final String panelsJson;
+
+  /// 创建时间（UTC 毫秒时间戳）。
+  final int createdAt;
+
+  /// 最后更新时间（UTC 毫秒时间戳，参与同步 LWW 合并）。
+  final int updatedAt;
+
+  /// 墓碑删除标记（0 = 正常，1 = 已删除）。
+  final int deleted;
+  const CustomView({
+    required this.id,
+    required this.name,
+    required this.icon,
+    required this.color,
+    required this.sortOrder,
+    required this.layoutMode,
+    required this.panelsJson,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.deleted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['icon'] = Variable<String>(icon);
+    map['color'] = Variable<int>(color);
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['layout_mode'] = Variable<String>(layoutMode);
+    map['panels_json'] = Variable<String>(panelsJson);
+    map['created_at'] = Variable<int>(createdAt);
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['deleted'] = Variable<int>(deleted);
+    return map;
+  }
+
+  CustomViewsCompanion toCompanion(bool nullToAbsent) {
+    return CustomViewsCompanion(
+      id: Value(id),
+      name: Value(name),
+      icon: Value(icon),
+      color: Value(color),
+      sortOrder: Value(sortOrder),
+      layoutMode: Value(layoutMode),
+      panelsJson: Value(panelsJson),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deleted: Value(deleted),
+    );
+  }
+
+  factory CustomView.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CustomView(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      icon: serializer.fromJson<String>(json['icon']),
+      color: serializer.fromJson<int>(json['color']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      layoutMode: serializer.fromJson<String>(json['layoutMode']),
+      panelsJson: serializer.fromJson<String>(json['panelsJson']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      deleted: serializer.fromJson<int>(json['deleted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'icon': serializer.toJson<String>(icon),
+      'color': serializer.toJson<int>(color),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'layoutMode': serializer.toJson<String>(layoutMode),
+      'panelsJson': serializer.toJson<String>(panelsJson),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'deleted': serializer.toJson<int>(deleted),
+    };
+  }
+
+  CustomView copyWith({
+    String? id,
+    String? name,
+    String? icon,
+    int? color,
+    int? sortOrder,
+    String? layoutMode,
+    String? panelsJson,
+    int? createdAt,
+    int? updatedAt,
+    int? deleted,
+  }) => CustomView(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    icon: icon ?? this.icon,
+    color: color ?? this.color,
+    sortOrder: sortOrder ?? this.sortOrder,
+    layoutMode: layoutMode ?? this.layoutMode,
+    panelsJson: panelsJson ?? this.panelsJson,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deleted: deleted ?? this.deleted,
+  );
+  CustomView copyWithCompanion(CustomViewsCompanion data) {
+    return CustomView(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      icon: data.icon.present ? data.icon.value : this.icon,
+      color: data.color.present ? data.color.value : this.color,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      layoutMode: data.layoutMode.present
+          ? data.layoutMode.value
+          : this.layoutMode,
+      panelsJson: data.panelsJson.present
+          ? data.panelsJson.value
+          : this.panelsJson,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CustomView(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('icon: $icon, ')
+          ..write('color: $color, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('layoutMode: $layoutMode, ')
+          ..write('panelsJson: $panelsJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    icon,
+    color,
+    sortOrder,
+    layoutMode,
+    panelsJson,
+    createdAt,
+    updatedAt,
+    deleted,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CustomView &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.icon == this.icon &&
+          other.color == this.color &&
+          other.sortOrder == this.sortOrder &&
+          other.layoutMode == this.layoutMode &&
+          other.panelsJson == this.panelsJson &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deleted == this.deleted);
+}
+
+class CustomViewsCompanion extends UpdateCompanion<CustomView> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> icon;
+  final Value<int> color;
+  final Value<int> sortOrder;
+  final Value<String> layoutMode;
+  final Value<String> panelsJson;
+  final Value<int> createdAt;
+  final Value<int> updatedAt;
+  final Value<int> deleted;
+  final Value<int> rowid;
+  const CustomViewsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.icon = const Value.absent(),
+    this.color = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.layoutMode = const Value.absent(),
+    this.panelsJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CustomViewsCompanion.insert({
+    required String id,
+    required String name,
+    this.icon = const Value.absent(),
+    this.color = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.layoutMode = const Value.absent(),
+    required String panelsJson,
+    required int createdAt,
+    required int updatedAt,
+    this.deleted = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       panelsJson = Value(panelsJson),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<CustomView> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? icon,
+    Expression<int>? color,
+    Expression<int>? sortOrder,
+    Expression<String>? layoutMode,
+    Expression<String>? panelsJson,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<int>? deleted,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (icon != null) 'icon': icon,
+      if (color != null) 'color': color,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (layoutMode != null) 'layout_mode': layoutMode,
+      if (panelsJson != null) 'panels_json': panelsJson,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deleted != null) 'deleted': deleted,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CustomViewsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? icon,
+    Value<int>? color,
+    Value<int>? sortOrder,
+    Value<String>? layoutMode,
+    Value<String>? panelsJson,
+    Value<int>? createdAt,
+    Value<int>? updatedAt,
+    Value<int>? deleted,
+    Value<int>? rowid,
+  }) {
+    return CustomViewsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      icon: icon ?? this.icon,
+      color: color ?? this.color,
+      sortOrder: sortOrder ?? this.sortOrder,
+      layoutMode: layoutMode ?? this.layoutMode,
+      panelsJson: panelsJson ?? this.panelsJson,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deleted: deleted ?? this.deleted,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (icon.present) {
+      map['icon'] = Variable<String>(icon.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<int>(color.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (layoutMode.present) {
+      map['layout_mode'] = Variable<String>(layoutMode.value);
+    }
+    if (panelsJson.present) {
+      map['panels_json'] = Variable<String>(panelsJson.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<int>(deleted.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CustomViewsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('icon: $icon, ')
+          ..write('color: $color, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('layoutMode: $layoutMode, ')
+          ..write('panelsJson: $panelsJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deleted: $deleted, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2696,6 +3315,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TagsTable tags = $TagsTable(this);
   late final $TaskTagsTable taskTags = $TaskTagsTable(this);
   late final $SettingsTable settings = $SettingsTable(this);
+  late final $CustomViewsTable customViews = $CustomViewsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2707,6 +3327,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     tags,
     taskTags,
     settings,
+    customViews,
   ];
 }
 
@@ -4973,6 +5594,305 @@ typedef $$SettingsTableProcessedTableManager =
       Setting,
       PrefetchHooks Function()
     >;
+typedef $$CustomViewsTableCreateCompanionBuilder =
+    CustomViewsCompanion Function({
+      required String id,
+      required String name,
+      Value<String> icon,
+      Value<int> color,
+      Value<int> sortOrder,
+      Value<String> layoutMode,
+      required String panelsJson,
+      required int createdAt,
+      required int updatedAt,
+      Value<int> deleted,
+      Value<int> rowid,
+    });
+typedef $$CustomViewsTableUpdateCompanionBuilder =
+    CustomViewsCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String> icon,
+      Value<int> color,
+      Value<int> sortOrder,
+      Value<String> layoutMode,
+      Value<String> panelsJson,
+      Value<int> createdAt,
+      Value<int> updatedAt,
+      Value<int> deleted,
+      Value<int> rowid,
+    });
+
+class $$CustomViewsTableFilterComposer
+    extends Composer<_$AppDatabase, $CustomViewsTable> {
+  $$CustomViewsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get layoutMode => $composableBuilder(
+    column: $table.layoutMode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get panelsJson => $composableBuilder(
+    column: $table.panelsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CustomViewsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CustomViewsTable> {
+  $$CustomViewsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get layoutMode => $composableBuilder(
+    column: $table.layoutMode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get panelsJson => $composableBuilder(
+    column: $table.panelsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CustomViewsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CustomViewsTable> {
+  $$CustomViewsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get icon =>
+      $composableBuilder(column: $table.icon, builder: (column) => column);
+
+  GeneratedColumn<int> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<String> get layoutMode => $composableBuilder(
+    column: $table.layoutMode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get panelsJson => $composableBuilder(
+    column: $table.panelsJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
+}
+
+class $$CustomViewsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CustomViewsTable,
+          CustomView,
+          $$CustomViewsTableFilterComposer,
+          $$CustomViewsTableOrderingComposer,
+          $$CustomViewsTableAnnotationComposer,
+          $$CustomViewsTableCreateCompanionBuilder,
+          $$CustomViewsTableUpdateCompanionBuilder,
+          (
+            CustomView,
+            BaseReferences<_$AppDatabase, $CustomViewsTable, CustomView>,
+          ),
+          CustomView,
+          PrefetchHooks Function()
+        > {
+  $$CustomViewsTableTableManager(_$AppDatabase db, $CustomViewsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CustomViewsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CustomViewsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CustomViewsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> icon = const Value.absent(),
+                Value<int> color = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<String> layoutMode = const Value.absent(),
+                Value<String> panelsJson = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CustomViewsCompanion(
+                id: id,
+                name: name,
+                icon: icon,
+                color: color,
+                sortOrder: sortOrder,
+                layoutMode: layoutMode,
+                panelsJson: panelsJson,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                Value<String> icon = const Value.absent(),
+                Value<int> color = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<String> layoutMode = const Value.absent(),
+                required String panelsJson,
+                required int createdAt,
+                required int updatedAt,
+                Value<int> deleted = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CustomViewsCompanion.insert(
+                id: id,
+                name: name,
+                icon: icon,
+                color: color,
+                sortOrder: sortOrder,
+                layoutMode: layoutMode,
+                panelsJson: panelsJson,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deleted: deleted,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CustomViewsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CustomViewsTable,
+      CustomView,
+      $$CustomViewsTableFilterComposer,
+      $$CustomViewsTableOrderingComposer,
+      $$CustomViewsTableAnnotationComposer,
+      $$CustomViewsTableCreateCompanionBuilder,
+      $$CustomViewsTableUpdateCompanionBuilder,
+      (
+        CustomView,
+        BaseReferences<_$AppDatabase, $CustomViewsTable, CustomView>,
+      ),
+      CustomView,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4988,4 +5908,6 @@ class $AppDatabaseManager {
       $$TaskTagsTableTableManager(_db, _db.taskTags);
   $$SettingsTableTableManager get settings =>
       $$SettingsTableTableManager(_db, _db.settings);
+  $$CustomViewsTableTableManager get customViews =>
+      $$CustomViewsTableTableManager(_db, _db.customViews);
 }

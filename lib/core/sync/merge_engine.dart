@@ -1,15 +1,17 @@
-// LWW 合并引擎（docs/60-sync-design.md §4 / §7，docs/62-folder-nav.md §5.2）。
+// LWW 合并引擎（docs/60-sync-design.md §4 / §7，docs/62-folder-nav.md §5.2，docs/65-custom-views-and-panels.md §5.2）。
 //
 // 纯函数层：无 IO、无 DB、无全局状态；入参不被修改，始终返回**新对象**。
-// merge / reconcileTagIds / reconcileFolderIds 均为顶层函数，不捕获外层
-// 上下文，可安全用于 isolate。
+// merge / reconcileTagIds / reconcileFolderIds / reconcileCustomViews 均为顶层函数，
+// 不捕获外层上下文，可安全用于 isolate。
 //
 // 合并语义（§4）：
-// - projects/tasks/tags/folders 各自以 id 为 key 合并；同 id 取 updatedAt 大者；
+// - projects/tasks/tags/folders/customViews 各自以 id 为 key 合并；同 id 取 updatedAt 大者；
 // - updatedAt 相等时比较 (deviceId, id) 字典序取大者（两端结果一致）；
 // - 合并后调用 reconcileTagIds 清理悬空标签引用（§7），调用
-//   reconcileFolderIds 清理悬空文件夹引用（62-folder-nav.md §5.2，防悬空 FK）。
+//   reconcileFolderIds 清理悬空文件夹引用（62-folder-nav.md §5.2，防悬空 FK），
+//   调用 reconcileCustomViews 清理自定义视图中的悬空项目/标签/文件夹引用。
 
+import '../utils/custom_view_models.dart';
 import 'snapshot.dart';
 
 /// 合并本地与远端快照（LWW，§4）。
@@ -59,6 +61,14 @@ SnapshotData merge(
     localDeviceId: localDeviceId,
     remoteDeviceId: remoteDeviceId,
   );
+  final customViews = _mergeType(
+    local.customViews,
+    remote.customViews,
+    idOf: (r) => r.id,
+    updatedAtOf: (r) => r.updatedAt,
+    localDeviceId: localDeviceId,
+    remoteDeviceId: remoteDeviceId,
+  );
 
   final merged = SnapshotData(
     schemaVersion: local.schemaVersion,
@@ -68,9 +78,10 @@ SnapshotData merge(
     tasks: tasks,
     tags: tags,
     folders: folders,
+    customViews: customViews,
   );
-  // 两个 reconcile 均返回新 SnapshotData（各自保留未处理的字段），顺序无关。
-  return reconcileFolderIds(reconcileTagIds(merged));
+  // 三个 reconcile 均返回新 SnapshotData（各自保留未处理的字段）。
+  return reconcileCustomViews(reconcileFolderIds(reconcileTagIds(merged)));
 }
 
 /// 清理标签孤儿引用（§7）：删除每个 task.tagIds 中指向「不存在于 tags 列表
@@ -101,6 +112,7 @@ SnapshotData reconcileTagIds(SnapshotData merged) {
     tasks: tasks,
     tags: merged.tags,
     folders: merged.folders,
+    customViews: merged.customViews,
   );
 }
 
@@ -133,10 +145,102 @@ SnapshotData reconcileFolderIds(SnapshotData merged) {
     tasks: merged.tasks,
     tags: merged.tags,
     folders: merged.folders,
+    customViews: merged.customViews,
+  );
+}
+
+/// 清理自定义视图中的悬空引用（docs/65-custom-views-and-panels.md §5.2）：
+/// 对每个活跃自定义视图的面板配置，过滤掉已删项目、已删标签、已删文件夹的引用。
+/// 若 panelsJson 为非法 JSON 则保持原样（防御性容错）。
+SnapshotData reconcileCustomViews(SnapshotData merged) {
+  final aliveFolderIds = <String>{
+    for (final f in merged.folders)
+      if (!f.deleted) f.id,
+  };
+  final aliveProjectIds = <String>{
+    for (final p in merged.projects)
+      if (!p.deleted) p.id,
+  };
+  final aliveTagIds = <String>{
+    for (final t in merged.tags)
+      if (!t.deleted) t.id,
+  };
+
+  final customViews = <CustomViewRecord>[];
+  for (final cv in merged.customViews) {
+    if (cv.deleted) {
+      customViews.add(cv);
+      continue;
+    }
+    final panels = decodePanelsJson(cv.panelsJson);
+    if (panels.isEmpty) {
+      customViews.add(cv);
+      continue;
+    }
+    var changed = false;
+    final reconciledPanels = <CustomViewPanelConfig>[];
+    for (final panel in panels) {
+      final f = panel.filter;
+      final newFolderIds = f.folderIds
+          .where((id) => id == 'unassigned' || aliveFolderIds.contains(id))
+          .toList();
+      final newProjectIds = f.projectIds
+          .where(aliveProjectIds.contains)
+          .toList();
+      final newTagIds = f.tagIds.where(aliveTagIds.contains).toList();
+
+      if (newFolderIds.length != f.folderIds.length ||
+          newProjectIds.length != f.projectIds.length ||
+          newTagIds.length != f.tagIds.length) {
+        changed = true;
+        reconciledPanels.add(
+          panel.copyWith(
+            filter: f.copyWith(
+              folderIds: newFolderIds,
+              projectIds: newProjectIds,
+              tagIds: newTagIds,
+            ),
+          ),
+        );
+      } else {
+        reconciledPanels.add(panel);
+      }
+    }
+
+    if (changed) {
+      customViews.add(
+        CustomViewRecord(
+          id: cv.id,
+          name: cv.name,
+          icon: cv.icon,
+          color: cv.color,
+          sortOrder: cv.sortOrder,
+          layoutMode: cv.layoutMode,
+          panelsJson: encodePanelsJson(reconciledPanels),
+          createdAt: cv.createdAt,
+          updatedAt: cv.updatedAt,
+          deleted: cv.deleted,
+        ),
+      );
+    } else {
+      customViews.add(cv);
+    }
+  }
+
+  return SnapshotData(
+    schemaVersion: merged.schemaVersion,
+    deviceId: merged.deviceId,
+    exportedAt: merged.exportedAt,
+    projects: merged.projects,
+    tasks: merged.tasks,
+    tags: merged.tags,
+    folders: merged.folders,
+    customViews: customViews,
   );
 }
 
 /// 按 §4 合并单一类型的两份记录列表。
+
 ///
 /// 以 id 为 key：local 行先入 map，remote 行随后按 LWW 规则覆盖；
 /// updatedAt 相等时经 [_tieBreak] 决出 winner。返回新列表，不修改入参。

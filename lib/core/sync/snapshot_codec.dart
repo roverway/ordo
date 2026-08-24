@@ -19,15 +19,16 @@ import 'dart:typed_data';
 
 import 'snapshot.dart';
 
-/// 当前快照 schema 版本（docs/60-sync-design.md §3 / docs/62-folder-nav.md §5.1）。
+/// 当前快照 schema 版本（docs/60-sync-design.md §3 / docs/62-folder-nav.md §5.1 / docs/65-custom-views-and-panels.md §5.1）。
 ///
 /// v2：新增 `folders` 记录列表 + `projects.folderId` 字段（文件夹归属）。
-const int kSnapshotSchemaVersion = 2;
+/// v3：新增 `customViews` 记录列表（自定义视图与多面板看板配置）。
+const int kSnapshotSchemaVersion = 3;
 
-/// 支持的最旧快照 schema 版本（docs/62-folder-nav.md §5.1「v1 旧快照可兼容读」）。
+/// 支持的最旧快照 schema 版本（docs/62-folder-nav.md §5.1「v1/v2 旧快照可兼容读」）。
 ///
-/// v1 = 旧格式（无 folders 键 / 无 project.folderId 键）：`SnapshotData.fromJson`
-/// 字段级崩溃安全回退（folders 空、folderId null），因此本版本可正常读入并
+/// v1 = 旧格式（无 folders/customViews 键 / 无 project.folderId 键）：`SnapshotData.fromJson`
+/// 字段级崩溃安全回退（folders/customViews 空、folderId null），因此本版本可正常读入并
 /// 参与合并；合并后本地重新导出恒为 [kSnapshotSchemaVersion]，无需额外迁移。
 const int kMinSupportedSnapshotSchemaVersion = 1;
 

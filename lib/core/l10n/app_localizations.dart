@@ -1309,6 +1309,342 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'同步失败，请重试'**
   String get syncErrUnknown;
+
+  /// No description provided for @customViews.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义视图'**
+  String get customViews;
+
+  /// No description provided for @newCustomView.
+  ///
+  /// In zh, this message translates to:
+  /// **'新建视图'**
+  String get newCustomView;
+
+  /// No description provided for @editCustomView.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑视图'**
+  String get editCustomView;
+
+  /// No description provided for @deleteCustomView.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除视图'**
+  String get deleteCustomView;
+
+  /// No description provided for @deleteCustomViewConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'确定要删除视图「{name}」吗？'**
+  String deleteCustomViewConfirm(String name);
+
+  /// No description provided for @viewName.
+  ///
+  /// In zh, this message translates to:
+  /// **'视图名称'**
+  String get viewName;
+
+  /// No description provided for @viewNameHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入视图名称'**
+  String get viewNameHint;
+
+  /// No description provided for @viewIcon.
+  ///
+  /// In zh, this message translates to:
+  /// **'视图图标'**
+  String get viewIcon;
+
+  /// No description provided for @viewColor.
+  ///
+  /// In zh, this message translates to:
+  /// **'视图颜色'**
+  String get viewColor;
+
+  /// No description provided for @viewLayout.
+  ///
+  /// In zh, this message translates to:
+  /// **'布局模式'**
+  String get viewLayout;
+
+  /// No description provided for @layoutKanban.
+  ///
+  /// In zh, this message translates to:
+  /// **'多栏看板'**
+  String get layoutKanban;
+
+  /// No description provided for @layoutList.
+  ///
+  /// In zh, this message translates to:
+  /// **'列表视图'**
+  String get layoutList;
+
+  /// No description provided for @addPanel.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加面板'**
+  String get addPanel;
+
+  /// No description provided for @editPanel.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑面板'**
+  String get editPanel;
+
+  /// No description provided for @deletePanel.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除面板'**
+  String get deletePanel;
+
+  /// No description provided for @panelTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'面板标题'**
+  String get panelTitle;
+
+  /// No description provided for @panelTitleHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'例如：待办、高优'**
+  String get panelTitleHint;
+
+  /// No description provided for @filterCriteria.
+  ///
+  /// In zh, this message translates to:
+  /// **'筛选规则'**
+  String get filterCriteria;
+
+  /// No description provided for @filterByFolder.
+  ///
+  /// In zh, this message translates to:
+  /// **'所属文件夹'**
+  String get filterByFolder;
+
+  /// No description provided for @filterByProject.
+  ///
+  /// In zh, this message translates to:
+  /// **'所属项目'**
+  String get filterByProject;
+
+  /// No description provided for @filterByTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'标签'**
+  String get filterByTag;
+
+  /// No description provided for @filterByPriority.
+  ///
+  /// In zh, this message translates to:
+  /// **'优先级'**
+  String get filterByPriority;
+
+  /// No description provided for @filterByStatus.
+  ///
+  /// In zh, this message translates to:
+  /// **'状态'**
+  String get filterByStatus;
+
+  /// No description provided for @filterByDate.
+  ///
+  /// In zh, this message translates to:
+  /// **'日期范围'**
+  String get filterByDate;
+
+  /// No description provided for @filterByHierarchy.
+  ///
+  /// In zh, this message translates to:
+  /// **'任务层级'**
+  String get filterByHierarchy;
+
+  /// No description provided for @tagMatchAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'匹配所有选中标签（AND）'**
+  String get tagMatchAll;
+
+  /// No description provided for @tagMatchAny.
+  ///
+  /// In zh, this message translates to:
+  /// **'匹配任一选中标签（OR）'**
+  String get tagMatchAny;
+
+  /// No description provided for @dateScopeAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部日期'**
+  String get dateScopeAll;
+
+  /// No description provided for @dateScopeToday.
+  ///
+  /// In zh, this message translates to:
+  /// **'今天'**
+  String get dateScopeToday;
+
+  /// No description provided for @dateScopeTomorrow.
+  ///
+  /// In zh, this message translates to:
+  /// **'明天'**
+  String get dateScopeTomorrow;
+
+  /// No description provided for @dateScopeThisWeek.
+  ///
+  /// In zh, this message translates to:
+  /// **'本周'**
+  String get dateScopeThisWeek;
+
+  /// No description provided for @dateScopeOverdue.
+  ///
+  /// In zh, this message translates to:
+  /// **'已逾期'**
+  String get dateScopeOverdue;
+
+  /// No description provided for @dateScopeNoDate.
+  ///
+  /// In zh, this message translates to:
+  /// **'无日期'**
+  String get dateScopeNoDate;
+
+  /// No description provided for @hierarchyAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部任务'**
+  String get hierarchyAll;
+
+  /// No description provided for @hierarchyRootOnly.
+  ///
+  /// In zh, this message translates to:
+  /// **'仅根任务'**
+  String get hierarchyRootOnly;
+
+  /// No description provided for @hierarchySubtasksOnly.
+  ///
+  /// In zh, this message translates to:
+  /// **'仅子任务'**
+  String get hierarchySubtasksOnly;
+
+  /// No description provided for @presetTemplates.
+  ///
+  /// In zh, this message translates to:
+  /// **'快速预设模板'**
+  String get presetTemplates;
+
+  /// No description provided for @presetStatusKanban.
+  ///
+  /// In zh, this message translates to:
+  /// **'状态看板（待办/进行中/已完成）'**
+  String get presetStatusKanban;
+
+  /// No description provided for @presetPriorityKanban.
+  ///
+  /// In zh, this message translates to:
+  /// **'优先级看板（高/中/低/无）'**
+  String get presetPriorityKanban;
+
+  /// No description provided for @saveAsCustomView.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存为视图'**
+  String get saveAsCustomView;
+
+  /// No description provided for @saveAsCustomViewSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'已成功保存为自定义视图'**
+  String get saveAsCustomViewSuccess;
+
+  /// No description provided for @noCustomViews.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无自定义视图'**
+  String get noCustomViews;
+
+  /// No description provided for @noTasksInPanel.
+  ///
+  /// In zh, this message translates to:
+  /// **'面板无匹配任务'**
+  String get noTasksInPanel;
+
+  /// No description provided for @quickFilter.
+  ///
+  /// In zh, this message translates to:
+  /// **'快捷筛选'**
+  String get quickFilter;
+
+  /// No description provided for @applyFilter.
+  ///
+  /// In zh, this message translates to:
+  /// **'应用筛选'**
+  String get applyFilter;
+
+  /// No description provided for @resetFilter.
+  ///
+  /// In zh, this message translates to:
+  /// **'重置筛选'**
+  String get resetFilter;
+
+  /// No description provided for @parentTaskDerivedStatusNotice.
+  ///
+  /// In zh, this message translates to:
+  /// **'该任务包含子任务，状态由子任务自动派生计算'**
+  String get parentTaskDerivedStatusNotice;
+
+  /// No description provided for @sortBy.
+  ///
+  /// In zh, this message translates to:
+  /// **'排序方式'**
+  String get sortBy;
+
+  /// No description provided for @sortOrderManual.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义排序'**
+  String get sortOrderManual;
+
+  /// No description provided for @sortOrderPriority.
+  ///
+  /// In zh, this message translates to:
+  /// **'按优先级'**
+  String get sortOrderPriority;
+
+  /// No description provided for @sortOrderDueDate.
+  ///
+  /// In zh, this message translates to:
+  /// **'按截止时间'**
+  String get sortOrderDueDate;
+
+  /// No description provided for @sortOrderTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'按标题'**
+  String get sortOrderTitle;
+
+  /// No description provided for @sortAsc.
+  ///
+  /// In zh, this message translates to:
+  /// **'升序'**
+  String get sortAsc;
+
+  /// No description provided for @sortDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'降序'**
+  String get sortDesc;
+
+  /// No description provided for @treeView.
+  ///
+  /// In zh, this message translates to:
+  /// **'树状结构'**
+  String get treeView;
+
+  /// No description provided for @flatView.
+  ///
+  /// In zh, this message translates to:
+  /// **'扁平列表'**
+  String get flatView;
 }
 
 class _AppLocalizationsDelegate

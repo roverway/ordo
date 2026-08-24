@@ -28,7 +28,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show compute, debugPrint;
 
-import '../db/database.dart' show Folder, Project, Tag, Task;
+import '../db/database.dart' show CustomView, Folder, Project, Tag, Task;
 import '../db/repositories/todo_repository.dart';
 import '../db/tables.dart' show TaskPriority, TaskStatus;
 import '../security/secure_store.dart';
@@ -157,6 +157,7 @@ const String _kTombstoneTypeProject = 'project';
 const String _kTombstoneTypeTask = 'task';
 const String _kTombstoneTypeTag = 'tag';
 const String _kTombstoneTypeFolder = 'folder';
+const String _kTombstoneTypeCustomView = 'custom_view';
 
 /// 同步引擎（docs/30-architecture §2 `core/sync/sync_engine.dart`）。
 class SyncEngine {
@@ -284,6 +285,7 @@ class SyncEngine {
           data.tasks.isEmpty &&
           data.tags.isEmpty &&
           data.folders.isEmpty &&
+          data.customViews.isEmpty &&
           tombstones.isEmpty;
 
       if (!remoteExists) {
@@ -718,11 +720,27 @@ class SyncEngine {
           deleted: false,
         ),
     ];
+    final customViews = <CustomViewRecord>[
+      for (final cv in data.customViews)
+        CustomViewRecord(
+          id: cv.id,
+          name: cv.name,
+          icon: cv.icon,
+          color: cv.color,
+          sortOrder: cv.sortOrder,
+          layoutMode: cv.layoutMode,
+          panelsJson: cv.panelsJson,
+          createdAt: cv.createdAt,
+          updatedAt: cv.updatedAt,
+          deleted: false,
+        ),
+    ];
 
     final aliveProjectIds = {for (final p in projects) p.id};
     final aliveTaskIds = {for (final t in tasks) t.id};
     final aliveTagIds = {for (final t in tags) t.id};
     final aliveFolderIds = {for (final f in folders) f.id};
+    final aliveCustomViewIds = {for (final cv in customViews) cv.id};
     for (final tomb in tombstones) {
       switch (tomb.type) {
         case _kTombstoneTypeProject:
@@ -776,6 +794,18 @@ class SyncEngine {
               deleted: true,
             ),
           );
+        case _kTombstoneTypeCustomView:
+          if (aliveCustomViewIds.contains(tomb.id)) continue;
+          customViews.add(
+            CustomViewRecord(
+              id: tomb.id,
+              name: '',
+              panelsJson: '[]',
+              createdAt: tomb.updatedAt,
+              updatedAt: tomb.updatedAt,
+              deleted: true,
+            ),
+          );
       }
     }
 
@@ -787,6 +817,7 @@ class SyncEngine {
       tasks: tasks,
       tags: tags,
       folders: folders,
+      customViews: customViews,
     );
   }
 
@@ -796,10 +827,12 @@ class SyncEngine {
     final upsertTasks = <Task>[];
     final upsertTags = <Tag>[];
     final upsertFolders = <Folder>[];
+    final upsertCustomViews = <CustomView>[];
     final hardDeleteProjectIds = <String>[];
     final hardDeleteTaskIds = <String>[];
     final hardDeleteTagIds = <String>[];
     final hardDeleteFolderIds = <String>[];
+    final hardDeleteCustomViewIds = <String>[];
     final taskTagLinks = <String, List<String>>{};
     for (final p in merged.projects) {
       if (p.deleted) {
@@ -830,15 +863,24 @@ class SyncEngine {
         upsertFolders.add(_folderFromRecord(f));
       }
     }
+    for (final cv in merged.customViews) {
+      if (cv.deleted) {
+        hardDeleteCustomViewIds.add(cv.id);
+      } else {
+        upsertCustomViews.add(_customViewFromRecord(cv));
+      }
+    }
     return MergedApplyOperation(
       upsertProjects: upsertProjects,
       upsertTasks: upsertTasks,
       upsertTags: upsertTags,
       upsertFolders: upsertFolders,
+      upsertCustomViews: upsertCustomViews,
       hardDeleteProjectIds: hardDeleteProjectIds,
       hardDeleteTaskIds: hardDeleteTaskIds,
       hardDeleteTagIds: hardDeleteTagIds,
       hardDeleteFolderIds: hardDeleteFolderIds,
+      hardDeleteCustomViewIds: hardDeleteCustomViewIds,
       taskTagLinks: taskTagLinks,
     );
   }
@@ -872,6 +914,13 @@ class SyncEngine {
           type: _kTombstoneTypeFolder,
           id: f.id,
           updatedAt: f.updatedAt,
+        ),
+    for (final cv in merged.customViews)
+      if (cv.deleted)
+        TombstoneEntry(
+          type: _kTombstoneTypeCustomView,
+          id: cv.id,
+          updatedAt: cv.updatedAt,
         ),
   ];
 
@@ -918,6 +967,19 @@ class SyncEngine {
     id: r.id,
     name: r.name,
     sortOrder: r.sortOrder,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+    deleted: 0,
+  );
+
+  CustomView _customViewFromRecord(CustomViewRecord r) => CustomView(
+    id: r.id,
+    name: r.name,
+    icon: r.icon,
+    color: r.color,
+    sortOrder: r.sortOrder,
+    layoutMode: r.layoutMode,
+    panelsJson: r.panelsJson,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
     deleted: 0,

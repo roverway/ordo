@@ -17,7 +17,7 @@ const int _kStatusMax = 3;
 /// 任务优先级合法值上界（tables.dart TaskPriority 共 4 个：0–3）。
 const int _kPriorityMax = 3;
 
-/// 快照整体（§3）：schemaVersion + 设备元信息 + 四张参与同步的表。
+/// 快照整体（§3）：schemaVersion + 设备元信息 + 五张参与同步的表。
 ///
 /// 不可变：所有字段 final，列表字段请勿就地修改（合并引擎总是构造新对象）。
 class SnapshotData {
@@ -29,10 +29,12 @@ class SnapshotData {
     this.tasks = const [],
     this.tags = const [],
     this.folders = const [],
+    this.customViews = const [],
   });
 
-  /// 快照格式版本，当前为 2（§3 / 62-folder-nav.md §5.1；v2 新增 folders +
-  /// project.folderId）。合法性由 snapshot_codec 校验（支持区间 [1,2]）。
+  /// 快照格式版本，当前为 3（§3 / 62-folder-nav.md §5.1 / 65-custom-views-and-panels.md §5.1；
+  /// v2 新增 folders + project.folderId；v3 新增 customViews）。
+  /// 合法性由 snapshot_codec 校验（支持区间 [1,3]）。
   final int schemaVersion;
 
   /// 导出本快照的设备 ID（UUID）。
@@ -53,6 +55,9 @@ class SnapshotData {
   /// 文件夹记录列表（docs/62-folder-nav.md §5.1，v2 起）。
   final List<FolderRecord> folders;
 
+  /// 自定义视图记录列表（docs/65-custom-views-and-panels.md §5.1，v3 起）。
+  final List<CustomViewRecord> customViews;
+
   /// 解析快照 JSON。字段级崩溃安全：缺失/类型异常字段回退默认值，
   /// 列表元素非对象时跳过。
   factory SnapshotData.fromJson(Map<String, dynamic> json) {
@@ -70,6 +75,10 @@ class SnapshotData {
         json,
         'folders',
       ).map(FolderRecord.fromJson).toList(),
+      customViews: _readObjectList(
+        json,
+        'customViews',
+      ).map(CustomViewRecord.fromJson).toList(),
     );
   }
 
@@ -83,6 +92,7 @@ class SnapshotData {
       'tasks': tasks.map((r) => r.toJson()).toList(),
       'tags': tags.map((r) => r.toJson()).toList(),
       'folders': folders.map((r) => r.toJson()).toList(),
+      'customViews': customViews.map((r) => r.toJson()).toList(),
     };
   }
 
@@ -107,6 +117,64 @@ class SnapshotData {
       'tasks': tasks.map((r) => r.toJson()).toList(),
       'tags': tags.map((r) => r.toJson()).toList(),
       'folders': folders.map((r) => r.toJson()).toList(),
+      'customViews': customViews.map((r) => r.toJson()).toList(),
+    };
+  }
+}
+
+/// 自定义视图记录（docs/65-custom-views-and-panels.md §5.1，v3 起）。
+class CustomViewRecord {
+  const CustomViewRecord({
+    required this.id,
+    required this.name,
+    this.icon = 'dashboard_outlined',
+    this.color = 0xFF3B82F6,
+    this.sortOrder = 0,
+    this.layoutMode = 'kanban',
+    required this.panelsJson,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.deleted,
+  });
+
+  final String id;
+  final String name;
+  final String icon;
+  final int color;
+  final int sortOrder;
+  final String layoutMode;
+  final String panelsJson;
+  final int createdAt;
+  final int updatedAt;
+  final bool deleted;
+
+  factory CustomViewRecord.fromJson(Map<String, dynamic> json) {
+    return CustomViewRecord(
+      id: _readString(json, 'id', fallback: ''),
+      name: _readString(json, 'name', fallback: ''),
+      icon: _readString(json, 'icon', fallback: 'dashboard_outlined'),
+      color: _readInt(json, 'color', fallback: 0xFF3B82F6),
+      sortOrder: _readInt(json, 'sortOrder', fallback: 0),
+      layoutMode: _readString(json, 'layoutMode', fallback: 'kanban'),
+      panelsJson: _readString(json, 'panelsJson', fallback: '[]'),
+      createdAt: _readInt(json, 'createdAt', fallback: 0),
+      updatedAt: _readInt(json, 'updatedAt', fallback: 0),
+      deleted: _readBool(json, 'deleted', fallback: false),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'icon': icon,
+      'color': color,
+      'sortOrder': sortOrder,
+      'layoutMode': layoutMode,
+      'panelsJson': panelsJson,
+      'createdAt': createdAt,
+      'updatedAt': updatedAt,
+      'deleted': deleted,
     };
   }
 }

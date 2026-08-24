@@ -1,0 +1,205 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:todo/core/db/database.dart';
+import 'package:todo/core/db/tables.dart';
+import 'package:todo/core/utils/custom_view_models.dart';
+import 'package:todo/features/custom_views/providers/custom_view_providers.dart';
+import 'package:todo/features/projects/project_providers.dart';
+
+import '../../helpers/db_test_setup.dart';
+
+void main() {
+  group('Custom Views Providers & Operations', () {
+    late AppDatabase db;
+    late TodoRepository repo;
+    late ProviderContainer container;
+
+    setUp(() async {
+      db = openTestDatabase();
+      repo = TodoRepository(database: db);
+      container = ProviderContainer(
+        overrides: [todoRepositoryProvider.overrideWithValue(repo)],
+      );
+    });
+
+    tearDown(() async {
+      container.dispose();
+      await db.close();
+    });
+
+    test(
+      'Create, update, reorder and delete CustomView via operations',
+      () async {
+        final ops = container.read(customViewOperationsProvider);
+
+        // 1. Create
+        final panel1 = CustomViewPanelConfig(
+          id: 'p1',
+          title: '待办',
+          filter: const FilterCriteria(statuses: [TaskStatus.todo]),
+        );
+        final view = await ops.createView(
+          name: '工作看板',
+          icon: 'view_kanban_outlined',
+          color: 0xFF4A6CF7,
+          layoutMode: 'kanban',
+          panels: [panel1],
+        );
+
+        expect(view.name, '工作看板');
+        expect(view.icon, 'view_kanban_outlined');
+        expect(view.color, 0xFF4A6CF7);
+
+        // 2. Update
+        final panel2 = CustomViewPanelConfig(
+          id: 'p2',
+          title: '进行中',
+          filter: const FilterCriteria(statuses: [TaskStatus.inProgress]),
+        );
+        await ops.updateView(view.id, name: '更新看板', panels: [panel1, panel2]);
+
+        final updated = await repo.customViews.getById(view.id);
+        expect(updated!.name, '更新看板');
+        final decoded = decodePanelsJson(updated.panelsJson);
+        expect(decoded.length, 2);
+        expect(decoded[1].title, '进行中');
+
+        // 3. Reorder
+        final view2 = await ops.createView(name: '第二视图', panels: []);
+        await ops.reorderViews([view2.id, view.id]);
+        final all = await repo.customViews.getAll();
+        expect(all.first.id, view2.id);
+        expect(all.last.id, view.id);
+
+        // 4. Delete & Tombstone
+        await ops.deleteView(view.id);
+        expect(await repo.customViews.getById(view.id), isNull);
+        final tombstones = await repo.readTombstones();
+        expect(
+          tombstones.any((t) => t.id == view.id && t.type == 'custom_view'),
+          isTrue,
+        );
+      },
+    );
+
+    test(
+      'Smart Drag-and-Drop: Single status difference updates task status',
+      () async {
+        final ops = container.read(customViewOperationsProvider);
+        final project = await repo.createProject(
+          name: '测试项目',
+          color: 0xFF123456,
+        );
+        final task = await repo.createTask(
+          projectId: project.id,
+          title: '未完成任务',
+        );
+
+        final sourcePanel = CustomViewPanelConfig(
+          id: 'p1',
+          title: '待办',
+          filter: const FilterCriteria(statuses: [TaskStatus.todo]),
+        );
+        final targetPanel = CustomViewPanelConfig(
+          id: 'p2',
+          title: '进行中',
+          filter: const FilterCriteria(statuses: [TaskStatus.inProgress]),
+        );
+
+        final result = await ops.handleTaskDroppedBetweenPanels(
+          task: task,
+          sourcePanel: sourcePanel,
+          targetPanel: targetPanel,
+          hasSubtasks: false,
+        );
+
+        expect(result.actionType, PanelDropActionType.updated);
+        expect(result.targetStatus, TaskStatus.inProgress);
+        final reloaded = await repo.tasks.getById(task.id);
+        expect(reloaded!.status, TaskStatus.inProgress);
+      },
+    );
+
+    test(
+      'Smart Drag-and-Drop: Parent task with subtasks blocks manual status change',
+      () async {
+        final ops = container.read(customViewOperationsProvider);
+        final project = await repo.createProject(
+          name: '测试项目',
+          color: 0xFF123456,
+        );
+        final parentTask = await repo.createTask(
+          projectId: project.id,
+          title: '父任务',
+        );
+        await repo.createTask(
+          projectId: project.id,
+          parentId: parentTask.id,
+          title: '子任务',
+        );
+
+        final sourcePanel = CustomViewPanelConfig(
+          id: 'p1',
+          title: '待办',
+          filter: const FilterCriteria(statuses: [TaskStatus.todo]),
+        );
+        final targetPanel = CustomViewPanelConfig(
+          id: 'p2',
+          title: '已完成',
+          filter: const FilterCriteria(statuses: [TaskStatus.done]),
+        );
+
+        final result = await ops.handleTaskDroppedBetweenPanels(
+          task: parentTask,
+          sourcePanel: sourcePanel,
+          targetPanel: targetPanel,
+          hasSubtasks: true, // has subtasks
+        );
+
+        expect(result.actionType, PanelDropActionType.derivedStatusBlocked);
+        // DB 状态保持不变
+        final reloaded = await repo.tasks.getById(parentTask.id);
+        expect(reloaded!.status, TaskStatus.todo);
+      },
+    );
+
+    test(
+      'Smart Drag-and-Drop: Single priority difference updates task priority',
+      () async {
+        final ops = container.read(customViewOperationsProvider);
+        final project = await repo.createProject(
+          name: '测试项目',
+          color: 0xFF123456,
+        );
+        final task = await repo.createTask(
+          projectId: project.id,
+          title: '普通任务',
+          priority: TaskPriority.none,
+        );
+
+        final sourcePanel = CustomViewPanelConfig(
+          id: 'p1',
+          title: '无优先级',
+          filter: const FilterCriteria(priorities: [TaskPriority.none]),
+        );
+        final targetPanel = CustomViewPanelConfig(
+          id: 'p2',
+          title: '高优',
+          filter: const FilterCriteria(priorities: [TaskPriority.high]),
+        );
+
+        final result = await ops.handleTaskDroppedBetweenPanels(
+          task: task,
+          sourcePanel: sourcePanel,
+          targetPanel: targetPanel,
+          hasSubtasks: false,
+        );
+
+        expect(result.actionType, PanelDropActionType.updated);
+        expect(result.targetPriority, TaskPriority.high);
+        final reloaded = await repo.tasks.getById(task.id);
+        expect(reloaded!.priority, TaskPriority.high);
+      },
+    );
+  });
+}

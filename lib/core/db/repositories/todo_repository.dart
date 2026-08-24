@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:drift/drift.dart';
 
+import '../daos/custom_view_dao.dart';
 import '../daos/folder_dao.dart';
 import '../daos/project_dao.dart';
 import '../daos/settings_dao.dart';
@@ -47,10 +48,12 @@ const String _kTombstoneTypeProject = 'project';
 const String _kTombstoneTypeTask = 'task';
 const String _kTombstoneTypeTag = 'tag';
 const String _kTombstoneTypeFolder = 'folder';
+const String _kTombstoneTypeCustomView = 'custom_view';
 
-/// 墓碑条目（docs/40-data-model.md §7 / 60-sync-design.md §8）。
+/// 墓碑条目（docs/40-data-model.md §7 / 60-sync-design.md §8 / docs/65-custom-views-and-panels.md §5.2）。
 ///
-/// type ∈ project/task/tag/folder；id 为被删记录 UUID；updatedAt 为删除时刻
+/// type ∈ project/task/tag/folder/custom_view；id 为被删记录 UUID；updatedAt 为删除时刻
+
 /// （UTC 毫秒，LWW 依据）。序列化格式与 SyncEngine 侧约定一致。
 class TombstoneEntry {
   const TombstoneEntry({
@@ -97,6 +100,7 @@ class RepositoryExportData {
     this.tags = const [],
     this.taskTagIds = const {},
     this.folders = const [],
+    this.customViews = const [],
   });
 
   /// 全部活跃项目（deleted=0）。
@@ -113,6 +117,9 @@ class RepositoryExportData {
 
   /// 全部活跃文件夹（deleted=0，docs/62-folder-nav.md §5.1）。
   final List<Folder> folders;
+
+  /// 全部活跃自定义视图（deleted=0，docs/65-custom-views-and-panels.md §5.1）。
+  final List<CustomView> customViews;
 }
 
 /// 合并结果应用操作（docs/60-sync-design.md §4 应用规则 / D2）。
@@ -126,10 +133,12 @@ class MergedApplyOperation {
     this.upsertTasks = const [],
     this.upsertTags = const [],
     this.upsertFolders = const [],
+    this.upsertCustomViews = const [],
     this.hardDeleteProjectIds = const [],
     this.hardDeleteTaskIds = const [],
     this.hardDeleteTagIds = const [],
     this.hardDeleteFolderIds = const [],
+    this.hardDeleteCustomViewIds = const [],
     this.taskTagLinks = const {},
   });
 
@@ -141,12 +150,18 @@ class MergedApplyOperation {
   /// projects.folderId 有外键依赖）。
   final List<Folder> upsertFolders;
 
+  /// 自定义视图 upsert（docs/65-custom-views-and-panels.md §5.2）。
+  final List<CustomView> upsertCustomViews;
+
   final List<String> hardDeleteProjectIds;
   final List<String> hardDeleteTaskIds;
   final List<String> hardDeleteTagIds;
 
   /// 文件夹硬删（docs/62-folder-nav.md §5.4；删除前须解除 project 引用）。
   final List<String> hardDeleteFolderIds;
+
+  /// 自定义视图硬删（docs/65-custom-views-and-panels.md §5.2）。
+  final List<String> hardDeleteCustomViewIds;
 
   /// taskId → tagId 列表，全量重建（先删该 task 的所有关联再批量插入）。
   final Map<String, List<String>> taskTagLinks;
@@ -171,6 +186,7 @@ class TodoRepository {
   late final TaskDao tasks = TaskDao(database);
   late final TagDao tags = TagDao(database);
   late final SettingsDao settings = SettingsDao(database);
+  late final CustomViewDao customViews = CustomViewDao(database);
 
   /// 数据变更回调（编辑自动同步接线，FR-SYNC-02 / docs/60-sync-design.md §10.2）。
   ///
@@ -708,6 +724,35 @@ class TodoRepository {
     await onDataChanged?.call();
   }
 
+  /// 跨项目移动任务（更新 projectId，清除 parentId，置于目标项目末尾）。
+  Future<void> moveTaskToProject(String taskId, String newProjectId) async {
+    await database.transaction(() async {
+      final task = await tasks.getActiveById(taskId);
+      if (task == null) throw RepositoryException('任务不存在：$taskId');
+      final targetProject = await projects.getById(newProjectId);
+      if (targetProject == null || targetProject.deleted != 0) {
+        throw RepositoryException('目标项目不存在：$newProjectId');
+      }
+
+      final targetTasks = await tasks.getByProject(newProjectId);
+      final newSortOrder = targetTasks.isEmpty
+          ? 0
+          : targetTasks.last.sortOrder + 1;
+
+      final now = _nowMs();
+      await tasks.updateById(
+        taskId,
+        TasksCompanion(
+          projectId: Value(newProjectId),
+          parentId: const Value(null),
+          sortOrder: Value(newSortOrder),
+          updatedAt: Value(now),
+        ),
+      );
+      await onDataChanged?.call();
+    });
+  }
+
   /// 删除任务：级联硬删所有后代（含自身）+ 关联 task_tags，同一事务。
   ///
   /// 同步行为（40-data-model.md §7）：被删任务（含后代）各写一条墓碑。
@@ -800,6 +845,103 @@ class TodoRepository {
     await onDataChanged?.call();
   }
 
+  // ─────────────────────────── Custom Views ───────────────────────────
+
+  /// 新建自定义视图（docs/65-custom-views-and-panels.md §4.1）。
+  Future<CustomView> createCustomView({
+    String? id,
+    required String name,
+    String icon = 'dashboard_outlined',
+    int color = 0xFF3B82F6,
+    String layoutMode = 'kanban',
+    required String panelsJson,
+  }) async {
+    _checkTextLength(name, 1, 50, '视图名称');
+    final actualId = id ?? newUuid();
+    final now = _nowMs();
+    final allViews = await customViews.getAll();
+    final nextSortOrder = allViews.isEmpty
+        ? 0
+        : (allViews.map((v) => v.sortOrder).reduce((a, b) => a > b ? a : b) +
+              1);
+
+    final entry = CustomViewsCompanion(
+      id: Value(actualId),
+      name: Value(name.trim()),
+      icon: Value(icon),
+      color: Value(color),
+      sortOrder: Value(nextSortOrder),
+      layoutMode: Value(layoutMode),
+      panelsJson: Value(panelsJson),
+      createdAt: Value(now),
+      updatedAt: Value(now),
+      deleted: const Value(0),
+    );
+
+    await customViews.insert(entry);
+    await onDataChanged?.call();
+    return (await customViews.getById(actualId))!;
+  }
+
+  /// 更新自定义视图。
+  Future<void> updateCustomView(
+    String id, {
+    String? name,
+    String? icon,
+    int? color,
+    String? layoutMode,
+    String? panelsJson,
+    int? sortOrder,
+  }) async {
+    final existing = await customViews.getById(id);
+    if (existing == null || existing.deleted != 0) {
+      throw RepositoryException('视图不存在：$id');
+    }
+    if (name != null) {
+      _checkTextLength(name, 1, 50, '视图名称');
+    }
+    final now = _nowMs();
+    final companion = CustomViewsCompanion(
+      name: name != null ? Value(name.trim()) : const Value.absent(),
+      icon: icon != null ? Value(icon) : const Value.absent(),
+      color: color != null ? Value(color) : const Value.absent(),
+      layoutMode: layoutMode != null ? Value(layoutMode) : const Value.absent(),
+      panelsJson: panelsJson != null ? Value(panelsJson) : const Value.absent(),
+      sortOrder: sortOrder != null ? Value(sortOrder) : const Value.absent(),
+      updatedAt: Value(now),
+    );
+    await customViews.updateById(id, companion);
+    await onDataChanged?.call();
+  }
+
+  /// 删除自定义视图（物理删除 + 写入 sync_tombstones）。
+  Future<void> deleteCustomView(String id) async {
+    final existing = await customViews.getById(id);
+    if (existing == null || existing.deleted != 0) return;
+    final now = _nowMs();
+    await database.transaction(() async {
+      await _appendTombstones([
+        TombstoneEntry(type: _kTombstoneTypeCustomView, id: id, updatedAt: now),
+      ]);
+      await customViews.deleteById(id);
+    });
+    await onDataChanged?.call();
+  }
+
+  /// 批量重排自定义视图（sortOrder 连续 0..n-1）。
+  Future<void> reorderCustomViews(List<String> orderedIds) async {
+    final now = _nowMs();
+    await database.transaction(() async {
+      for (var i = 0; i < orderedIds.length; i++) {
+        await customViews.updateById(
+          orderedIds[i],
+          CustomViewsCompanion(sortOrder: Value(i), updatedAt: Value(now)),
+        );
+      }
+    });
+    await onDataChanged?.call();
+  }
+
   // ───────────────────────── 墓碑集合（同步引擎 D1/D2） ───────────────────────
 
   /// 读取墓碑集合（settings `sync_tombstones`，崩溃安全：非 JSON/损坏视为空）。
@@ -840,9 +982,9 @@ class TodoRepository {
     });
   }
 
-  /// 全量导出活跃数据（docs/60-sync-design.md §3 / D2）。
+  /// 全量导出活跃数据（docs/60-sync-design.md §3 / D2 / docs/65-custom-views-and-panels.md §5.1）。
   ///
-  /// 返回全部活跃（deleted=0）projects/tasks/tags + 每 task 的 tagIds 映射；
+  /// 返回全部活跃（deleted=0）projects/tasks/tags/folders/custom_views + 每 task 的 tagIds 映射；
   /// 由 SyncEngine 组装 SnapshotData（含墓碑集合并入）。Repository 层不
   /// import lib/core/sync/，此处只暴露纯 DB 数据类型。
   Future<RepositoryExportData> exportAll() async {
@@ -850,6 +992,7 @@ class TodoRepository {
     final tasks = await this.tasks.getAllActive();
     final tags = await this.tags.getAll();
     final folders = await this.folders.getAll();
+    final customViews = await this.customViews.getAll();
     final taskTagIds = <String, List<String>>{};
     for (final t in tasks) {
       taskTagIds[t.id] = await this.tags.tagIdsForTask(t.id);
@@ -859,6 +1002,7 @@ class TodoRepository {
       tasks: tasks,
       tags: tags,
       folders: folders,
+      customViews: customViews,
       taskTagIds: taskTagIds,
     );
   }
@@ -883,6 +1027,12 @@ class TodoRepository {
         await database
             .into(database.folders)
             .insertOnConflictUpdate(f.toCompanion(false));
+      }
+      // 0.1 自定义视图先写（docs/65-custom-views-and-panels.md §5.2）。
+      for (final cv in ops.upsertCustomViews) {
+        await database
+            .into(database.customViews)
+            .insertOnConflictUpdate(cv.toCompanion(false));
       }
       // 1. 项目/标签先写（task 与 task_tags 有外键依赖）。
       for (final p in ops.upsertProjects) {
@@ -945,6 +1095,9 @@ class TodoRepository {
       for (final tagId in ops.hardDeleteTagIds) {
         await tags.deleteTaskTagsForTag(tagId);
         await tags.deleteById(tagId);
+      }
+      for (final cvId in ops.hardDeleteCustomViewIds) {
+        await customViews.deleteById(cvId);
       }
       for (final projectId in ops.hardDeleteProjectIds) {
         // 项目删除级联其下任务（40-data-model §7）：先清其任务与联表引用，

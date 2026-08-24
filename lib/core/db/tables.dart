@@ -191,3 +191,42 @@ class Settings extends Table {
   @override
   Set<Column> get primaryKey => {key};
 }
+
+/// 自定义筛选视图与多面板看板表（docs/65-custom-views-and-panels.md §4.1）。
+///
+/// 参与同步：必须带 id / updatedAt / deleted 三字段（AGENTS.md §3-3）。
+class CustomViews extends Table {
+  /// 主键 UUID v4。
+  TextColumn get id => text()();
+
+  /// 视图名称（1–50 字符）。
+  TextColumn get name => text().withLength(min: 1, max: 50)();
+
+  /// 视图图标（Material Icons identifier 字符串，如 'dashboard_outlined'）。
+  TextColumn get icon =>
+      text().withDefault(const Constant('dashboard_outlined'))();
+
+  /// 视图强调颜色（ARGB 32位整数，如 0xFF3B82F6）。
+  IntColumn get color => integer().withDefault(const Constant(0xFF3B82F6))();
+
+  /// 排序权重（0..n-1，用于侧边栏展示排序）。
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
+  /// 布局模式：'kanban'(看板多列) 或 'list'(单列聚合)。
+  TextColumn get layoutMode => text().withDefault(const Constant('kanban'))();
+
+  /// 面板配置列表序列化 JSON 字符串。
+  TextColumn get panelsJson => text()();
+
+  /// 创建时间（UTC 毫秒时间戳）。
+  IntColumn get createdAt => integer()();
+
+  /// 最后更新时间（UTC 毫秒时间戳，参与同步 LWW 合并）。
+  IntColumn get updatedAt => integer()();
+
+  /// 墓碑删除标记（0 = 正常，1 = 已删除）。
+  IntColumn get deleted => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}

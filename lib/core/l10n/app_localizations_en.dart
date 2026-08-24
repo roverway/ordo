@@ -655,4 +655,176 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncErrUnknown => 'Sync failed, please retry';
+
+  @override
+  String get customViews => 'Custom Views';
+
+  @override
+  String get newCustomView => 'New View';
+
+  @override
+  String get editCustomView => 'Edit View';
+
+  @override
+  String get deleteCustomView => 'Delete View';
+
+  @override
+  String deleteCustomViewConfirm(String name) {
+    return 'Are you sure you want to delete view \"$name\"?';
+  }
+
+  @override
+  String get viewName => 'View Name';
+
+  @override
+  String get viewNameHint => 'Enter view name';
+
+  @override
+  String get viewIcon => 'View Icon';
+
+  @override
+  String get viewColor => 'View Color';
+
+  @override
+  String get viewLayout => 'Layout Mode';
+
+  @override
+  String get layoutKanban => 'Kanban Board';
+
+  @override
+  String get layoutList => 'List View';
+
+  @override
+  String get addPanel => 'Add Panel';
+
+  @override
+  String get editPanel => 'Edit Panel';
+
+  @override
+  String get deletePanel => 'Delete Panel';
+
+  @override
+  String get panelTitle => 'Panel Title';
+
+  @override
+  String get panelTitleHint => 'e.g., Todo, High Priority';
+
+  @override
+  String get filterCriteria => 'Filter Rules';
+
+  @override
+  String get filterByFolder => 'Folder';
+
+  @override
+  String get filterByProject => 'Project';
+
+  @override
+  String get filterByTag => 'Tags';
+
+  @override
+  String get filterByPriority => 'Priority';
+
+  @override
+  String get filterByStatus => 'Status';
+
+  @override
+  String get filterByDate => 'Date Range';
+
+  @override
+  String get filterByHierarchy => 'Task Hierarchy';
+
+  @override
+  String get tagMatchAll => 'Match all selected tags (AND)';
+
+  @override
+  String get tagMatchAny => 'Match any selected tag (OR)';
+
+  @override
+  String get dateScopeAll => 'All Dates';
+
+  @override
+  String get dateScopeToday => 'Today';
+
+  @override
+  String get dateScopeTomorrow => 'Tomorrow';
+
+  @override
+  String get dateScopeThisWeek => 'This Week';
+
+  @override
+  String get dateScopeOverdue => 'Overdue';
+
+  @override
+  String get dateScopeNoDate => 'No Date';
+
+  @override
+  String get hierarchyAll => 'All Tasks';
+
+  @override
+  String get hierarchyRootOnly => 'Root Tasks Only';
+
+  @override
+  String get hierarchySubtasksOnly => 'Subtasks Only';
+
+  @override
+  String get presetTemplates => 'Preset Templates';
+
+  @override
+  String get presetStatusKanban => 'Status Kanban (Todo / In Progress / Done)';
+
+  @override
+  String get presetPriorityKanban =>
+      'Priority Kanban (High / Medium / Low / None)';
+
+  @override
+  String get saveAsCustomView => 'Save as View';
+
+  @override
+  String get saveAsCustomViewSuccess => 'Saved as custom view successfully';
+
+  @override
+  String get noCustomViews => 'No custom views yet';
+
+  @override
+  String get noTasksInPanel => 'No matching tasks in panel';
+
+  @override
+  String get quickFilter => 'Quick Filter';
+
+  @override
+  String get applyFilter => 'Apply Filter';
+
+  @override
+  String get resetFilter => 'Reset Filter';
+
+  @override
+  String get parentTaskDerivedStatusNotice =>
+      'This task has subtasks; status is derived automatically';
+
+  @override
+  String get sortBy => 'Sort By';
+
+  @override
+  String get sortOrderManual => 'Custom Order';
+
+  @override
+  String get sortOrderPriority => 'By Priority';
+
+  @override
+  String get sortOrderDueDate => 'By Due Date';
+
+  @override
+  String get sortOrderTitle => 'By Title';
+
+  @override
+  String get sortAsc => 'Ascending';
+
+  @override
+  String get sortDesc => 'Descending';
+
+  @override
+  String get treeView => 'Tree View';
+
+  @override
+  String get flatView => 'Flat List';
 }

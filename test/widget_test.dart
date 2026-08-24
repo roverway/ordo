@@ -16,6 +16,7 @@ import 'package:todo/core/db/repositories/todo_repository.dart';
 import 'package:todo/core/db/tables.dart';
 import 'package:todo/core/theme/app_tokens.dart';
 import 'package:todo/features/calendar/calendar_providers.dart';
+import 'package:todo/features/custom_views/providers/custom_view_providers.dart';
 import 'package:todo/features/projects/project_providers.dart';
 import 'package:todo/features/settings/settings_providers.dart';
 import 'package:todo/features/tags/tag_providers.dart';
@@ -53,6 +54,9 @@ Future<TodoRepository?> pumpApp(
     ),
     foldersStreamProvider.overrideWithValue(
       AsyncData(folders ?? const <Folder>[]),
+    ),
+    customViewsStreamProvider.overrideWithValue(
+      const AsyncData(<CustomView>[]),
     ),
     // 立即 emit 指定任务列表（Stream.empty 永不 emit，会让任务树停在 loading）。
     projectTasksProvider.overrideWith(
