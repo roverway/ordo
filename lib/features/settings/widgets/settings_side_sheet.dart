@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/l10n/app_localizations.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../shared/widgets/modal_side_sheet.dart';
 import '../../sync_setup/sync_setup_page.dart';
 import '../settings_page.dart';
@@ -9,7 +10,7 @@ import '../settings_page.dart';
 Future<void> showSettingsSideSheet(BuildContext context) {
   return showModalSideSheet(
     context: context,
-    width: 480,
+    width: AppTokens.sideSheetWidth,
     child: Builder(
       builder: (sheetContext) => _SettingsSheetNavigator(
         onClose: () => Navigator.of(sheetContext).pop(),

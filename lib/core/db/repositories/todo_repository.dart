@@ -784,6 +784,102 @@ class TodoRepository {
     await onDataChanged?.call();
   }
 
+  /// 批量同步指定父任务的子任务（在单个 SQLite 事务中原子执行）。
+  ///
+  /// 包含：
+  /// 1. 级联删除 [deleteSubtaskIds] 中的子任务及关联标签和墓碑；
+  /// 2. 依次处理 [items]（保持传入的顺序分配连续 sortOrder 0..N-1）：
+  ///    - 新行 (id == null 且 title 非空)：插入新子任务（继承 parent 的 projectId 与 parentId）；
+  ///    - 现有行 (id != null 且 title 非空)：更新标题与 sortOrder；
+  ///    - 忽略空标题行。
+  ///
+  /// 校验：
+  /// - 父任务必须存在；
+  /// - 父任务自身深度必须 < 3（保证新建的子任务深度 ≤ 3）。
+  Future<void> syncSubtasks({
+    required String parentId,
+    required List<String> deleteSubtaskIds,
+    required List<({String? id, String title})> items,
+  }) async {
+    await database.transaction(() async {
+      final parent = await tasks.getActiveById(parentId);
+      if (parent == null) throw RepositoryException('父任务不存在：$parentId');
+
+      final all = await tasks.getAllByProject(parent.projectId);
+      final byId = indexTasksById(all);
+      final parentDepth = depthOf(parent, byId);
+      final hasNewItems = items.any(
+        (it) => it.id == null && it.title.trim().isNotEmpty,
+      );
+      if (parentDepth >= 3 && hasNewItems) {
+        throw RepositoryException('层级超过 3 级上限');
+      }
+
+      final now = _nowMs();
+
+      // 1. 级联删除被移除的子任务
+      if (deleteSubtaskIds.isNotEmpty) {
+        final childrenIndex = indexChildrenByParent(all);
+        final subtreeIds = <String>[];
+        void collect(String id) {
+          subtreeIds.add(id);
+          for (final child in childrenIndex[id] ?? const <Task>[]) {
+            collect(child.id);
+          }
+        }
+
+        for (final id in deleteSubtaskIds) {
+          collect(id);
+        }
+        final uniqueSubtreeIds = subtreeIds.toSet().toList();
+        await tags.deleteTaskTagsForTasks(uniqueSubtreeIds);
+        await tasks.deleteManyByIds(uniqueSubtreeIds);
+        await _appendTombstones([
+          for (final id in uniqueSubtreeIds)
+            TombstoneEntry(type: _kTombstoneTypeTask, id: id, updatedAt: now),
+        ]);
+      }
+
+      // 2. 创建新子任务与更新现有子任务，并分配连续 sortOrder
+      var order = 0;
+      for (final item in items) {
+        final title = item.title.trim();
+        if (title.isEmpty) continue;
+
+        if (item.id == null) {
+          _checkTextLength(title, 1, 200, '任务标题');
+          final newId = newUuid();
+          final companion = TasksCompanion.insert(
+            id: newId,
+            projectId: parent.projectId,
+            parentId: Value(parentId),
+            title: title,
+            status: TaskStatus.todo,
+            sortOrder: order,
+            createdAt: now,
+            updatedAt: now,
+          );
+          await tasks.insert(companion);
+        } else {
+          final existingTask = await tasks.getActiveById(item.id!);
+          if (existingTask != null) {
+            _checkTextLength(title, 1, 200, '任务标题');
+            final companion = TasksCompanion(
+              title: title != existingTask.title
+                  ? Value(title)
+                  : const Value.absent(),
+              sortOrder: Value(order),
+              updatedAt: Value(now),
+            );
+            await tasks.updateById(item.id!, companion);
+          }
+        }
+        order++;
+      }
+    });
+    await onDataChanged?.call();
+  }
+
   // ────────────────────────────── Tags ──────────────────────────────
 
   /// 新建标签（name 不区分大小写唯一，§5.4）。

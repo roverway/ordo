@@ -1,13 +1,14 @@
 // 新建/重命名文件夹名称弹窗（62-folder-nav.md §6.3）。
 //
-// 复用 showProjectFormDialog 同款视觉语言（移动端底部弹窗 / 桌面端居中
-// 对话框），但仅名称输入（无颜色/描述字段）。只收集并返回名称字符串，
-// 落库由调用方接线（抽屉/项目页统一处理）。
+// 复用 showProjectFormDialog 同款全平台统一居中对话框视觉语言（宽度约束
+// [AppTokens.dialogMaxWidth] = 440dp），但仅名称输入（无颜色/描述字段）。
+// 只收集并返回名称字符串，落库由调用方接线（抽屉/项目页统一处理）。
 
 import 'package:flutter/material.dart';
 
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../shared/widgets/app_adaptive_dialog.dart';
 
 /// 打开新建/重命名文件夹名称弹窗。
 ///
@@ -19,12 +20,9 @@ Future<String?> showFolderNameDialog({
 }) {
   return showDialog<String>(
     context: context,
-    builder: (dialogContext) => Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-      ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 440),
+    builder: (dialogContext) => AppAdaptiveDialog(
+      maxWidth: AppTokens.dialogMaxWidth,
+      child: SingleChildScrollView(
         child: _FolderNameDialog(initialName: initialName),
       ),
     ),

@@ -225,6 +225,17 @@ abstract final class AppTokens {
   /// Wide-screen NavigationRail width（80 → 96，55-ui-redesign-proposal.md §3.2）。
   static const double railWidth = 96;
 
+  // ── Dialog & Side Sheet ──
+
+  /// Standard form dialog maximum width (440dp).
+  static const double dialogMaxWidth = 440;
+
+  /// Standard modal side sheet width (settings, etc.: 480dp).
+  static const double sideSheetWidth = 480;
+
+  /// Wide modal side sheet width (task edit, custom view editor: 520dp).
+  static const double sideSheetEditorWidth = 520;
+
   // ── Sizing ──
 
   /// Minimum touch target (accessibility).

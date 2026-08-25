@@ -20,7 +20,7 @@ Future<void> showCustomViewEditorSideSheet(
 }) {
   return showModalSideSheet(
     context: context,
-    width: 520,
+    width: AppTokens.sideSheetEditorWidth,
     child: CustomViewEditorPage(viewId: viewId),
   );
 }

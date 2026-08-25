@@ -37,7 +37,7 @@ Future<void> showTaskEditSideSheet(
 }) {
   return showModalSideSheet(
     context: context,
-    width: 520,
+    width: AppTokens.sideSheetEditorWidth,
     child: TaskEditPage(
       taskId: taskId,
       projectId: projectId,
@@ -49,7 +49,7 @@ Future<void> showTaskEditSideSheet(
 }
 
 /// 统一任务编辑/新建导航入口：
-/// - 宽屏（≥600dp）：右侧浮动抽屉（Side Sheet，宽 520dp）
+/// - 宽屏（≥600dp）：右侧浮动抽屉（Side Sheet，宽 [AppTokens.sideSheetEditorWidth]）
 /// - 窄屏（<600dp）：全屏页面 push
 void openTaskEdit(
   BuildContext context, {
@@ -193,17 +193,9 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
   void _doPop() {
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
-      return;
-    }
-    try {
-      if (context.canPop()) {
-        context.pop();
-        return;
-      }
-    } catch (_) {}
-    try {
+    } else {
       context.go('/today');
-    } catch (_) {}
+    }
   }
 
   @override
@@ -376,73 +368,26 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
     }
   }
 
-  /// 保存成功后统一执行子任务增删改排序（D3，延迟落库）。
-  ///
-  /// 顺序：1) 级联删除已移除的现有子任务 → 2) 创建非空新行 → 3) 更新改名的
-  /// 现有行 → 4) 按 UI 顺序左→右移动重排（moveTask 同级重排收敛）。
-  /// 任一失败仅提示（父任务已保存，与新建弹窗兜底行为一致）。
+  /// 保存成功后统一执行子任务增删改排序（D3，同一事务原子同步）。
   Future<void> _syncSubtasks() async {
     final repo = ref.read(todoRepositoryProvider);
     final formState = ref.read(taskFormProvider);
     final parentId = formState.id;
     if (parentId == null) return;
 
-    // 项目以 DB 实际归属为准：编辑页切换项目不落库（既有缺陷，59 §8 遗留），
-    // 表单 projectId 可能已漂移，子任务仍归属父任务的真实项目（59 评审 Bug 2）。
-    final parent = await repo.tasks.getActiveById(parentId);
-    if (parent == null) return;
-    final projectId = parent.projectId;
-
     final rows = _editorController.subtaskRows;
+    final items = [
+      for (final row in rows) (id: row.id, title: row.controller.text.trim()),
+    ];
+
     try {
-      // 1. 删除已移除的现有子任务（级联）。
-      for (final id in List<String>.from(_editorController.removedSubtaskIds)) {
-        await repo.deleteTask(id);
-      }
-
-      // 2. 创建非空新行（先追加到末尾，第 4 步再移动到最终位置）。
-      final createdIds = <SubtaskRow, String>{};
-      for (final row in rows) {
-        if (!row.isNew) continue;
-        final title = row.controller.text.trim();
-        if (title.isEmpty) continue;
-        final task = await repo.createTask(
-          projectId: projectId,
-          parentId: parentId,
-          title: title,
-        );
-        createdIds[row] = task.id;
-      }
-
-      // 3. 更新改名的现有行（标题被清空时保留原标题，不做破坏性变更）。
-      for (final row in rows) {
-        if (row.isNew) continue;
-        final title = row.controller.text.trim();
-        if (title.isEmpty) continue;
-        final task = await repo.tasks.getActiveById(row.id!);
-        if (task != null && task.title != title) {
-          await repo.updateTask(row.id!, title: title);
-        }
-      }
-
-      // 4. 按 UI 顺序重排（现有行 + 新创建行；空新行不占位）。
-      final orderedIds = <String>[
-        for (final row in rows)
-          if (row.id != null)
-            row.id!
-          else if (createdIds.containsKey(row))
-            createdIds[row]!,
-      ];
-      for (var i = 0; i < orderedIds.length; i++) {
-        final id = orderedIds[i];
-        final siblings = await repo.tasks.getDirectChildren(
-          projectId,
-          parentId,
-        );
-        final currentIndex = siblings.indexWhere((t) => t.id == id);
-        if (currentIndex == i) continue;
-        await repo.moveTask(id, newParentId: parentId, newIndex: i);
-      }
+      await repo.syncSubtasks(
+        parentId: parentId,
+        deleteSubtaskIds: List<String>.from(
+          _editorController.removedSubtaskIds,
+        ),
+        items: items,
+      );
     } on RepositoryException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(

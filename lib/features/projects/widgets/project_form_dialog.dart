@@ -1,9 +1,6 @@
 // 新建项目 / 项目编辑表单（58-project-form-redesign.md 定稿重写）。
 //
-// 形态（D1/D5）：
-// - 移动端（<600dp）：底部弹窗，默认约 0.6 屏高，可上拉扩展至全屏
-//   （DraggableScrollableSheet，snap 0.4 / 0.6 / 1.0）；全屏态顶部出现收起按钮。
-// - 桌面端（≥600dp）：居中对话框，宽度约束 440dp。
+// 形态（D1/D5）：全平台统一居中对话框，宽度约束 440dp（[AppTokens.dialogMaxWidth]）。
 // 字段（D2/D3/D4）：名称（必填）、颜色（选项行 → 底部颜色选择器）、描述（可选多行）；
 // 底部显式 取消/保存。
 //
@@ -17,6 +14,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../shared/widgets/app_adaptive_dialog.dart';
 import 'project_color_picker_sheet.dart';
 
 // 兼容旧引用：kProjectColors 现定义在颜色选择器文件（避免循环依赖）。
@@ -55,7 +53,7 @@ class ProjectFormData {
   final String description;
 }
 
-/// 居中对话框，宽度约束 400–480dp。
+/// 居中对话框，宽度约束 440dp。
 class _ProjectFormDialog extends StatelessWidget {
   const _ProjectFormDialog({
     this.initialName,
@@ -69,32 +67,24 @@ class _ProjectFormDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-      ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: _dialogMaxWidth),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(
-            AppTokens.spaceXl,
-            AppTokens.spaceLg,
-            AppTokens.spaceXl,
-            AppTokens.spaceMd,
-          ),
-          child: _ProjectForm(
-            initialName: initialName,
-            initialColor: initialColor,
-            initialDescription: initialDescription,
-          ),
+    return AppAdaptiveDialog(
+      maxWidth: AppTokens.dialogMaxWidth,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(
+          AppTokens.spaceXl,
+          AppTokens.spaceLg,
+          AppTokens.spaceXl,
+          AppTokens.spaceMd,
+        ),
+        child: _ProjectForm(
+          initialName: initialName,
+          initialColor: initialColor,
+          initialDescription: initialDescription,
         ),
       ),
     );
   }
 }
-
-/// 对话框宽度上限（400–480dp 区间取值）。
-const double _dialogMaxWidth = 440;
 
 /// 表单主体。
 class _ProjectForm extends StatefulWidget {

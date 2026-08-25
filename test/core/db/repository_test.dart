@@ -813,4 +813,82 @@ void main() {
       expect(calls, 1);
     });
   });
+
+  group('syncSubtasks (原子子任务同步与重排)', () {
+    test('原子性创建、更新、级联删除与重排 sortOrder', () async {
+      final p = await repo.createProject(name: 'P', color: 0);
+      final parent = await repo.createTask(projectId: p.id, title: 'Parent');
+
+      final sub1 = await repo.createTask(
+        projectId: p.id,
+        parentId: parent.id,
+        title: 'Sub1',
+      );
+      final sub2 = await repo.createTask(
+        projectId: p.id,
+        parentId: parent.id,
+        title: 'Sub2',
+      );
+
+      var changedCount = 0;
+      repo.onDataChanged = () async => changedCount++;
+
+      await repo.syncSubtasks(
+        parentId: parent.id,
+        deleteSubtaskIds: [sub1.id],
+        items: [
+          (id: null, title: 'NewFirst'),
+          (id: sub2.id, title: 'Sub2Renamed'),
+          (id: null, title: '  '), // 空标题忽略
+        ],
+      );
+
+      expect(changedCount, 1, reason: '整个同步操作仅触发一次 onDataChanged');
+
+      // sub1 已删除
+      final deletedSub1 = await repo.tasks.getActiveById(sub1.id);
+      expect(deletedSub1, isNull);
+
+      // 墓碑记录已生成
+      final tombstones = await repo.readTombstones();
+      expect(tombstones.any((t) => t.id == sub1.id), isTrue);
+
+      // 获取当前子任务
+      final children = await repo.tasks.getDirectChildren(p.id, parent.id);
+      expect(children.length, 2);
+
+      // 验证顺序与数据
+      expect(children[0].title, 'NewFirst');
+      expect(children[0].sortOrder, 0);
+      expect(children[0].parentId, parent.id);
+
+      expect(children[1].id, sub2.id);
+      expect(children[1].title, 'Sub2Renamed');
+      expect(children[1].sortOrder, 1);
+    });
+
+    test('父任务达到第 3 级时禁止创建新子任务', () async {
+      final p = await repo.createProject(name: 'P', color: 0);
+      final l1 = await repo.createTask(projectId: p.id, title: 'L1');
+      final l2 = await repo.createTask(
+        projectId: p.id,
+        parentId: l1.id,
+        title: 'L2',
+      );
+      final l3 = await repo.createTask(
+        projectId: p.id,
+        parentId: l2.id,
+        title: 'L3',
+      );
+
+      expect(
+        () => repo.syncSubtasks(
+          parentId: l3.id,
+          deleteSubtaskIds: [],
+          items: [(id: null, title: 'L4_Invalid')],
+        ),
+        throwsA(isA<RepositoryException>()),
+      );
+    });
+  });
 }
