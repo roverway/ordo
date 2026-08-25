@@ -1057,6 +1057,17 @@ class TodoRepository {
         for (final t in await tags.getAll()) t.id,
       };
 
+      // 3.1 任务拓扑分层排序（先根任务后子任务，防 Tasks.parentId 外键立即检查失败）。
+      // 悬空 parentId 防御：若引用的父任务既不在 upsert 列表也不在现有库中，置 null 降为根任务。
+      final existingTaskIds = <String>{
+        for (final t in await tasks.getAllActive()) t.id,
+      };
+      final upsertTaskMap = <String, Task>{
+        for (final t in ops.upsertTasks) t.id: t,
+      };
+      final validTaskIds = <String>{...existingTaskIds, ...upsertTaskMap.keys};
+
+      final filteredTasks = <Task>[];
       for (final t in ops.upsertTasks) {
         if (!validProjectIds.contains(t.projectId)) {
           // 项目已被删除（LWW 墓碑胜）而任务被另一端更晚修改的边缘情形：
@@ -1064,16 +1075,40 @@ class TodoRepository {
           debugPrint('sync: 丢弃悬空任务 ${t.id}（项目 ${t.projectId} 不存在）');
           continue;
         }
+        if (t.parentId != null && !validTaskIds.contains(t.parentId)) {
+          debugPrint('sync: 修复悬空父任务引用 ${t.id}（父任务 ${t.parentId} 不存在）');
+          filteredTasks.add(t.copyWith(parentId: const Value(null)));
+        } else {
+          filteredTasks.add(t);
+        }
+      }
+
+      int depthOf(Task task, Set<String> visited) {
+        if (task.parentId == null ||
+            !upsertTaskMap.containsKey(task.parentId)) {
+          return 0;
+        }
+        if (visited.contains(task.id)) return 0;
+        visited.add(task.id);
+        final parent = upsertTaskMap[task.parentId!];
+        if (parent == null) return 0;
+        return 1 + depthOf(parent, visited);
+      }
+
+      filteredTasks.sort((a, b) {
+        final da = depthOf(a, <String>{});
+        final db = depthOf(b, <String>{});
+        return da.compareTo(db);
+      });
+
+      for (final t in filteredTasks) {
         await database
             .into(database.tasks)
             .insertOnConflictUpdate(t.toCompanion(false));
       }
 
       // 4. task_tags 全量重建（仅对实际 upsert 的任务；tagId 过滤悬空引用）。
-      final upsertedTaskIds = <String>{
-        for (final t in ops.upsertTasks)
-          if (validProjectIds.contains(t.projectId)) t.id,
-      };
+      final upsertedTaskIds = {for (final t in filteredTasks) t.id};
       for (final entry in ops.taskTagLinks.entries) {
         if (!upsertedTaskIds.contains(entry.key)) continue;
         await (database.delete(

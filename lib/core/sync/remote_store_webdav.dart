@@ -19,6 +19,7 @@
 // 可测试性：对底层客户端包一层薄适配器 [WebDavClientLike]，测试注入 Fake
 // 实现（模拟 404/401/超时/时区 mTime），无需 mockito。
 
+import 'dart:convert';
 import 'dart:typed_data';
 
 // webdav_client 依赖 dio 5.x，其抛出的异常类型为 DioException（io.dart 需
@@ -195,7 +196,11 @@ class WebDavClientAdapter implements WebDavClientLike {
     if (resp.statusCode != 200) {
       throw _statusError(resp);
     }
-    return resp.data as List<int>;
+    final data = resp.data;
+    if (data is List<int>) return data;
+    if (data is List) return data.cast<int>();
+    if (data is String) return utf8.encode(data);
+    return const [];
   }
 
   @override

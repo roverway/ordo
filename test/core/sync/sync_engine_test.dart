@@ -199,6 +199,7 @@ ProjectRecord projectRec({
 TaskRecord taskRec({
   required String id,
   String projectId = '',
+  String? parentId,
   String title = 'T',
   String description = '',
   int updatedAt = 100,
@@ -209,6 +210,7 @@ TaskRecord taskRec({
   return TaskRecord(
     id: id,
     projectId: projectId,
+    parentId: parentId,
     title: title,
     description: description,
     sortOrder: 0,
@@ -1269,6 +1271,32 @@ void main() {
       gate.complete();
       final firstResult = await first;
       expect(firstResult.ok, isTrue);
+    });
+
+    test('子任务排在父任务前面时同步成功（外键依赖拓扑排序）', () async {
+      await enableSync(repo);
+      // 远端快照中子任务（child）排在父任务（parent）前面
+      seedRemote(
+        remoteSnapshot(
+          projects: [projectRec(id: 'p1', name: '项目')],
+          tasks: [
+            taskRec(
+              id: 't-child',
+              projectId: 'p1',
+              parentId: 't-parent',
+              title: '子任务',
+            ),
+            taskRec(id: 't-parent', projectId: 'p1', title: '父任务'),
+          ],
+        ),
+      );
+      final engine = await buildEngine();
+      final result = await engine.run();
+      expect(result.ok, isTrue);
+
+      final tasks = await repo.tasks.getAllActive();
+      expect(tasks.length, 2);
+      expect(tasks.map((t) => t.id), containsAll(['t-child', 't-parent']));
     });
   });
 }

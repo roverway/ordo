@@ -222,6 +222,15 @@ void main() {
       final decoded = decodeSnapshot(compressed);
       expect(decoded.toJson(), equals(snapshot.toJson()));
     });
+
+    test('decodeSnapshot 支持直接解码未压缩的明文 JSON 字节（网络层自动解压场景）', () {
+      final snapshot = _sampleSnapshot();
+      final plainJsonBytes = Uint8List.fromList(
+        utf8.encode(jsonEncode(snapshot.toJson())),
+      );
+      final decoded = decodeSnapshot(plainJsonBytes);
+      expect(decoded.toJson(), equals(snapshot.toJson()));
+    });
   });
 
   group('snapshot_codec 校验', () {

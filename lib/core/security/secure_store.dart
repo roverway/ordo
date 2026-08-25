@@ -161,12 +161,14 @@ class SecureStore {
     await _guard(() => _backend.delete(key));
   }
 
-  /// 包装底层 [PlatformException] 为 [SecureStoreException]。
+  /// 包装底层 [PlatformException] 及其他异常为 [SecureStoreException]。
   Future<T> _guard<T>(Future<T> Function() body) async {
     try {
       return await body();
     } on PlatformException catch (e) {
       throw SecureStoreException(e.message ?? '安全存储操作失败', cause: e);
+    } catch (e) {
+      throw SecureStoreException('安全存储异常: $e', cause: e);
     }
   }
 }

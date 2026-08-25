@@ -60,12 +60,16 @@ class SnapshotSchemaException implements Exception {
 /// 顶层函数，无副作用，可在 isolate 中调用。
 Uint8List encodeSnapshot(SnapshotData data) {
   final jsonBytes = utf8.encode(jsonEncode(data.toJson()));
-  return GZipCodec().encode(jsonBytes) as Uint8List;
+  final compressed = GZipCodec().encode(jsonBytes);
+  return compressed is Uint8List ? compressed : Uint8List.fromList(compressed);
 }
 
-/// 从 gzip 压缩字节解码 [SnapshotData]。
+/// 从 gzip 压缩字节（或被网络层自动解压后的明文 JSON 字节）解码 [SnapshotData]。
 ///
 /// 崩溃安全：
+/// - 兼容检测：若字节包含 gzip 幻数（0x1F, 0x8B）则执行 Gzip 解压；若网络层
+///   （如 Dio / dart:io HttpClient autoUncompress）已自动解压或远端为明文 JSON，
+///   则直接解析，避免抛出 ZLibException；
 /// - 字段级（缺失/越界/类型异常）由 [SnapshotData.fromJson] 回退默认值
 ///   （v1 旧快照缺 folders/folderId 键即依赖此回退）；
 /// - 结构级错误（gzip 损坏 / 非法 JSON / 根节点非对象）抛 [FormatException]
@@ -76,7 +80,12 @@ Uint8List encodeSnapshot(SnapshotData data) {
 ///
 /// 顶层函数，无副作用，可在 isolate 中调用。
 SnapshotData decodeSnapshot(Uint8List bytes) {
-  final jsonBytes = GZipCodec().decode(bytes);
+  final List<int> jsonBytes;
+  if (bytes.length >= 2 && bytes[0] == 0x1f && bytes[1] == 0x8b) {
+    jsonBytes = GZipCodec().decode(bytes);
+  } else {
+    jsonBytes = bytes;
+  }
   final decoded = jsonDecode(utf8.decode(jsonBytes));
   if (decoded is! Map<String, dynamic>) {
     throw const FormatException('Snapshot root must be a JSON object');

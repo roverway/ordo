@@ -24,6 +24,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show IOException;
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show compute, debugPrint;
@@ -441,9 +442,25 @@ class SyncEngine {
         errorCode: SyncErrorCode.snapshotCorrupt,
         message: message,
       );
-    } catch (e) {
+    } on IOException catch (e) {
+      // §12：gzip 解压失败/数据流损坏（ZLibException 继承自 IOException）。
+      final message = '远端快照解压或数据流异常: $e';
+      _setState(
+        SyncState(
+          status: SyncStateStatus.error,
+          errorCode: SyncErrorCode.snapshotCorrupt,
+          errorMessage: message,
+        ),
+      );
+      return SyncResult(
+        ok: false,
+        retryable: true,
+        errorCode: SyncErrorCode.snapshotCorrupt,
+        message: message,
+      );
+    } catch (e, stack) {
       // 兜底：未预期异常 → 不破坏本地库，不重试（避免死循环）。
-      debugPrint('sync: 未预期异常 ${e.runtimeType}');
+      debugPrint('sync: 未预期异常 $e\n$stack');
       const message = '同步失败'; // 仅日志。
       _setState(
         const SyncState(
