@@ -219,6 +219,9 @@ abstract final class AppTokens {
   // 批 2：drawerSelectedBg 由 colorScheme.primaryContainer 派生（55-ui-redesign §5），
   // 不在静态令牌中放派生色。
 
+  /// Wide-screen persistent sidebar width (TickTick/Todoist desktop standard: 260dp).
+  static const double sidebarWidth = 260;
+
   /// Wide-screen NavigationRail width（80 → 96，55-ui-redesign-proposal.md §3.2）。
   static const double railWidth = 96;
 

@@ -7,7 +7,7 @@ import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/app_breakpoints.dart';
 import '../../../core/utils/custom_view_models.dart';
-import '../../../shared/widgets/app_drawer.dart';
+import '../../../shared/widgets/app_shell.dart';
 import '../../projects/project_providers.dart';
 import '../providers/custom_view_providers.dart';
 import '../widgets/icon_picker_dialog.dart';
@@ -187,6 +187,50 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
     }
   }
 
+  List<Widget> _buildActions(
+    BuildContext context,
+    AppLocalizations l10n,
+    ThemeData theme,
+    CustomView view,
+  ) {
+    return [
+      IconButton(
+        tooltip: l10n.editCustomView,
+        icon: const Icon(Icons.tune_rounded),
+        onPressed: () => context.push('/custom_view/${view.id}/edit'),
+      ),
+      PopupMenuButton<String>(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+        ),
+        onSelected: (val) {
+          if (val == 'delete') {
+            _confirmDeleteView(view);
+          }
+        },
+        itemBuilder: (ctx) => [
+          PopupMenuItem(
+            value: 'delete',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.delete_outline_rounded,
+                  size: 18,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(width: AppTokens.spaceXs),
+                Text(
+                  l10n.deleteCustomView,
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -197,53 +241,31 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
     final viewAsync = ref.watch(customViewDetailProvider(widget.viewId));
 
     return viewAsync.when(
-      loading: () => Scaffold(
-        backgroundColor: isDark
-            ? AppTokens.surfacePageDark
-            : AppTokens.surfacePageLight,
-        drawer: const AppDrawer(),
-        body: const Center(child: CircularProgressIndicator()),
+      loading: () => AppShell(
+        title: l10n.customViews,
+        child: const Center(child: CircularProgressIndicator()),
       ),
-      error: (err, _) => Scaffold(
-        backgroundColor: isDark
-            ? AppTokens.surfacePageDark
-            : AppTokens.surfacePageLight,
-        drawer: const AppDrawer(),
-        appBar: AppBar(),
-        body: Center(child: Text(err.toString())),
+      error: (err, _) => AppShell(
+        title: l10n.customViews,
+        child: Center(child: Text(err.toString())),
       ),
       data: (CustomView? view) {
         if (view == null) {
-          return Scaffold(
-            backgroundColor: isDark
-                ? AppTokens.surfacePageDark
-                : AppTokens.surfacePageLight,
-            drawer: const AppDrawer(),
-            appBar: AppBar(title: Text(l10n.customViews)),
-            body: Center(child: Text(l10n.noCustomViews)),
+          return AppShell(
+            title: l10n.customViews,
+            child: Center(child: Text(l10n.noCustomViews)),
           );
         }
 
         final panels = _getEffectivePanels(view);
+        final actions = _buildActions(context, l10n, theme, view);
 
         // 如果视图没有面板，提供空状态与引导添加面板
         if (panels.isEmpty) {
-          return Scaffold(
-            backgroundColor: isDark
-                ? AppTokens.surfacePageDark
-                : AppTokens.surfacePageLight,
-            drawer: const AppDrawer(),
-            appBar: AppBar(
-              title: _buildViewTitle(view),
-              actions: [
-                IconButton(
-                  tooltip: l10n.editCustomView,
-                  icon: const Icon(Icons.tune_rounded),
-                  onPressed: () => context.push('/custom_view/${view.id}/edit'),
-                ),
-              ],
-            ),
-            body: Center(
+          return AppShell(
+            titleWidget: _buildViewTitle(view),
+            actions: actions,
+            child: Center(
               child: Container(
                 margin: const EdgeInsets.all(AppTokens.spaceXl),
                 padding: const EdgeInsets.all(AppTokens.spaceXl),
@@ -298,51 +320,10 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
 
         // 宽屏模式（≥600dp）或指定 kanban 布局时：横向多列看板
         if (isWide || view.layoutMode == 'kanban') {
-          return Scaffold(
-            backgroundColor: isDark
-                ? AppTokens.surfacePageDark
-                : AppTokens.surfacePageLight,
-            drawer: const AppDrawer(),
-            appBar: AppBar(
-              title: _buildViewTitle(view),
-              actions: [
-                IconButton(
-                  tooltip: l10n.editCustomView,
-                  icon: const Icon(Icons.tune_rounded),
-                  onPressed: () => context.push('/custom_view/${view.id}/edit'),
-                ),
-                PopupMenuButton<String>(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-                  ),
-                  onSelected: (val) {
-                    if (val == 'delete') {
-                      _confirmDeleteView(view);
-                    }
-                  },
-                  itemBuilder: (ctx) => [
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.delete_outline_rounded,
-                            size: 18,
-                            color: theme.colorScheme.error,
-                          ),
-                          const SizedBox(width: AppTokens.spaceXs),
-                          Text(
-                            l10n.deleteCustomView,
-                            style: TextStyle(color: theme.colorScheme.error),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            body: Padding(
+          return AppShell(
+            titleWidget: _buildViewTitle(view),
+            actions: actions,
+            child: Padding(
               padding: const EdgeInsets.symmetric(
                 vertical: AppTokens.spaceXs,
                 horizontal: AppTokens.spaceSm,
@@ -374,75 +355,40 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
         // 窄屏列表模式：顶部 TabBar + PageView
         return DefaultTabController(
           length: panels.length,
-          child: Scaffold(
-            backgroundColor: isDark
-                ? AppTokens.surfacePageDark
-                : AppTokens.surfacePageLight,
-            drawer: const AppDrawer(),
-            appBar: AppBar(
-              title: _buildViewTitle(view),
-              actions: [
-                IconButton(
-                  tooltip: l10n.editCustomView,
-                  icon: const Icon(Icons.tune_rounded),
-                  onPressed: () => context.push('/custom_view/${view.id}/edit'),
+          child: AppShell(
+            titleWidget: _buildViewTitle(view),
+            actions: actions,
+            child: Column(
+              children: [
+                TabBar(
+                  isScrollable: panels.length > 3,
+                  tabAlignment: panels.length > 3 ? TabAlignment.start : null,
+                  dividerColor: Colors.transparent,
+                  indicatorSize: TabBarIndicatorSize.label,
+                  tabs: panels.map((p) => Tab(text: p.title)).toList(),
                 ),
-                PopupMenuButton<String>(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                Expanded(
+                  child: TabBarView(
+                    children: panels.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final panel = entry.value;
+                      return PanelColumn(
+                        key: ValueKey(panel.id),
+                        panel: panel,
+                        isKanban: false,
+                        onUpdatePanel: (updated) =>
+                            _onUpdatePanel(view, index, updated),
+                        onDeletePanel: () => _onDeletePanel(view, index),
+                        onTaskDropped: (task, targetPanel) => _handleTaskDrop(
+                          view: view,
+                          task: task,
+                          targetPanel: targetPanel,
+                        ),
+                      );
+                    }).toList(),
                   ),
-                  onSelected: (val) {
-                    if (val == 'delete') {
-                      _confirmDeleteView(view);
-                    }
-                  },
-                  itemBuilder: (ctx) => [
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.delete_outline_rounded,
-                            size: 18,
-                            color: theme.colorScheme.error,
-                          ),
-                          const SizedBox(width: AppTokens.spaceXs),
-                          Text(
-                            l10n.deleteCustomView,
-                            style: TextStyle(color: theme.colorScheme.error),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
                 ),
               ],
-              bottom: TabBar(
-                isScrollable: panels.length > 3,
-                tabAlignment: panels.length > 3 ? TabAlignment.start : null,
-                dividerColor: Colors.transparent,
-                indicatorSize: TabBarIndicatorSize.label,
-                tabs: panels.map((p) => Tab(text: p.title)).toList(),
-              ),
-            ),
-            body: TabBarView(
-              children: panels.asMap().entries.map((entry) {
-                final index = entry.key;
-                final panel = entry.value;
-                return PanelColumn(
-                  key: ValueKey(panel.id),
-                  panel: panel,
-                  isKanban: false,
-                  onUpdatePanel: (updated) =>
-                      _onUpdatePanel(view, index, updated),
-                  onDeletePanel: () => _onDeletePanel(view, index),
-                  onTaskDropped: (task, targetPanel) => _handleTaskDrop(
-                    view: view,
-                    task: task,
-                    targetPanel: targetPanel,
-                  ),
-                );
-              }).toList(),
             ),
           ),
         );

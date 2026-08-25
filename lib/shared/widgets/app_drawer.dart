@@ -40,14 +40,50 @@ import 'loading_view.dart';
 ///
 /// 宽度 = 屏宽 × [AppTokens.drawerWidthRatio]（0.78，定稿 75–80% 屏宽），
 /// 右侧半透明遮罩由 Scaffold 自带 scrim 提供（点击关闭）。
-class AppDrawer extends ConsumerStatefulWidget {
+/// 移动端/窄屏侧边栏抽屉（55-ui-redesign-proposal.md §3.1，D1，批 2-A；
+/// 62-folder-nav.md §6.1 批 3 文件夹化）。
+class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
 
   @override
-  ConsumerState<AppDrawer> createState() => _AppDrawerState();
+  Widget build(BuildContext context) {
+    return Drawer(
+      width: MediaQuery.sizeOf(context).width * AppTokens.drawerWidthRatio,
+      child: const AppSidebarContent(isDrawer: true),
+    );
+  }
 }
 
-class _AppDrawerState extends ConsumerState<AppDrawer> {
+/// 桌面端/宽屏常驻侧边栏（全平台 Windows / Linux / macOS 通用）
+class AppSidebar extends StatelessWidget {
+  const AppSidebar({super.key, this.width = AppTokens.sidebarWidth});
+
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SizedBox(
+      width: width,
+      child: Material(
+        color: theme.colorScheme.surface,
+        child: const AppSidebarContent(isDrawer: false),
+      ),
+    );
+  }
+}
+
+/// 侧边栏通用内容区（抽屉模式与固定常驻模式共用同一套内容与逻辑）
+class AppSidebarContent extends ConsumerStatefulWidget {
+  const AppSidebarContent({super.key, required this.isDrawer});
+
+  final bool isDrawer;
+
+  @override
+  ConsumerState<AppSidebarContent> createState() => _AppSidebarContentState();
+}
+
+class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
   /// 防抽屉关闭动画期间（~246ms）重复点击导致的二次 pop 竞态
   /// （第二次 pop 会弹掉刚 push 的 /settings 路由）。
   bool _navigating = false;
@@ -87,12 +123,16 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 
   /// 拖拽反馈浮层（半透明 + 阴影，复用 task_tree 视觉）。
   Widget _dragFeedback(Widget leading, String label) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final feedbackWidth = widget.isDrawer
+        ? screenWidth * 0.6
+        : (AppTokens.sidebarWidth - AppTokens.spaceMd * 2);
     return Material(
       color: Colors.transparent,
       child: Opacity(
         opacity: 0.8,
         child: Container(
-          width: MediaQuery.sizeOf(context).width * 0.6,
+          width: feedbackWidth,
           padding: const EdgeInsets.all(AppTokens.spaceSm),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
@@ -172,94 +212,91 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
           ),
         ];
 
-    return Drawer(
-      width: MediaQuery.sizeOf(context).width * AppTokens.drawerWidthRatio,
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 顶部：应用名 / Logo 占位（无账号体系，不做头像）。
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppTokens.spaceMd,
-                AppTokens.spaceLg,
-                AppTokens.spaceMd,
-                AppTokens.spaceMd,
+    return SafeArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 顶部：应用名 / Logo 占位（无账号体系，不做头像）。
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppTokens.spaceMd,
+              AppTokens.spaceLg,
+              AppTokens.spaceMd,
+              AppTokens.spaceMd,
+            ),
+            child: Text(
+              l10n.appTitle,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: AppTokens.textHeadingWeight,
               ),
-              child: Text(
-                l10n.appTitle,
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: AppTokens.textHeadingWeight,
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              children: [
+                // ── 系统组（无分隔线）──
+                for (final item in systemItems)
+                  _DrawerTile(
+                    leading: Icon(
+                      path == item.path ? item.selectedIcon : item.icon,
+                      size: AppTokens.expandArrowSize,
+                      color: path == item.path
+                          ? theme.colorScheme.onSecondaryContainer
+                          : theme.colorScheme.onSurfaceVariant,
+                    ),
+                    title: item.label,
+                    selected: path == item.path,
+                    onTap: () => _go(context, item.path),
+                  ),
+                const Divider(),
+                // ── 自定义视图区 ──
+                ..._buildCustomViewsArea(context, l10n, path),
+                const Divider(),
+                // ── 项目区（文件夹组 + 未分组区，62-folder-nav.md §6.1）──
+                ..._buildProjectArea(context, l10n),
+              ],
+            ),
+          ),
+          const Divider(),
+          // ── 底部：「新建文件夹」+「新建项目」（并列）+ 设置 ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppTokens.spaceXs,
+              AppTokens.spaceXxs,
+              AppTokens.spaceXs,
+              AppTokens.spaceSm,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _bottomAction(
+                    context,
+                    icon: Icons.create_new_folder_outlined,
+                    label: l10n.newFolder,
+                    onTap: () => _showNewFolderDialog(context, ref),
+                  ),
                 ),
-              ),
-            ),
-            Expanded(
-              child: ListView(
-                children: [
-                  // ── 系统组（无分隔线）──
-                  for (final item in systemItems)
-                    _DrawerTile(
-                      leading: Icon(
-                        path == item.path ? item.selectedIcon : item.icon,
-                        size: AppTokens.expandArrowSize,
-                        color: path == item.path
-                            ? theme.colorScheme.onSecondaryContainer
-                            : theme.colorScheme.onSurfaceVariant,
-                      ),
-                      title: item.label,
-                      selected: path == item.path,
-                      onTap: () => _go(context, item.path),
-                    ),
-                  const Divider(),
-                  // ── 自定义视图区 ──
-                  ..._buildCustomViewsArea(context, l10n, path),
-                  const Divider(),
-                  // ── 项目区（文件夹组 + 未分组区，62-folder-nav.md §6.1）──
-                  ..._buildProjectArea(context, l10n),
-                ],
-              ),
-            ),
-            const Divider(),
-            // ── 底部：「新建文件夹」+「新建项目」（并列）+ 设置 ──
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppTokens.spaceXs,
-                AppTokens.spaceXxs,
-                AppTokens.spaceXs,
-                AppTokens.spaceSm,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _bottomAction(
-                      context,
-                      icon: Icons.create_new_folder_outlined,
-                      label: l10n.newFolder,
-                      onTap: () => _showNewFolderDialog(context, ref),
-                    ),
+                Expanded(
+                  child: _bottomAction(
+                    context,
+                    icon: Icons.add,
+                    label: l10n.newProject,
+                    onTap: () => _showNewProjectDialog(context, ref),
                   ),
-                  Expanded(
-                    child: _bottomAction(
-                      context,
-                      icon: Icons.add,
-                      label: l10n.newProject,
-                      onTap: () => _showNewProjectDialog(context, ref),
-                    ),
-                  ),
-                  // 设置入口（同高、垂直居中；先关抽屉再跳转）。
-                  // 用 push 而非 go：go('/settings') 会替换整个导航栈，
-                  // 设置页将无路可返（router.dart /settings 注释；Bug 2 回归）。
-                  IconButton(
-                    tooltip: l10n.settings,
-                    icon: const Icon(Icons.settings_outlined, size: 22),
-                    onPressed: () => _openSettings(context),
-                  ),
-                ],
-              ),
+                ),
+                // 设置入口（同高、垂直居中；先关抽屉再跳转）。
+                // 用 push 而非 go：go('/settings') 会替换整个导航栈，
+                // 设置页将无路可返（router.dart /settings 注释；Bug 2 回归）。
+                IconButton(
+                  tooltip: l10n.settings,
+                  icon: const Icon(Icons.settings_outlined, size: 22),
+                  onPressed: () => _openSettings(context),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1078,27 +1115,33 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 
   // ─────────────────────────── 弹窗与导航 ───────────────────────────
 
-  /// 关闭抽屉并切换到目标路由（路由不变，仅入口位置变化）。
+  /// 关闭抽屉（如果是抽屉模式）并切换到目标路由（路由不变，仅入口位置变化）。
   void _go(BuildContext context, String path) {
-    if (_navigating) return;
-    _navigating = true;
-    Navigator.of(context).pop();
+    if (widget.isDrawer) {
+      if (_navigating) return;
+      _navigating = true;
+      Navigator.of(context).pop();
+    }
     context.go(path);
   }
 
-  /// 关闭抽屉并推入目标页面（push 保持导航栈，支持返回上级页面）。
+  /// 关闭抽屉（如果是抽屉模式）并推入目标页面（push 保持导航栈，支持返回上级页面）。
   void _push(BuildContext context, String path) {
-    if (_navigating) return;
-    _navigating = true;
-    Navigator.of(context).pop();
+    if (widget.isDrawer) {
+      if (_navigating) return;
+      _navigating = true;
+      Navigator.of(context).pop();
+    }
     context.push(path);
   }
 
-  /// 关闭抽屉并推入设置页（push 保持导航栈，设置页可返回任务页）。
+  /// 关闭抽屉（如果是抽屉模式）并推入设置页（push 保持导航栈，设置页可返回任务页）。
   void _openSettings(BuildContext context) {
-    if (_navigating) return;
-    _navigating = true;
-    Navigator.of(context).pop();
+    if (widget.isDrawer) {
+      if (_navigating) return;
+      _navigating = true;
+      Navigator.of(context).pop();
+    }
     context.push('/settings');
   }
 

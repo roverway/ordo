@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:todo/core/db/database.dart';
 import 'package:todo/core/l10n/app_localizations.dart';
+import 'package:todo/features/custom_views/providers/custom_view_providers.dart';
 import 'package:todo/features/projects/project_providers.dart';
 import 'package:todo/features/projects/projects_page.dart';
 import 'package:todo/features/projects/widgets/project_form_dialog.dart';
@@ -100,6 +101,7 @@ Future<void> _pump(
     todoRepositoryProvider.overrideWithValue(repo),
     projectsStreamProvider.overrideWithValue(AsyncData(projects)),
     foldersStreamProvider.overrideWithValue(AsyncData(folders)),
+    customViewsStreamProvider.overrideWithValue(const AsyncData([])),
     projectTasksProvider.overrideWith(
       (ref, projectId) => Stream.value(const <Task>[]),
     ),

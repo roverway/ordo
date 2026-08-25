@@ -9,39 +9,37 @@ import 'compact_bottom_bar.dart';
 
 /// Adaptive navigation shell (30-architecture.md §5, 55-ui-redesign §3)。
 ///
-/// - Narrow (<600dp): 侧边栏抽屉承载清单导航（系统组 + 项目组 + 新建项目，
+/// - Narrow (<600dp): 侧边栏抽屉承载清单导航（系统组 + 项目组 + 新建项目/文件夹 + 设置，
 ///   55-ui-redesign §3.1 D1）+ AppBar 汉堡入口 + 紧凑底栏（今日/日历 2 项，
 ///   57-task-page-polish §4.1 D5）
-/// - Wide (≥600dp): top AppBar + left NavigationRail（5 目的地不变）
+/// - Wide (≥600dp): top AppBar + left AppSidebar（全桌面端固定常驻完整侧边栏）
 ///
 /// 抽屉/底栏选中态由当前路由路径推导；路由表不变，仅入口位置变化。
 class AppShell extends StatelessWidget {
   const AppShell({
     super.key,
-    required this.title,
+    this.title,
+    this.titleWidget,
     required this.child,
     this.actions,
-  });
+  }) : assert(
+         title != null || titleWidget != null,
+         'Either title or titleWidget must be provided',
+       );
 
-  /// Page title (from ARB, passed by each feature page).
-  final String title;
+  /// Page title string (from ARB, passed by each feature page).
+  final String? title;
+
+  /// Optional custom title widget (e.g. icon + text row in custom views).
+  final Widget? titleWidget;
 
   /// Page body content.
   final Widget child;
 
   /// 追加在搜索图标**之后**的 AppBar actions（如项目作用域的编辑/删除）。
   /// null = 仅默认搜索（现有调用方兼容，56-task-scope-page.md §3.3；
-  /// 设置按钮已移至抽屉底部/宽屏 NavigationRail trailing，打磨要求）。
+  /// 设置按钮已移至侧边栏底部，打磨要求）。
   final List<Widget>? actions;
-
-  /// 宽屏 NavigationRail 5 个目的地（keep in sync with router.dart）。
-  static const List<String> _railPaths = [
-    '/inbox',
-    '/today',
-    '/calendar',
-    '/projects',
-    '/tags',
-  ];
 
   /// 窄屏紧凑底栏目的地路径（57-task-page-polish §4.1 D5：今日/日历 2 项，
   /// 标签移入抽屉）。**将来新增功能按钮在此追加**（与 barDestinations 同步）。
@@ -54,51 +52,14 @@ class AppShell extends StatelessWidget {
   /// 无 NavigationBar 的合法索引断言限制）。
   static bool _hasBarMatch(String path) => _barPaths.contains(path);
 
-  /// Derive destination index from route path; fall back to 0.
-  static int _selectedIndexIn(List<String> paths, String path) {
-    final index = paths.indexOf(path);
-    return index == -1 ? 0 : index;
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final narrow = AppBreakpoints.isNarrow(context);
     final path = GoRouterState.of(context).uri.path;
     final hasBarMatch = _hasBarMatch(path);
-    final railIndex = _selectedIndexIn(_railPaths, path);
     // -1 = 无选中（inbox/项目/搜索/设置等非底栏路径）。
     final barIndex = hasBarMatch ? _barPaths.indexOf(path) : -1;
-
-    // 宽屏 Rail 5 目的地（不变）。
-    final railDestinations =
-        <({String label, IconData icon, IconData selectedIcon})>[
-          (
-            label: l10n.navInbox,
-            icon: Icons.inbox_outlined,
-            selectedIcon: Icons.inbox,
-          ),
-          (
-            label: l10n.navToday,
-            icon: Icons.today_outlined,
-            selectedIcon: Icons.today,
-          ),
-          (
-            label: l10n.navCalendar,
-            icon: Icons.calendar_today_outlined,
-            selectedIcon: Icons.calendar_today,
-          ),
-          (
-            label: l10n.navProjects,
-            icon: Icons.folder_outlined,
-            selectedIcon: Icons.folder,
-          ),
-          (
-            label: l10n.navTags,
-            icon: Icons.label_outline,
-            selectedIcon: Icons.label,
-          ),
-        ];
 
     // 窄屏紧凑底栏 2 系统入口（今日/日历；标签移入抽屉，57-task-page-polish §4.1）。
     // 列表渲染可扩展：将来新增功能按钮在 _barPaths 与这里各加一项即可。
@@ -117,26 +78,12 @@ class AppShell extends StatelessWidget {
         ];
 
     return Scaffold(
-      // 窄屏抽屉：宽度（屏宽 × drawerWidthRatio）由 AppDrawer 自身提供
-      //（评审问题 5：接线 0.78 令牌）；右侧遮罩点击关闭由 Scaffold scrim 提供。
-      //
-      // 抽屉动效契约（docs/63-motion-polish.md §5 E）：easeOutCubic 风格 +
-      // motionNormal 时长 + scrim 同步淡入。经评估（克制优先），保持 Material
-      // `Scaffold.drawer` 原生机制即可满足，**不再引入自定义 DrawerController**：
-      // - Flutter 3.38 的 DrawerControllerState 用 `AnimationController.fling()`
-      //   （临界阻尼弹簧，settle ≈ 246ms，与 motionNormal 250ms 令牌基本一致）
-      //   驱动宽度揭示，位移曲线与 easeOutCubic 观感一致；scrim 透明度随同一
-      //   controller value 同步淡入（drawer.dart `_buildDrawer`）；
-      // - reduced motion：框架原生降级——`SemanticsBinding.disableAnimations`
-      //   时 fling 速度放大 200 倍，抽屉近乎瞬时开合（animation_controller.dart
-      //   `fling` 的 `AnimationBehavior.normal` 分支）；
-      // - 抽屉内容关闭依赖 AppDrawer._go/_openSettings 的 `Navigator.pop()`
-      //   （抽屉的 LocalHistoryEntry）+ `_navigating` 防双击竞态（246ms 窗口）。
-      //   若换成自管 overlay 抽屉会改变 pop 语义、引入新的竞态窗口，违背
-      //   63-motion-polish §6「不破坏现有 _navigating 防竞态」约束。
+      // 窄屏抽屉：宽度（屏宽 × drawerWidthRatio）由 AppDrawer 自身提供；
+      // 右侧遮罩点击关闭由 Scaffold scrim 提供。
+      // 宽屏模式下抽屉为 null，改为在 body 中固定渲染 AppSidebar。
       drawer: narrow ? const AppDrawer() : null,
       appBar: AppBar(
-        // 仅窄屏显示汉堡入口；宽屏由 Rail 承担导航。
+        // 仅窄屏显示汉堡入口；宽屏由左侧固定常驻 AppSidebar 承担导航。
         leading: narrow
             ? Builder(
                 builder: (context) => IconButton(
@@ -146,9 +93,7 @@ class AppShell extends StatelessWidget {
                 ),
               )
             : null,
-        title: Text(title),
-        // 用户打磨要求 4：设置入口移出 AppBar（窄屏 → 抽屉底部；
-        // 宽屏 → NavigationRail 底部），AppBar 仅保留搜索 + 作用域操作。
+        title: titleWidget ?? Text(title!),
         actions: [
           IconButton(
             tooltip: l10n.search,
@@ -163,32 +108,7 @@ class AppShell extends StatelessWidget {
           ? child
           : Row(
               children: [
-                NavigationRail(
-                  // 宽度与选中态药丸高亮由 AppTheme.navigationRailTheme 提供
-                  // （railWidth / indicatorColor / indicatorShape，55-ui-redesign §3.2）。
-                  minWidth: AppTokens.railWidth,
-                  selectedIndex: railIndex,
-                  onDestinationSelected: (index) =>
-                      context.go(_railPaths[index]),
-                  destinations: [
-                    for (final d in railDestinations)
-                      NavigationRailDestination(
-                        icon: Icon(d.icon),
-                        selectedIcon: Icon(d.selectedIcon),
-                        label: Text(d.label),
-                      ),
-                  ],
-                  // 用户打磨要求 4：宽屏设置入口放在 Rail 底部
-                  //（Material 惯例：Gmail/Docs 风格 trailing）。
-                  trailing: Padding(
-                    padding: const EdgeInsets.only(bottom: AppTokens.spaceMd),
-                    child: IconButton(
-                      tooltip: l10n.settings,
-                      icon: const Icon(Icons.settings_outlined, size: 22),
-                      onPressed: () => context.push('/settings'),
-                    ),
-                  ),
-                ),
+                const AppSidebar(width: AppTokens.sidebarWidth),
                 const VerticalDivider(width: 1, thickness: 1),
                 Expanded(child: child),
               ],

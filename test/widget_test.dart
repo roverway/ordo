@@ -23,6 +23,7 @@ import 'package:todo/features/tags/tag_providers.dart';
 import 'package:todo/features/tasks/task_providers.dart';
 import 'package:todo/features/today/today_providers.dart';
 import 'package:todo/router.dart';
+import 'package:todo/shared/widgets/app_drawer.dart';
 import 'package:todo/shared/widgets/compact_bottom_bar.dart';
 import 'helpers/db_test_setup.dart';
 
@@ -259,7 +260,7 @@ void main() {
       //（标签移入抽屉，57-task-page-polish §4.1 D5）；不再使用标准 NavigationBar。
       expect(find.byType(CompactBottomBar), findsOneWidget);
       expect(find.byType(NavigationBar), findsNothing);
-      expect(find.byType(NavigationRail), findsNothing);
+      expect(find.byType(AppSidebar), findsNothing);
       for (final label in ['今日', '日历']) {
         expect(
           find.descendant(
@@ -301,30 +302,32 @@ void main() {
   );
 
   testWidgets(
-    'Wide (≥600dp) smoke: NavigationRail 5 destinations, no hamburger',
+    'Wide (≥600dp) smoke: AppSidebar persistent sidebar, no hamburger, no drawer',
     (tester) async {
       await pumpApp(tester, const Size(1000, 800));
 
-      expect(find.byType(NavigationRail), findsOneWidget);
+      // 宽屏固定常驻侧边栏（全桌面端一致）
+      expect(find.byType(AppSidebar), findsOneWidget);
       expect(find.byType(NavigationBar), findsNothing);
       expect(find.byType(CompactBottomBar), findsNothing);
-      // 宽屏无汉堡（Rail 已含导航），无抽屉。
+      // 宽屏无汉堡（侧边栏已常驻），无模态抽屉
       expect(find.byIcon(Icons.menu), findsNothing);
       expect(find.byType(Drawer), findsNothing);
-      // Rail 5 目的地保持不变（收集箱/今日/日历/项目/标签）。
-      for (final label in ['收件箱', '今日', '日历', '项目', '标签']) {
+      // 侧边栏包含系统组目的地（今日/收件箱/日历/标签）与应用标题
+      expect(find.text('Todo'), findsOneWidget);
+      for (final label in ['收件箱', '今日', '日历', '标签']) {
         expect(
           find.descendant(
-            of: find.byType(NavigationRail),
+            of: find.byType(AppSidebar),
             matching: find.text(label),
           ),
           findsOneWidget,
         );
       }
-      // 用户打磨要求 4：宽屏设置入口在 Rail 底部（AppBar 无设置图标）。
+      // 宽屏设置入口在侧边栏底部（AppBar 无设置图标）
       expect(
         find.descendant(
-          of: find.byType(NavigationRail),
+          of: find.byType(AppSidebar),
           matching: find.byIcon(Icons.settings_outlined),
         ),
         findsOneWidget,
@@ -336,6 +339,33 @@ void main() {
         ),
         findsNothing,
       );
+    },
+  );
+
+  testWidgets(
+    'Adaptive layout: dynamically resizing window toggles sidebar & drawer',
+    (tester) async {
+      // 初始宽屏（1000dp）：固定显示 AppSidebar，无汉堡
+      await pumpApp(tester, const Size(1000, 800));
+      expect(find.byType(AppSidebar), findsOneWidget);
+      expect(find.byIcon(Icons.menu), findsNothing);
+
+      // 动态调窄窗口（500dp）：自动切为抽屉模式与汉堡按钮
+      tester.view.physicalSize = const Size(500, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppSidebar), findsNothing);
+      expect(find.byIcon(Icons.menu), findsOneWidget);
+
+      // 再次动态调宽窗口（900dp）：自动恢复固定 AppSidebar
+      tester.view.physicalSize = const Size(900, 800);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppSidebar), findsOneWidget);
+      expect(find.byIcon(Icons.menu), findsNothing);
     },
   );
 
