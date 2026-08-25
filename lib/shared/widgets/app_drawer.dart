@@ -65,12 +65,18 @@ class AppSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return SizedBox(
+    final isDark = theme.brightness == Brightness.dark;
+    final borderColor = isDark
+        ? AppTokens.borderSubtleDark
+        : AppTokens.borderSubtleLight;
+
+    return Container(
       width: width,
-      child: Material(
+      decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        child: const AppSidebarContent(isDrawer: false),
+        border: Border(right: BorderSide(color: borderColor, width: 1)),
       ),
+      child: const AppSidebarContent(isDrawer: false),
     );
   }
 }

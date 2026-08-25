@@ -6,6 +6,7 @@ import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/custom_view_models.dart';
+import '../../../shared/widgets/animated_strikethrough.dart';
 import '../../projects/project_providers.dart';
 import '../../tasks/task_edit_page.dart';
 import '../../tasks/widgets/task_create_sheet.dart';
@@ -420,27 +421,23 @@ class PanelColumn extends ConsumerWidget {
     final card = Container(
       decoration: BoxDecoration(
         color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppTokens.radiusCard),
         border: Border.all(
           color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
-          width: 0.8,
+              ? AppTokens.borderSubtleDark
+              : AppTokens.borderSubtleLight,
+          width: 1.0,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-            blurRadius: 4,
-            offset: const Offset(0, 1.5),
-          ),
-        ],
+        boxShadow: isDark
+            ? AppTokens.cardShadowDarkList
+            : AppTokens.cardShadowLight,
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppTokens.radiusCard),
         child: InkWell(
           onTap: () => openTaskEdit(context, taskId: task.id),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppTokens.radiusCard),
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: AppTokens.spaceSm,
@@ -509,16 +506,12 @@ class PanelColumn extends ConsumerWidget {
                       ),
                     ),
                     Expanded(
-                      child: Text(
-                        task.title,
+                      child: AnimatedStrikethrough(
+                        text: task.title,
+                        isDone: isDone,
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          decoration: isDone
-                              ? TextDecoration.lineThrough
-                              : null,
                           color: isDone
-                              ? theme.colorScheme.onSurface.withValues(
-                                  alpha: 0.45,
-                                )
+                              ? theme.colorScheme.onSurfaceVariant
                               : theme.colorScheme.onSurface,
                           fontWeight: FontWeight.w500,
                           height: 1.3,

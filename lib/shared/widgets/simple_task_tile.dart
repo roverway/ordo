@@ -7,6 +7,7 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/theme/priority_color.dart';
 import '../../core/utils/dates.dart';
 import '../../core/utils/motion.dart';
+import 'animated_strikethrough.dart';
 import 'checkbox_bounce.dart';
 import 'tag_chip.dart';
 import 'task_progress_ring.dart';
@@ -175,13 +176,11 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                     const SizedBox(width: AppTokens.spaceXxs),
                                   ],
                                   Expanded(
-                                    child: Text(
-                                      widget.task.title,
+                                    child: AnimatedStrikethrough(
+                                      text: widget.task.title,
+                                      isDone: widget.isDone,
                                       style: theme.textTheme.bodyLarge
                                           ?.copyWith(
-                                            decoration: widget.isDone
-                                                ? TextDecoration.lineThrough
-                                                : null,
                                             color: widget.isDone
                                                 ? colorScheme.onSurfaceVariant
                                                 : widget.isOverdue

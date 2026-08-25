@@ -7,6 +7,7 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/priority_color.dart';
 import '../../../core/utils/dates.dart';
 import '../../../core/utils/motion.dart';
+import '../../../shared/widgets/animated_strikethrough.dart';
 import '../../../shared/widgets/checkbox_bounce.dart';
 import '../../../shared/widgets/tag_chip.dart';
 import '../../../shared/widgets/task_progress_ring.dart';
@@ -164,12 +165,11 @@ class _TaskRowState extends State<TaskRow> {
         ? AppTokens.radiusList
         : AppTokens.radiusCard;
 
-    // 标题文本（优先级旗帜存在时与旗帜同行；strikethrough/弱色逻辑与
-    // 改造前一致，maxLines 1 + ellipsis 保留）。
-    final titleText = Text(
-      widget.task.title,
+    // 标题文本（优先级旗帜存在时与旗帜同行；平滑划线动效，maxLines 1 + ellipsis 保留）。
+    final titleText = AnimatedStrikethrough(
+      text: widget.task.title,
+      isDone: isDone,
       style: theme.textTheme.bodyLarge?.copyWith(
-        decoration: isDone ? TextDecoration.lineThrough : null,
         color: isDone ? colorScheme.onSurfaceVariant : colorScheme.onSurface,
       ),
       maxLines: 1,

@@ -17,29 +17,31 @@
 
 | 令牌 | 值 | 说明 |
 |---|---|---|
-| `seedColor` | `#4A6CF7` | 默认种子色（滴答风格蓝，UI 重构批 1 2026-08 更新） |
-| `colorDone` | 绿 `#5CAB7D` | 已完成 |
-| `colorInProgress` | 蓝 `#4A6CF7` | 进行中（与 seedColor 一致） |
+| `seedColor` | `#5E6AD2` | 默认种子色（Linear 风格靛蓝，2026-08 现代质感升级） |
+| `colorDone` | 绿 `#45B26B` | 已完成 |
+| `colorInProgress` | 蓝 `#5E6AD2` | 进行中（与 seedColor 一致） |
 | `colorCancelled` | 灰 `#9CA3AF` | 已取消 |
-| `colorOverdue` | 红 `#EF6B6B` | 逾期（柔和红，非刺眼） |
-| `surfacePage` | 浅灰 `#F2F4F7` / 深 `#0F1117` | 页面基底（Scaffold 背景，滴答式浅灰底） |
-| `surfaceBlur` | 半透明表面 | 毛玻璃（Android 12+ 可用，低端回退实色） |
+| `colorOverdue` | 珊瑚红 `#F87171` | 逾期（柔和红，非刺眼） |
+| `surfacePage` | 浅 `#F7F8FA` / 深 `#0D0E11` | 页面基底（Scaffold 背景，Linear 纯净冷白/深度碳黑） |
+| `surfaceCard` | 浅 `#FFFFFF` / 深 `#16181D` | 卡片表面（Linear 纯白/碳黑浮层容器） |
+| `borderSubtleLight` | `rgba(0, 0, 0, 0.06)` | 浅色 1px 极细微边框 |
+| `borderSubtleDark` | `rgba(255, 255, 255, 0.06)` | 暗色 1px 极细微发光边框 |
 
-> 注：`colorOverdue`（#EF6B6B）浅色底对比度 ≈2.7:1，低于 WCAG AA 4.5:1（正文场景）；作为品牌语义强调色保留（滴答式柔和红），深色底 6.3:1 达标。若需严格 AA 合规可后续加深。seedColor/语义色均以 `lib/core/theme/app_tokens.dart` 为准（改代码必改文档）。
+> 注：seedColor/语义色均以 `lib/core/theme/app_tokens.dart` 为准（改代码必改文档）。
 
 - 明/暗两套由 `ColorScheme.fromSeed(seedColor)` 生成，语义色（done/inProgress/cancelled/overdue）在明暗下均保持可辨识。
 - **Monet 动态色**：Android 12+ 从系统壁纸取色；Windows/低版本 Android 回退 `seedColor` 主题（Oracle 评审 H-低）。
 
-### 2.2 圆角（squircle 风格）
+### 2.2 圆角（Modern Refined 风格）
 
 | 令牌 | 值 | 用途 |
 |---|---|---|
-| `radiusCard` | 16 | 卡片（任务行卡片化，滴答式） |
-| `radiusButton` | 16 | 按钮 |
-| `radiusChip` | 12 | 标签/筛选 chip |
-| `radiusDialog` | 24 | 对话框/底部弹层 |
-| `radiusList` | 12 | 列表行 |
-| `checkboxShape` | 圆形 | 任务完成勾选（完成=蓝填充白勾） |
+| `radiusCard` | 12 | 卡片（精致现代 12dp） |
+| `radiusButton` | 12 | 按钮 |
+| `radiusChip` | 6 | 标签/筛选 mini badge 胶囊 |
+| `radiusDialog` | 16 | 对话框/底部弹层 |
+| `radiusList` | 8 | 列表行 |
+| `checkboxShape` | 圆形 | 任务完成勾选（完成=靛蓝填充白勾） |
 
 ### 2.3 间距
 

@@ -9,45 +9,57 @@ import 'package:flutter/material.dart';
 abstract final class AppTokens {
   // ── Color ──
 
-  /// Seed color: clean, modern blue (TickTick-inspired).
-  static const Color seedColor = Color(0xFF4A6CF7);
+  /// Seed color: refined Indigo blue (Linear-inspired).
+  static const Color seedColor = Color(0xFF5E6AD2);
 
-  /// Done — soft sage green.
-  static const Color colorDone = Color(0xFF5CAB7D);
+  /// Done — crisp forest green.
+  static const Color colorDone = Color(0xFF45B26B);
 
   /// In Progress — match seed blue.
-  static const Color colorInProgress = Color(0xFF4A6CF7);
+  static const Color colorInProgress = Color(0xFF5E6AD2);
 
   /// Cancelled — neutral gray.
   static const Color colorCancelled = Color(0xFF9CA3AF);
 
-  /// Overdue — gentle red (not harsh).
-  static const Color colorOverdue = Color(0xFFEF6B6B);
+  /// Overdue — coral red (gentle, not harsh).
+  static const Color colorOverdue = Color(0xFFF87171);
 
   /// Inbox project accent — warm violet.
   /// 与 todo_repository.dart 的 inboxProjectColor 保持一致（DB 实际写入值）。
   static const Color colorInbox = Color(0xFF6C5CE7);
 
-  /// Page surface (light) — very subtle blue-gray, cards float on top.
-  /// (55-ui-redesign-proposal.md §5 `surfacePage`)
-  static const Color surfacePageLight = Color(0xFFF2F4F7);
+  /// Page surface (light) — Linear pure crisp off-white.
+  /// (docs/66-ui-ux-modern-refinement-proposal.md)
+  static const Color surfacePageLight = Color(0xFFF7F8FA);
 
-  /// Page surface (dark).
-  static const Color surfacePageDark = Color(0xFF0F1117);
+  /// Page surface (dark) — Linear deep charcoal.
+  static const Color surfacePageDark = Color(0xFF0D0E11);
 
-  /// Card surface (light) — pure white（滴答式「白卡」，55-ui-redesign §5）。
+  /// Card surface (light) — pure white.
   static const Color surfaceCard = Color(0xFFFFFFFF);
 
-  /// Card surface (dark) — slightly lifted from the near-black page base.
-  static const Color surfaceCardDark = Color(0xFF1B1E27);
+  /// Card surface (dark) — Linear elevated charcoal container.
+  static const Color surfaceCardDark = Color(0xFF16181D);
+
+  /// Subtle border (light) — ~6% black.
+  static const Color borderSubtleLight = Color(0x0F000000);
+
+  /// Subtle border hover (light) — ~12% black.
+  static const Color borderSubtleHoverLight = Color(0x1F000000);
+
+  /// Subtle border (dark) — ~6% white micro-glow.
+  static const Color borderSubtleDark = Color(0x0FFFFFFF);
+
+  /// Subtle border hover (dark) — ~16% white glow highlight.
+  static const Color borderSubtleHoverDark = Color(0x28FFFFFF);
 
   /// Checkmark glyph on the filled (done) circular checkbox.
   static const Color colorOnCheck = Colors.white;
 
-  /// Done checkbox fill — TickTick blue（完成 = 蓝填充白勾，55-ui-redesign §5）。
+  /// Done checkbox fill — Linear Indigo.
   static const Color checkboxDoneFill = colorInProgress;
 
-  // ── Priority colors（滴答式旗帜 红/橙/蓝/无，55-ui-redesign §4.1）──
+  // ── Priority colors（红/橙/蓝/无）──
 
   /// High priority — red（与 presetColors[3] 同值）。
   static const Color colorPriorityHigh = Color(0xFFEF6B6B);
@@ -56,27 +68,26 @@ abstract final class AppTokens {
   static const Color colorPriorityMedium = Color(0xFFF4A74A);
 
   /// Low priority — seed blue（与 presetColors[0] 同值）。
-  static const Color colorPriorityLow = Color(0xFF4A6CF7);
+  static const Color colorPriorityLow = Color(0xFF5E6AD2);
 
   // ── Border Radius ──
 
-  /// Card / surface radius.
-  static const double radiusCard = 16;
+  /// Card / surface radius (refined modern 12dp).
+  static const double radiusCard = 12;
 
   /// Button radius.
-  static const double radiusButton = 14;
+  static const double radiusButton = 12;
 
-  /// Chip / tag radius.
-  static const double radiusChip = 10;
+  /// Chip / tag badge radius.
+  static const double radiusChip = 6;
 
   /// Dialog / bottom sheet radius.
-  static const double radiusDialog = 20;
+  static const double radiusDialog = 16;
 
   /// List row radius.
-  static const double radiusList = 10;
+  static const double radiusList = 8;
 
-  /// Checkbox shape — circle (TickTick-style). Radius-based square shape
-  /// (`radiusCheckbox`) removed in favour of this circular shape.
+  /// Checkbox shape — circle (TickTick/Things-style).
   static const OutlinedBorder checkboxShape = CircleBorder();
 
   // ── Spacing ──
@@ -153,7 +164,7 @@ abstract final class AppTokens {
   /// FAB 按压缩放（docs/63-motion-polish.md §5 I：按压回弹）。
   static const double fabPressScale = 0.9;
 
-  // ── Elevation / Shadow ──
+  // ── Elevation & Ambient Shadows ──
 
   /// Card shadow elevation (resting).
   static const double elevationCard = 1.0;
@@ -185,6 +196,30 @@ abstract final class AppTokens {
 
   /// Card shadow vertical offset (hover/press lift).
   static const double shadowOffsetYElevated = 3;
+
+  /// Diffused ambient dual-shadow for light cards (resting).
+  static const List<BoxShadow> cardShadowLight = [
+    BoxShadow(color: Color(0x08000000), blurRadius: 3, offset: Offset(0, 1)),
+    BoxShadow(color: Color(0x0A000000), blurRadius: 12, offset: Offset(0, 4)),
+  ];
+
+  /// Diffused ambient dual-shadow for light cards (hovered/elevated).
+  static const List<BoxShadow> cardShadowLightHover = [
+    BoxShadow(color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 2)),
+    BoxShadow(color: Color(0x14000000), blurRadius: 20, offset: Offset(0, 6)),
+  ];
+
+  /// Ambient shadow for dark cards (resting).
+  static const List<BoxShadow> cardShadowDarkList = [
+    BoxShadow(color: Color(0x1A000000), blurRadius: 4, offset: Offset(0, 2)),
+    BoxShadow(color: Color(0x33000000), blurRadius: 16, offset: Offset(0, 6)),
+  ];
+
+  /// Ambient shadow for dark cards (hovered/elevated).
+  static const List<BoxShadow> cardShadowDarkHoverList = [
+    BoxShadow(color: Color(0x2A000000), blurRadius: 6, offset: Offset(0, 3)),
+    BoxShadow(color: Color(0x4D000000), blurRadius: 24, offset: Offset(0, 8)),
+  ];
 
   /// FAB elevation.
   static const double elevationFab = 4;

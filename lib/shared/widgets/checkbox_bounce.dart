@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/motion.dart';
@@ -58,6 +59,8 @@ class _CheckboxBounceState extends State<CheckboxBounce>
     }
     final bounce = motionBounceCurve(context);
     if (widget.isDone) {
+      // 触觉反馈
+      HapticFeedback.lightImpact();
       // 勾选：放大回弹。
       _scale = TweenSequence<double>([
         TweenSequenceItem(

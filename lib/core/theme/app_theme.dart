@@ -83,12 +83,18 @@ abstract final class AppTheme {
 
       // ── Card ──
       cardTheme: CardThemeData(
-        elevation: AppTokens.elevationCard,
+        elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+          side: BorderSide(
+            color: isDark
+                ? AppTokens.borderSubtleDark
+                : AppTokens.borderSubtleLight,
+            width: 1,
+          ),
         ),
-        // 滴答式「白卡」：浅色纯白，深色略抬升于页面基底（55-ui-redesign §5）。
+        // Linear 风格：浅色纯白，深色碳黑浮层容器。
         color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
       ),
 
@@ -96,6 +102,12 @@ abstract final class AppTheme {
       dialogTheme: DialogThemeData(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+          side: BorderSide(
+            color: isDark
+                ? AppTokens.borderSubtleDark
+                : AppTokens.borderSubtleLight,
+            width: 1,
+          ),
         ),
       ),
 
@@ -103,6 +115,12 @@ abstract final class AppTheme {
       chipTheme: base.chipTheme.copyWith(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+          side: BorderSide(
+            color: isDark
+                ? AppTokens.borderSubtleDark
+                : AppTokens.borderSubtleLight,
+            width: 0.5,
+          ),
         ),
         padding: const EdgeInsets.symmetric(
           horizontal: AppTokens.spaceSm,
