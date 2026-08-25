@@ -19,6 +19,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/l10n/app_localizations.dart';
 import '../../core/security/secure_store.dart';
@@ -449,10 +450,11 @@ class _SyncSetupPageState extends ConsumerState<SyncSetupPage> {
       ],
     );
 
-    return Scaffold(
+    final isWide = AppBreakpoints.isWide(context);
+    final pageContent = Scaffold(
       appBar: AppBar(title: Text(l10n.syncSettings)),
       // 宽屏（≥600dp）表单居中限宽；窄屏全宽（50-ui-ux §5.7）。
-      body: AppBreakpoints.isWide(context)
+      body: isWide
           ? Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: _kFormMaxWidth),
@@ -460,6 +462,37 @@ class _SyncSetupPageState extends ConsumerState<SyncSetupPage> {
               ),
             )
           : body,
+    );
+
+    if (!isWide) {
+      return pageContent;
+    }
+
+    return Scaffold(
+      backgroundColor: Colors.black54,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: () => context.pop(),
+              behavior: HitTestBehavior.opaque,
+              child: const SizedBox.expand(),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: SizedBox(
+              width: 480,
+              height: double.infinity,
+              child: Material(
+                elevation: 8,
+                color: theme.scaffoldBackgroundColor,
+                child: pageContent,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

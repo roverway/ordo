@@ -313,8 +313,8 @@ void main() {
       // 宽屏无汉堡（侧边栏已常驻），无模态抽屉
       expect(find.byIcon(Icons.menu), findsNothing);
       expect(find.byType(Drawer), findsNothing);
-      // 侧边栏包含系统组目的地（今日/收件箱/日历/标签）与应用标题
-      expect(find.text('Todo'), findsOneWidget);
+      // 侧边栏包含系统组目的地（今日/收件箱/日历/标签）与任务分组标题
+      expect(find.text('任务分组'), findsOneWidget);
       for (final label in ['收件箱', '今日', '日历', '标签']) {
         expect(
           find.descendant(
@@ -366,6 +366,33 @@ void main() {
 
       expect(find.byType(AppSidebar), findsOneWidget);
       expect(find.byIcon(Icons.menu), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'Wide (≥600dp): settings opens as right-side panel with close button',
+    (tester) async {
+      await pumpApp(tester, const Size(1000, 800));
+
+      // 点击侧边栏设置图标
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AppSidebar),
+          matching: find.byIcon(Icons.settings_outlined),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 设置以右侧面板弹出，包含关闭按钮和设置内容
+      expect(find.text('设置'), findsWidgets);
+      expect(find.byIcon(Icons.close), findsOneWidget);
+      expect(find.text('主题模式'), findsOneWidget);
+
+      // 点击关闭按钮 → 设置面板关闭，恢复主页面
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+
+      expect(find.text('主题模式'), findsNothing);
     },
   );
 
@@ -1076,9 +1103,12 @@ void main() {
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();
 
-    // 底部「新建文件夹」→ 名称弹窗（移动端为 BottomSheet）。
+    // 「任务分组」分组头「新建文件夹」图标 → 名称弹窗（移动端为 BottomSheet）。
     await tester.tap(
-      find.descendant(of: find.byType(Drawer), matching: find.text('新建文件夹')),
+      find.descendant(
+        of: find.byType(Drawer),
+        matching: find.byIcon(Icons.create_new_folder_outlined),
+      ),
     );
     await tester.pumpAndSettle();
     expect(find.byType(BottomSheet), findsOneWidget);

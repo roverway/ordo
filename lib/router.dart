@@ -71,20 +71,14 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/projects/:id',
-      // 下级页（抽屉/项目入口 push）：滑动式转场（63-motion-polish §5 D）。
-      pageBuilder: (context, state) => _slideFadePage(
-        context,
-        state,
-        TaskListPage(scope: ProjectTaskScope(state.pathParameters['id']!)),
-      ),
+      builder: (context, state) =>
+          TaskListPage(scope: ProjectTaskScope(state.pathParameters['id']!)),
     ),
     GoRoute(path: '/tags', builder: (context, state) => const TagsPage()),
     GoRoute(
       path: '/tags/:id',
-      pageBuilder: (context, state) {
-        final id = state.pathParameters['id']!;
-        return _slideFadePage(context, state, TagsDetailPage(tagId: id));
-      },
+      builder: (context, state) =>
+          TagsDetailPage(tagId: state.pathParameters['id']!),
     ),
     GoRoute(
       path: '/task/new',
@@ -122,10 +116,8 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/custom_view/:id',
-      pageBuilder: (context, state) {
-        final id = state.pathParameters['id']!;
-        return _slideFadePage(context, state, CustomViewPage(viewId: id));
-      },
+      builder: (context, state) =>
+          CustomViewPage(viewId: state.pathParameters['id']!),
     ),
     GoRoute(
       path: '/custom_view/:id/edit',

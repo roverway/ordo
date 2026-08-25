@@ -77,54 +77,66 @@ class AppShell extends StatelessWidget {
           ),
         ];
 
-    return Scaffold(
-      // 窄屏抽屉：宽度（屏宽 × drawerWidthRatio）由 AppDrawer 自身提供；
-      // 右侧遮罩点击关闭由 Scaffold scrim 提供。
-      // 宽屏模式下抽屉为 null，改为在 body 中固定渲染 AppSidebar。
-      drawer: narrow ? const AppDrawer() : null,
-      appBar: AppBar(
-        // 仅窄屏显示汉堡入口；宽屏由左侧固定常驻 AppSidebar 承担导航。
-        leading: narrow
-            ? Builder(
-                builder: (context) => IconButton(
-                  tooltip: l10n.openDrawer,
-                  icon: const Icon(Icons.menu, size: 22),
-                  onPressed: () => Scaffold.of(context).openDrawer(),
-                ),
-              )
-            : null,
-        title: titleWidget ?? Text(title!),
-        actions: [
-          IconButton(
-            tooltip: l10n.search,
-            icon: const Icon(Icons.search, size: 22),
-            onPressed: () => context.push('/search'),
+    if (narrow) {
+      return Scaffold(
+        drawer: const AppDrawer(),
+        appBar: AppBar(
+          leading: Builder(
+            builder: (context) => IconButton(
+              tooltip: l10n.openDrawer,
+              icon: const Icon(Icons.menu, size: 22),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
           ),
-          // 作用域专属操作（追加在尾部）。
-          ...?actions,
+          title: titleWidget ?? Text(title!),
+          actions: [
+            IconButton(
+              tooltip: l10n.search,
+              icon: const Icon(Icons.search, size: 22),
+              onPressed: () => context.push('/search'),
+            ),
+            // 作用域专属操作（追加在尾部）。
+            ...?actions,
+          ],
+        ),
+        body: child,
+        bottomNavigationBar: CompactBottomBar(
+          destinations: barDestinations,
+          selectedIndex: barIndex,
+          onSelected: (index) => context.go(_barPaths[index]),
+        ),
+      );
+    }
+
+    // 宽屏模式（≥600dp）：左右分栏布局
+    // 左侧：全高 AppSidebar（顶至底贯穿，260dp 宽）
+    // 中间：1px 细分割线
+    // 右侧：Expanded 包裹独立 Scaffold（顶部专属 AppBar 标题/搜索/操作 + 下方主内容区 child）
+    return Scaffold(
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const AppSidebar(width: AppTokens.sidebarWidth),
+          const VerticalDivider(width: 1, thickness: 1),
+          Expanded(
+            child: Scaffold(
+              appBar: AppBar(
+                automaticallyImplyLeading: false,
+                title: titleWidget ?? Text(title!),
+                actions: [
+                  IconButton(
+                    tooltip: l10n.search,
+                    icon: const Icon(Icons.search, size: 22),
+                    onPressed: () => context.push('/search'),
+                  ),
+                  ...?actions,
+                ],
+              ),
+              body: child,
+            ),
+          ),
         ],
       ),
-      body: narrow
-          ? child
-          : Row(
-              children: [
-                const AppSidebar(width: AppTokens.sidebarWidth),
-                const VerticalDivider(width: 1, thickness: 1),
-                Expanded(child: child),
-              ],
-            ),
-      // 新建任务 FAB 布局策略见 55-ui-redesign §4.1；inbox/today/calendar 各自放置
-      // （projects/tags 保留各自语义 FAB）。不在 AppShell 层挂全局 FAB，避免与
-      // 页面自身 FAB 重复（widget_test 断言单 FAB）。
-      // 窄屏紧凑底栏（自绘 CompactBottomBar：高 56dp，明显矮于标准
-      // NavigationBar 80dp；「无选中」= selectedIndex -1，天然支持）。
-      bottomNavigationBar: narrow
-          ? CompactBottomBar(
-              destinations: barDestinations,
-              selectedIndex: barIndex,
-              onSelected: (index) => context.go(_barPaths[index]),
-            )
-          : null,
     );
   }
 }

@@ -216,22 +216,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 顶部：应用名 / Logo 占位（无账号体系，不做头像）。
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppTokens.spaceMd,
-              AppTokens.spaceLg,
-              AppTokens.spaceMd,
-              AppTokens.spaceMd,
-            ),
-            child: Text(
-              l10n.appTitle,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: AppTokens.textHeadingWeight,
-              ),
-            ),
-          ),
+          const SizedBox(height: AppTokens.spaceSm),
           Expanded(
             child: ListView(
               children: [
@@ -253,13 +238,13 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
                 // ── 自定义视图区 ──
                 ..._buildCustomViewsArea(context, l10n, path),
                 const Divider(),
-                // ── 项目区（文件夹组 + 未分组区，62-folder-nav.md §6.1）──
+                // ── 任务分组（文件夹组 + 未分组区）──
                 ..._buildProjectArea(context, l10n),
               ],
             ),
           ),
           const Divider(),
-          // ── 底部：「新建文件夹」+「新建项目」（并列）+ 设置 ──
+          // ── 底部：「新建项目」+ 设置 ──
           Padding(
             padding: const EdgeInsets.fromLTRB(
               AppTokens.spaceXs,
@@ -272,22 +257,12 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
                 Expanded(
                   child: _bottomAction(
                     context,
-                    icon: Icons.create_new_folder_outlined,
-                    label: l10n.newFolder,
-                    onTap: () => _showNewFolderDialog(context, ref),
-                  ),
-                ),
-                Expanded(
-                  child: _bottomAction(
-                    context,
                     icon: Icons.add,
                     label: l10n.newProject,
                     onTap: () => _showNewProjectDialog(context, ref),
                   ),
                 ),
-                // 设置入口（同高、垂直居中；先关抽屉再跳转）。
-                // 用 push 而非 go：go('/settings') 会替换整个导航栈，
-                // 设置页将无路可返（router.dart /settings 注释；Bug 2 回归）。
+                // 设置入口
                 IconButton(
                   tooltip: l10n.settings,
                   icon: const Icon(Icons.settings_outlined, size: 22),
@@ -441,13 +416,38 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
   /// 未分组区在有文件夹时**始终**渲染（空行也可作为「出夹」拖拽落点，
   /// §6.2）；无文件夹时仅在有未分组项目时渲染（保持旧平铺视觉）。
   List<Widget> _buildProjectArea(BuildContext context, AppLocalizations l10n) {
+    final theme = Theme.of(context);
     final groupingAsync = ref.watch(projectsByFolderProvider);
     final expandState =
         ref.watch(folderExpandProvider).value ?? const <String, bool>{};
 
+    final header = Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTokens.spaceSm,
+        vertical: AppTokens.spaceXxs,
+      ),
+      child: Row(
+        children: [
+          Text(
+            l10n.taskGroups,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: AppTokens.textTitleWeight,
+            ),
+          ),
+          const Spacer(),
+          IconButton(
+            tooltip: l10n.newFolder,
+            icon: const Icon(Icons.create_new_folder_outlined, size: 18),
+            onPressed: () => _showNewFolderDialog(context, ref),
+          ),
+        ],
+      ),
+    );
+
     return groupingAsync.when(
       data: (grouping) {
-        final children = <Widget>[];
+        final children = <Widget>[header];
         for (final folder in grouping.folders) {
           final expanded = expandState[folder.id] ?? true;
           children.add(
@@ -466,8 +466,9 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
         }
         return children;
       },
-      loading: () => const [
-        Padding(
+      loading: () => [
+        header,
+        const Padding(
           padding: EdgeInsets.all(AppTokens.spaceXs),
           child: LoadingView(compact: true),
         ),
@@ -475,6 +476,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
       error: (e, st) {
         logAsyncError(e, st);
         return [
+          header,
           Padding(
             padding: const EdgeInsets.all(AppTokens.spaceXs),
             child: ErrorView(

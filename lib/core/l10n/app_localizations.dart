@@ -158,6 +158,12 @@ abstract class AppLocalizations {
   /// **'设置'**
   String get settings;
 
+  /// No description provided for @taskGroups.
+  ///
+  /// In zh, this message translates to:
+  /// **'任务分组'**
+  String get taskGroups;
+
   /// No description provided for @settingsSectionAppearance.
   ///
   /// In zh, this message translates to:

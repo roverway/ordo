@@ -6,6 +6,7 @@ import '../../core/l10n/app_localizations.dart';
 import '../../core/sync/sync_config.dart';
 import '../../core/sync/sync_engine.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/utils/app_breakpoints.dart';
 import '../../core/utils/dates.dart';
 import '../sync_setup/sync_setup_providers.dart';
 import 'settings_providers.dart';
@@ -23,6 +24,7 @@ class SettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final isWide = AppBreakpoints.isWide(context);
     final themeMode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
     // 同步状态（全局 Notifier，仅内存）+ 当前配置（含持久化的 lastSyncedAt），
@@ -32,8 +34,17 @@ class SettingsPage extends ConsumerWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.settings)),
+    final pageContent = Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.settings),
+        leading: isWide
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                tooltip: l10n.cancel,
+                onPressed: () => context.pop(),
+              )
+            : null,
+      ),
       body: ListView(
         padding: const EdgeInsets.all(AppTokens.spaceMd),
         children: [
@@ -157,6 +168,37 @@ class SettingsPage extends ConsumerWidget {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+
+    if (!isWide) {
+      return pageContent;
+    }
+
+    return Scaffold(
+      backgroundColor: Colors.black54,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: () => context.pop(),
+              behavior: HitTestBehavior.opaque,
+              child: const SizedBox.expand(),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: SizedBox(
+              width: 480,
+              height: double.infinity,
+              child: Material(
+                elevation: 8,
+                color: theme.scaffoldBackgroundColor,
+                child: pageContent,
+              ),
+            ),
           ),
         ],
       ),

@@ -39,6 +39,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings => 'Settings';
 
   @override
+  String get taskGroups => 'Task Groups';
+
+  @override
   String get settingsSectionAppearance => 'Appearance';
 
   @override

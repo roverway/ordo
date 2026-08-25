@@ -39,6 +39,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settings => '设置';
 
   @override
+  String get taskGroups => '任务分组';
+
+  @override
   String get settingsSectionAppearance => '外观';
 
   @override
