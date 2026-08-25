@@ -24,6 +24,16 @@ class CustomViewDao {
         .get();
   }
 
+  /// 获取下一个可用的 sortOrder（当前最大值 + 1，或无记录时为 0）。
+  Future<int> getNextSortOrder() async {
+    final maxOrder = _db.customViews.sortOrder.max();
+    final query = _db.selectOnly(_db.customViews)
+      ..where(_db.customViews.deleted.equals(0))
+      ..addColumns([maxOrder]);
+    final result = await query.map((row) => row.read(maxOrder)).getSingle();
+    return (result ?? -1) + 1;
+  }
+
   /// 按 id 查询（含墓碑行，供同步/校验使用）。
   Future<CustomView?> getById(String id) {
     return (_db.select(

@@ -57,6 +57,16 @@ class TagDao {
 
   // ── task_tags 联表 ──────────────────────────────────────────────
 
+  /// 全部任务-标签关联（流式：DB 变更自动刷新，自定义视图过滤等使用）。
+  Stream<List<TaskTag>> watchAllTaskTags() {
+    return _db.select(_db.taskTags).watch();
+  }
+
+  /// 全部任务-标签关联（Future 版本）。
+  Future<List<TaskTag>> getAllTaskTags() {
+    return _db.select(_db.taskTags).get();
+  }
+
   /// 某任务关联的全部标签（按标签 sortOrder 升序）。
   Future<List<Tag>> tagsForTask(String taskId) async {
     final query =

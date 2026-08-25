@@ -491,19 +491,6 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     );
   }
 
-  /// 文件夹汇总未完成数 = 其内项目未完成数之和（恒为真实值，D8）。
-  ///
-  /// 统计口径与项目行一致（projectUncompletedCountProvider，派生状态语义）。
-  int _folderUncompleted(WidgetRef ref, String folderId) {
-    final grouping = ref.watch(projectsByFolderProvider).value;
-    final projects = grouping?.folderProjects[folderId] ?? const <Project>[];
-    var sum = 0;
-    for (final p in projects) {
-      sum += ref.watch(projectUncompletedCountProvider(p.id));
-    }
-    return sum;
-  }
-
   /// 文件夹整组（文件夹行 + 展开时的树状项目区，des-1；C 批 AnimatedSize）。
   ///
   /// 树状区只在外层垂直方向上**不加任何间距**——行间距完全由各行的
@@ -802,12 +789,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
                 ),
                 const SizedBox(width: AppTokens.spaceXs),
                 // 汇总未完成数（恒为真实值，D8）。
-                Text(
-                  '${_folderUncompleted(ref, folder.id)}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
+                _FolderUncompletedBadge(folderId: folder.id),
                 // 行尾菜单：重命名 / 删除（§6.3）——仅展开时显示（des-1
                 // 需求 2）。按钮固定 20×20（与图标/箭头同高），使展开/折叠
                 // 状态下文件夹行高度不变（des-2 需求 2a）。
@@ -982,12 +964,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
         ),
       ),
       title: project.name,
-      trailing: Text(
-        '${ref.watch(projectUncompletedCountProvider(project.id))}',
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
-      ),
+      trailing: _ProjectUncompletedBadge(projectId: project.id),
       selected: path == '/projects/${project.id}',
       onTap: () => _go(context, '/projects/${project.id}'),
       indent: indent,
@@ -1356,4 +1333,45 @@ class _FolderTreeConnectorPainter extends CustomPainter {
       oldDelegate.alphaTop != alphaTop ||
       oldDelegate.alphaBottom != alphaBottom ||
       oldDelegate.stubAlpha != stubAlpha;
+}
+
+/// 项目未完成任务数独立轻量徽章（阻断侧边栏重绘传播）。
+class _ProjectUncompletedBadge extends ConsumerWidget {
+  const _ProjectUncompletedBadge({required this.projectId});
+
+  final String projectId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(projectUncompletedCountProvider(projectId));
+    return Text(
+      '$count',
+      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
+}
+
+/// 文件夹汇总未完成数独立轻量徽章（阻断侧边栏重绘传播）。
+class _FolderUncompletedBadge extends ConsumerWidget {
+  const _FolderUncompletedBadge({required this.folderId});
+
+  final String folderId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final grouping = ref.watch(projectsByFolderProvider).value;
+    final projects = grouping?.folderProjects[folderId] ?? const <Project>[];
+    var sum = 0;
+    for (final p in projects) {
+      sum += ref.watch(projectUncompletedCountProvider(p.id));
+    }
+    return Text(
+      '$sum',
+      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
 }

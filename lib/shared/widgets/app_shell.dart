@@ -25,9 +25,10 @@ class AppShell extends StatelessWidget {
     // 宽屏模式（≥600dp）：ShellRoute 根节点常驻
     // 左侧：全高 AppSidebar（挂载一次，永久物理静止）
     // 中间：1px 细分割线
-    // 右侧：Expanded(child: child)
-    return Scaffold(
-      body: Row(
+    // 右侧：Expanded(child: child)，由子页面自主承载其自身 Scaffold
+    return Material(
+      color: Colors.transparent,
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const AppSidebar(width: AppTokens.sidebarWidth),

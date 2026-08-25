@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/db/database.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
-import '../../../core/utils/app_breakpoints.dart';
 import '../../../core/utils/custom_view_models.dart';
 import '../../../core/utils/uuid.dart';
 import '../../../shared/widgets/modal_side_sheet.dart';
@@ -149,15 +148,22 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final isWide = AppBreakpoints.isWide(context);
 
     if (widget.viewId != null) {
-      final viewAsync = ref.watch(customViewDetailProvider(widget.viewId!));
-      final view = viewAsync.value;
-      if (view != null) {
+      ref.listen<AsyncValue<CustomView?>>(
+        customViewDetailProvider(widget.viewId!),
+        (prev, next) {
+          final view = next.value;
+          if (!_initialized && view != null) {
+            setState(() => _initFromView(view));
+          }
+        },
+      );
+      final view = ref.watch(customViewDetailProvider(widget.viewId!)).value;
+      if (!_initialized && view != null) {
         _initFromView(view);
       }
-    } else {
+    } else if (!_initialized) {
       _initNewDefault(l10n);
     }
 

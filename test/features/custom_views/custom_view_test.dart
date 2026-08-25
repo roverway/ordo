@@ -205,6 +205,101 @@ void main() {
       },
     );
 
+    test(
+      'CustomViewDao getNextSortOrder calculates max order + 1 correctly',
+      () async {
+        expect(await repo.customViews.getNextSortOrder(), 0);
+        final v1 = await repo.createCustomView(name: 'V1', panelsJson: '[]');
+        expect(v1.sortOrder, 0);
+        expect(await repo.customViews.getNextSortOrder(), 1);
+        final v2 = await repo.createCustomView(name: 'V2', panelsJson: '[]');
+        expect(v2.sortOrder, 1);
+        expect(await repo.customViews.getNextSortOrder(), 2);
+      },
+    );
+
+    test(
+      'panelTasksProvider accurately matches tasks by tagIds (AND / OR)',
+      () {
+        final project = Project(
+          id: 'p1',
+          name: '测试项目',
+          color: 0xFF123456,
+          description: '',
+          folderId: null,
+          sortOrder: 0,
+          createdAt: 0,
+          updatedAt: 0,
+          deleted: 0,
+        );
+
+        final t1 = Task(
+          id: 't1',
+          projectId: 'p1',
+          parentId: null,
+          title: '任务1',
+          description: '',
+          notes: '',
+          startAt: null,
+          endAt: null,
+          status: TaskStatus.todo,
+          priority: TaskPriority.none,
+          sortOrder: 0,
+          createdAt: 0,
+          updatedAt: 0,
+          deleted: 0,
+        );
+        final t2 = t1.copyWith(id: 't2', title: '任务2');
+        final t3 = t1.copyWith(id: 't3', title: '任务3');
+        final t4 = t1.copyWith(id: 't4', title: '任务4');
+
+        final testContainer = ProviderContainer(
+          overrides: [
+            allActiveTasksStreamProvider.overrideWithValue(
+              AsyncData([t1, t2, t3, t4]),
+            ),
+            allProjectsMapProvider.overrideWithValue(
+              AsyncData({'p1': project}),
+            ),
+            allTaskTagsMapProvider.overrideWithValue(
+              const AsyncData({
+                't1': {'tag_work'},
+                't2': {'tag_urgent'},
+                't3': {'tag_work', 'tag_urgent'},
+              }),
+            ),
+          ],
+        );
+
+        // Panel 1: Filter by tag_work (OR mode default)
+        final panelWork = CustomViewPanelConfig(
+          id: 'pWork',
+          title: 'Work Tasks',
+          filter: const FilterCriteria(tagIds: ['tag_work']),
+        );
+        final workResult = testContainer.read(panelTasksProvider(panelWork));
+        expect(workResult.hasValue, isTrue);
+        final workTaskIds = workResult.value!.tasks.map((t) => t.id).toSet();
+        expect(workTaskIds, {'t1', 't3'});
+
+        // Panel 2: Filter by tag_work AND tag_urgent
+        final panelBoth = CustomViewPanelConfig(
+          id: 'pBoth',
+          title: 'Work + Urgent',
+          filter: const FilterCriteria(
+            tagIds: ['tag_work', 'tag_urgent'],
+            tagMatchAll: true,
+          ),
+        );
+        final bothResult = testContainer.read(panelTasksProvider(panelBoth));
+        expect(bothResult.hasValue, isTrue);
+        final bothTaskIds = bothResult.value!.tasks.map((t) => t.id).toSet();
+        expect(bothTaskIds, {'t3'});
+
+        testContainer.dispose();
+      },
+    );
+
     testWidgets('CustomViewEditorPage renders leading back button and saves', (
       tester,
     ) async {

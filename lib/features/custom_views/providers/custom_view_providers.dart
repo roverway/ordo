@@ -43,6 +43,18 @@ final allTagsMapProvider = Provider<AsyncValue<Map<String, Tag>>>((ref) {
   return tagsAsync.whenData((tags) => {for (final t in tags) t.id: t});
 });
 
+/// 全部任务-标签关联 Map 缓存（`taskId -> Set<tagId>`）。
+final allTaskTagsMapProvider = StreamProvider<Map<String, Set<String>>>((ref) {
+  final repo = ref.watch(todoRepositoryProvider);
+  return repo.tags.watchAllTaskTags().map((links) {
+    final map = <String, Set<String>>{};
+    for (final link in links) {
+      map.putIfAbsent(link.taskId, () => <String>{}).add(link.tagId);
+    }
+    return map;
+  });
+});
+
 /// 面板任务计算结果（过滤 + 排序）。
 class PanelTasksResult {
   const PanelTasksResult({required this.tasks, required this.totalCount});
@@ -62,6 +74,7 @@ final panelTasksProvider =
     ) {
       final tasksAsync = ref.watch(allActiveTasksStreamProvider);
       final projectsMapAsync = ref.watch(allProjectsMapProvider);
+      final taskTagsMapAsync = ref.watch(allTaskTagsMapProvider);
 
       if (tasksAsync.hasError) {
         return AsyncError(
@@ -75,13 +88,23 @@ final panelTasksProvider =
           projectsMapAsync.stackTrace ?? StackTrace.current,
         );
       }
+      if (taskTagsMapAsync.hasError) {
+        return AsyncError(
+          taskTagsMapAsync.error!,
+          taskTagsMapAsync.stackTrace ?? StackTrace.current,
+        );
+      }
 
-      if (tasksAsync.isLoading || projectsMapAsync.isLoading) {
+      if (tasksAsync.isLoading ||
+          projectsMapAsync.isLoading ||
+          taskTagsMapAsync.isLoading) {
         return const AsyncLoading();
       }
 
       final allTasks = tasksAsync.value ?? const <Task>[];
       final projectsById = projectsMapAsync.value ?? const <String, Project>{};
+      final taskTagsById =
+          taskTagsMapAsync.value ?? const <String, Set<String>>{};
 
       final byId = <String, Task>{for (final t in allTasks) t.id: t};
       final childrenByParent = <String?, List<Task>>{};
@@ -94,7 +117,7 @@ final panelTasksProvider =
       final matched = <Task>[];
       for (final task in allTasks) {
         final directChildren = childrenByParent[task.id] ?? const [];
-        final taskTagIds = <String>{};
+        final taskTagIds = taskTagsById[task.id] ?? const <String>{};
         if (matchesFilter(
           task,
           panel.filter,

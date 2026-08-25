@@ -859,11 +859,7 @@ class TodoRepository {
     _checkTextLength(name, 1, 50, '视图名称');
     final actualId = id ?? newUuid();
     final now = _nowMs();
-    final allViews = await customViews.getAll();
-    final nextSortOrder = allViews.isEmpty
-        ? 0
-        : (allViews.map((v) => v.sortOrder).reduce((a, b) => a > b ? a : b) +
-              1);
+    final nextSortOrder = await customViews.getNextSortOrder();
 
     final entry = CustomViewsCompanion(
       id: Value(actualId),
