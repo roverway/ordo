@@ -7,10 +7,11 @@ import '../../core/db/database.dart';
 import '../../core/db/tables.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/utils/app_breakpoints.dart';
 import '../../core/utils/derived.dart';
 import '../../core/utils/tree.dart';
 import '../../core/utils/view_rules.dart' as view_rules;
-import '../../shared/widgets/app_shell.dart';
+import '../../shared/widgets/app_drawer.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/loading_view.dart';
@@ -35,13 +36,34 @@ class CalendarPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final narrow = AppBreakpoints.isNarrow(context);
     final state = ref.watch(calendarStateProvider);
     final bucketsAsync = ref.watch(calendarBucketsProvider);
     final allTasks = ref.watch(allActiveTasksProvider).value ?? const <Task>[];
 
-    return AppShell(
-      title: l10n.navCalendar,
-      child: Column(
+    return Scaffold(
+      drawer: narrow ? const AppDrawer() : null,
+      appBar: AppBar(
+        leading: narrow
+            ? Builder(
+                builder: (context) => IconButton(
+                  tooltip: l10n.openDrawer,
+                  icon: const Icon(Icons.menu, size: 22),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
+              )
+            : null,
+        automaticallyImplyLeading: false,
+        title: Text(l10n.navCalendar),
+        actions: [
+          IconButton(
+            tooltip: l10n.search,
+            icon: const Icon(Icons.search, size: 22),
+            onPressed: () => context.push('/search'),
+          ),
+        ],
+      ),
+      body: Column(
         children: [
           _buildToolbar(context, ref, state),
           Expanded(

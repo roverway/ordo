@@ -14,15 +14,17 @@ import 'features/tags/tags_detail_page.dart';
 import 'features/tasks/task_edit_page.dart';
 import 'features/tasks/task_list_page.dart';
 
+import 'shared/widgets/app_shell.dart';
+
 /// 滑动式页面转场（docs/63-motion-polish.md §5 D）。
 ///
 /// push（进入详情/编辑/设置等下级页）：右→左滑入 + 淡入；pop 反向滑出。
 /// - 时长：`motionNormal`（250ms 令牌；reduced motion → 瞬时）；
 /// - 曲线：`motionCurve`（easeOutCubic 令牌；reduced motion → easeOut）。
 ///
-/// 仅用于「下级页」路由（/projects/:id、/task/:id、/settings 等 push 目标）；
-/// 一级目的地（今日/日历/项目/标签等 tab 级切换）保持 `builder:` 轻量直切，
-/// 避免频繁切换动画过重。
+/// 仅用于「下级页」路由（/task/:id、/settings 等 push 目标）；
+/// 一级目的地（今日/日历/项目/标签等 tab 级切换）在 ShellRoute 内通过
+/// NoTransitionPage 实现静默无闪烁切换，左侧栏 100% 物理常驻静止。
 Page<void> _slideFadePage(
   BuildContext context,
   GoRouterState state,
@@ -50,35 +52,23 @@ Page<void> _slideFadePage(
 ///
 /// 任务类入口（今日/收件箱/项目）统一渲染 `TaskListPage`（作用域驱动，
 /// 56-task-scope-page.md §3.1）；今日为启动默认页（D3）。
+/// 主页面统一挂载在 ShellRoute 下，外壳 AppShell（含 AppSidebar）常驻保活，
+/// 路由切换时左侧栏零动画、零重绘。
 final GoRouter appRouter = GoRouter(
   initialLocation: '/today',
   routes: [
+    // 次级页面 / 明确路由（必须在通配符 :id 之前声明，避免 /custom_view/new 被 /custom_view/:id 误匹配）
     GoRoute(
-      path: '/inbox',
-      builder: (context, state) => const TaskListPage(scope: InboxTaskScope()),
+      path: '/custom_view/new',
+      pageBuilder: (context, state) =>
+          _slideFadePage(context, state, const CustomViewEditorPage()),
     ),
     GoRoute(
-      path: '/today',
-      builder: (context, state) => const TaskListPage(scope: TodayTaskScope()),
-    ),
-    GoRoute(
-      path: '/calendar',
-      builder: (context, state) => const CalendarPage(),
-    ),
-    GoRoute(
-      path: '/projects',
-      builder: (context, state) => const ProjectsPage(),
-    ),
-    GoRoute(
-      path: '/projects/:id',
-      builder: (context, state) =>
-          TaskListPage(scope: ProjectTaskScope(state.pathParameters['id']!)),
-    ),
-    GoRoute(path: '/tags', builder: (context, state) => const TagsPage()),
-    GoRoute(
-      path: '/tags/:id',
-      builder: (context, state) =>
-          TagsDetailPage(tagId: state.pathParameters['id']!),
+      path: '/custom_view/:id/edit',
+      pageBuilder: (context, state) {
+        final id = state.pathParameters['id']!;
+        return _slideFadePage(context, state, CustomViewEditorPage(viewId: id));
+      },
     ),
     GoRoute(
       path: '/task/new',
@@ -110,23 +100,6 @@ final GoRouter appRouter = GoRouter(
       },
     ),
     GoRoute(
-      path: '/custom_view/new',
-      pageBuilder: (context, state) =>
-          _slideFadePage(context, state, const CustomViewEditorPage()),
-    ),
-    GoRoute(
-      path: '/custom_view/:id',
-      builder: (context, state) =>
-          CustomViewPage(viewId: state.pathParameters['id']!),
-    ),
-    GoRoute(
-      path: '/custom_view/:id/edit',
-      pageBuilder: (context, state) {
-        final id = state.pathParameters['id']!;
-        return _slideFadePage(context, state, CustomViewEditorPage(viewId: id));
-      },
-    ),
-    GoRoute(
       path: '/search',
       pageBuilder: (context, state) =>
           _slideFadePage(context, state, const SearchPage()),
@@ -139,14 +112,63 @@ final GoRouter appRouter = GoRouter(
         // 同步配置页是设置页的**子路由**（绝对路径仍为 /settings/sync）。
         // 从设置页 `push('/settings/sync')` 时导航栈为 任务页→settings→sync，
         // 返回箭头一路可用：sync 回 settings、settings 回任务页。
-        // 注意：不能用 `go('/settings/sync')` —— go 会把整个导航栈替换为
-        // [settings, sync]，丢弃进入设置前的任务页，设置页将无路可返
-        //（go_router 17 `NavigatingType.go` 直接 `return newMatchList`，
-        //  用户实测 bug：同步配置页能回设置页但设置页回不了任务页）。
         GoRoute(
           path: 'sync',
           pageBuilder: (context, state) =>
               _slideFadePage(context, state, const SyncSetupPage()),
+        ),
+      ],
+    ),
+    // ── 主导航 ShellRoute ──
+    ShellRoute(
+      builder: (context, state, child) => AppShell(child: child),
+      routes: [
+        GoRoute(
+          path: '/inbox',
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: TaskListPage(scope: InboxTaskScope()),
+          ),
+        ),
+        GoRoute(
+          path: '/today',
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: TaskListPage(scope: TodayTaskScope()),
+          ),
+        ),
+        GoRoute(
+          path: '/calendar',
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: CalendarPage()),
+        ),
+        GoRoute(
+          path: '/projects',
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: ProjectsPage()),
+        ),
+        GoRoute(
+          path: '/projects/:id',
+          pageBuilder: (context, state) => NoTransitionPage(
+            child: TaskListPage(
+              scope: ProjectTaskScope(state.pathParameters['id']!),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/tags',
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: TagsPage()),
+        ),
+        GoRoute(
+          path: '/tags/:id',
+          pageBuilder: (context, state) => NoTransitionPage(
+            child: TagsDetailPage(tagId: state.pathParameters['id']!),
+          ),
+        ),
+        GoRoute(
+          path: '/custom_view/:id',
+          pageBuilder: (context, state) => NoTransitionPage(
+            child: CustomViewPage(viewId: state.pathParameters['id']!),
+          ),
         ),
       ],
     ),

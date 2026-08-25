@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -8,6 +9,32 @@ import 'app_tokens.dart';
 /// TickTick-inspired clean aesthetic: soft blues, generous whitespace,
 /// understated surfaces. Light/dark modes share the same seed.
 abstract final class AppTheme {
+  /// 获取各平台的原生首选字体族（系统默认字体）。
+  /// - Windows: 'Microsoft YaHei UI'（微软雅黑 UI 版，解决等线/宋体回退毛刺与字重不一）
+  /// - macOS / iOS: 'PingFang SC'（苹方）
+  /// - Linux: 'Noto Sans CJK SC'（思源黑体）
+  /// - Android: null（自动匹配系统 Roboto + Noto Sans）
+  static String? get _defaultFontFamily {
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.windows => 'Microsoft YaHei UI',
+      TargetPlatform.macOS || TargetPlatform.iOS => 'PingFang SC',
+      TargetPlatform.linux => 'Noto Sans CJK SC',
+      _ => null,
+    };
+  }
+
+  /// 全平台字体回退链，彻底解决中英文/数字混排时字体回退割裂与粗细不一问题。
+  static const List<String> _fontFamilyFallback = [
+    'Microsoft YaHei UI',
+    'Microsoft YaHei',
+    'PingFang SC',
+    'Noto Sans CJK SC',
+    'Noto Sans SC',
+    'WenQuanYi Micro Hei',
+    'Segoe UI',
+    'sans-serif',
+  ];
+
   /// Build theme for a given brightness.
   ///
   /// App layer calls this twice (brightness light + dark) and passes both
@@ -18,7 +45,12 @@ abstract final class AppTheme {
       brightness: brightness,
     );
     final isDark = brightness == Brightness.dark;
-    final base = ThemeData(useMaterial3: true, colorScheme: colorScheme);
+    final base = ThemeData(
+      useMaterial3: true,
+      colorScheme: colorScheme,
+      fontFamily: _defaultFontFamily,
+      fontFamilyFallback: _fontFamilyFallback,
+    );
 
     return base.copyWith(
       // ── Scaffold background ──
@@ -41,6 +73,8 @@ abstract final class AppTheme {
             ? SystemUiOverlayStyle.light
             : SystemUiOverlayStyle.dark,
         titleTextStyle: TextStyle(
+          fontFamily: _defaultFontFamily,
+          fontFamilyFallback: _fontFamilyFallback,
           fontSize: AppTokens.textHeadingSize,
           fontWeight: AppTokens.textHeadingWeight,
           color: colorScheme.onSurface,
@@ -200,28 +234,33 @@ abstract final class AppTheme {
       ),
 
       // ── Typography ──
-      textTheme: base.textTheme.copyWith(
-        headlineSmall: base.textTheme.headlineSmall?.copyWith(
-          fontSize: AppTokens.textHeadingSize,
-          fontWeight: AppTokens.textHeadingWeight,
-        ),
-        titleLarge: base.textTheme.titleLarge?.copyWith(
-          fontSize: AppTokens.textTitleSize,
-          fontWeight: AppTokens.textTitleWeight,
-        ),
-        bodyLarge: base.textTheme.bodyLarge?.copyWith(
-          fontSize: AppTokens.textBodySize,
-          fontWeight: AppTokens.textBodyWeight,
-        ),
-        bodyMedium: base.textTheme.bodyMedium?.copyWith(
-          fontSize: AppTokens.textBodySize,
-          fontWeight: AppTokens.textBodyWeight,
-        ),
-        bodySmall: base.textTheme.bodySmall?.copyWith(
-          fontSize: AppTokens.textCaptionSize,
-          fontWeight: AppTokens.textCaptionWeight,
-        ),
-      ),
+      textTheme: base.textTheme
+          .apply(
+            fontFamily: _defaultFontFamily,
+            fontFamilyFallback: _fontFamilyFallback,
+          )
+          .copyWith(
+            headlineSmall: base.textTheme.headlineSmall?.copyWith(
+              fontSize: AppTokens.textHeadingSize,
+              fontWeight: AppTokens.textHeadingWeight,
+            ),
+            titleLarge: base.textTheme.titleLarge?.copyWith(
+              fontSize: AppTokens.textTitleSize,
+              fontWeight: AppTokens.textTitleWeight,
+            ),
+            bodyLarge: base.textTheme.bodyLarge?.copyWith(
+              fontSize: AppTokens.textBodySize,
+              fontWeight: AppTokens.textBodyWeight,
+            ),
+            bodyMedium: base.textTheme.bodyMedium?.copyWith(
+              fontSize: AppTokens.textBodySize,
+              fontWeight: AppTokens.textBodyWeight,
+            ),
+            bodySmall: base.textTheme.bodySmall?.copyWith(
+              fontSize: AppTokens.textCaptionSize,
+              fontWeight: AppTokens.textCaptionWeight,
+            ),
+          ),
 
       // ── SnackBar ──
       snackBarTheme: SnackBarThemeData(

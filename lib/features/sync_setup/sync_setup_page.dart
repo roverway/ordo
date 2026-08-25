@@ -19,7 +19,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/l10n/app_localizations.dart';
 import '../../core/security/secure_store.dart';
@@ -33,15 +32,29 @@ import 'sync_setup_providers.dart';
 /// 宽屏表单最大宽度（50-ui-ux §5.7：约 560dp）。
 const double _kFormMaxWidth = 560;
 
-/// 同步配置页。
-class SyncSetupPage extends ConsumerStatefulWidget {
+/// 同步配置页（独立全屏路由）。
+class SyncSetupPage extends StatelessWidget {
   const SyncSetupPage({super.key});
 
   @override
-  ConsumerState<SyncSetupPage> createState() => _SyncSetupPageState();
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.syncSettings)),
+      body: const SyncSetupBody(),
+    );
+  }
 }
 
-class _SyncSetupPageState extends ConsumerState<SyncSetupPage> {
+/// 同步配置表单主内容（支持独立页面及宽屏模态侧边抽屉内嵌复用）。
+class SyncSetupBody extends ConsumerStatefulWidget {
+  const SyncSetupBody({super.key});
+
+  @override
+  ConsumerState<SyncSetupBody> createState() => _SyncSetupBodyState();
+}
+
+class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
   final _serverUrl = TextEditingController();
   final _username = TextEditingController();
   final _secret = TextEditingController();
@@ -277,6 +290,7 @@ class _SyncSetupPageState extends ConsumerState<SyncSetupPage> {
 
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final isWide = AppBreakpoints.isWide(context);
 
     final body = ListView(
       padding: const EdgeInsets.all(AppTokens.spaceMd),
@@ -450,50 +464,14 @@ class _SyncSetupPageState extends ConsumerState<SyncSetupPage> {
       ],
     );
 
-    final isWide = AppBreakpoints.isWide(context);
-    final pageContent = Scaffold(
-      appBar: AppBar(title: Text(l10n.syncSettings)),
-      // 宽屏（≥600dp）表单居中限宽；窄屏全宽（50-ui-ux §5.7）。
-      body: isWide
-          ? Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: _kFormMaxWidth),
-                child: body,
-              ),
-            )
-          : body,
-    );
-
-    if (!isWide) {
-      return pageContent;
-    }
-
-    return Scaffold(
-      backgroundColor: Colors.black54,
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: () => context.pop(),
-              behavior: HitTestBehavior.opaque,
-              child: const SizedBox.expand(),
+    return isWide
+        ? Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: _kFormMaxWidth),
+              child: body,
             ),
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: SizedBox(
-              width: 480,
-              height: double.infinity,
-              child: Material(
-                elevation: 8,
-                color: theme.scaffoldBackgroundColor,
-                child: pageContent,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+          )
+        : body;
   }
 
   /// 状态展示区：订阅 syncStateProvider。

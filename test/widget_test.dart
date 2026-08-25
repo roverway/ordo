@@ -24,7 +24,6 @@ import 'package:todo/features/tasks/task_providers.dart';
 import 'package:todo/features/today/today_providers.dart';
 import 'package:todo/router.dart';
 import 'package:todo/shared/widgets/app_drawer.dart';
-import 'package:todo/shared/widgets/compact_bottom_bar.dart';
 import 'helpers/db_test_setup.dart';
 
 /// Build and pump the app at a given logical size.
@@ -248,58 +247,23 @@ void main() {
     // No locale set → defaults to zh (Chinese).
   });
 
-  testWidgets(
-    'Narrow (<600dp) smoke: today home + hamburger + compact 2-tab bar',
-    (tester) async {
-      await pumpApp(tester, const Size(400, 800));
+  testWidgets('Narrow (<600dp) smoke: today home + hamburger, no bottom bar', (
+    tester,
+  ) async {
+    await pumpApp(tester, const Size(400, 800));
 
-      // 启动默认页为 /today（D3，56-task-scope-page.md §1.2）；中文文案。
-      expect(find.text('今天还没有任务'), findsOneWidget);
+    // 启动默认页为 /today（D3，56-task-scope-page.md §1.2）；中文文案。
+    expect(find.text('今天还没有任务'), findsOneWidget);
 
-      // 底部为自绘紧凑底栏（CompactBottomBar），精简为今日/日历 2 项
-      //（标签移入抽屉，57-task-page-polish §4.1 D5）；不再使用标准 NavigationBar。
-      expect(find.byType(CompactBottomBar), findsOneWidget);
-      expect(find.byType(NavigationBar), findsNothing);
-      expect(find.byType(AppSidebar), findsNothing);
-      for (final label in ['今日', '日历']) {
-        expect(
-          find.descendant(
-            of: find.byType(CompactBottomBar),
-            matching: find.text(label),
-          ),
-          findsOneWidget,
-        );
-      }
-      // 标签/项目/收件箱均不在底栏。
-      for (final label in ['标签', '项目', '收件箱']) {
-        expect(
-          find.descendant(
-            of: find.byType(CompactBottomBar),
-            matching: find.text(label),
-          ),
-          findsNothing,
-        );
-      }
+    // 窄屏无底栏（由抽屉侧边栏统一承载系统入口与清单）
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byType(BottomNavigationBar), findsNothing);
+    expect(find.byType(AppSidebar), findsNothing);
 
-      // 紧凑化：底栏高度明显矮于标准 NavigationBar（80dp）。
-      expect(
-        tester.getSize(find.byType(CompactBottomBar)).height,
-        lessThan(80),
-      );
-
-      // 窄屏 AppBar 有汉堡入口；抽屉未打开时不渲染。
-      expect(find.byIcon(Icons.menu), findsOneWidget);
-      expect(find.byType(Drawer), findsNothing);
-
-      // 今日页命中底栏路由 → 「今日」选中（index 0）。
-      expect(
-        tester
-            .widget<CompactBottomBar>(find.byType(CompactBottomBar))
-            .selectedIndex,
-        0,
-      );
-    },
-  );
+    // 窄屏 AppBar 有汉堡入口；抽屉未打开时不渲染。
+    expect(find.byIcon(Icons.menu), findsOneWidget);
+    expect(find.byType(Drawer), findsNothing);
+  });
 
   testWidgets(
     'Wide (≥600dp) smoke: AppSidebar persistent sidebar, no hamburger, no drawer',
@@ -309,7 +273,7 @@ void main() {
       // 宽屏固定常驻侧边栏（全桌面端一致）
       expect(find.byType(AppSidebar), findsOneWidget);
       expect(find.byType(NavigationBar), findsNothing);
-      expect(find.byType(CompactBottomBar), findsNothing);
+      expect(find.byType(BottomNavigationBar), findsNothing);
       // 宽屏无汉堡（侧边栏已常驻），无模态抽屉
       expect(find.byIcon(Icons.menu), findsNothing);
       expect(find.byType(Drawer), findsNothing);
@@ -396,7 +360,7 @@ void main() {
     },
   );
 
-  testWidgets('Compact bar: today/calendar switch + back to today', (
+  testWidgets('Drawer navigation: today/calendar switch via drawer', (
     tester,
   ) async {
     await pumpApp(tester, const Size(400, 800));
@@ -404,27 +368,25 @@ void main() {
     // Start on today (D3 default home; zh locale).
     expect(find.text('今天还没有任务'), findsOneWidget);
 
-    // Switch to Calendar.
-    await tester.tap(find.text('日历'));
+    // Open drawer and switch to Calendar.
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: find.byType(Drawer), matching: find.text('日历')),
+    );
     await tester.pumpAndSettle();
     expect(find.text('日历暂无安排'), findsOneWidget);
-    expect(
-      tester
-          .widget<CompactBottomBar>(find.byType(CompactBottomBar))
-          .selectedIndex,
-      1,
-    );
+    expect(find.byType(Drawer), findsNothing);
 
-    // Switch back to Today.
-    await tester.tap(find.text('今日'));
+    // Switch back to Today via drawer.
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: find.byType(Drawer), matching: find.text('今日')),
+    );
     await tester.pumpAndSettle();
     expect(find.text('今天还没有任务'), findsOneWidget);
-    expect(
-      tester
-          .widget<CompactBottomBar>(find.byType(CompactBottomBar))
-          .selectedIndex,
-      0,
-    );
+    expect(find.byType(Drawer), findsNothing);
   });
 
   testWidgets('Drawer: hamburger opens, system items navigate, scrim closes', (
@@ -442,7 +404,7 @@ void main() {
       400 * AppTokens.drawerWidthRatio,
     );
 
-    // 系统组：今日 → 今日页（抽屉内点击，避免匹配到底部 tab）。
+    // 系统组：今日 → 今日页（抽屉内点击）。
     await tester.tap(
       find.descendant(of: find.byType(Drawer), matching: find.text('今日')),
     );
@@ -450,8 +412,7 @@ void main() {
     expect(find.text('今天还没有任务'), findsOneWidget);
     expect(find.byType(Drawer), findsNothing); // 点击后抽屉自动关闭。
 
-    // 系统组：收件箱 → 收件箱作用域（AppShell 壳内），底栏「无选中」
-    //（收件箱不在底栏 2 入口中，selectedIndex = -1，评审问题 1 回归断言）。
+    // 系统组：收件箱 → 收件箱作用域（AppShell 壳内）。
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();
     await tester.tap(
@@ -460,12 +421,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(Drawer), findsNothing);
     expect(find.byIcon(Icons.menu), findsOneWidget); // 壳内汉堡常驻
-    expect(
-      tester
-          .widget<CompactBottomBar>(find.byType(CompactBottomBar))
-          .selectedIndex,
-      -1, // 无选中
-    );
 
     // 再次打开，点遮罩（屏宽 400，抽屉宽 312，x>312 为 scrim）关闭。
     await tester.tap(find.byIcon(Icons.menu));
@@ -513,9 +468,8 @@ void main() {
     expect(find.text('工作'), findsOneWidget); // AppBar 标题 = 项目名
 
     // 需求 2 修复验收：项目作用域渲染在 AppShell 壳内，
-    // 汉堡/紧凑底栏常驻（此前 ProjectDetailPage 自带 Scaffold 导致消失）。
+    // 汉堡常驻（此前 ProjectDetailPage 自带 Scaffold 导致消失）。
     expect(find.byIcon(Icons.menu), findsOneWidget);
-    expect(find.byType(CompactBottomBar), findsOneWidget);
     // 项目作用域 AppBar：默认搜索/设置 + 三点菜单（编辑/删除收纳在菜单内，D2）。
     expect(find.byIcon(Icons.more_vert), findsOneWidget);
     await tester.tap(find.byIcon(Icons.more_vert));

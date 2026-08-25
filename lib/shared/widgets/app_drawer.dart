@@ -6,11 +6,13 @@ import '../../core/db/database.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/motion.dart';
+import '../../features/custom_views/presentation/custom_view_editor_page.dart';
 import '../../features/custom_views/providers/custom_view_providers.dart';
 import '../../features/custom_views/widgets/icon_picker_dialog.dart';
 import '../../features/projects/project_providers.dart';
 import '../../features/projects/widgets/folder_name_dialog.dart';
 import '../../features/projects/widgets/project_form_dialog.dart';
+import '../../features/settings/widgets/settings_side_sheet.dart';
 import '../../features/tasks/task_providers.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import 'error_view.dart';
@@ -352,7 +354,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
                   IconButton(
                     tooltip: l10n.newCustomView,
                     icon: const Icon(Icons.add, size: 18),
-                    onPressed: () => _go(context, '/custom_view/new'),
+                    onPressed: () => _openNewCustomView(context),
                   ),
                 ],
               ),
@@ -379,7 +381,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
                 IconButton(
                   tooltip: l10n.newCustomView,
                   icon: const Icon(Icons.add, size: 18),
-                  onPressed: () => _push(context, '/custom_view/new'),
+                  onPressed: () => _openNewCustomView(context),
                 ),
               ],
             ),
@@ -1127,24 +1129,28 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     context.go(path);
   }
 
-  /// 关闭抽屉（如果是抽屉模式）并推入目标页面（push 保持导航栈，支持返回上级页面）。
-  void _push(BuildContext context, String path) {
+  /// 打开新建自定义视图（抽屉模式关闭抽屉后 push /custom_view/new；宽屏模式弹出右侧透明模态抽屉）。
+  void _openNewCustomView(BuildContext context) {
     if (widget.isDrawer) {
       if (_navigating) return;
       _navigating = true;
       Navigator.of(context).pop();
+      context.push('/custom_view/new');
+    } else {
+      showCustomViewEditorSideSheet(context);
     }
-    context.push(path);
   }
 
-  /// 关闭抽屉（如果是抽屉模式）并推入设置页（push 保持导航栈，设置页可返回任务页）。
+  /// 打开设置（抽屉模式关闭抽屉后 push 全屏页；宽屏模式弹出右侧透明模态抽屉）。
   void _openSettings(BuildContext context) {
     if (widget.isDrawer) {
       if (_navigating) return;
       _navigating = true;
       Navigator.of(context).pop();
+      context.push('/settings');
+    } else {
+      showSettingsSideSheet(context);
     }
-    context.push('/settings');
   }
 
   Future<void> _showNewProjectDialog(

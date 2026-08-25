@@ -5,7 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/db/database.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
-import '../../shared/widgets/app_shell.dart';
+import '../../core/utils/app_breakpoints.dart';
+import '../../shared/widgets/app_drawer.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/loading_view.dart';
@@ -25,11 +26,32 @@ class ProjectsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final narrow = AppBreakpoints.isNarrow(context);
     final groupingAsync = ref.watch(projectsByFolderProvider);
 
-    return AppShell(
-      title: l10n.navProjects,
-      child: groupingAsync.when(
+    return Scaffold(
+      drawer: narrow ? const AppDrawer() : null,
+      appBar: AppBar(
+        leading: narrow
+            ? Builder(
+                builder: (context) => IconButton(
+                  tooltip: l10n.openDrawer,
+                  icon: const Icon(Icons.menu, size: 22),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
+              )
+            : null,
+        automaticallyImplyLeading: false,
+        title: Text(l10n.navProjects),
+        actions: [
+          IconButton(
+            tooltip: l10n.search,
+            icon: const Icon(Icons.search, size: 22),
+            onPressed: () => context.push('/search'),
+          ),
+        ],
+      ),
+      body: groupingAsync.when(
         data: (grouping) {
           // 与抽屉项目区一致：内置收件箱由系统组 /inbox 承载，不列入项目列表
           //（Bug 3）。无文件夹且无项目时显示「暂无项目」空态。

@@ -7,11 +7,12 @@ import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/app_breakpoints.dart';
 import '../../../core/utils/custom_view_models.dart';
-import '../../../shared/widgets/app_shell.dart';
+import '../../../shared/widgets/app_drawer.dart';
 import '../../projects/project_providers.dart';
 import '../providers/custom_view_providers.dart';
 import '../widgets/icon_picker_dialog.dart';
 import '../widgets/panel_column.dart';
+import 'custom_view_editor_page.dart';
 
 /// 自定义视图主页面（支持多栏看板与多 Tab 响应式切换）。
 class CustomViewPage extends ConsumerStatefulWidget {
@@ -29,6 +30,14 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
 
   List<CustomViewPanelConfig> _getEffectivePanels(CustomView view) {
     return _localPanels ?? decodePanelsJson(view.panelsJson);
+  }
+
+  void _openEditView(BuildContext context, CustomView view) {
+    if (AppBreakpoints.isNarrow(context)) {
+      context.push('/custom_view/${view.id}/edit');
+    } else {
+      showCustomViewEditorSideSheet(context, viewId: view.id);
+    }
   }
 
   void _onUpdatePanel(
@@ -197,7 +206,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
       IconButton(
         tooltip: l10n.editCustomView,
         icon: const Icon(Icons.tune_rounded),
-        onPressed: () => context.push('/custom_view/${view.id}/edit'),
+        onPressed: () => _openEditView(context, view),
       ),
       PopupMenuButton<String>(
         shape: RoundedRectangleBorder(
@@ -240,103 +249,183 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
 
     final viewAsync = ref.watch(customViewDetailProvider(widget.viewId));
 
+    final narrow = AppBreakpoints.isNarrow(context);
+
     return viewAsync.when(
-      loading: () => AppShell(
-        title: l10n.customViews,
-        child: const Center(child: CircularProgressIndicator()),
+      loading: () => Scaffold(
+        drawer: narrow ? const AppDrawer() : null,
+        appBar: AppBar(
+          leading: narrow
+              ? Builder(
+                  builder: (context) => IconButton(
+                    tooltip: l10n.openDrawer,
+                    icon: const Icon(Icons.menu, size: 22),
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                  ),
+                )
+              : null,
+          automaticallyImplyLeading: false,
+          title: Text(l10n.customViews),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
       ),
-      error: (err, _) => AppShell(
-        title: l10n.customViews,
-        child: Center(child: Text(err.toString())),
+      error: (err, _) => Scaffold(
+        drawer: narrow ? const AppDrawer() : null,
+        appBar: AppBar(
+          leading: narrow
+              ? Builder(
+                  builder: (context) => IconButton(
+                    tooltip: l10n.openDrawer,
+                    icon: const Icon(Icons.menu, size: 22),
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                  ),
+                )
+              : null,
+          automaticallyImplyLeading: false,
+          title: Text(l10n.customViews),
+        ),
+        body: Center(child: Text(err.toString())),
       ),
       data: (CustomView? view) {
         if (view == null) {
-          return AppShell(
-            title: l10n.customViews,
-            child: Center(child: Text(l10n.noCustomViews)),
+          return Scaffold(
+            drawer: narrow ? const AppDrawer() : null,
+            appBar: AppBar(
+              leading: narrow
+                  ? Builder(
+                      builder: (context) => IconButton(
+                        tooltip: l10n.openDrawer,
+                        icon: const Icon(Icons.menu, size: 22),
+                        onPressed: () => Scaffold.of(context).openDrawer(),
+                      ),
+                    )
+                  : null,
+              automaticallyImplyLeading: false,
+              title: Text(l10n.customViews),
+            ),
+            body: Center(child: Text(l10n.noCustomViews)),
           );
         }
 
         final panels = _getEffectivePanels(view);
         final actions = _buildActions(context, l10n, theme, view);
 
+        Widget bodyContent;
+
         // 如果视图没有面板，提供空状态与引导添加面板
         if (panels.isEmpty) {
-          return AppShell(
-            titleWidget: _buildViewTitle(view),
-            actions: actions,
-            child: Center(
-              child: Container(
-                margin: const EdgeInsets.all(AppTokens.spaceXl),
-                padding: const EdgeInsets.all(AppTokens.spaceXl),
-                decoration: BoxDecoration(
+          bodyContent = Center(
+            child: Container(
+              margin: const EdgeInsets.all(AppTokens.spaceXl),
+              padding: const EdgeInsets.all(AppTokens.spaceXl),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? AppTokens.surfaceCardDark
+                    : AppTokens.surfaceCard,
+                borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                border: Border.all(
                   color: isDark
-                      ? AppTokens.surfaceCardDark
-                      : AppTokens.surfaceCard,
-                  borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-                  border: Border.all(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.08)
-                        : theme.colorScheme.outlineVariant.withValues(
-                            alpha: 0.35,
-                          ),
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : theme.colorScheme.outlineVariant.withValues(
+                          alpha: 0.35,
+                        ),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.dashboard_customize_outlined,
+                    size: 56,
+                    color: theme.colorScheme.primary.withValues(alpha: 0.7),
                   ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.dashboard_customize_outlined,
-                      size: 56,
-                      color: theme.colorScheme.primary.withValues(alpha: 0.7),
+                  const SizedBox(height: AppTokens.spaceMd),
+                  Text(
+                    l10n.noTasksInPanel,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: AppTokens.textHeadingWeight,
                     ),
-                    const SizedBox(height: AppTokens.spaceMd),
-                    Text(
-                      l10n.noTasksInPanel,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: AppTokens.textHeadingWeight,
-                      ),
+                  ),
+                  const SizedBox(height: AppTokens.spaceXs),
+                  Text(
+                    '该视图暂未配置任何面板列',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
-                    const SizedBox(height: AppTokens.spaceXs),
-                    Text(
-                      '该视图暂未配置任何面板列',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: AppTokens.spaceMd),
-                    FilledButton.icon(
-                      onPressed: () =>
-                          context.push('/custom_view/${view.id}/edit'),
-                      icon: const Icon(Icons.tune_rounded, size: 18),
-                      label: Text(l10n.editCustomView),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: AppTokens.spaceMd),
+                  FilledButton.icon(
+                    onPressed: () => _openEditView(context, view),
+                    icon: const Icon(Icons.tune_rounded, size: 18),
+                    label: Text(l10n.editCustomView),
+                  ),
+                ],
               ),
             ),
           );
-        }
-
-        // 宽屏模式（≥600dp）或指定 kanban 布局时：横向多列看板
-        if (isWide || view.layoutMode == 'kanban') {
-          return AppShell(
-            titleWidget: _buildViewTitle(view),
-            actions: actions,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                vertical: AppTokens.spaceXs,
-                horizontal: AppTokens.spaceSm,
+        } else if (isWide || view.layoutMode == 'kanban') {
+          // 宽屏模式（≥600dp）或指定 kanban 布局时：横向多列看板
+          bodyContent = Padding(
+            padding: const EdgeInsets.symmetric(
+              vertical: AppTokens.spaceXs,
+              horizontal: AppTokens.spaceSm,
+            ),
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: panels.length,
+              itemBuilder: (context, index) {
+                final panel = panels[index];
+                return PanelColumn(
+                  key: ValueKey(panel.id),
+                  panel: panel,
+                  isKanban: true,
+                  onUpdatePanel: (updated) =>
+                      _onUpdatePanel(view, index, updated),
+                  onDeletePanel: () => _onDeletePanel(view, index),
+                  onTaskDropped: (task, targetPanel) => _handleTaskDrop(
+                    view: view,
+                    task: task,
+                    targetPanel: targetPanel,
+                  ),
+                );
+              },
+            ),
+          );
+        } else {
+          // 窄屏列表模式：顶部 TabBar + PageView
+          return DefaultTabController(
+            length: panels.length,
+            child: Scaffold(
+              drawer: narrow ? const AppDrawer() : null,
+              appBar: AppBar(
+                leading: narrow
+                    ? Builder(
+                        builder: (context) => IconButton(
+                          tooltip: l10n.openDrawer,
+                          icon: const Icon(Icons.menu, size: 22),
+                          onPressed: () => Scaffold.of(context).openDrawer(),
+                        ),
+                      )
+                    : null,
+                automaticallyImplyLeading: false,
+                title: _buildViewTitle(view),
+                actions: actions,
+                bottom: TabBar(
+                  isScrollable: panels.length > 3,
+                  tabAlignment: panels.length > 3 ? TabAlignment.start : null,
+                  dividerColor: Colors.transparent,
+                  indicatorSize: TabBarIndicatorSize.label,
+                  tabs: panels.map((p) => Tab(text: p.title)).toList(),
+                ),
               ),
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: panels.length,
-                itemBuilder: (context, index) {
-                  final panel = panels[index];
+              body: TabBarView(
+                children: panels.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final panel = entry.value;
                   return PanelColumn(
                     key: ValueKey(panel.id),
                     panel: panel,
-                    isKanban: true,
+                    isKanban: false,
                     onUpdatePanel: (updated) =>
                         _onUpdatePanel(view, index, updated),
                     onDeletePanel: () => _onDeletePanel(view, index),
@@ -346,51 +435,29 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
                       targetPanel: targetPanel,
                     ),
                   );
-                },
+                }).toList(),
               ),
             ),
           );
         }
 
-        // 窄屏列表模式：顶部 TabBar + PageView
-        return DefaultTabController(
-          length: panels.length,
-          child: AppShell(
-            titleWidget: _buildViewTitle(view),
+        return Scaffold(
+          drawer: narrow ? const AppDrawer() : null,
+          appBar: AppBar(
+            leading: narrow
+                ? Builder(
+                    builder: (context) => IconButton(
+                      tooltip: l10n.openDrawer,
+                      icon: const Icon(Icons.menu, size: 22),
+                      onPressed: () => Scaffold.of(context).openDrawer(),
+                    ),
+                  )
+                : null,
+            automaticallyImplyLeading: false,
+            title: _buildViewTitle(view),
             actions: actions,
-            child: Column(
-              children: [
-                TabBar(
-                  isScrollable: panels.length > 3,
-                  tabAlignment: panels.length > 3 ? TabAlignment.start : null,
-                  dividerColor: Colors.transparent,
-                  indicatorSize: TabBarIndicatorSize.label,
-                  tabs: panels.map((p) => Tab(text: p.title)).toList(),
-                ),
-                Expanded(
-                  child: TabBarView(
-                    children: panels.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final panel = entry.value;
-                      return PanelColumn(
-                        key: ValueKey(panel.id),
-                        panel: panel,
-                        isKanban: false,
-                        onUpdatePanel: (updated) =>
-                            _onUpdatePanel(view, index, updated),
-                        onDeletePanel: () => _onDeletePanel(view, index),
-                        onTaskDropped: (task, targetPanel) => _handleTaskDrop(
-                          view: view,
-                          task: task,
-                          targetPanel: targetPanel,
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ],
-            ),
           ),
+          body: bodyContent,
         );
       },
     );

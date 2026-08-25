@@ -6,10 +6,11 @@ import '../../core/db/database.dart';
 import '../../core/db/tables.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/utils/app_breakpoints.dart';
 import '../../core/utils/derived.dart';
 import '../../core/utils/tree.dart';
 import '../../core/utils/view_rules.dart';
-import '../../shared/widgets/app_shell.dart';
+import '../../shared/widgets/app_drawer.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/loading_view.dart';
@@ -39,23 +40,64 @@ class _TagsDetailPageState extends ConsumerState<TagsDetailPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final narrow = AppBreakpoints.isNarrow(context);
     final tagsAsync = ref.watch(tagsStreamProvider);
 
     return tagsAsync.when(
       data: (tags) {
         final tag = tags.where((t) => t.id == widget.tagId).firstOrNull;
         if (tag == null) {
-          return AppShell(
-            title: l10n.navTags,
-            child: EmptyState(
+          return Scaffold(
+            drawer: narrow ? const AppDrawer() : null,
+            appBar: AppBar(
+              leading: narrow
+                  ? Builder(
+                      builder: (context) => IconButton(
+                        tooltip: l10n.openDrawer,
+                        icon: const Icon(Icons.menu, size: 22),
+                        onPressed: () => Scaffold.of(context).openDrawer(),
+                      ),
+                    )
+                  : null,
+              automaticallyImplyLeading: false,
+              title: Text(l10n.navTags),
+              actions: [
+                IconButton(
+                  tooltip: l10n.search,
+                  icon: const Icon(Icons.search, size: 22),
+                  onPressed: () => context.push('/search'),
+                ),
+              ],
+            ),
+            body: EmptyState(
               icon: Icons.label_outline,
               message: l10n.emptyTags,
             ),
           );
         }
-        return AppShell(
-          title: tag.name,
-          child: ref
+        return Scaffold(
+          drawer: narrow ? const AppDrawer() : null,
+          appBar: AppBar(
+            leading: narrow
+                ? Builder(
+                    builder: (context) => IconButton(
+                      tooltip: l10n.openDrawer,
+                      icon: const Icon(Icons.menu, size: 22),
+                      onPressed: () => Scaffold.of(context).openDrawer(),
+                    ),
+                  )
+                : null,
+            automaticallyImplyLeading: false,
+            title: Text(tag.name),
+            actions: [
+              IconButton(
+                tooltip: l10n.search,
+                icon: const Icon(Icons.search, size: 22),
+                onPressed: () => context.push('/search'),
+              ),
+            ],
+          ),
+          body: ref
               .watch(allActiveTasksProvider)
               .when(
                 loading: () => const LoadingView(),
@@ -82,12 +124,41 @@ class _TagsDetailPageState extends ConsumerState<TagsDetailPage> {
               ),
         );
       },
-      loading: () => AppShell(title: l10n.navTags, child: const LoadingView()),
+      loading: () => Scaffold(
+        drawer: narrow ? const AppDrawer() : null,
+        appBar: AppBar(
+          leading: narrow
+              ? Builder(
+                  builder: (context) => IconButton(
+                    tooltip: l10n.openDrawer,
+                    icon: const Icon(Icons.menu, size: 22),
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                  ),
+                )
+              : null,
+          automaticallyImplyLeading: false,
+          title: Text(l10n.navTags),
+        ),
+        body: const LoadingView(),
+      ),
       error: (e, st) {
         logAsyncError(e, st);
-        return AppShell(
-          title: l10n.navTags,
-          child: ErrorView(onRetry: () => ref.invalidate(tagsStreamProvider)),
+        return Scaffold(
+          drawer: narrow ? const AppDrawer() : null,
+          appBar: AppBar(
+            leading: narrow
+                ? Builder(
+                    builder: (context) => IconButton(
+                      tooltip: l10n.openDrawer,
+                      icon: const Icon(Icons.menu, size: 22),
+                      onPressed: () => Scaffold.of(context).openDrawer(),
+                    ),
+                  )
+                : null,
+            automaticallyImplyLeading: false,
+            title: Text(l10n.navTags),
+          ),
+          body: ErrorView(onRetry: () => ref.invalidate(tagsStreamProvider)),
         );
       },
     );

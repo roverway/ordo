@@ -6,7 +6,8 @@ import '../../core/db/database.dart';
 import '../../core/db/repositories/todo_repository.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
-import '../../shared/widgets/app_shell.dart';
+import '../../core/utils/app_breakpoints.dart';
+import '../../shared/widgets/app_drawer.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
@@ -26,11 +27,32 @@ class TagsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final narrow = AppBreakpoints.isNarrow(context);
     final tagsAsync = ref.watch(tagsStreamProvider);
 
-    return AppShell(
-      title: l10n.navTags,
-      child: tagsAsync.when(
+    return Scaffold(
+      drawer: narrow ? const AppDrawer() : null,
+      appBar: AppBar(
+        leading: narrow
+            ? Builder(
+                builder: (context) => IconButton(
+                  tooltip: l10n.openDrawer,
+                  icon: const Icon(Icons.menu, size: 22),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
+              )
+            : null,
+        automaticallyImplyLeading: false,
+        title: Text(l10n.navTags),
+        actions: [
+          IconButton(
+            tooltip: l10n.search,
+            icon: const Icon(Icons.search, size: 22),
+            onPressed: () => context.push('/search'),
+          ),
+        ],
+      ),
+      body: tagsAsync.when(
         data: (tags) {
           if (tags.isEmpty) {
             return EmptyState(

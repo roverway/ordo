@@ -5,12 +5,26 @@ import 'package:go_router/go_router.dart';
 import '../../../core/db/database.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../core/utils/app_breakpoints.dart';
 import '../../../core/utils/custom_view_models.dart';
 import '../../../core/utils/uuid.dart';
+import '../../../shared/widgets/modal_side_sheet.dart';
 import '../../projects/widgets/project_color_picker_sheet.dart';
 import '../providers/custom_view_providers.dart';
 import '../widgets/filter_criteria_sheet.dart';
 import '../widgets/icon_picker_dialog.dart';
+
+/// 宽屏（≥600dp）下以右侧浮动抽屉（Side Sheet）形式打开自定义视图编辑器。
+Future<void> showCustomViewEditorSideSheet(
+  BuildContext context, {
+  String? viewId,
+}) {
+  return showModalSideSheet(
+    context: context,
+    width: 520,
+    child: CustomViewEditorPage(viewId: viewId),
+  );
+}
 
 /// 自定义视图新建与编辑页面。
 class CustomViewEditorPage extends ConsumerStatefulWidget {
@@ -96,13 +110,10 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
           panels: _panels,
         );
         if (mounted) {
-          try {
-            context.go('/custom_view/${created.id}');
-          } catch (_) {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            }
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
           }
+          context.go('/custom_view/${created.id}');
         }
       }
     } finally {
@@ -113,6 +124,10 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
   }
 
   void _navigateBackOrTo(String fallbackPath) {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+      return;
+    }
     try {
       if (context.canPop()) {
         context.pop();
@@ -120,13 +135,9 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
       }
     } catch (_) {}
 
-    if (Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
-    } else {
-      try {
-        context.go(fallbackPath);
-      } catch (_) {}
-    }
+    try {
+      context.go(fallbackPath);
+    } catch (_) {}
   }
 
   void _handleBack() {
@@ -138,6 +149,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isWide = AppBreakpoints.isWide(context);
 
     if (widget.viewId != null) {
       final viewAsync = ref.watch(customViewDetailProvider(widget.viewId!));

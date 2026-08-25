@@ -6,7 +6,6 @@ import '../../core/l10n/app_localizations.dart';
 import '../../core/sync/sync_config.dart';
 import '../../core/sync/sync_engine.dart';
 import '../../core/theme/app_tokens.dart';
-import '../../core/utils/app_breakpoints.dart';
 import '../../core/utils/dates.dart';
 import '../sync_setup/sync_setup_providers.dart';
 import 'settings_providers.dart';
@@ -18,13 +17,28 @@ const String appVersion = '1.0.0';
 ///
 /// Theme mode (system/light/dark) and language (zh/en) switch instantly
 /// and persist via the Drift settings table (docs/64-local-preferences.md).
-class SettingsPage extends ConsumerWidget {
+class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.settings)),
+      body: SettingsBody(onOpenSync: () => context.push('/settings/sync')),
+    );
+  }
+}
+
+/// 设置列表主内容（支持独立页面及宽屏模态侧边抽屉内嵌复用）。
+class SettingsBody extends ConsumerWidget {
+  const SettingsBody({super.key, required this.onOpenSync});
+
+  final VoidCallback onOpenSync;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final isWide = AppBreakpoints.isWide(context);
     final themeMode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
     // 同步状态（全局 Notifier，仅内存）+ 当前配置（含持久化的 lastSyncedAt），
@@ -34,174 +48,128 @@ class SettingsPage extends ConsumerWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    final pageContent = Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.settings),
-        leading: isWide
-            ? IconButton(
-                icon: const Icon(Icons.close),
-                tooltip: l10n.cancel,
-                onPressed: () => context.pop(),
-              )
-            : null,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(AppTokens.spaceMd),
-        children: [
-          _SectionHeader(title: l10n.settingsSectionAppearance),
-          _SettingsCard(
-            children: [
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.themeMode, style: theme.textTheme.bodyLarge),
-                subtitle: Padding(
-                  padding: const EdgeInsets.only(top: AppTokens.spaceSm),
-                  child: SegmentedButton<ThemeMode>(
-                    segments: [
-                      ButtonSegment(
-                        value: ThemeMode.system,
-                        label: Text(l10n.themeModeSystem),
-                        icon: const Icon(Icons.brightness_auto_outlined),
-                      ),
-                      ButtonSegment(
-                        value: ThemeMode.light,
-                        label: Text(l10n.themeModeLight),
-                        icon: const Icon(Icons.light_mode_outlined),
-                      ),
-                      ButtonSegment(
-                        value: ThemeMode.dark,
-                        label: Text(l10n.themeModeDark),
-                        icon: const Icon(Icons.dark_mode_outlined),
-                      ),
-                    ],
-                    selected: {themeMode},
-                    onSelectionChanged: (selection) => ref
-                        .read(themeModeProvider.notifier)
-                        .setThemeMode(selection.first),
-                  ),
-                ),
-              ),
-              const Divider(),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.language, style: theme.textTheme.bodyLarge),
-                subtitle: Padding(
-                  padding: const EdgeInsets.only(top: AppTokens.spaceSm),
-                  child: SegmentedButton<Locale>(
-                    segments: [
-                      ButtonSegment(
-                        value: const Locale('zh'),
-                        label: Text(l10n.languageZh),
-                      ),
-                      ButtonSegment(
-                        value: const Locale('en'),
-                        label: Text(l10n.languageEn),
-                      ),
-                    ],
-                    selected: {locale},
-                    onSelectionChanged: (selection) => ref
-                        .read(localeProvider.notifier)
-                        .setLocale(selection.first),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppTokens.spaceXl),
-          _SectionHeader(title: l10n.sync),
-          _SettingsCard(
-            children: [
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(
-                  l10n.syncSettings,
-                  style: theme.textTheme.bodyLarge,
-                ),
-                subtitle: Padding(
-                  padding: const EdgeInsets.only(top: AppTokens.spaceSm),
-                  child: Text(
-                    _syncStatusSubtitle(l10n, syncConfigAsync),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+    return ListView(
+      padding: const EdgeInsets.all(AppTokens.spaceMd),
+      children: [
+        _SectionHeader(title: l10n.settingsSectionAppearance),
+        _SettingsCard(
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.themeMode, style: theme.textTheme.bodyLarge),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: AppTokens.spaceSm),
+                child: SegmentedButton<ThemeMode>(
+                  segments: [
+                    ButtonSegment(
+                      value: ThemeMode.system,
+                      label: Text(l10n.themeModeSystem),
+                      icon: const Icon(Icons.brightness_auto_outlined),
                     ),
-                  ),
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _syncStatusIcon(
-                      context,
-                      syncState,
-                      syncConfigAsync,
-                      colorScheme,
+                    ButtonSegment(
+                      value: ThemeMode.light,
+                      label: Text(l10n.themeModeLight),
+                      icon: const Icon(Icons.light_mode_outlined),
                     ),
-                    const SizedBox(width: AppTokens.spaceXs),
-                    const Icon(Icons.chevron_right),
+                    ButtonSegment(
+                      value: ThemeMode.dark,
+                      label: Text(l10n.themeModeDark),
+                      icon: const Icon(Icons.dark_mode_outlined),
+                    ),
                   ],
+                  selected: {themeMode},
+                  onSelectionChanged: (selection) => ref
+                      .read(themeModeProvider.notifier)
+                      .setThemeMode(selection.first),
                 ),
-                // 用 push 而非 go：go('/settings/sync') 会把整个导航栈替换为
-                // [settings, sync]，丢掉了进入设置前的任务页（/today 等），
-                // 导致从设置页无法返回 —— 用户实测 bug。push 保留完整栈
-                // [任务页, settings, sync]，返回箭头一路可用。
-                onTap: () => context.push('/settings/sync'),
               ),
-            ],
-          ),
-          const SizedBox(height: AppTokens.spaceXl),
-          _SectionHeader(title: l10n.settingsSectionAbout),
-          _SettingsCard(
-            children: [
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.appTitle),
-                subtitle: Text(
-                  l10n.aboutVersion,
+            ),
+            const Divider(),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.language, style: theme.textTheme.bodyLarge),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: AppTokens.spaceSm),
+                child: SegmentedButton<Locale>(
+                  segments: [
+                    ButtonSegment(
+                      value: const Locale('zh'),
+                      label: Text(l10n.languageZh),
+                    ),
+                    ButtonSegment(
+                      value: const Locale('en'),
+                      label: Text(l10n.languageEn),
+                    ),
+                  ],
+                  selected: {locale},
+                  onSelectionChanged: (selection) => ref
+                      .read(localeProvider.notifier)
+                      .setLocale(selection.first),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppTokens.spaceXl),
+        _SectionHeader(title: l10n.sync),
+        _SettingsCard(
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.syncSettings, style: theme.textTheme.bodyLarge),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: AppTokens.spaceSm),
+                child: Text(
+                  _syncStatusSubtitle(l10n, syncConfigAsync),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
-                trailing: Text(
-                  appVersion,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _syncStatusIcon(
+                    context,
+                    syncState,
+                    syncConfigAsync,
+                    colorScheme,
                   ),
+                  const SizedBox(width: AppTokens.spaceXs),
+                  const Icon(Icons.chevron_right),
+                ],
+              ),
+              // 用 push 而非 go：go('/settings/sync') 会把整个导航栈替换为
+              // [settings, sync]，丢掉了进入设置前的任务页（/today 等），
+              // 导致从设置页无法返回 —— 用户实测 bug。push 保留完整栈
+              // [任务页, settings, sync]，返回箭头一路可用。
+              onTap: onOpenSync,
+            ),
+          ],
+        ),
+        const SizedBox(height: AppTokens.spaceXl),
+        _SectionHeader(title: l10n.settingsSectionAbout),
+        _SettingsCard(
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.appTitle),
+              subtitle: Text(
+                l10n.aboutVersion,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
-            ],
-          ),
-        ],
-      ),
-    );
-
-    if (!isWide) {
-      return pageContent;
-    }
-
-    return Scaffold(
-      backgroundColor: Colors.black54,
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: () => context.pop(),
-              behavior: HitTestBehavior.opaque,
-              child: const SizedBox.expand(),
-            ),
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: SizedBox(
-              width: 480,
-              height: double.infinity,
-              child: Material(
-                elevation: 8,
-                color: theme.scaffoldBackgroundColor,
-                child: pageContent,
+              trailing: Text(
+                appVersion,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      ],
     );
   }
 

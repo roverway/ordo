@@ -7,8 +7,9 @@ import '../../core/db/repositories/todo_repository.dart';
 import '../../core/db/tables.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/utils/app_breakpoints.dart';
 import '../../core/utils/motion.dart';
-import '../../shared/widgets/app_shell.dart';
+import '../../shared/widgets/app_drawer.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
@@ -201,15 +202,33 @@ class TaskListPage extends ConsumerWidget {
             ),
     };
 
-    return AppShell(
-      title: title,
-      actions: actions,
-      child: Stack(
+    final narrow = AppBreakpoints.isNarrow(context);
+    return Scaffold(
+      drawer: narrow ? const AppDrawer() : null,
+      appBar: AppBar(
+        leading: narrow
+            ? Builder(
+                builder: (context) => IconButton(
+                  tooltip: l10n.openDrawer,
+                  icon: const Icon(Icons.menu, size: 22),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
+              )
+            : null,
+        automaticallyImplyLeading: false,
+        title: Text(title),
+        actions: [
+          IconButton(
+            tooltip: l10n.search,
+            icon: const Icon(Icons.search, size: 22),
+            onPressed: () => context.push('/search'),
+          ),
+          ...actions,
+        ],
+      ),
+      body: Stack(
         children: [
           Positioned.fill(child: _buildBody(context, ref)),
-          // FAB：统一走滴答式新建底部弹窗（D2 定稿，55-ui-redesign §4.1）。
-          // 显示条件与各作用域行为一致：今日常驻；收件箱恒显示（空态文案依赖
-          // FAB）；项目存在时。
           if (showFab)
             Positioned(
               right: AppTokens.spaceMd,
