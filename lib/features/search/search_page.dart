@@ -7,7 +7,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/db/database.dart';
 import '../../core/db/tables.dart';
@@ -22,6 +21,7 @@ import '../../shared/widgets/simple_task_tile.dart';
 import '../../shared/widgets/task_filter_bar.dart';
 import '../projects/project_providers.dart';
 import '../tags/tag_providers.dart';
+import '../tasks/task_edit_page.dart';
 import 'search_providers.dart';
 
 /// Search page — M3: debounced full-text search + filters.
@@ -151,7 +151,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           hasChildren: hasChildren,
           isDone: isDone,
           progressValue: taskProgress(task, allTasks),
-          onTap: () => context.push('/task/${task.id}'),
+          onTap: () => openTaskEdit(context, taskId: task.id),
           onToggleDone: hasChildren
               ? null
               : (value) => _toggleDone(ref, task, value),

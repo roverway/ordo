@@ -16,6 +16,7 @@ import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/loading_view.dart';
 import '../../shared/widgets/simple_task_tile.dart';
 import '../projects/project_providers.dart';
+import '../tasks/task_edit_page.dart';
 import 'tag_providers.dart';
 
 /// 标签详情页（FR-VIEW-04 AC：任务列表支持按状态筛选）。
@@ -212,7 +213,7 @@ class _TagsDetailPageState extends ConsumerState<TagsDetailPage> {
                       hasChildren: children.isNotEmpty,
                       isDone: effective == TaskStatus.done,
                       progressValue: taskProgress(task, allTasks),
-                      onTap: () => context.push('/task/${task.id}'),
+                      onTap: () => openTaskEdit(context, taskId: task.id),
                       // 有子任务的任务状态由子任务派生，不给切换回调
                       //（SimpleTaskTile 在 hasChildren 时同样禁用勾选）。
                       onToggleDone: children.isEmpty

@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
-import '../../../core/utils/app_breakpoints.dart';
 
 /// 打开新建/重命名文件夹名称弹窗。
 ///
@@ -18,27 +17,16 @@ Future<String?> showFolderNameDialog({
   required BuildContext context,
   String? initialName,
 }) {
-  if (AppBreakpoints.isWide(context)) {
-    return showDialog<String>(
-      context: context,
-      builder: (dialogContext) => _FolderNameDialog(initialName: initialName),
-    );
-  }
-  return showModalBottomSheet<String>(
+  return showDialog<String>(
     context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(AppTokens.radiusDialog),
+    builder: (dialogContext) => Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
       ),
-    ),
-    builder: (sheetContext) => Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
+        child: _FolderNameDialog(initialName: initialName),
       ),
-      child: _FolderNameDialog(initialName: initialName),
     ),
   );
 }

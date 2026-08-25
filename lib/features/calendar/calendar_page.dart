@@ -17,6 +17,7 @@ import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/loading_view.dart';
 import '../../shared/widgets/simple_task_tile.dart';
 import '../projects/project_providers.dart';
+import '../tasks/task_edit_page.dart';
 import '../tasks/task_providers.dart';
 import '../tasks/widgets/task_create_sheet.dart';
 import 'calendar_providers.dart';
@@ -546,7 +547,7 @@ class CalendarPage extends ConsumerWidget {
               ref,
               task,
               childrenIndex: childrenIndex,
-              onTap: () => context.push('/task/${task.id}'),
+              onTap: () => openTaskEdit(context, taskId: task.id),
             ),
         const SizedBox(height: AppTokens.spaceXs),
       ],
@@ -704,7 +705,7 @@ class _DaySheet extends ConsumerWidget {
       ref,
       task,
       childrenIndex: childrenIndex,
-      onTap: () => context.push('/task/${task.id}'),
+      onTap: () => openTaskEdit(context, taskId: task.id),
     );
   }
 }

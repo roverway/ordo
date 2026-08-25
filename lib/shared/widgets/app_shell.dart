@@ -32,7 +32,6 @@ class AppShell extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const AppSidebar(width: AppTokens.sidebarWidth),
-          const VerticalDivider(width: 1, thickness: 1),
           Expanded(child: child),
         ],
       ),

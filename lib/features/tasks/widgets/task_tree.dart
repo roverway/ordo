@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/db/database.dart';
 import '../../../core/db/tables.dart';
@@ -15,6 +14,7 @@ import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_view.dart';
 import '../../../shared/widgets/staggered_fade_slide.dart';
 import '../../projects/project_providers.dart';
+import '../task_edit_page.dart';
 import '../task_providers.dart';
 import 'task_row.dart';
 
@@ -777,7 +777,7 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
           }
         }
       },
-      onTap: () => context.push('/task/${node.task.id}'),
+      onTap: () => openTaskEdit(context, taskId: node.task.id),
       onMenuAction: (action) => _handleMenuAction(
         context,
         action,
@@ -807,11 +807,9 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     final l10n = AppLocalizations.of(context);
     switch (action) {
       case 'edit':
-        context.push('/task/${task.id}');
+        openTaskEdit(context, taskId: task.id);
       case 'newSubtask':
-        context.push(
-          '/task/new?projectId=${task.projectId}&parentId=${task.id}',
-        );
+        openTaskEdit(context, projectId: task.projectId, parentId: task.id);
       case 'moveUp':
         await _moveTask(task, childrenIndexAll, repo, -1, l10n);
       case 'moveDown':

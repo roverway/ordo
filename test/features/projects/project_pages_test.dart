@@ -229,8 +229,8 @@ void main() {
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
-      // 移动端（<600dp）为可上拉底部弹窗（D1），不再用 AlertDialog。
-      expect(find.byType(BottomSheet), findsOneWidget);
+      // 对话框模式（居中 Dialog）。
+      expect(find.byType(Dialog), findsOneWidget);
       expect(find.byType(TextFormField), findsOneWidget);
       // 描述字段（可选，D2）+ 颜色选项行。
       expect(find.text('项目描述'), findsOneWidget);
@@ -297,8 +297,8 @@ void main() {
       await tester.tap(find.text('保存'));
       await tester.pumpAndSettle();
 
-      // 弹窗已关闭（pop 返回数据）。
-      expect(find.byType(BottomSheet), findsNothing);
+      // 对话框已关闭（pop 返回数据）。
+      expect(find.byType(Dialog), findsNothing);
     });
 
     testWidgets('新建对话框：取消关闭不返回数据', (tester) async {
@@ -318,7 +318,7 @@ void main() {
       await tester.tap(find.text('取消'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(BottomSheet), findsNothing);
+      expect(find.byType(Dialog), findsNothing);
     });
 
     testWidgets('新建弹窗：颜色选项行弹出底部颜色选择器并选中', (tester) async {
@@ -339,14 +339,16 @@ void main() {
       await tester.tap(find.text('项目颜色'));
       await tester.pumpAndSettle();
 
-      // 选择器顶栏标题 + 8 个预设色点；弹窗仍保留在下层。
-      expect(find.byType(BottomSheet), findsNWidgets(2));
+      // 选择器顶栏标题 + 8 个预设色点；表单对话框仍保留在下层。
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.byType(Dialog), findsOneWidget);
       expect(find.text('项目颜色'), findsNWidgets(2));
 
-      // 点击某个色点 → 选择器关闭，表单弹窗仍在。
+      // 点击某个色点 → 选择器关闭，表单对话框仍在。
       await tester.tap(find.byIcon(Icons.check).first);
       await tester.pumpAndSettle();
-      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(find.byType(Dialog), findsOneWidget);
     });
 
     testWidgets('桌面端（≥600dp）新建项目为居中对话框（D5）', (tester) async {
@@ -364,9 +366,8 @@ void main() {
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
-      // 宽屏走居中 Dialog（非 BottomSheet），选项行结构一致。
+      // 宽屏走居中 Dialog，选项行结构一致。
       expect(find.byType(Dialog), findsOneWidget);
-      expect(find.byType(BottomSheet), findsNothing);
       expect(find.text('项目名称'), findsOneWidget);
       expect(find.text('项目颜色'), findsOneWidget);
       expect(find.text('项目描述'), findsOneWidget);
@@ -376,88 +377,6 @@ void main() {
       await tester.tap(find.text('保存'));
       await tester.pumpAndSettle();
       expect(find.byType(Dialog), findsNothing);
-    });
-
-    testWidgets('键盘收起：已手动拖离的弹窗不回弹（评审 #4 场景1）', (tester) async {
-      await _pump(
-        tester,
-        initialLocation: '/projects',
-        routes: [
-          GoRoute(path: '/projects', builder: (_, _) => const ProjectsPage()),
-          GoRoute(path: '/projects/:id', builder: (_, _) => const Scaffold()),
-        ],
-        projects: [_project('p1', '工作')],
-      );
-
-      await tester.tap(find.byType(FloatingActionButton));
-      await tester.pumpAndSettle();
-
-      // 模拟键盘弹出 → 弹窗自动扩展至全屏。
-      tester.view.viewInsets = FakeViewPadding(bottom: 300);
-      addTearDown(tester.view.reset);
-      await tester.pumpAndSettle();
-
-      // 用户把弹窗拖到最小高度 0.4（从 ListView 顶部非输入区起拖）。
-      final sheetList = find.descendant(
-        of: find.byType(DraggableScrollableSheet),
-        matching: find.byType(ListView),
-      );
-      final listTop = tester.getTopLeft(sheetList);
-      await tester.dragFrom(
-        listTop + const Offset(100, 10),
-        const Offset(0, 400),
-      );
-      await tester.pumpAndSettle();
-
-      // 键盘收起 → 弹窗应停留在用户拖到的位置，不再回弹到 0.6。
-      tester.view.viewInsets = FakeViewPadding.zero;
-      await tester.pumpAndSettle();
-
-      final height = tester.getSize(sheetList).height;
-      // 0.4×800=320 弹窗（List 更矮）；若错误回弹 0.6×800=480 则明显更高。
-      expect(height, lessThan(320));
-    });
-
-    testWidgets('键盘收起：点过「收起」后弹窗不被拉回 0.6（评审 #4 场景2）', (tester) async {
-      await _pump(
-        tester,
-        initialLocation: '/projects',
-        routes: [
-          GoRoute(path: '/projects', builder: (_, _) => const ProjectsPage()),
-          GoRoute(path: '/projects/:id', builder: (_, _) => const Scaffold()),
-        ],
-        projects: [_project('p1', '工作')],
-      );
-
-      await tester.tap(find.byType(FloatingActionButton));
-      await tester.pumpAndSettle();
-
-      // 键盘弹出 → 全屏态出现收起按钮。
-      tester.view.viewInsets = FakeViewPadding(bottom: 300);
-      addTearDown(tester.view.reset);
-      await tester.pumpAndSettle();
-
-      // 点击收起（用户主动接管）→ 再拖回全屏。
-      await tester.tap(find.byIcon(Icons.keyboard_arrow_down));
-      await tester.pumpAndSettle();
-      final sheetList = find.descendant(
-        of: find.byType(DraggableScrollableSheet),
-        matching: find.byType(ListView),
-      );
-      final listTop = tester.getTopLeft(sheetList);
-      await tester.dragFrom(
-        listTop + const Offset(100, 10),
-        const Offset(0, -250),
-      );
-      await tester.pumpAndSettle();
-
-      // 键盘收起 → 用户拖到的全屏位置应保持，不被拉回 0.6。
-      tester.view.viewInsets = FakeViewPadding.zero;
-      await tester.pumpAndSettle();
-
-      final height = tester.getSize(sheetList).height;
-      // 全屏 800 弹窗；若被错误拉回 0.6×800=480 则明显更矮。
-      expect(height, greaterThan(500));
     });
 
     testWidgets('编辑模式：预填超长名称时保存显示长度校验文案（评审 #2）', (tester) async {

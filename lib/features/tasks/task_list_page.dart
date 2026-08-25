@@ -19,6 +19,7 @@ import '../../shared/widgets/staggered_fade_slide.dart';
 import '../projects/project_providers.dart';
 import '../projects/widgets/project_form_dialog.dart';
 import '../today/today_providers.dart';
+import 'task_edit_page.dart';
 import 'task_providers.dart';
 import 'widgets/task_create_sheet.dart';
 import 'widgets/task_tree.dart';
@@ -387,7 +388,7 @@ class _TodayBody extends ConsumerWidget {
       isOverdue: view.isOverdue,
       tags: view.tags,
       progressValue: view.progressValue,
-      onTap: () => context.push('/task/${task.id}'),
+      onTap: () => openTaskEdit(context, taskId: task.id),
       onToggleDone: view.hasChildren
           ? null
           : (_) => repo.updateTask(

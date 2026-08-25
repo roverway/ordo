@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/db/database.dart';
 import '../../../core/db/tables.dart';
@@ -8,6 +7,7 @@ import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/custom_view_models.dart';
 import '../../projects/project_providers.dart';
+import '../../tasks/task_edit_page.dart';
 import '../../tasks/widgets/task_create_sheet.dart';
 import '../providers/custom_view_providers.dart';
 import 'filter_criteria_sheet.dart';
@@ -439,7 +439,7 @@ class PanelColumn extends ConsumerWidget {
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
-          onTap: () => context.push('/task/${task.id}'),
+          onTap: () => openTaskEdit(context, taskId: task.id),
           borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.symmetric(

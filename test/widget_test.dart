@@ -701,17 +701,17 @@ void main() {
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();
 
-    // 底部「新建项目」→ 复用 project_form_dialog（移动端为可上拉底部弹窗 D1）。
+    // 底部「新建项目」→ 复用 project_form_dialog（居中对话框）。
     await tester.tap(
       find.descendant(of: find.byType(Drawer), matching: find.text('新建项目')),
     );
     await tester.pumpAndSettle();
-    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(find.byType(Dialog), findsOneWidget);
 
     // 取消关闭，不落库。
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
-    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.byType(Dialog), findsNothing);
   });
 
   testWidgets('Settings: theme mode & language switch persist instantly', (
@@ -1057,7 +1057,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();
 
-    // 「任务分组」分组头「新建文件夹」图标 → 名称弹窗（移动端为 BottomSheet）。
+    // 「任务分组」分组头「新建文件夹」图标 → 名称弹窗（Dialog）。
     await tester.tap(
       find.descendant(
         of: find.byType(Drawer),
@@ -1065,7 +1065,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(find.byType(Dialog), findsOneWidget);
 
     await tester.enterText(find.byType(TextFormField), '新文件夹');
     await tester.tap(find.text('保存'));
@@ -1100,7 +1100,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('重命名文件夹'));
     await tester.pumpAndSettle();
-    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(find.byType(Dialog), findsOneWidget);
 
     await tester.enterText(find.byType(TextFormField), '生活夹');
     await tester.tap(find.text('保存'));

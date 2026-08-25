@@ -18,11 +18,77 @@ import 'package:go_router/go_router.dart';
 import '../../core/db/repositories/todo_repository.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/utils/app_breakpoints.dart';
 import '../../core/utils/tree.dart';
 import '../../shared/widgets/confirm_dialog.dart';
+import '../../shared/widgets/modal_side_sheet.dart';
 import '../projects/project_providers.dart';
 import 'task_providers.dart';
 import 'widgets/task_editor.dart';
+
+/// 宽屏（≥600dp）弹出右侧透明模态抽屉（Side Sheet）。
+Future<void> showTaskEditSideSheet(
+  BuildContext context, {
+  String? taskId,
+  String? projectId,
+  String? parentId,
+  int? initialStartAt,
+  int? initialEndAt,
+}) {
+  return showModalSideSheet(
+    context: context,
+    width: 520,
+    child: TaskEditPage(
+      taskId: taskId,
+      projectId: projectId,
+      parentId: parentId,
+      initialStartAt: initialStartAt,
+      initialEndAt: initialEndAt,
+    ),
+  );
+}
+
+/// 统一任务编辑/新建导航入口：
+/// - 宽屏（≥600dp）：右侧浮动抽屉（Side Sheet，宽 520dp）
+/// - 窄屏（<600dp）：全屏页面 push
+void openTaskEdit(
+  BuildContext context, {
+  String? taskId,
+  String? projectId,
+  String? parentId,
+  int? initialStartAt,
+  int? initialEndAt,
+}) {
+  if (AppBreakpoints.isWide(context)) {
+    showTaskEditSideSheet(
+      context,
+      taskId: taskId,
+      projectId: projectId,
+      parentId: parentId,
+      initialStartAt: initialStartAt,
+      initialEndAt: initialEndAt,
+    );
+  } else {
+    if (taskId != null) {
+      context.push('/task/$taskId');
+    } else {
+      final queryParams = <String, String>{};
+      if (projectId != null) queryParams['projectId'] = projectId;
+      if (parentId != null) queryParams['parentId'] = parentId;
+      if (initialStartAt != null) {
+        queryParams['startAt'] = initialStartAt.toString();
+      }
+      if (initialEndAt != null) {
+        queryParams['endAt'] = initialEndAt.toString();
+      }
+      final uri = Uri(
+        path: '/task/new',
+        queryParameters: queryParams.isEmpty ? null : queryParams,
+      );
+      context.push(uri.toString());
+    }
+  }
+}
 
 /// Task edit page — unified editor, TickTick-inspired full-screen container.
 class TaskEditPage extends ConsumerStatefulWidget {
@@ -124,11 +190,28 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
     super.dispose();
   }
 
+  void _doPop() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+      return;
+    }
+    try {
+      if (context.canPop()) {
+        context.pop();
+        return;
+      }
+    } catch (_) {}
+    try {
+      context.go('/today');
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
     final formState = ref.watch(taskFormProvider);
+    final isWide = AppBreakpoints.isWide(context);
 
     return PopScope(
       canPop: false,
@@ -145,18 +228,25 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
           );
           if (discard && context.mounted) {
             ref.read(taskFormProvider.notifier).reset();
-            context.pop();
+            _doPop();
           }
         } else {
-          context.pop();
+          _doPop();
         }
       },
       child: Scaffold(
         // 显式声明：body 高度会扣除键盘 inset（Scaffold contentBottom），
         // 底部工具栏随 body 上移，键盘弹出时不遮挡（59 修复）。
         resizeToAvoidBottomInset: true,
-        // AppBar：返回（自动 leading）+ 项目名（新建态带下拉箭头可切换，编辑态只读）+ 保存 + ⋯ 菜单。
+        // AppBar：返回 + 项目名（新建态带下拉箭头可切换，编辑态只读）+ 保存 + ⋯ 菜单。
         appBar: AppBar(
+          leading: IconButton(
+            icon: Icon(isWide ? Icons.close : Icons.arrow_back_rounded),
+            tooltip: isWide
+                ? l10n.cancel
+                : MaterialLocalizations.of(context).backButtonTooltip,
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
           titleSpacing: AppTokens.spaceXs,
           // 编辑已有任务：项目切换不落库（跨项目移动未实现），仅展示项目名；
           // 新建态保留切换入口（59 讨论定稿，消除误导）。
@@ -242,7 +332,7 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
       // 任务已删除：重设子任务快照，避免返回被「未保存」拦截（59 评审 Bug 1）。
       _editorController.markSubtasksSaved();
       ref.read(taskFormProvider.notifier).reset();
-      context.pop();
+      _doPop();
     } on RepositoryException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -280,7 +370,7 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
       // 保存成功后重设子任务快照，使 hasSubtaskChanges 归 false，
       // 返回时不再误弹「未保存更改」对话框（59 评审 Bug 1）。
       _editorController.markSubtasksSaved();
-      context.pop();
+      _doPop();
     } finally {
       _isSaving = false;
     }

@@ -17,7 +17,6 @@ import 'package:flutter/material.dart';
 
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
-import '../../../core/utils/app_breakpoints.dart';
 import 'project_color_picker_sheet.dart';
 
 // 兼容旧引用：kProjectColors 现定义在颜色选择器文件（避免循环依赖）。
@@ -33,22 +32,13 @@ Future<ProjectFormData?> showProjectFormDialog({
   int? initialColor,
   String? initialDescription,
 }) {
-  // D5：宽屏（≥600dp）居中对话框；窄屏走可上拉底部弹窗（D1）。
-  if (AppBreakpoints.isWide(context)) {
-    return showDialog<ProjectFormData>(
-      context: context,
-      builder: (dialogContext) => _ProjectFormDialog(
-        initialName: initialName,
-        initialColor: initialColor,
-        initialDescription: initialDescription,
-      ),
-    );
-  }
-  return _showProjectFormSheet(
-    context,
-    initialName: initialName,
-    initialColor: initialColor,
-    initialDescription: initialDescription,
+  return showDialog<ProjectFormData>(
+    context: context,
+    builder: (dialogContext) => _ProjectFormDialog(
+      initialName: initialName,
+      initialColor: initialColor,
+      initialDescription: initialDescription,
+    ),
   );
 }
 
@@ -65,163 +55,7 @@ class ProjectFormData {
   final String description;
 }
 
-/// 移动端：底部弹窗 + 可上拉全屏（D1）。
-///
-/// - showModalBottomSheet：isScrollControlled + useSafeArea + 顶部圆角 radiusDialog；
-/// - 外层 enableDrag: false，拖拽交由内部 DraggableScrollableSheet 接管（避免手势冲突）；
-/// - viewInsets padding 适配键盘（对齐 TaskCreateSheet.show）；
-/// - 键盘弹出时自动扩展至全屏，收起键盘回落到默认部分高度。
-Future<ProjectFormData?> _showProjectFormSheet(
-  BuildContext context, {
-  String? initialName,
-  int? initialColor,
-  String? initialDescription,
-}) {
-  return showModalBottomSheet<ProjectFormData>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    enableDrag: false,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(AppTokens.radiusDialog),
-      ),
-    ),
-    builder: (sheetContext) => Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
-      ),
-      child: _ProjectFormSheet(
-        initialName: initialName,
-        initialColor: initialColor,
-        initialDescription: initialDescription,
-      ),
-    ),
-  );
-}
-
-/// 弹窗体：DraggableScrollableSheet 负责 0.4 → 1.0 的高度拖拽与键盘适配。
-class _ProjectFormSheet extends StatefulWidget {
-  const _ProjectFormSheet({
-    this.initialName,
-    this.initialColor,
-    this.initialDescription,
-  });
-
-  final String? initialName;
-  final int? initialColor;
-  final String? initialDescription;
-
-  @override
-  State<_ProjectFormSheet> createState() => _ProjectFormSheetState();
-}
-
-class _ProjectFormSheetState extends State<_ProjectFormSheet> {
-  /// 默认部分高度（约 60% 屏高，对齐参考图 60–70%）。
-  static const double _initialFraction = 0.6;
-
-  /// 最小高度。
-  static const double _minFraction = 0.4;
-
-  /// 判定全屏的阈值（snap 到 1.0 时展示顶部收起按钮）。
-  static const double _fullscreenThreshold = 0.99;
-
-  late final DraggableScrollableController _sheetController;
-
-  /// 键盘弹出导致的自动全屏标记：键盘收起后回落到默认高度。
-  bool _expandedByKeyboard = false;
-
-  /// 当前是否全屏（控制顶部收起按钮显隐）。
-  bool _isFullscreen = false;
-
-  double _lastViewInsets = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _sheetController = DraggableScrollableController();
-    _sheetController.addListener(_onSheetSizeChanged);
-  }
-
-  @override
-  void dispose() {
-    _sheetController.dispose();
-    super.dispose();
-  }
-
-  void _onSheetSizeChanged() {
-    final isFull = _sheetController.size >= _fullscreenThreshold;
-    if (isFull != _isFullscreen && mounted) {
-      setState(() => _isFullscreen = isFull);
-    }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final insets = MediaQuery.viewInsetsOf(context).bottom;
-    if (insets > 0 && _lastViewInsets == 0) {
-      // 键盘弹出：扩展至全屏，保证输入框与操作区可见。
-      _expandedByKeyboard = !_isFullscreen;
-      _animateTo(1.0);
-    } else if (insets == 0 && _lastViewInsets > 0 && _expandedByKeyboard) {
-      // 键盘收起：仅当弹窗仍停在键盘展开过的位置（全屏）时才回落到默认高度；
-      // 用户若已手动拖离该位置，不强行回弹（评审 #4）。
-      _expandedByKeyboard = false;
-      if (_sheetController.size >= _fullscreenThreshold) {
-        _animateTo(_initialFraction);
-      }
-    }
-    _lastViewInsets = insets;
-  }
-
-  void _animateTo(double fraction) {
-    // 首帧 controller 可能尚未 attach，延后到帧后执行。
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _sheetController.isAttached) {
-        _sheetController.animateTo(
-          fraction,
-          duration: AppTokens.motionSlow,
-          curve: AppTokens.motionSpring,
-        );
-      }
-    });
-  }
-
-  /// 全屏态顶部「返回」：收起回默认部分高度。
-  void _collapse() {
-    // 用户主动接管弹窗位置：清除键盘展开标记，后续键盘收起不再回弹（评审 #4）。
-    _expandedByKeyboard = false;
-    _animateTo(_initialFraction);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: _initialFraction,
-      minChildSize: _minFraction,
-      maxChildSize: 1.0,
-      snap: true,
-      snapSizes: const [_minFraction, _initialFraction, 1.0],
-      // 拖到 0.4 是合法停靠位（配合显式 取消/保存，D4）：关闭而非收起弹窗。
-      // 默认 true 会让底部弹窗被拖拽到 min 时直接 Navigator.pop（评审回归发现）。
-      shouldCloseOnMinExtent: false,
-      controller: _sheetController,
-      builder: (context, scrollController) => _ProjectForm(
-        initialName: widget.initialName,
-        initialColor: widget.initialColor,
-        initialDescription: widget.initialDescription,
-        scrollController: scrollController,
-        isFullscreen: _isFullscreen,
-        onCollapse: _collapse,
-      ),
-    );
-  }
-}
-
-/// 桌面端：居中对话框（D5），宽度约束 400–480dp。
+/// 居中对话框，宽度约束 400–480dp。
 class _ProjectFormDialog extends StatelessWidget {
   const _ProjectFormDialog({
     this.initialName,
@@ -262,32 +96,17 @@ class _ProjectFormDialog extends StatelessWidget {
 /// 对话框宽度上限（400–480dp 区间取值）。
 const double _dialogMaxWidth = 440;
 
-/// 表单主体：弹窗与对话框共用。
-///
-/// - 弹窗模式（[scrollController] 非空）：拖拽把手 + 滚动字段区 + 固定底部操作区；
-/// - 对话框模式：普通 Column 排布，底部 取消/保存。
+/// 表单主体。
 class _ProjectForm extends StatefulWidget {
   const _ProjectForm({
     this.initialName,
     this.initialColor,
     this.initialDescription,
-    this.scrollController,
-    this.isFullscreen = false,
-    this.onCollapse,
   });
 
   final String? initialName;
   final int? initialColor;
   final String? initialDescription;
-
-  /// 非空 = 移动端弹窗模式（内容滚动、底部操作区固定、可拖拽）。
-  final ScrollController? scrollController;
-
-  /// 全屏态（snap 到 1.0）——展示顶部收起按钮。
-  final bool isFullscreen;
-
-  /// 收起回调（全屏 → 默认部分高度）。
-  final VoidCallback? onCollapse;
 
   @override
   State<_ProjectForm> createState() => _ProjectFormState();
@@ -300,7 +119,6 @@ class _ProjectFormState extends State<_ProjectForm> {
   final _formKey = GlobalKey<FormState>();
 
   bool get _isEditing => widget.initialName != null;
-  bool get _isSheet => widget.scrollController != null;
 
   @override
   void initState() {
@@ -348,35 +166,6 @@ class _ProjectFormState extends State<_ProjectForm> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    if (_isSheet) {
-      return Column(
-        mainAxisSize: MainAxisSize.max,
-        children: [
-          _buildDragHandle(theme),
-          Flexible(
-            child: Form(
-              key: _formKey,
-              child: ListView(
-                controller: widget.scrollController,
-                padding: const EdgeInsets.fromLTRB(
-                  AppTokens.spaceMd,
-                  AppTokens.spaceXxs,
-                  AppTokens.spaceMd,
-                  AppTokens.spaceSm,
-                ),
-                children: [
-                  _buildHeader(l10n, theme),
-                  const SizedBox(height: AppTokens.spaceXs),
-                  _buildFields(l10n, theme),
-                ],
-              ),
-            ),
-          ),
-          _buildActions(l10n),
-        ],
-      );
-    }
-
     return Form(
       key: _formKey,
       child: Column(
@@ -393,50 +182,14 @@ class _ProjectFormState extends State<_ProjectForm> {
     );
   }
 
-  /// 拖拽把手（弹窗顶部小药丸，提示可上下拖拽）。
-  Widget _buildDragHandle(ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.only(
-        top: AppTokens.spaceSm,
-        bottom: AppTokens.spaceXxs,
-      ),
-      child: Center(
-        child: Container(
-          width: _handleWidth,
-          height: _handleHeight,
-          decoration: BoxDecoration(
-            color: theme.colorScheme.outlineVariant,
-            borderRadius: BorderRadius.circular(_handleRadius),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// 顶栏：标题（新建/编辑）+ 全屏态收起按钮。
+  /// 顶栏：标题（新建/编辑）。
   Widget _buildHeader(AppLocalizations l10n, ThemeData theme) {
     final title = _isEditing ? l10n.editProject : l10n.newProject;
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: _isSheet
-                ? theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: AppTokens.textTitleWeight,
-                  )
-                : theme.textTheme.titleLarge,
-          ),
-        ),
-        if (widget.isFullscreen && widget.onCollapse != null)
-          IconButton(
-            tooltip: l10n.collapse,
-            onPressed: widget.onCollapse,
-            icon: const Icon(Icons.keyboard_arrow_down),
-          ),
-      ],
+    return Text(
+      title,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: theme.textTheme.titleLarge,
     );
   }
 
@@ -561,26 +314,16 @@ class _ProjectFormState extends State<_ProjectForm> {
 
   /// 底部操作区：取消 + 保存（D4 显式保存）。
   Widget _buildActions(AppLocalizations l10n) {
-    return Padding(
-      padding: _isSheet
-          ? const EdgeInsets.fromLTRB(
-              AppTokens.spaceMd,
-              AppTokens.spaceXs,
-              AppTokens.spaceMd,
-              AppTokens.spaceSm,
-            )
-          : EdgeInsets.zero,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(l10n.cancel),
-          ),
-          const SizedBox(width: AppTokens.spaceXs),
-          FilledButton(onPressed: _save, child: Text(l10n.save)),
-        ],
-      ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel),
+        ),
+        const SizedBox(width: AppTokens.spaceXs),
+        FilledButton(onPressed: _save, child: Text(l10n.save)),
+      ],
     );
   }
 
@@ -601,12 +344,3 @@ const int _descriptionMaxLength = 500;
 
 /// 选项行图标尺寸（分析报告 §3：灰色线性 ~24px，配合 56dp 行高取 22）。
 const double _optionIconSize = 22;
-
-/// 拖拽把手宽度。
-const double _handleWidth = 36;
-
-/// 拖拽把手高度。
-const double _handleHeight = 4;
-
-/// 拖拽把手圆角。
-const double _handleRadius = 2;
