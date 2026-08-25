@@ -8,6 +8,7 @@ import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/custom_view_models.dart';
 import '../../projects/project_providers.dart';
+import '../../tasks/widgets/task_create_sheet.dart';
 import '../providers/custom_view_providers.dart';
 import 'filter_criteria_sheet.dart';
 
@@ -44,17 +45,21 @@ class PanelColumn extends ConsumerWidget {
       },
       builder: (context, candidateData, rejectedData) {
         final isHovered = candidateData.isNotEmpty;
+        final isDark = theme.brightness == Brightness.dark;
+
         return Container(
           decoration: BoxDecoration(
             color: isHovered
-                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.15)
-                : theme.colorScheme.surfaceContainerLowest,
+                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.18)
+                : (isDark
+                      ? theme.colorScheme.surfaceContainerLow
+                      : theme.colorScheme.surfaceContainerLowest),
             borderRadius: BorderRadius.circular(AppTokens.radiusCard),
             border: Border.all(
               color: isHovered
                   ? theme.colorScheme.primary
-                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-              width: isHovered ? 2 : 1,
+                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
+              width: isHovered ? 1.5 : 1,
             ),
           ),
           child: Column(
@@ -67,30 +72,58 @@ class PanelColumn extends ConsumerWidget {
                 l10n,
                 panelTasksAsync.value?.totalCount ?? 0,
               ),
-              const Divider(height: 1),
 
               // ── 任务列表区 ──
               Expanded(
                 child: panelTasksAsync.when(
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
-                  error: (err, _) => Center(child: Text(err.toString())),
+                  error: (err, _) => Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppTokens.spaceMd),
+                      child: Text(
+                        err.toString(),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  ),
                   data: (data) {
                     if (data.tasks.isEmpty) {
                       return Center(
                         child: Padding(
-                          padding: const EdgeInsets.all(AppTokens.spaceMd),
-                          child: Text(
-                            l10n.noTasksInPanel,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppTokens.spaceMd,
+                            vertical: AppTokens.spaceLg,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.inbox_outlined,
+                                size: 36,
+                                color: theme.colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.35),
+                              ),
+                              const SizedBox(height: AppTokens.spaceXs),
+                              Text(
+                                l10n.noTasksInPanel,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant
+                                      .withValues(alpha: 0.6),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );
                     }
                     return ListView.separated(
-                      padding: const EdgeInsets.all(AppTokens.spaceSm),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTokens.spaceSm,
+                        vertical: AppTokens.spaceXs,
+                      ),
                       itemCount: data.tasks.length,
                       separatorBuilder: (context, index) =>
                           const SizedBox(height: AppTokens.spaceXs),
@@ -121,9 +154,12 @@ class PanelColumn extends ConsumerWidget {
 
     if (isKanban) {
       return SizedBox(
-        width: 320,
+        width: 310,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppTokens.spaceXs),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTokens.spaceXs,
+            vertical: AppTokens.spaceXs,
+          ),
           child: content,
         ),
       );
@@ -142,21 +178,24 @@ class PanelColumn extends ConsumerWidget {
     int count,
   ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTokens.spaceMd,
-        vertical: AppTokens.spaceSm,
+      padding: const EdgeInsets.fromLTRB(
+        AppTokens.spaceMd,
+        AppTokens.spaceSm,
+        AppTokens.spaceXs,
+        AppTokens.spaceXs,
       ),
       child: Row(
         children: [
-          // 面板标题
+          // 面板标题 + 数量 Badge
           Expanded(
             child: Row(
               children: [
                 Flexible(
                   child: Text(
                     panel.title,
-                    style: theme.textTheme.titleMedium?.copyWith(
+                    style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: AppTokens.textHeadingWeight,
+                      letterSpacing: 0.2,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -164,7 +203,7 @@ class PanelColumn extends ConsumerWidget {
                 const SizedBox(width: AppTokens.spaceXs),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
+                    horizontal: 7,
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
@@ -174,7 +213,8 @@ class PanelColumn extends ConsumerWidget {
                   child: Text(
                     count.toString(),
                     style: theme.textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -185,7 +225,16 @@ class PanelColumn extends ConsumerWidget {
           // 排序按钮
           PopupMenuButton<String>(
             tooltip: l10n.sortBy,
-            icon: const Icon(Icons.sort, size: 20),
+            icon: Icon(
+              Icons.swap_vert_rounded,
+              size: 20,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 160),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+            ),
             onSelected: (val) {
               if (val == 'toggle_direction') {
                 final newDir = panel.sortDirection == 'asc' ? 'desc' : 'asc';
@@ -222,9 +271,9 @@ class PanelColumn extends ConsumerWidget {
                   children: [
                     Icon(
                       panel.sortDirection == 'asc'
-                          ? Icons.arrow_upward
-                          : Icons.arrow_downward,
-                      size: 18,
+                          ? Icons.arrow_upward_rounded
+                          : Icons.arrow_downward_rounded,
+                      size: 16,
                     ),
                     const SizedBox(width: AppTokens.spaceXs),
                     Text(
@@ -243,13 +292,15 @@ class PanelColumn extends ConsumerWidget {
             tooltip: l10n.filterCriteria,
             icon: Icon(
               panel.filter.hasActiveFilter
-                  ? Icons.filter_alt
+                  ? Icons.filter_alt_rounded
                   : Icons.filter_alt_outlined,
-              size: 20,
+              size: 19,
               color: panel.filter.hasActiveFilter
                   ? theme.colorScheme.primary
-                  : null,
+                  : theme.colorScheme.onSurfaceVariant,
             ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             onPressed: () async {
               final newCriteria = await showFilterCriteriaSheet(
                 context: context,
@@ -264,7 +315,16 @@ class PanelColumn extends ConsumerWidget {
           // 更多操作
           if (onDeletePanel != null)
             PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, size: 20),
+              icon: Icon(
+                Icons.more_horiz_rounded,
+                size: 20,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 140),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+              ),
               onSelected: (val) {
                 if (val == 'delete') {
                   onDeletePanel?.call();
@@ -277,7 +337,7 @@ class PanelColumn extends ConsumerWidget {
                   value: 'edit_title',
                   child: Row(
                     children: [
-                      const Icon(Icons.edit_outlined, size: 18),
+                      const Icon(Icons.edit_outlined, size: 16),
                       const SizedBox(width: AppTokens.spaceXs),
                       Text(l10n.editPanel),
                     ],
@@ -288,8 +348,8 @@ class PanelColumn extends ConsumerWidget {
                   child: Row(
                     children: [
                       Icon(
-                        Icons.delete_outline,
-                        size: 18,
+                        Icons.delete_outline_rounded,
+                        size: 16,
                         color: theme.colorScheme.error,
                       ),
                       const SizedBox(width: AppTokens.spaceXs),
@@ -312,11 +372,19 @@ class PanelColumn extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+        ),
         title: Text(l10n.editPanel),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: InputDecoration(labelText: l10n.panelTitle),
+          decoration: InputDecoration(
+            labelText: l10n.panelTitle,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+            ),
+          ),
         ),
         actions: [
           TextButton(
@@ -349,156 +417,188 @@ class PanelColumn extends ConsumerWidget {
     final isDone = task.status == TaskStatus.done;
     final isDark = theme.brightness == Brightness.dark;
 
-    final card = Material(
-      color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
-      borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-      elevation: 1,
-      child: InkWell(
-        onTap: () => context.push('/task/${task.id}'),
-        borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-        child: Padding(
-          padding: const EdgeInsets.all(AppTokens.spaceSm),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 状态勾选 + 标题
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  GestureDetector(
-                    onTap: () async {
-                      final repo = ref.read(todoRepositoryProvider);
-                      final children = await repo.tasks.getDirectChildren(
-                        task.projectId,
-                        task.id,
-                      );
-                      if (children.isNotEmpty) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(l10n.parentTaskDerivedStatusNotice),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        }
-                        return;
-                      }
-                      final newStatus = isDone
-                          ? TaskStatus.todo
-                          : TaskStatus.done;
-                      await repo.updateTask(task.id, status: newStatus);
-                    },
-                    child: Container(
-                      width: 20,
-                      height: 20,
-                      margin: const EdgeInsets.only(
-                        top: 2,
-                        right: AppTokens.spaceXs,
-                      ),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isDone
-                            ? AppTokens.checkboxDoneFill
-                            : Colors.transparent,
-                        border: Border.all(
-                          color: isDone
-                              ? AppTokens.checkboxDoneFill
-                              : theme.colorScheme.outline,
-                          width: 2,
-                        ),
-                      ),
-                      child: isDone
-                          ? const Icon(
-                              Icons.check,
-                              size: 14,
-                              color: AppTokens.colorOnCheck,
-                            )
-                          : null,
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      task.title,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        decoration: isDone ? TextDecoration.lineThrough : null,
-                        color: isDone
-                            ? theme.colorScheme.onSurface.withValues(alpha: 0.5)
-                            : theme.colorScheme.onSurface,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  if (task.priority != TaskPriority.none) ...[
-                    const SizedBox(width: AppTokens.spaceXs),
-                    _buildPriorityFlag(task.priority),
-                  ],
-                ],
-              ),
-
-              // 项目与日期芯片
-              if (project != null || task.endAt != null) ...[
-                const SizedBox(height: AppTokens.spaceXs),
-                Wrap(
-                  spacing: AppTokens.spaceXs,
-                  crossAxisAlignment: WrapCrossAlignment.center,
+    final card = Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
+          width: 0.8,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 1.5),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: () => context.push('/task/${task.id}'),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTokens.spaceSm,
+              vertical: 10,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 状态勾选 + 标题 + 优先级
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (project != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
+                    GestureDetector(
+                      onTap: () async {
+                        final repo = ref.read(todoRepositoryProvider);
+                        final children = await repo.tasks.getDirectChildren(
+                          task.projectId,
+                          task.id,
+                        );
+                        if (children.isNotEmpty) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  l10n.parentTaskDerivedStatusNotice,
+                                ),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                          return;
+                        }
+                        final newStatus = isDone
+                            ? TaskStatus.todo
+                            : TaskStatus.done;
+                        await repo.updateTask(task.id, status: newStatus);
+                      },
+                      child: Container(
+                        width: 18,
+                        height: 18,
+                        margin: const EdgeInsets.only(
+                          top: 2,
+                          right: AppTokens.spaceXs,
                         ),
                         decoration: BoxDecoration(
-                          color: Color(project.color).withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(
-                            AppTokens.radiusChip,
+                          shape: BoxShape.circle,
+                          color: isDone
+                              ? AppTokens.checkboxDoneFill
+                              : Colors.transparent,
+                          border: Border.all(
+                            color: isDone
+                                ? AppTokens.checkboxDoneFill
+                                : theme.colorScheme.outline.withValues(
+                                    alpha: 0.6,
+                                  ),
+                            width: 1.8,
                           ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CircleAvatar(
-                              radius: 3,
-                              backgroundColor: Color(project.color),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              project.name,
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: Color(project.color),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
+                        child: isDone
+                            ? const Icon(
+                                Icons.check_rounded,
+                                size: 13,
+                                color: AppTokens.colorOnCheck,
+                              )
+                            : null,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        task.title,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          decoration: isDone
+                              ? TextDecoration.lineThrough
+                              : null,
+                          color: isDone
+                              ? theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.45,
+                                )
+                              : theme.colorScheme.onSurface,
+                          fontWeight: FontWeight.w500,
+                          height: 1.3,
                         ),
                       ),
-                    if (task.endAt != null)
-                      _buildDueDateBadge(context, theme, task.endAt!),
+                    ),
+                    if (task.priority != TaskPriority.none) ...[
+                      const SizedBox(width: AppTokens.spaceXs),
+                      _buildPriorityFlag(task.priority),
+                    ],
                   ],
                 ),
+
+                // 项目徽章与日期
+                if (project != null || task.endAt != null) ...[
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      if (project != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Color(project.color).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(
+                              AppTokens.radiusChip,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircleAvatar(
+                                radius: 3,
+                                backgroundColor: Color(project.color),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                project.name,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: Color(project.color),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (task.endAt != null)
+                        _buildDueDateBadge(context, theme, task.endAt!),
+                    ],
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
     );
 
-    // 支持桌面直接拖拽与移动端长按拖拽
     final isMobile =
         Theme.of(context).platform == TargetPlatform.android ||
         Theme.of(context).platform == TargetPlatform.iOS;
 
     final feedback = Material(
+      color: Colors.transparent,
       elevation: 6,
-      borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-      child: SizedBox(width: 280, child: Opacity(opacity: 0.85, child: card)),
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(width: 290, child: Opacity(opacity: 0.9, child: card)),
     );
 
     if (isMobile) {
       return LongPressDraggable<Task>(
         data: task,
         feedback: feedback,
-        childWhenDragging: Opacity(opacity: 0.3, child: card),
+        childWhenDragging: Opacity(opacity: 0.35, child: card),
         child: card,
       );
     }
@@ -506,7 +606,7 @@ class PanelColumn extends ConsumerWidget {
     return Draggable<Task>(
       data: task,
       feedback: feedback,
-      childWhenDragging: Opacity(opacity: 0.3, child: card),
+      childWhenDragging: Opacity(opacity: 0.35, child: card),
       child: card,
     );
   }
@@ -523,7 +623,7 @@ class PanelColumn extends ConsumerWidget {
       case TaskPriority.none:
         return const SizedBox.shrink();
     }
-    return Icon(Icons.flag, size: 16, color: color);
+    return Icon(Icons.flag_rounded, size: 15, color: color);
   }
 
   Widget _buildDueDateBadge(BuildContext context, ThemeData theme, int endAt) {
@@ -533,27 +633,37 @@ class PanelColumn extends ConsumerWidget {
 
     final dateStr = '${dueDate.month}/${dueDate.day}';
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          Icons.calendar_today_outlined,
-          size: 12,
-          color: isOverdue
-              ? AppTokens.colorOverdue
-              : theme.colorScheme.onSurfaceVariant,
-        ),
-        const SizedBox(width: 2),
-        Text(
-          dateStr,
-          style: theme.textTheme.labelSmall?.copyWith(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: isOverdue
+            ? AppTokens.colorOverdue.withValues(alpha: 0.12)
+            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.calendar_today_rounded,
+            size: 11,
             color: isOverdue
                 ? AppTokens.colorOverdue
                 : theme.colorScheme.onSurfaceVariant,
-            fontWeight: isOverdue ? FontWeight.bold : FontWeight.normal,
           ),
-        ),
-      ],
+          const SizedBox(width: 3),
+          Text(
+            dateStr,
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontSize: 11,
+              color: isOverdue
+                  ? AppTokens.colorOverdue
+                  : theme.colorScheme.onSurfaceVariant,
+              fontWeight: isOverdue ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -563,32 +673,58 @@ class PanelColumn extends ConsumerWidget {
     AppLocalizations l10n,
   ) {
     return Padding(
-      padding: const EdgeInsets.all(AppTokens.spaceXs),
-      child: InkWell(
-        onTap: () {
-          final queryParams = <String, String>{};
-          if (panel.filter.projectIds.length == 1) {
-            queryParams['projectId'] = panel.filter.projectIds.first;
-          }
-          final uri = Uri(path: '/task/new', queryParameters: queryParams);
-          context.push(uri.toString());
-        },
-        borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppTokens.spaceSm),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.add, size: 18, color: theme.colorScheme.primary),
-              const SizedBox(width: AppTokens.spaceXs),
-              Text(
-                l10n.newTask,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
+      padding: const EdgeInsets.fromLTRB(
+        AppTokens.spaceSm,
+        AppTokens.spaceXs,
+        AppTokens.spaceSm,
+        AppTokens.spaceSm,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            TaskCreateSheet.show(
+              context,
+              projectId: panel.filter.projectIds.length == 1
+                  ? panel.filter.projectIds.first
+                  : null,
+              initialPriority: panel.filter.priorities.length == 1
+                  ? panel.filter.priorities.first
+                  : null,
+              initialTagIds: panel.filter.tagIds.isNotEmpty
+                  ? panel.filter.tagIds
+                  : null,
+            );
+          },
+          borderRadius: BorderRadius.circular(AppTokens.radiusButton),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 9),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppTokens.radiusButton),
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
+                width: 0.9,
               ),
-            ],
+              color: theme.colorScheme.surface.withValues(alpha: 0.5),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.add_rounded,
+                  size: 17,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  l10n.newTask,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

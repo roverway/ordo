@@ -84,6 +84,9 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
           layoutMode: _layoutMode,
           panels: _panels,
         );
+        if (mounted) {
+          _navigateBackOrTo('/custom_view/${widget.viewId}');
+        }
       } else {
         final created = await ops.createView(
           name: name,
@@ -93,12 +96,14 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
           panels: _panels,
         );
         if (mounted) {
-          context.pushReplacement('/custom_view/${created.id}');
-          return;
+          try {
+            context.go('/custom_view/${created.id}');
+          } catch (_) {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
+          }
         }
-      }
-      if (mounted) {
-        context.pop();
       }
     } finally {
       if (mounted) {
@@ -107,10 +112,32 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
     }
   }
 
+  void _navigateBackOrTo(String fallbackPath) {
+    try {
+      if (context.canPop()) {
+        context.pop();
+        return;
+      }
+    } catch (_) {}
+
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      try {
+        context.go(fallbackPath);
+      } catch (_) {}
+    }
+  }
+
+  void _handleBack() {
+    _navigateBackOrTo('/today');
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     if (widget.viewId != null) {
       final viewAsync = ref.watch(customViewDetailProvider(widget.viewId!));
@@ -123,20 +150,40 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
     }
 
     return Scaffold(
+      backgroundColor: isDark
+          ? AppTokens.surfacePageDark
+          : AppTokens.surfacePageLight,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+          onPressed: _handleBack,
+        ),
         title: Text(
           widget.viewId == null ? l10n.newCustomView : l10n.editCustomView,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: AppTokens.textHeadingWeight,
+          ),
         ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: AppTokens.spaceSm),
             child: FilledButton(
               onPressed: _saving ? null : _save,
+              style: FilledButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTokens.radiusButton),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+              ),
               child: _saving
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : Text(l10n.save),
             ),
@@ -144,162 +191,207 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(AppTokens.spaceMd),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTokens.spaceMd,
+          vertical: AppTokens.spaceSm,
+        ),
         children: [
-          // ── 基本信息卡片 ──
-          Card(
-            shape: RoundedRectangleBorder(
+          // ── 1. 基本信息 Hero 卡片 ──
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
               borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
+                width: 0.8,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(AppTokens.spaceMd),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 名称与图标/颜色
-                  Row(
-                    children: [
-                      // 图标选择器
-                      InkWell(
-                        onTap: () async {
-                          final selected = await showCustomViewIconPicker(
-                            context,
-                            currentIcon: _icon,
-                            color: _color,
-                          );
-                          if (selected != null) {
-                            setState(() => _icon = selected);
-                          }
-                        },
-                        borderRadius: BorderRadius.circular(
-                          AppTokens.radiusCard,
+            padding: const EdgeInsets.all(AppTokens.spaceMd),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 名称、图标与颜色选择
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // 图标选择徽章
+                    InkWell(
+                      onTap: () async {
+                        final selected = await showCustomViewIconPicker(
+                          context,
+                          currentIcon: _icon,
+                          color: _color,
+                        );
+                        if (selected != null) {
+                          setState(() => _icon = selected);
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Color(_color).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: Color(_color).withValues(alpha: 0.3),
+                            width: 1.2,
+                          ),
                         ),
-                        child: Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: Color(_color).withValues(alpha: 0.15),
+                        child: Icon(
+                          getCustomViewIcon(_icon),
+                          color: Color(_color),
+                          size: 26,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppTokens.spaceSm),
+
+                    // 颜色选择器圆点
+                    InkWell(
+                      onTap: () async {
+                        final selectedColor = await showProjectColorPicker(
+                          context: context,
+                          current: Color(_color),
+                        );
+                        if (selectedColor != null) {
+                          setState(() => _color = selectedColor.toARGB32());
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                      child: Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: Color(_color),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isDark ? Colors.grey[800]! : Colors.white,
+                            width: 2.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(_color).withValues(alpha: 0.4),
+                              blurRadius: 6,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppTokens.spaceSm),
+
+                    // 视图名称输入框
+                    Expanded(
+                      child: TextField(
+                        controller: _nameController,
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                        decoration: InputDecoration(
+                          labelText: l10n.viewName,
+                          hintText: l10n.viewNameHint,
+                          filled: true,
+                          fillColor: isDark
+                              ? theme.colorScheme.surfaceContainerHigh
+                              : theme.colorScheme.surfaceContainerLowest,
+                          border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(
                               AppTokens.radiusCard,
                             ),
+                            borderSide: BorderSide(
+                              color: theme.colorScheme.outlineVariant
+                                  .withValues(alpha: 0.3),
+                            ),
                           ),
-                          child: Icon(
-                            getCustomViewIcon(_icon),
-                            color: Color(_color),
-                            size: 26,
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppTokens.radiusCard,
+                            ),
+                            borderSide: BorderSide(
+                              color: theme.colorScheme.outlineVariant
+                                  .withValues(alpha: 0.3),
+                            ),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: AppTokens.spaceSm,
+                            vertical: 12,
                           ),
                         ),
                       ),
-                      const SizedBox(width: AppTokens.spaceSm),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppTokens.spaceMd),
 
-                      // 颜色选择器圆点
-                      InkWell(
-                        onTap: () async {
-                          final selectedColor = await showProjectColorPicker(
-                            context: context,
-                            current: Color(_color),
-                          );
-                          if (selectedColor != null) {
-                            setState(() => _color = selectedColor.toARGB32());
-                          }
-                        },
-                        borderRadius: BorderRadius.circular(
-                          AppTokens.radiusChip,
-                        ),
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: Color(_color),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 4,
-                              ),
-                            ],
-                          ),
-                        ),
+                // 布局模式切换
+                Row(
+                  children: [
+                    Text(
+                      l10n.viewLayout,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
-                      const SizedBox(width: AppTokens.spaceSm),
-
-                      // 视图名称输入框
-                      Expanded(
-                        child: TextField(
-                          controller: _nameController,
-                          decoration: InputDecoration(
-                            labelText: l10n.viewName,
-                            hintText: l10n.viewNameHint,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(
-                                AppTokens.radiusCard,
-                              ),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: AppTokens.spaceSm,
-                              vertical: AppTokens.spaceSm,
+                    ),
+                    const Spacer(),
+                    SegmentedButton<String>(
+                      segments: [
+                        ButtonSegment(
+                          value: 'kanban',
+                          label: Text(l10n.layoutKanban),
+                          icon: const Icon(Icons.view_kanban_rounded, size: 17),
+                        ),
+                        ButtonSegment(
+                          value: 'list',
+                          label: Text(l10n.layoutList),
+                          icon: const Icon(Icons.view_agenda_rounded, size: 17),
+                        ),
+                      ],
+                      selected: {_layoutMode},
+                      style: ButtonStyle(
+                        visualDensity: VisualDensity.compact,
+                        shape: WidgetStatePropertyAll(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppTokens.radiusChip,
                             ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: AppTokens.spaceMd),
-
-                  // 布局模式
-                  Row(
-                    children: [
-                      Text(
-                        l10n.viewLayout,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const Spacer(),
-                      SegmentedButton<String>(
-                        segments: [
-                          ButtonSegment(
-                            value: 'kanban',
-                            label: Text(l10n.layoutKanban),
-                            icon: const Icon(
-                              Icons.view_kanban_outlined,
-                              size: 18,
-                            ),
-                          ),
-                          ButtonSegment(
-                            value: 'list',
-                            label: Text(l10n.layoutList),
-                            icon: const Icon(
-                              Icons.view_agenda_outlined,
-                              size: 18,
-                            ),
-                          ),
-                        ],
-                        selected: {_layoutMode},
-                        onSelectionChanged: (set) {
-                          setState(() => _layoutMode = set.first);
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                      onSelectionChanged: (set) {
+                        setState(() => _layoutMode = set.first);
+                      },
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
           const SizedBox(height: AppTokens.spaceMd),
 
-          // ── 快速模板预设 ──
+          // ── 2. 快速模板预设 ──
           Row(
             children: [
+              Icon(
+                Icons.auto_awesome_rounded,
+                size: 17,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 6),
               Text(
                 l10n.presetTemplates,
                 style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: AppTokens.textHeadingWeight,
                   color: theme.colorScheme.primary,
                 ),
               ),
-              const Spacer(),
             ],
           ),
           const SizedBox(height: AppTokens.spaceXs),
@@ -307,8 +399,18 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
             spacing: AppTokens.spaceSm,
             children: [
               ActionChip(
-                avatar: const Icon(Icons.auto_awesome, size: 16),
+                avatar: Icon(
+                  Icons.view_column_rounded,
+                  size: 15,
+                  color: theme.colorScheme.primary,
+                ),
                 label: Text(l10n.presetStatusKanban),
+                backgroundColor: theme.colorScheme.primaryContainer.withValues(
+                  alpha: 0.25,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                ),
                 onPressed: () {
                   setState(() {
                     _panels = createStatusKanbanPanels(
@@ -320,8 +422,18 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                 },
               ),
               ActionChip(
-                avatar: const Icon(Icons.flag_outlined, size: 16),
+                avatar: const Icon(
+                  Icons.flag_rounded,
+                  size: 15,
+                  color: AppTokens.colorPriorityHigh,
+                ),
                 label: Text(l10n.presetPriorityKanban),
+                backgroundColor: AppTokens.colorPriorityHigh.withValues(
+                  alpha: 0.1,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                ),
                 onPressed: () {
                   setState(() {
                     _panels = createPriorityKanbanPanels(
@@ -335,22 +447,28 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
               ),
             ],
           ),
-          const SizedBox(height: AppTokens.spaceMd),
+          const SizedBox(height: AppTokens.spaceLg),
 
-          // ── 面板列表管理 ──
+          // ── 3. 面板列表管理 ──
           Row(
             children: [
               Text(
                 '${l10n.panelTitle} (${_panels.length})',
-                style: theme.textTheme.titleMedium?.copyWith(
+                style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: AppTokens.textHeadingWeight,
                 ),
               ),
               const Spacer(),
               FilledButton.tonalIcon(
                 onPressed: _addNewPanel,
-                icon: const Icon(Icons.add, size: 18),
+                icon: const Icon(Icons.add_rounded, size: 17),
                 label: Text(l10n.addPanel),
+                style: FilledButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                  ),
+                ),
               ),
             ],
           ),
@@ -370,25 +488,61 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
             },
             itemBuilder: (context, index) {
               final panel = _panels[index];
-              return Card(
+              return Container(
                 key: ValueKey(panel.id),
                 margin: const EdgeInsets.only(bottom: AppTokens.spaceSm),
-                shape: RoundedRectangleBorder(
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? AppTokens.surfaceCardDark
+                      : AppTokens.surfaceCard,
                   borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : theme.colorScheme.outlineVariant.withValues(
+                            alpha: 0.35,
+                          ),
+                    width: 0.8,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.2 : 0.02,
+                      ),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1.5),
+                    ),
+                  ],
                 ),
                 child: ListTile(
-                  leading: const Icon(Icons.drag_handle),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppTokens.spaceSm,
+                    vertical: 4,
+                  ),
+                  leading: Icon(
+                    Icons.drag_indicator_rounded,
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.5,
+                    ),
+                  ),
                   title: Text(
                     panel.title,
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  subtitle: _buildFilterSummary(panel.filter, l10n),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: _buildFilterSummary(panel.filter, l10n),
+                  ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
                         tooltip: l10n.filterCriteria,
-                        icon: const Icon(Icons.tune),
+                        icon: Icon(
+                          Icons.tune_rounded,
+                          size: 19,
+                          color: theme.colorScheme.primary,
+                        ),
                         onPressed: () async {
                           final newCriteria = await showFilterCriteriaSheet(
                             context: context,
@@ -405,13 +559,14 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                       ),
                       IconButton(
                         tooltip: l10n.editPanel,
-                        icon: const Icon(Icons.edit_outlined),
+                        icon: const Icon(Icons.edit_outlined, size: 18),
                         onPressed: () => _editPanelTitle(index),
                       ),
                       IconButton(
                         tooltip: l10n.deletePanel,
                         icon: Icon(
-                          Icons.delete_outline,
+                          Icons.delete_outline_rounded,
+                          size: 18,
                           color: theme.colorScheme.error,
                         ),
                         onPressed: () {
@@ -426,6 +581,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
               );
             },
           ),
+          const SizedBox(height: AppTokens.spaceLg),
         ],
       ),
     );
@@ -434,16 +590,16 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
   Widget _buildFilterSummary(FilterCriteria filter, AppLocalizations l10n) {
     final chips = <String>[];
     if (filter.statuses.isNotEmpty) {
-      chips.add('${filter.statuses.length} 个状态');
+      chips.add('${filter.statuses.length} 状态');
     }
     if (filter.priorities.isNotEmpty) {
-      chips.add('${filter.priorities.length} 个优先级');
+      chips.add('${filter.priorities.length} 优先级');
     }
     if (filter.projectIds.isNotEmpty) {
-      chips.add('${filter.projectIds.length} 个项目');
+      chips.add('${filter.projectIds.length} 项目');
     }
     if (filter.tagIds.isNotEmpty) {
-      chips.add('${filter.tagIds.length} 个标签');
+      chips.add('${filter.tagIds.length} 标签');
     }
     if (filter.dateScope != DateScopeEnum.all) {
       chips.add(filter.dateScope.name);
@@ -455,13 +611,35 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
     if (chips.isEmpty) {
       return Text(
         '全部任务',
-        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        style: TextStyle(
+          fontSize: 12,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
       );
     }
 
-    return Text(
-      chips.join(' · '),
-      style: TextStyle(color: Theme.of(context).colorScheme.primary),
+    return Wrap(
+      spacing: 4,
+      runSpacing: 4,
+      children: chips.map((c) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: Theme.of(
+              context,
+            ).colorScheme.primaryContainer.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+          ),
+          child: Text(
+            c,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -472,6 +650,9 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+        ),
         title: Text(l10n.addPanel),
         content: TextField(
           controller: controller,
@@ -479,6 +660,9 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
           decoration: InputDecoration(
             labelText: l10n.panelTitle,
             hintText: l10n.panelTitleHint,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+            ),
           ),
         ),
         actions: [
@@ -517,11 +701,19 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+        ),
         title: Text(l10n.editPanel),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: InputDecoration(labelText: l10n.panelTitle),
+          decoration: InputDecoration(
+            labelText: l10n.panelTitle,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+            ),
+          ),
         ),
         actions: [
           TextButton(

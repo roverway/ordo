@@ -29,6 +29,8 @@ class TaskCreateSheet extends ConsumerStatefulWidget {
     this.parentId,
     this.initialStartAt,
     this.initialEndAt,
+    this.initialPriority,
+    this.initialTagIds,
   });
 
   final String? projectId;
@@ -37,6 +39,12 @@ class TaskCreateSheet extends ConsumerStatefulWidget {
   /// 预填开始/截止时间（UTC 毫秒，日历「点日期新建」传入）。
   final int? initialStartAt;
   final int? initialEndAt;
+
+  /// 预填优先级（看板/筛选列「按优先级筛选」传入）。
+  final TaskPriority? initialPriority;
+
+  /// 预填关联标签（看板/筛选列「按标签筛选」传入）。
+  final List<String>? initialTagIds;
 
   /// 打开新建任务底部弹窗（滴答式，viewInsets 适配键盘）。
   ///
@@ -60,6 +68,8 @@ class TaskCreateSheet extends ConsumerStatefulWidget {
     String? parentId,
     int? initialStartAt,
     int? initialEndAt,
+    TaskPriority? initialPriority,
+    List<String>? initialTagIds,
   }) {
     return showGeneralDialog<void>(
       context: context,
@@ -115,6 +125,8 @@ class TaskCreateSheet extends ConsumerStatefulWidget {
                   parentId: parentId,
                   initialStartAt: initialStartAt,
                   initialEndAt: initialEndAt,
+                  initialPriority: initialPriority,
+                  initialTagIds: initialTagIds,
                 ),
               ),
             ),
@@ -145,12 +157,6 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet> {
   }
 
   /// 初始化表单：同步复位 + 解析项目（缺省收件箱，幂等 ensure，产品决策 #3）。
-  ///
-  /// 顺序修复（评审问题 2）：先在首帧后**同步** `resetForNew`（projectId 用
-  /// widget 传入值或内置收件箱固定 id [inboxProjectId]，无需任何 await），
-  /// 再在 inbox ensure future 解析完成后仅用 [setProjectAndParent] 校正项目
-  /// 字段——该方法保留表单其余字段（标题/优先级/日期等），不会清空用户
-  /// 已输入内容。避免「await 期间输入被 resetForNew 静默清空」的丢数据窗口。
   Future<void> _initForm() async {
     if (_initialized) return;
     _initialized = true;
@@ -164,6 +170,12 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet> {
     }
     if (widget.initialEndAt != null) {
       notifier.updateEndAt(widget.initialEndAt);
+    }
+    if (widget.initialPriority != null) {
+      notifier.updatePriority(widget.initialPriority!);
+    }
+    if (widget.initialTagIds != null && widget.initialTagIds!.isNotEmpty) {
+      notifier.setSelectedTags(widget.initialTagIds!);
     }
 
     // 2. 缺省项目时确保收件箱行存在（幂等），解析完成后仅校正项目字段。

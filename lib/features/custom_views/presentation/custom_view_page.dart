@@ -111,6 +111,9 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+        ),
         title: Text(l10n.confirm),
         content: Text('移动到「${targetPanel.title}」面板，请确认要修改的任务属性：'),
         actions: [
@@ -155,6 +158,9 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+        ),
         title: Text(l10n.deleteCustomView),
         content: Text(l10n.deleteCustomViewConfirm(view.name)),
         actions: [
@@ -185,16 +191,23 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final isWide = AppBreakpoints.isWide(context);
 
     final viewAsync = ref.watch(customViewDetailProvider(widget.viewId));
 
     return viewAsync.when(
-      loading: () => const Scaffold(
-        drawer: AppDrawer(),
-        body: Center(child: CircularProgressIndicator()),
+      loading: () => Scaffold(
+        backgroundColor: isDark
+            ? AppTokens.surfacePageDark
+            : AppTokens.surfacePageLight,
+        drawer: const AppDrawer(),
+        body: const Center(child: CircularProgressIndicator()),
       ),
       error: (err, _) => Scaffold(
+        backgroundColor: isDark
+            ? AppTokens.surfacePageDark
+            : AppTokens.surfacePageLight,
         drawer: const AppDrawer(),
         appBar: AppBar(),
         body: Center(child: Text(err.toString())),
@@ -202,6 +215,9 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
       data: (CustomView? view) {
         if (view == null) {
           return Scaffold(
+            backgroundColor: isDark
+                ? AppTokens.surfacePageDark
+                : AppTokens.surfacePageLight,
             drawer: const AppDrawer(),
             appBar: AppBar(title: Text(l10n.customViews)),
             body: Center(child: Text(l10n.noCustomViews)),
@@ -213,44 +229,68 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
         // 如果视图没有面板，提供空状态与引导添加面板
         if (panels.isEmpty) {
           return Scaffold(
+            backgroundColor: isDark
+                ? AppTokens.surfacePageDark
+                : AppTokens.surfacePageLight,
             drawer: const AppDrawer(),
             appBar: AppBar(
-              title: Row(
-                children: [
-                  Icon(getCustomViewIcon(view.icon), color: Color(view.color)),
-                  const SizedBox(width: AppTokens.spaceSm),
-                  Text(view.name),
-                ],
-              ),
+              title: _buildViewTitle(view),
               actions: [
                 IconButton(
                   tooltip: l10n.editCustomView,
-                  icon: const Icon(Icons.edit_outlined),
+                  icon: const Icon(Icons.tune_rounded),
                   onPressed: () => context.push('/custom_view/${view.id}/edit'),
                 ),
               ],
             ),
             body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.dashboard_customize_outlined,
-                    size: 64,
-                    color: theme.colorScheme.onSurfaceVariant.withValues(
-                      alpha: 0.5,
+              child: Container(
+                margin: const EdgeInsets.all(AppTokens.spaceXl),
+                padding: const EdgeInsets.all(AppTokens.spaceXl),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? AppTokens.surfaceCardDark
+                      : AppTokens.surfaceCard,
+                  borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : theme.colorScheme.outlineVariant.withValues(
+                            alpha: 0.35,
+                          ),
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.dashboard_customize_outlined,
+                      size: 56,
+                      color: theme.colorScheme.primary.withValues(alpha: 0.7),
                     ),
-                  ),
-                  const SizedBox(height: AppTokens.spaceMd),
-                  Text(l10n.noTasksInPanel, style: theme.textTheme.titleMedium),
-                  const SizedBox(height: AppTokens.spaceSm),
-                  FilledButton.icon(
-                    onPressed: () =>
-                        context.push('/custom_view/${view.id}/edit'),
-                    icon: const Icon(Icons.tune),
-                    label: Text(l10n.editCustomView),
-                  ),
-                ],
+                    const SizedBox(height: AppTokens.spaceMd),
+                    Text(
+                      l10n.noTasksInPanel,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: AppTokens.textHeadingWeight,
+                      ),
+                    ),
+                    const SizedBox(height: AppTokens.spaceXs),
+                    Text(
+                      '该视图暂未配置任何面板列',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: AppTokens.spaceMd),
+                    FilledButton.icon(
+                      onPressed: () =>
+                          context.push('/custom_view/${view.id}/edit'),
+                      icon: const Icon(Icons.tune_rounded, size: 18),
+                      label: Text(l10n.editCustomView),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -259,22 +299,22 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
         // 宽屏模式（≥600dp）或指定 kanban 布局时：横向多列看板
         if (isWide || view.layoutMode == 'kanban') {
           return Scaffold(
+            backgroundColor: isDark
+                ? AppTokens.surfacePageDark
+                : AppTokens.surfacePageLight,
             drawer: const AppDrawer(),
             appBar: AppBar(
-              title: Row(
-                children: [
-                  Icon(getCustomViewIcon(view.icon), color: Color(view.color)),
-                  const SizedBox(width: AppTokens.spaceSm),
-                  Text(view.name),
-                ],
-              ),
+              title: _buildViewTitle(view),
               actions: [
                 IconButton(
                   tooltip: l10n.editCustomView,
-                  icon: const Icon(Icons.edit_outlined),
+                  icon: const Icon(Icons.tune_rounded),
                   onPressed: () => context.push('/custom_view/${view.id}/edit'),
                 ),
                 PopupMenuButton<String>(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                  ),
                   onSelected: (val) {
                     if (val == 'delete') {
                       _confirmDeleteView(view);
@@ -286,7 +326,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
                       child: Row(
                         children: [
                           Icon(
-                            Icons.delete_outline,
+                            Icons.delete_outline_rounded,
                             size: 18,
                             color: theme.colorScheme.error,
                           ),
@@ -304,7 +344,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
             ),
             body: Padding(
               padding: const EdgeInsets.symmetric(
-                vertical: AppTokens.spaceSm,
+                vertical: AppTokens.spaceXs,
                 horizontal: AppTokens.spaceSm,
               ),
               child: ListView.builder(
@@ -335,22 +375,22 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
         return DefaultTabController(
           length: panels.length,
           child: Scaffold(
+            backgroundColor: isDark
+                ? AppTokens.surfacePageDark
+                : AppTokens.surfacePageLight,
             drawer: const AppDrawer(),
             appBar: AppBar(
-              title: Row(
-                children: [
-                  Icon(getCustomViewIcon(view.icon), color: Color(view.color)),
-                  const SizedBox(width: AppTokens.spaceSm),
-                  Text(view.name),
-                ],
-              ),
+              title: _buildViewTitle(view),
               actions: [
                 IconButton(
                   tooltip: l10n.editCustomView,
-                  icon: const Icon(Icons.edit_outlined),
+                  icon: const Icon(Icons.tune_rounded),
                   onPressed: () => context.push('/custom_view/${view.id}/edit'),
                 ),
                 PopupMenuButton<String>(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                  ),
                   onSelected: (val) {
                     if (val == 'delete') {
                       _confirmDeleteView(view);
@@ -362,7 +402,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
                       child: Row(
                         children: [
                           Icon(
-                            Icons.delete_outline,
+                            Icons.delete_outline_rounded,
                             size: 18,
                             color: theme.colorScheme.error,
                           ),
@@ -380,6 +420,8 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
               bottom: TabBar(
                 isScrollable: panels.length > 3,
                 tabAlignment: panels.length > 3 ? TabAlignment.start : null,
+                dividerColor: Colors.transparent,
+                indicatorSize: TabBarIndicatorSize.label,
                 tabs: panels.map((p) => Tab(text: p.title)).toList(),
               ),
             ),
@@ -405,6 +447,37 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildViewTitle(CustomView view) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Color(view.color).withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+          ),
+          child: Icon(
+            getCustomViewIcon(view.icon),
+            color: Color(view.color),
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: AppTokens.spaceSm),
+        Flexible(
+          child: Text(
+            view.name,
+            style: const TextStyle(
+              fontWeight: AppTokens.textHeadingWeight,
+              letterSpacing: 0.2,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 }

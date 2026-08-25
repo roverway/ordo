@@ -367,7 +367,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                 IconButton(
                   tooltip: l10n.newCustomView,
                   icon: const Icon(Icons.add, size: 18),
-                  onPressed: () => _go(context, '/custom_view/new'),
+                  onPressed: () => _push(context, '/custom_view/new'),
                 ),
               ],
             ),
@@ -1084,6 +1084,14 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     _navigating = true;
     Navigator.of(context).pop();
     context.go(path);
+  }
+
+  /// 关闭抽屉并推入目标页面（push 保持导航栈，支持返回上级页面）。
+  void _push(BuildContext context, String path) {
+    if (_navigating) return;
+    _navigating = true;
+    Navigator.of(context).pop();
+    context.push(path);
   }
 
   /// 关闭抽屉并推入设置页（push 保持导航栈，设置页可返回任务页）。

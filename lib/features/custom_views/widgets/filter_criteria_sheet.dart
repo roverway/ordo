@@ -23,7 +23,7 @@ Future<FilterCriteria?> showFilterCriteriaSheet({
           borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
         ),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 540, maxHeight: 680),
+          constraints: const BoxConstraints(maxWidth: 520, maxHeight: 680),
           child: _FilterCriteriaForm(
             initialCriteria: initialCriteria,
             onClose: (result) => Navigator.of(dialogContext).pop(result),
@@ -44,7 +44,7 @@ Future<FilterCriteria?> showFilterCriteriaSheet({
       ),
     ),
     builder: (sheetContext) => DraggableScrollableSheet(
-      initialChildSize: 0.75,
+      initialChildSize: 0.78,
       minChildSize: 0.5,
       maxChildSize: 0.95,
       expand: false,
@@ -139,6 +139,7 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final projectsAsync = ref.watch(projectsStreamProvider);
     final foldersAsync = ref.watch(foldersStreamProvider);
     final tagsAsync = ref.watch(tagsStreamProvider);
@@ -151,9 +152,11 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
       children: [
         // 头部导航条
         Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppTokens.spaceMd,
-            vertical: AppTokens.spaceSm,
+          padding: const EdgeInsets.fromLTRB(
+            AppTokens.spaceMd,
+            AppTokens.spaceSm,
+            AppTokens.spaceXs,
+            AppTokens.spaceSm,
           ),
           child: Row(
             children: [
@@ -164,15 +167,22 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
                 ),
               ),
               const Spacer(),
-              TextButton(onPressed: _reset, child: Text(l10n.resetFilter)),
+              TextButton(
+                onPressed: _reset,
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
+                child: Text(l10n.resetFilter),
+              ),
               IconButton(
-                icon: const Icon(Icons.close),
+                icon: const Icon(Icons.close_rounded, size: 20),
                 onPressed: () => widget.onClose(null),
               ),
             ],
           ),
         ),
         const Divider(height: 1),
+
         // 滚动表单体
         Expanded(
           child: ListView(
@@ -184,21 +194,52 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
                 controller: _searchController,
                 decoration: InputDecoration(
                   labelText: l10n.searchHint,
-                  prefixIcon: const Icon(Icons.search),
+                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, size: 18),
+                          onPressed: () {
+                            setState(() => _searchController.clear());
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: isDark
+                      ? theme.colorScheme.surfaceContainerHigh
+                      : theme.colorScheme.surfaceContainerLowest,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                    borderSide: BorderSide(
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.3,
+                      ),
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                    borderSide: BorderSide(
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.3,
+                      ),
+                    ),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: AppTokens.spaceSm,
+                    vertical: 10,
                   ),
                 ),
+                onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: AppTokens.spaceMd),
 
               // 状态筛选
-              _buildSectionHeader(l10n.filterByStatus),
+              _buildSectionHeader(
+                l10n.filterByStatus,
+                Icons.check_circle_outline_rounded,
+              ),
               Wrap(
                 spacing: AppTokens.spaceXs,
+                runSpacing: AppTokens.spaceXs,
                 children: [
                   _buildChoiceChip(
                     label: l10n.statusTodo,
@@ -213,6 +254,7 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
                   ),
                   _buildChoiceChip(
                     label: l10n.statusInProgress,
+                    color: AppTokens.colorInProgress,
                     selected: _statuses.contains(TaskStatus.inProgress),
                     onSelected: (selected) {
                       setState(() {
@@ -224,6 +266,7 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
                   ),
                   _buildChoiceChip(
                     label: l10n.statusDone,
+                    color: AppTokens.colorDone,
                     selected: _statuses.contains(TaskStatus.done),
                     onSelected: (selected) {
                       setState(() {
@@ -238,9 +281,10 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
               const SizedBox(height: AppTokens.spaceMd),
 
               // 优先级筛选
-              _buildSectionHeader(l10n.filterByPriority),
+              _buildSectionHeader(l10n.filterByPriority, Icons.flag_outlined),
               Wrap(
                 spacing: AppTokens.spaceXs,
+                runSpacing: AppTokens.spaceXs,
                 children: [
                   _buildChoiceChip(
                     label: l10n.priorityHigh,
@@ -294,7 +338,10 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
               const SizedBox(height: AppTokens.spaceMd),
 
               // 日期范围
-              _buildSectionHeader(l10n.filterByDate),
+              _buildSectionHeader(
+                l10n.filterByDate,
+                Icons.calendar_today_outlined,
+              ),
               Wrap(
                 spacing: AppTokens.spaceXs,
                 runSpacing: AppTokens.spaceXs,
@@ -340,7 +387,10 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
               const SizedBox(height: AppTokens.spaceMd),
 
               // 任务层级
-              _buildSectionHeader(l10n.filterByHierarchy),
+              _buildSectionHeader(
+                l10n.filterByHierarchy,
+                Icons.account_tree_outlined,
+              ),
               Wrap(
                 spacing: AppTokens.spaceXs,
                 children: [
@@ -372,7 +422,10 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
 
               // 所属项目
               if (projects.isNotEmpty) ...[
-                _buildSectionHeader(l10n.filterByProject),
+                _buildSectionHeader(
+                  l10n.filterByProject,
+                  Icons.folder_outlined,
+                ),
                 Wrap(
                   spacing: AppTokens.spaceXs,
                   runSpacing: AppTokens.spaceXs,
@@ -381,8 +434,13 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
                     return FilterChip(
                       label: Text(p.name),
                       avatar: CircleAvatar(
-                        radius: 5,
+                        radius: 4,
                         backgroundColor: Color(p.color),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusChip,
+                        ),
                       ),
                       selected: isSelected,
                       onSelected: (selected) {
@@ -402,12 +460,18 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
               if (tags.isNotEmpty) ...[
                 Row(
                   children: [
-                    _buildSectionHeader(l10n.filterByTag),
+                    _buildSectionHeader(
+                      l10n.filterByTag,
+                      Icons.local_offer_outlined,
+                    ),
                     const Spacer(),
                     Text(
                       _tagMatchAll ? l10n.tagMatchAll : l10n.tagMatchAny,
-                      style: theme.textTheme.bodySmall,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
+                    const SizedBox(width: 4),
                     Switch(
                       value: _tagMatchAll,
                       onChanged: (val) => setState(() => _tagMatchAll = val),
@@ -422,8 +486,13 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
                     return FilterChip(
                       label: Text(t.name),
                       avatar: CircleAvatar(
-                        radius: 5,
+                        radius: 4,
                         backgroundColor: Color(t.color),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusChip,
+                        ),
                       ),
                       selected: isSelected,
                       onSelected: (selected) {
@@ -439,13 +508,21 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
 
               // 文件夹筛选
               if (folders.isNotEmpty) ...[
-                _buildSectionHeader(l10n.filterByFolder),
+                _buildSectionHeader(
+                  l10n.filterByFolder,
+                  Icons.folder_special_outlined,
+                ),
                 Wrap(
                   spacing: AppTokens.spaceXs,
                   runSpacing: AppTokens.spaceXs,
                   children: [
                     FilterChip(
                       label: Text(l10n.ungrouped),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusChip,
+                        ),
+                      ),
                       selected: _folderIds.contains('unassigned'),
                       onSelected: (selected) {
                         setState(() {
@@ -459,6 +536,11 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
                       final isSelected = _folderIds.contains(f.id);
                       return FilterChip(
                         label: Text(f.name),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppTokens.radiusChip,
+                          ),
+                        ),
                         selected: isSelected,
                         onSelected: (selected) {
                           setState(() {
@@ -476,14 +558,20 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
           ),
         ),
         const Divider(height: 1),
+
         // 底部应用按钮
         Padding(
           padding: const EdgeInsets.all(AppTokens.spaceMd),
           child: SizedBox(
             width: double.infinity,
-            height: 48,
+            height: 46,
             child: FilledButton(
               onPressed: () => widget.onClose(_buildCriteria()),
+              style: FilledButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTokens.radiusButton),
+                ),
+              ),
               child: Text(l10n.applyFilter),
             ),
           ),
@@ -492,15 +580,23 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, IconData icon) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppTokens.spaceXs),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).colorScheme.primary,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 5),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.primary,
+              fontSize: 12.5,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -514,8 +610,11 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
     return FilterChip(
       label: Text(label),
       avatar: color != null
-          ? CircleAvatar(radius: 5, backgroundColor: color)
+          ? CircleAvatar(radius: 4, backgroundColor: color)
           : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+      ),
       selected: selected,
       onSelected: onSelected,
     );
@@ -528,6 +627,9 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
   }) {
     return ChoiceChip(
       label: Text(label),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+      ),
       selected: selected,
       onSelected: (_) => onSelected(),
     );

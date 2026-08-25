@@ -32,6 +32,8 @@ Future<void> _openSheet(
   required TodoRepository repo,
   String? projectId = 'p1',
   String? parentId,
+  TaskPriority? initialPriority,
+  List<String>? initialTagIds,
   Future<Project> Function(Ref ref)? inboxOverride,
   bool settle = true,
 }) async {
@@ -78,6 +80,8 @@ Future<void> _openSheet(
                   context,
                   projectId: projectId,
                   parentId: parentId,
+                  initialPriority: initialPriority,
+                  initialTagIds: initialTagIds,
                 ),
                 child: const Text('打开弹窗'),
               ),
@@ -307,5 +311,29 @@ void main() {
     expect(subtaskFields(), hasLength(2));
     expect(subtaskFields().last.focusNode!.hasFocus, isTrue);
     expect(subtaskFields().first.focusNode!.hasFocus, isFalse);
+  });
+
+  testWidgets('预填优先级与标签可正确初始化表单并在关闭时保存', (tester) async {
+    final repo = await _repo('p1');
+    await _openSheet(
+      tester,
+      repo: repo,
+      projectId: 'p1',
+      initialPriority: TaskPriority.high,
+    );
+
+    final ctx = tester.element(find.byType(TaskCreateSheet));
+    final formState = ProviderScope.containerOf(ctx).read(taskFormProvider);
+    expect(formState.priority, TaskPriority.high);
+
+    // 输入标题后关闭 → 保存且优先级正确写入
+    await tester.enterText(find.byType(TextField).first, '高优任务');
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    final all = await repo.tasks.getAllByProject('p1');
+    expect(all, hasLength(1));
+    expect(all.single.title, '高优任务');
+    expect(all.single.priority, TaskPriority.high);
   });
 }

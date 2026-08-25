@@ -1,8 +1,11 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:todo/core/db/database.dart';
 import 'package:todo/core/db/tables.dart';
+import 'package:todo/core/l10n/app_localizations.dart';
 import 'package:todo/core/utils/custom_view_models.dart';
+import 'package:todo/features/custom_views/presentation/custom_view_editor_page.dart';
 import 'package:todo/features/custom_views/providers/custom_view_providers.dart';
 import 'package:todo/features/projects/project_providers.dart';
 
@@ -201,5 +204,33 @@ void main() {
         expect(reloaded!.priority, TaskPriority.high);
       },
     );
+
+    testWidgets('CustomViewEditorPage renders leading back button and saves', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [todoRepositoryProvider.overrideWithValue(repo)],
+          child: const MaterialApp(
+            locale: Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: CustomViewEditorPage(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Back button exists in AppBar
+      expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+
+      // Title and preset chips render
+      expect(find.text('状态看板（待办/进行中/已完成）'), findsOneWidget);
+      expect(find.text('优先级看板（高/中/低/无）'), findsOneWidget);
+
+      // Tap back button (handles canPop / fallback)
+      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.pumpAndSettle();
+    });
   });
 }

@@ -21,6 +21,10 @@ const Map<String, IconData> kCustomViewIcons = {
   'schedule_outlined': Icons.schedule_outlined,
   'bolt_outlined': Icons.bolt_outlined,
   'task_alt_outlined': Icons.task_alt_outlined,
+  'lightbulb_outline': Icons.lightbulb_outline,
+  'work_outline': Icons.work_outline,
+  'home_outlined': Icons.home_outlined,
+  'bookmark_border': Icons.bookmark_border,
 };
 
 /// 获取自定义视图 IconData（带容错）。
@@ -39,12 +43,18 @@ Future<String?> showCustomViewIconPicker(
 }) {
   final l10n = AppLocalizations.of(context);
   final theme = Theme.of(context);
+  final isDark = theme.brightness == Brightness.dark;
 
   return showDialog<String>(
     context: context,
     builder: (dialogContext) {
       return AlertDialog(
-        title: Text(l10n.viewIcon),
+        title: Text(
+          l10n.viewIcon,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: AppTokens.textHeadingWeight,
+          ),
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
         ),
@@ -58,19 +68,34 @@ Future<String?> showCustomViewIconPicker(
               final isSelected = entry.key == currentIcon;
               return InkWell(
                 onTap: () => Navigator.of(dialogContext).pop(entry.key),
-                borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-                child: Container(
+                borderRadius: BorderRadius.circular(12),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
                     color: isSelected
                         ? Color(color).withValues(alpha: 0.15)
-                        : theme.colorScheme.surfaceContainerHighest.withValues(
-                            alpha: 0.3,
-                          ),
-                    borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-                    border: isSelected
-                        ? Border.all(color: Color(color), width: 2)
+                        : (isDark
+                              ? theme.colorScheme.surfaceContainerHigh
+                              : theme.colorScheme.surfaceContainerLowest),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected
+                          ? Color(color)
+                          : theme.colorScheme.outlineVariant.withValues(
+                              alpha: 0.3,
+                            ),
+                      width: isSelected ? 2 : 0.8,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: Color(color).withValues(alpha: 0.25),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
                         : null,
                   ),
                   child: Icon(
@@ -78,6 +103,7 @@ Future<String?> showCustomViewIconPicker(
                     color: isSelected
                         ? Color(color)
                         : theme.colorScheme.onSurfaceVariant,
+                    size: 22,
                   ),
                 ),
               );
