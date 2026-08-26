@@ -7,6 +7,7 @@ import 'package:todo/core/l10n/app_localizations.dart';
 import 'package:todo/core/utils/custom_view_models.dart';
 import 'package:todo/features/custom_views/presentation/custom_view_editor_page.dart';
 import 'package:todo/features/custom_views/providers/custom_view_providers.dart';
+import 'package:todo/features/custom_views/widgets/panel_column.dart';
 import 'package:todo/features/projects/project_providers.dart';
 
 import '../../helpers/db_test_setup.dart';
@@ -327,5 +328,63 @@ void main() {
       await tester.tap(find.byIcon(Icons.arrow_back_rounded));
       await tester.pumpAndSettle();
     });
+
+    testWidgets(
+      'PanelColumn renders KanbanTaskCard and allows toggling status',
+      (tester) async {
+        final project = await repo.createProject(
+          name: '看板项目',
+          color: 0xFF4A6CF7,
+        );
+        final task = await repo.createTask(
+          projectId: project.id,
+          title: '独立待办',
+          status: TaskStatus.todo,
+        );
+        final panel = CustomViewPanelConfig(
+          id: 'p1',
+          title: '待办列',
+          filter: const FilterCriteria(statuses: [TaskStatus.todo]),
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              todoRepositoryProvider.overrideWithValue(repo),
+              panelTasksProvider(panel).overrideWithValue(
+                AsyncData(PanelTasksResult(tasks: [task], totalCount: 1)),
+              ),
+              allProjectsMapProvider.overrideWithValue(
+                AsyncData({project.id: project}),
+              ),
+            ],
+            child: MaterialApp(
+              locale: const Locale('zh'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(body: PanelColumn(panel: panel)),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        // Card and title rendered
+        expect(find.text('待办列'), findsOneWidget);
+        expect(find.text('独立待办'), findsOneWidget);
+        expect(find.byType(KanbanTaskCard), findsOneWidget);
+
+        // Tap checkbox to mark done
+        final checkboxFinder = find.byKey(ValueKey('kanban_checkbox_${task.id}'));
+        expect(checkboxFinder, findsOneWidget);
+        await tester.tap(checkboxFinder);
+        await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+
+        final reloaded = await repo.tasks.getById(task.id);
+        expect(reloaded!.status, TaskStatus.done);
+      },
+    );
   });
 }

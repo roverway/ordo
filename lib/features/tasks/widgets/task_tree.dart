@@ -65,6 +65,12 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
   }
 
   @override
+  void dispose() {
+    _rowKeys.clear();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final tasksAsync = ref.watch(projectTasksProvider(widget.projectId));
@@ -73,6 +79,7 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     return tasksAsync.when(
       data: (tasks) {
         if (tasks.isEmpty) {
+          _rowKeys.clear();
           return _buildEmptyState(context, l10n);
         }
         // 全量任务集索引（一次构建、整棵树共享）：_buildTaskRow 每行与
@@ -90,11 +97,16 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
         if (visibleTasks.isEmpty) {
           // 任务存在但全部被隐藏（hide ON 且全部已完成）→ 专用空态，
           // 与「还没有任务」（tasks.isEmpty）区分（F4）。
+          _rowKeys.clear();
           return EmptyState(
             icon: Icons.check_circle_outline,
             message: l10n.allTasksCompleted,
           );
         }
+
+        // 清理已不在当前可见任务集中的 GlobalKey，防止长期增删列表导致的引用残留与内存泄漏
+        final visibleIds = {for (final t in visibleTasks) t.id};
+        _rowKeys.removeWhere((id, _) => !visibleIds.contains(id));
 
         final treeNodes = buildTreeNodes(
           tasks: visibleTasks,

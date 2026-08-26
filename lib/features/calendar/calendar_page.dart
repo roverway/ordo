@@ -635,11 +635,10 @@ class CalendarPage extends ConsumerWidget {
                 final task = tasks[index];
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 2),
-                  child: buildCalendarTaskTile(
-                    context,
-                    ref,
-                    task,
-                    childrenIndex: childrenIndex,
+                  child: CalendarTaskTile(
+                    task: task,
+                    children: childrenIndex[task.id] ?? const <Task>[],
+                    allTasks: allTasks,
                     onTap: () => openTaskEdit(context, taskId: task.id),
                   ),
                 );
@@ -857,42 +856,54 @@ class _DayCell extends StatelessWidget {
 
 // ── 任务列表项（复用 SimpleTaskTile）──────────────────────────────────
 
-Widget buildCalendarTaskTile(
-  BuildContext context,
-  WidgetRef ref,
-  Task task, {
-  required Map<String?, List<Task>> childrenIndex,
-  VoidCallback? onTap,
-}) {
-  final children = childrenIndex[task.id] ?? const <Task>[];
-  final hasChildren = children.isNotEmpty;
-  final effective = hasChildren ? derivedStatus(task, children) : task.status;
-  final now = DateTime.now();
-  final todayStart = DateTime(now.year, now.month, now.day);
-  final isOverdue = view_rules.isOverdue(task, effective, todayStart);
-  final tags = ref.watch(taskTagsProvider(task.id)).value ?? const <Tag>[];
-  final allTasks = ref.watch(allActiveTasksProvider).value ?? const <Task>[];
+/// 日历议程任务列表项组件（复用 [SimpleTaskTile]）。
+///
+/// 独立抽离为 [ConsumerWidget]，将 [taskTagsProvider] 监听边界隔离在单个 Tile 内，
+/// 避免标签变动向上传染导致 [CalendarPage] 与 42 个日期格网全局级联 Rebuild。
+class CalendarTaskTile extends ConsumerWidget {
+  const CalendarTaskTile({
+    super.key,
+    required this.task,
+    required this.children,
+    required this.allTasks,
+    this.onTap,
+  });
 
-  return SimpleTaskTile(
-    task: task,
-    hasChildren: hasChildren,
-    isDone: effective == TaskStatus.done,
-    isOverdue: isOverdue,
-    tags: tags,
-    progressValue: hasChildren ? taskProgress(task, allTasks) : null,
-    onTap: onTap,
-    onToggleDone: hasChildren
-        ? null
-        : (value) => _toggleTaskDone(ref, task, value),
-  );
-}
+  final Task task;
+  final List<Task> children;
+  final List<Task> allTasks;
+  final VoidCallback? onTap;
 
-Future<void> _toggleTaskDone(WidgetRef ref, Task task, bool? value) async {
-  final repo = ref.read(todoRepositoryProvider);
-  final newStatus = value == true ? TaskStatus.done : TaskStatus.todo;
-  try {
-    await repo.updateTask(task.id, status: newStatus);
-  } catch (_) {
-    // 状态切换失败由数据流自动回滚，静默处理
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hasChildren = children.isNotEmpty;
+    final effective = hasChildren ? derivedStatus(task, children) : task.status;
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final isOverdue = view_rules.isOverdue(task, effective, todayStart);
+    final tags = ref.watch(taskTagsProvider(task.id)).value ?? const <Tag>[];
+
+    return SimpleTaskTile(
+      task: task,
+      hasChildren: hasChildren,
+      isDone: effective == TaskStatus.done,
+      isOverdue: isOverdue,
+      tags: tags,
+      progressValue: hasChildren ? taskProgress(task, allTasks) : null,
+      onTap: onTap,
+      onToggleDone: hasChildren
+          ? null
+          : (value) => _toggleTaskDone(ref, task, value),
+    );
+  }
+
+  Future<void> _toggleTaskDone(WidgetRef ref, Task task, bool? value) async {
+    final repo = ref.read(todoRepositoryProvider);
+    final newStatus = value == true ? TaskStatus.done : TaskStatus.todo;
+    try {
+      await repo.updateTask(task.id, status: newStatus);
+    } catch (_) {
+      // 状态切换失败由数据流自动回滚，静默处理
+    }
   }
 }

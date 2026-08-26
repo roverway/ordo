@@ -139,14 +139,7 @@ class PanelColumn extends ConsumerWidget {
                       itemBuilder: (context, index) {
                         final task = data.tasks[index];
                         final project = projectsMap[task.projectId];
-                        return _buildTaskCard(
-                          context,
-                          ref,
-                          theme,
-                          l10n,
-                          task,
-                          project,
-                        );
+                        return KanbanTaskCard(task: task, project: project);
                       },
                     );
                   },
@@ -415,14 +408,88 @@ class PanelColumn extends ConsumerWidget {
     );
   }
 
-  Widget _buildTaskCard(
+  Widget _buildQuickAddButton(
     BuildContext context,
-    WidgetRef ref,
     ThemeData theme,
     AppLocalizations l10n,
-    Task task,
-    Project? project,
   ) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppTokens.spaceSm,
+        AppTokens.spaceXs,
+        AppTokens.spaceSm,
+        AppTokens.spaceSm,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            TaskCreateSheet.show(
+              context,
+              projectId: panel.filter.projectIds.length == 1
+                  ? panel.filter.projectIds.first
+                  : null,
+              initialPriority: panel.filter.priorities.length == 1
+                  ? panel.filter.priorities.first
+                  : null,
+              initialTagIds: panel.filter.tagIds.isNotEmpty
+                  ? panel.filter.tagIds
+                  : null,
+            );
+          },
+          borderRadius: BorderRadius.circular(AppTokens.radiusButton),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 9),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppTokens.radiusButton),
+              border: Border.all(
+                color: theme.brightness == Brightness.dark
+                    ? AppTokens.borderSubtleDark
+                    : AppTokens.borderSubtleLight,
+                width: 1.0,
+              ),
+              color: theme.brightness == Brightness.dark
+                  ? AppTokens.surfaceCardDark
+                  : AppTokens.surfaceCard,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.add_rounded,
+                  size: 17,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  l10n.newTask,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 看板卡片组件（[ConsumerWidget]）。
+///
+/// 独立抽离以隔离单个卡片的局部构建、派生状态交互与拖拽包装，避免在 [PanelColumn] 中内联膨胀。
+class KanbanTaskCard extends ConsumerWidget {
+  const KanbanTaskCard({super.key, required this.task, this.project});
+
+  final Task task;
+  final Project? project;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final isDone = task.status == TaskStatus.done;
     final isDark = theme.brightness == Brightness.dark;
 
@@ -459,6 +526,7 @@ class PanelColumn extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     GestureDetector(
+                      key: ValueKey('kanban_checkbox_${task.id}'),
                       onTap: () async {
                         final repo = ref.read(todoRepositoryProvider);
                         final children = await repo.tasks.getDirectChildren(
@@ -548,7 +616,9 @@ class PanelColumn extends ConsumerWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: Color(project.color).withValues(alpha: 0.12),
+                            color: Color(
+                              project!.color,
+                            ).withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(
                               AppTokens.radiusChip,
                             ),
@@ -558,13 +628,13 @@ class PanelColumn extends ConsumerWidget {
                             children: [
                               CircleAvatar(
                                 radius: 3,
-                                backgroundColor: Color(project.color),
+                                backgroundColor: Color(project!.color),
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                project.name,
+                                project!.name,
                                 style: theme.textTheme.labelSmall?.copyWith(
-                                  color: Color(project.color),
+                                  color: Color(project!.color),
                                   fontWeight: FontWeight.w600,
                                   fontSize: 11,
                                 ),
@@ -664,74 +734,6 @@ class PanelColumn extends ConsumerWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildQuickAddButton(
-    BuildContext context,
-    ThemeData theme,
-    AppLocalizations l10n,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppTokens.spaceSm,
-        AppTokens.spaceXs,
-        AppTokens.spaceSm,
-        AppTokens.spaceSm,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            TaskCreateSheet.show(
-              context,
-              projectId: panel.filter.projectIds.length == 1
-                  ? panel.filter.projectIds.first
-                  : null,
-              initialPriority: panel.filter.priorities.length == 1
-                  ? panel.filter.priorities.first
-                  : null,
-              initialTagIds: panel.filter.tagIds.isNotEmpty
-                  ? panel.filter.tagIds
-                  : null,
-            );
-          },
-          borderRadius: BorderRadius.circular(AppTokens.radiusButton),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 9),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppTokens.radiusButton),
-              border: Border.all(
-                color: theme.brightness == Brightness.dark
-                    ? AppTokens.borderSubtleDark
-                    : AppTokens.borderSubtleLight,
-                width: 1.0,
-              ),
-              color: theme.brightness == Brightness.dark
-                  ? AppTokens.surfaceCardDark
-                  : AppTokens.surfaceCard,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.add_rounded,
-                  size: 17,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  l10n.newTask,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
