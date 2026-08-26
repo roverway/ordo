@@ -122,34 +122,32 @@ class _TaskRowState extends State<TaskRow> {
   /// 内部空隙提供（视觉勾选框 24 在 44 触控区内居中，上下各 10px）；
   /// 多行任务（描述/标签/日期）高度自然撑开。子任务行按深度缩进
   /// [AppTokens.treeIndentLevel]（一级行深度恒 0 不缩进）。
+  /// 行内边距：左 [AppTokens.spaceXxs]、右 [AppTokens.spaceXxs]、垂直 padding 为 0。
+  /// 层级缩进由外部 TaskTree 的树状连接器统一提供。
   EdgeInsets _contentPadding() {
-    final indent = widget.depth * AppTokens.treeIndentLevel;
-    return switch (widget.style) {
-      TaskRowStyle.cardHeader => const EdgeInsets.only(
-        left: AppTokens.spaceXxs,
-        right: AppTokens.spaceXxs,
-      ),
-      TaskRowStyle.compact => EdgeInsets.only(
-        left: AppTokens.spaceXxs + indent,
-        right: AppTokens.spaceXxs,
-      ),
-    };
+    return const EdgeInsets.only(
+      left: AppTokens.spaceXxs,
+      right: AppTokens.spaceXxs,
+    );
   }
 
-  /// 勾选框边框色（61 §4.2 层级着色）：完成 = 蓝填充白勾（边框被填充覆盖）；
-  /// 未完成按深度着色——一级蓝 [AppTokens.colorInProgress]、子级红
-  /// [AppTokens.colorPriorityHigh]。
-  Color _checkboxBorderColor(bool isDone) {
+  /// 勾选框边框色：完成 = 蓝填充白勾；未完成 = 统一克制浅灰中性色。
+  Color _checkboxBorderColor(
+    bool isDone,
+    ColorScheme colorScheme,
+    bool isDark,
+  ) {
     if (isDone) return AppTokens.checkboxDoneFill;
-    return widget.depth == 0
-        ? AppTokens.colorInProgress
-        : AppTokens.colorPriorityHigh;
+    return isDark
+        ? Colors.white.withValues(alpha: 0.35)
+        : colorScheme.outline.withValues(alpha: 0.45);
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final colorScheme = theme.colorScheme;
     final effectiveStatus = widget.derivedStatus ?? widget.task.status;
     final hasDerived = widget.derivedStatus != null;
@@ -233,10 +231,9 @@ class _TaskRowState extends State<TaskRow> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Checkbox（方形，61 §4.2；有子任务的子任务行禁用：
+                        // Checkbox（Linear / Things 圆形复选框；有子任务的子任务行禁用：
                         // 状态由父任务派生，Tooltip 解释原因，AGENTS.md §3-2 +
-                        // NFR-06 语义）。触控区 = checkboxTapTargetSize（44，
-                        // 用户打磨要求 4：单行行高压缩的权衡），视觉 24 居中。
+                        // NFR-06 语义）。触控区 = checkboxTapTargetSize（44），视觉 24 居中。
                         // A 批：勾选/取消 scale 弹性脉冲（CheckboxBounce），
                         // 勾线由 Material Checkbox 勾动画淡入。
                         SizedBox(
@@ -247,9 +244,13 @@ class _TaskRowState extends State<TaskRow> {
                             child: (!hasDerived || widget.task.parentId == null)
                                 ? Checkbox(
                                     value: isDone,
-                                    shape: AppTokens.checkboxShapeSquare,
+                                    shape: AppTokens.checkboxShape,
                                     side: BorderSide(
-                                      color: _checkboxBorderColor(isDone),
+                                      color: _checkboxBorderColor(
+                                        isDone,
+                                        colorScheme,
+                                        isDark,
+                                      ),
                                       width: 1.5,
                                     ),
                                     onChanged: widget.onToggleDone,
@@ -258,9 +259,13 @@ class _TaskRowState extends State<TaskRow> {
                                     message: l10n.statusDerivedFromChildren,
                                     child: Checkbox(
                                       value: isDone,
-                                      shape: AppTokens.checkboxShapeSquare,
+                                      shape: AppTokens.checkboxShape,
                                       side: BorderSide(
-                                        color: _checkboxBorderColor(isDone),
+                                        color: _checkboxBorderColor(
+                                          isDone,
+                                          colorScheme,
+                                          isDark,
+                                        ),
                                         width: 1.5,
                                       ),
                                       onChanged: null,
@@ -447,12 +452,39 @@ class _TaskRowState extends State<TaskRow> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text(
-                                      '${widget.incompleteChildCount}/${widget.childCount}',
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: colorScheme.onSurfaceVariant,
-                                          ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 1.5,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: isDark
+                                            ? Colors.white.withValues(
+                                                alpha: 0.08,
+                                              )
+                                            : colorScheme
+                                                  .surfaceContainerHighest
+                                                  .withValues(alpha: 0.5),
+                                        borderRadius: BorderRadius.circular(
+                                          AppTokens.radiusChip,
+                                        ),
+                                        border: Border.all(
+                                          color: isDark
+                                              ? AppTokens.borderSubtleDark
+                                              : AppTokens.borderSubtleLight,
+                                          width: 0.5,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        '${widget.incompleteChildCount}/${widget.childCount}',
+                                        style: theme.textTheme.labelSmall
+                                            ?.copyWith(
+                                              fontSize: 10.5,
+                                              fontWeight: FontWeight.w500,
+                                              color:
+                                                  colorScheme.onSurfaceVariant,
+                                            ),
+                                      ),
                                     ),
                                     const SizedBox(width: AppTokens.spaceXxs),
                                     AnimatedRotation(

@@ -143,6 +143,7 @@
   "priorityMedium": "Medium",
   "priorityLow": "Low",
   "priorityNone": "None",
+  "thisWeekend": "This weekend",
   "nextWeek": "Next week",
   "custom": "Custom",
   "clear": "Clear",
@@ -265,5 +266,6 @@
   "sortAsc": "Ascending",
   "sortDesc": "Descending",
   "treeView": "Tree View",
-  "flatView": "Flat List"
+  "flatView": "Flat List",
+  "emptyCustomView": "No panels configured in this view"
 }

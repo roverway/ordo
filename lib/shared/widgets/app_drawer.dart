@@ -224,41 +224,83 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: AppTokens.spaceSm),
+          // ── 顶部品牌区 ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppTokens.spaceMd,
+              AppTokens.spaceSm,
+              AppTokens.spaceMd,
+              AppTokens.spaceXs,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.25),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.check_circle_outline_rounded,
+                    size: 18,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: AppTokens.spaceSm),
+                Text(
+                  'Todo',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, thickness: 0.8),
           Expanded(
             child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: AppTokens.spaceXxs),
               children: [
                 // ── 系统组（无分隔线）──
                 for (final item in systemItems)
                   _DrawerTile(
                     leading: Icon(
                       path == item.path ? item.selectedIcon : item.icon,
-                      size: AppTokens.expandArrowSize,
+                      size: 18,
                       color: path == item.path
-                          ? theme.colorScheme.onSecondaryContainer
+                          ? theme.colorScheme.primary
                           : theme.colorScheme.onSurfaceVariant,
                     ),
                     title: item.label,
                     selected: path == item.path,
                     onTap: () => _go(context, item.path),
                   ),
-                const Divider(),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 4),
+                  child: Divider(height: 1, thickness: 0.6),
+                ),
                 // ── 自定义视图区 ──
                 ..._buildCustomViewsArea(context, l10n, path),
-                const Divider(),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 4),
+                  child: Divider(height: 1, thickness: 0.6),
+                ),
                 // ── 任务分组（文件夹组 + 未分组区）──
                 ..._buildProjectArea(context, l10n),
               ],
             ),
           ),
-          const Divider(),
+          const Divider(height: 1, thickness: 0.8),
           // ── 底部：「新建项目」+ 设置 ──
           Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppTokens.spaceXs,
-              AppTokens.spaceXxs,
-              AppTokens.spaceXs,
-              AppTokens.spaceSm,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTokens.spaceXs,
+              vertical: AppTokens.spaceXs,
             ),
             child: Row(
               children: [
@@ -273,7 +315,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
                 // 设置入口
                 IconButton(
                   tooltip: l10n.settings,
-                  icon: const Icon(Icons.settings_outlined, size: 22),
+                  icon: const Icon(Icons.settings_outlined, size: 20),
                   onPressed: () => _openSettings(context),
                 ),
               ],
@@ -284,7 +326,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     );
   }
 
-  /// 底部并排入口（图标 + 文字，62-folder-nav.md §6.3）。
+  /// 底部并排入口（图标 + 文字）。
   Widget _bottomAction(
     BuildContext context, {
     required IconData icon,
@@ -295,29 +337,23 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+        borderRadius: BorderRadius.circular(AppTokens.radiusList),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppTokens.spaceSm,
-            vertical: AppTokens.spaceSm,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                size: AppTokens.expandArrowSize,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(width: AppTokens.spaceXs),
+              Icon(icon, size: 16, color: theme.colorScheme.primary),
+              const SizedBox(width: 4),
               Flexible(
                 child: Text(
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyLarge?.copyWith(
+                  style: theme.textTheme.labelMedium?.copyWith(
                     color: theme.colorScheme.primary,
-                    fontWeight: AppTokens.textTitleWeight,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -340,64 +376,50 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
 
     return customViewsAsync.when(
       data: (views) {
-        if (views.isEmpty) {
-          return [
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTokens.spaceSm,
-                vertical: AppTokens.spaceXxs,
-              ),
-              child: Row(
-                children: [
-                  Text(
-                    l10n.customViews,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontWeight: AppTokens.textTitleWeight,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    tooltip: l10n.newCustomView,
-                    icon: const Icon(Icons.add, size: 18),
-                    onPressed: () => _openNewCustomView(context),
-                  ),
-                ],
-              ),
-            ),
-          ];
-        }
-
-        return [
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTokens.spaceSm,
-              vertical: AppTokens.spaceXxs,
-            ),
-            child: Row(
-              children: [
-                Text(
-                  l10n.customViews,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontWeight: AppTokens.textTitleWeight,
+        final header = Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppTokens.spaceMd,
+            AppTokens.spaceXxs,
+            AppTokens.spaceXs,
+            2,
+          ),
+          child: Row(
+            children: [
+              Text(
+                l10n.customViews,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontSize: 11.5,
+                  letterSpacing: 0.4,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.8,
                   ),
                 ),
-                const Spacer(),
-                IconButton(
+              ),
+              const Spacer(),
+              SizedBox.square(
+                dimension: 24,
+                child: IconButton(
+                  padding: EdgeInsets.zero,
                   tooltip: l10n.newCustomView,
-                  icon: const Icon(Icons.add, size: 18),
+                  icon: const Icon(Icons.add, size: 16),
                   onPressed: () => _openNewCustomView(context),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+        );
+
+        if (views.isEmpty) return [header];
+
+        return [
+          header,
           ...views.map((CustomView view) {
             final isSelected = currentPath == '/custom_view/${view.id}';
             return _DrawerTile(
               leading: Icon(
                 getCustomViewIcon(view.icon),
-                size: AppTokens.expandArrowSize,
+                size: 18,
                 color: Color(view.color),
               ),
               title: view.name,
@@ -420,9 +442,6 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
   // ─────────────────────── 项目区（62-folder-nav.md §6.1） ───────────────────────
 
   /// 项目区内容：文件夹组（各含项目行）→ 未分组区。
-  ///
-  /// 未分组区在有文件夹时**始终**渲染（空行也可作为「出夹」拖拽落点，
-  /// §6.2）；无文件夹时仅在有未分组项目时渲染（保持旧平铺视觉）。
   List<Widget> _buildProjectArea(BuildContext context, AppLocalizations l10n) {
     final theme = Theme.of(context);
     final groupingAsync = ref.watch(projectsByFolderProvider);
@@ -430,24 +449,32 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
         ref.watch(folderExpandProvider).value ?? const <String, bool>{};
 
     final header = Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTokens.spaceSm,
-        vertical: AppTokens.spaceXxs,
+      padding: const EdgeInsets.fromLTRB(
+        AppTokens.spaceMd,
+        AppTokens.spaceXxs,
+        AppTokens.spaceXs,
+        2,
       ),
       child: Row(
         children: [
           Text(
             l10n.taskGroups,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: AppTokens.textTitleWeight,
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontSize: 11.5,
+              letterSpacing: 0.4,
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
             ),
           ),
           const Spacer(),
-          IconButton(
-            tooltip: l10n.newFolder,
-            icon: const Icon(Icons.create_new_folder_outlined, size: 18),
-            onPressed: () => _showNewFolderDialog(context, ref),
+          SizedBox.square(
+            dimension: 24,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              tooltip: l10n.newFolder,
+              icon: const Icon(Icons.create_new_folder_outlined, size: 16),
+              onPressed: () => _showNewFolderDialog(context, ref),
+            ),
           ),
         ],
       ),
@@ -497,12 +524,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     );
   }
 
-  /// 文件夹整组（文件夹行 + 展开时的树状项目区，des-1；C 批 AnimatedSize）。
-  ///
-  /// 树状区只在外层垂直方向上**不加任何间距**——行间距完全由各行的
-  /// [AppTokens.drawerRowSpacing] 外层 padding 提供，与系统组行一致。
-  /// 展开/折叠用 [AnimatedSize]（motionNormal + motionCurve）平滑过渡高度，
-  /// 树状连线随布局自然延伸（docs/63-motion-polish.md §5 C）。
+  /// 文件夹整组（文件夹行 + 展开时的树状项目区）。
   Widget _buildFolderGroup(
     BuildContext context,
     AppLocalizations l10n,
@@ -515,7 +537,6 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildFolderRow(context, l10n, grouping, folder, expanded),
-        // 折叠 = 空子树（高度 0）；reduced motion 下时长归零瞬时切换。
         AnimatedSize(
           duration: motionNormal(context),
           curve: motionCurve(context),
@@ -529,14 +550,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     );
   }
 
-  /// 文件夹展开后的树状项目区（des-1 需求 3 + des-2 需求 3 重绘）。
-  ///
-  /// 竖线由**每个项目行的连接器分段绘制**（[_FolderTreeConnectorPainter]）：
-  /// - 渐变方向自上而下由淡转浓（[folderTreeLineAlphaStart] → [End]），
-  ///   每行的渐变端点按「行位置占整组的比例」衔接，拼接后呈一条连续渐变线；
-  /// - 竖线只覆盖到最下方项目的水平短线为止（末行半高 + 圆角收口），
-  ///   不超出最后一行；
-  /// - 转角处用圆头（StrokeCap.round）绘制，形成圆角转角而非直角。
+  /// 文件夹展开后的现代轻量缩进项目区。
   Widget _buildFolderTree(
     BuildContext context,
     AppLocalizations l10n,
@@ -544,98 +558,25 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     List<Project> projects,
   ) {
     return Padding(
-      // 左缩进 = 竖线位置（与文件夹行图标中心对齐）；右侧与行级 padding
-      // 对齐（行自身还有 spaceXs）。
-      padding: EdgeInsets.only(
-        left: AppTokens.folderTreeIndent,
-        right: AppTokens.spaceXs,
-      ),
+      padding: const EdgeInsets.only(left: 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           for (var i = 0; i < projects.length; i++)
-            _buildProjectTreeRow(
+            _buildProjectRow(
               context,
               l10n,
-              grouping,
               projects[i],
-              index: i,
-              total: projects.length,
+              grouping,
+              indent: 0,
+              rowSpacing: 2.0,
             ),
         ],
       ),
     );
   }
 
-  /// 树状区内的单个项目行：左侧连接器（竖线分段 + 水平短线）连接竖线，
-  /// 内容右移短线宽度。行间距用更紧凑的 [AppTokens.folderTreeRowSpacing]。
-  Widget _buildProjectTreeRow(
-    BuildContext context,
-    AppLocalizations l10n,
-    ProjectGrouping grouping,
-    Project project, {
-    required int index,
-    required int total,
-  }) {
-    final lineColor = Theme.of(context).colorScheme.onSurfaceVariant;
-    // 渐变浓度参数：本行竖线段自上而下的浓度端点（末行在半高处已到最浓）。
-    final start = AppTokens.folderTreeLineAlphaStart;
-    final end = AppTokens.folderTreeLineAlphaEnd;
-    final isLast = index == total - 1;
-    final double alphaTop;
-    final double alphaBottom;
-    final double stubAlpha;
-    if (isLast) {
-      alphaTop = _lerpAlpha(start, end, total == 1 ? 0 : (total - 1) / total);
-      alphaBottom = end;
-      // 末行竖线在肘处已达最浓，短线同浓。
-      stubAlpha = end;
-    } else {
-      alphaTop = _lerpAlpha(start, end, index / total);
-      alphaBottom = _lerpAlpha(start, end, (index + 1) / total);
-      // 短线处 = 本行竖线中点的浓度。
-      stubAlpha = _lerpAlpha(alphaTop, alphaBottom, 0.5);
-    }
-
-    return Stack(
-      children: [
-        // 连接器：竖线分段（渐变）+ 水平短线（圆角转角）。
-        Positioned(
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: AppTokens.folderTreeConnectorWidth,
-          child: CustomPaint(
-            painter: _FolderTreeConnectorPainter(
-              color: lineColor,
-              isLast: isLast,
-              alphaTop: alphaTop,
-              alphaBottom: alphaBottom,
-              stubAlpha: stubAlpha,
-            ),
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.only(left: AppTokens.folderTreeConnectorWidth),
-          child: _buildProjectRow(
-            context,
-            l10n,
-            project,
-            grouping,
-            indent: 0,
-            rowSpacing: AppTokens.folderTreeRowSpacing,
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// 文件夹行：[文件夹图标] 名称 [汇总未完成数] [⋯ 菜单(仅展开)] [展开箭头]。
-  ///
-  /// - 点击行切换展开/折叠（62-folder-nav.md §6.1）；
-  /// - 行尾菜单：重命名 / 删除（§6.3），**仅展开时显示**（des-1 需求 2）；
-  /// - 拖拽（§6.2）：文件夹行自身可拖拽排序；同时作为**项目入夹**与
-  ///   **文件夹重排**的落点；折叠时作为项目落点自动展开。
+  /// 文件夹行：[文件夹图标] 名称 [汇总未完成数] [⋯ 菜单(仅展开)] [展开微箭头]。
   Widget _buildFolderRow(
     BuildContext context,
     AppLocalizations l10n,
@@ -656,7 +597,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
       feedback: _dragFeedback(
         Icon(
           Icons.folder_outlined,
-          size: AppTokens.expandArrowSize,
+          size: 18,
           color: Theme.of(context).colorScheme.primary,
         ),
         folder.name,
@@ -677,7 +618,6 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
             return false;
           }
           if (data.startsWith(_projectDragPrefix)) {
-            // 折叠的文件夹作为项目落点：**自动展开**再接受（§6.2）。
             if (!expanded) {
               ref.read(folderExpandProvider.notifier).toggle(folder.id);
             }
@@ -701,14 +641,12 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
           final repo = ref.read(todoRepositoryProvider);
           try {
             if (data.startsWith(_projectDragPrefix)) {
-              // 入夹：追加到该文件夹项目末尾。
               await repo.moveProjectToFolder(
                 data.substring(_projectDragPrefix.length),
                 folderId: folder.id,
                 newIndex: grouping.countInFolder(folder.id),
               );
             } else if (data.startsWith(_folderDragPrefix)) {
-              // 文件夹重排：插到目标行位置（sortOrder 即文件夹列表索引）。
               await repo.moveFolder(
                 data.substring(_folderDragPrefix.length),
                 newIndex: folder.sortOrder,
@@ -741,7 +679,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     );
   }
 
-  /// 文件夹行内容（拖拽反馈高亮 / 半透明由参数控制）。
+  /// 文件夹行内容（紧凑行高 + 微旋转箭头）。
   Widget _folderRowContent(
     BuildContext context,
     AppLocalizations l10n,
@@ -757,58 +695,54 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     final highlight = _targetColor(context, isDragTarget, isInvalidDragTarget);
 
     return Padding(
-      padding: EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: AppTokens.spaceXs,
-        vertical: AppTokens.drawerRowSpacing / 2,
+        vertical: 1.5,
       ),
       child: Material(
         color: highlight ?? Colors.transparent,
-        borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+        borderRadius: BorderRadius.circular(AppTokens.radiusList),
         child: InkWell(
-          borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+          borderRadius: BorderRadius.circular(AppTokens.radiusList),
           onTap: () =>
               ref.read(folderExpandProvider.notifier).toggle(folder.id),
           child: Padding(
-            // 行内左 padding 与系统组行（_DrawerTile）一致（spaceMd），
-            // 保证文件夹行 leading 与系统组行左对齐（des-2 需求 1）。
             padding: const EdgeInsets.symmetric(
-              horizontal: AppTokens.spaceMd,
-              vertical: AppTokens.spaceSm,
+              horizontal: AppTokens.spaceSm,
+              vertical: 6.5,
             ),
             child: Row(
               children: [
                 Icon(
                   Icons.folder_outlined,
-                  size: AppTokens.expandArrowSize,
+                  size: 18,
                   color: colorScheme.primary,
                 ),
-                const SizedBox(width: AppTokens.spaceMd),
+                const SizedBox(width: AppTokens.spaceSm),
                 Expanded(
                   child: Text(
                     folder.name,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: AppTokens.textTitleWeight,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(width: AppTokens.spaceXs),
-                // 汇总未完成数（恒为真实值，D8）。
+                // 汇总未完成数
                 _FolderUncompletedBadge(folderId: folder.id),
-                // 行尾菜单：重命名 / 删除（§6.3）——仅展开时显示（des-1
-                // 需求 2）。按钮固定 20×20（与图标/箭头同高），使展开/折叠
-                // 状态下文件夹行高度不变（des-2 需求 2a）。
                 if (expanded) ...[
                   const SizedBox(width: AppTokens.spaceXs),
                   SizedBox.square(
-                    dimension: AppTokens.expandArrowSize,
+                    dimension: 18,
                     child: PopupMenuButton<String>(
                       tooltip: l10n.folderActions,
                       padding: EdgeInsets.zero,
                       icon: Icon(
                         Icons.more_vert,
-                        size: AppTokens.expandArrowSizeRow,
+                        size: 16,
                         color: colorScheme.onSurfaceVariant,
                       ),
                       onSelected: (action) =>
@@ -827,7 +761,6 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
                   ),
                 ],
                 const SizedBox(width: AppTokens.spaceXxs),
-                // 展开箭头（最右侧，des-1 需求 1）：展开 = 向下，折叠 = 向左。
                 Icon(
                   expanded ? Icons.expand_more : Icons.chevron_left,
                   size: AppTokens.expandArrowSize,
@@ -954,7 +887,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     AppLocalizations l10n,
     Project project, {
     required double indent,
-    double rowSpacing = AppTokens.drawerRowSpacing,
+    double rowSpacing = 2.0,
     bool isDragTarget = false,
     bool isInvalidDragTarget = false,
     bool isDragging = false,
@@ -962,11 +895,17 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     final path = GoRouterState.of(context).uri.path;
     return _DrawerTile(
       leading: Container(
-        width: 10,
-        height: 10,
+        width: 8,
+        height: 8,
         decoration: BoxDecoration(
           color: Color(project.color),
           shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Color(project.color).withValues(alpha: 0.35),
+              blurRadius: 3,
+            ),
+          ],
         ),
       ),
       title: project.name,
@@ -1030,25 +969,29 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
         return Padding(
           padding: const EdgeInsets.fromLTRB(
             AppTokens.spaceMd,
-            AppTokens.spaceSm,
+            6,
             AppTokens.spaceMd,
-            AppTokens.spaceXxs,
+            2,
           ),
           child: Material(
             color: highlight ?? Colors.transparent,
             borderRadius: BorderRadius.circular(AppTokens.radiusChip),
             child: Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: AppTokens.spaceXs,
-                vertical: AppTokens.spaceXxs,
+                horizontal: AppTokens.spaceXxs,
+                vertical: 2,
               ),
               child: Row(
                 children: [
                   Text(
                     l10n.ungrouped,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      fontWeight: AppTokens.textTitleWeight,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontSize: 11.5,
+                      letterSpacing: 0.4,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.8,
+                      ),
                     ),
                   ),
                 ],
@@ -1165,11 +1108,6 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
 }
 
 /// 抽屉行：leading（图标/颜色圆点）+ 标题 + 可选 trailing（未完成数）。
-///
-/// 选中态：secondaryContainer 浅色药丸 + 圆角（colorScheme 派生，不硬编码）。
-/// [indent]：文件夹下项目行的缩进（62-folder-nav.md §6.1）；
-/// [rowSpacing]：行垂直间距（树状区内用更紧凑的 folderTreeRowSpacing）；
-/// [dragHighlightColor]：拖拽悬停目标时的高亮底色（非 null 覆盖选中态底色）。
 class _DrawerTile extends StatelessWidget {
   const _DrawerTile({
     required this.leading,
@@ -1178,7 +1116,7 @@ class _DrawerTile extends StatelessWidget {
     required this.onTap,
     this.trailing,
     this.indent = 0,
-    this.rowSpacing = AppTokens.drawerRowSpacing,
+    this.rowSpacing = 2.0,
     this.dragHighlightColor,
   });
 
@@ -1191,20 +1129,24 @@ class _DrawerTile extends StatelessWidget {
   /// 额外左缩进（文件夹下项目行）。
   final double indent;
 
-  /// 行垂直间距（上下各留 `spacing / 2`）。
+  /// 行垂直间距。
   final double rowSpacing;
 
-  /// 拖拽目标高亮（合法/非法由调用方决定颜色）。
+  /// 拖拽目标高亮。
   final Color? dragHighlightColor;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    final selectedBg = isDark
+        ? colorScheme.primary.withValues(alpha: 0.16)
+        : colorScheme.primary.withValues(alpha: 0.10);
 
     return Padding(
-      // 垂直间距与系统组/文件夹行统一（des-1 需求 4，drawerRowSpacing；
-      // 树状区内可传入更紧凑的 folderTreeRowSpacing，des-2 需求 2b）。
       padding: EdgeInsets.fromLTRB(
         AppTokens.spaceXs + indent,
         rowSpacing / 2,
@@ -1213,31 +1155,29 @@ class _DrawerTile extends StatelessWidget {
       ),
       child: Material(
         color:
-            dragHighlightColor ??
-            (selected ? colorScheme.secondaryContainer : Colors.transparent),
-        borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+            dragHighlightColor ?? (selected ? selectedBg : Colors.transparent),
+        borderRadius: BorderRadius.circular(AppTokens.radiusList),
         child: InkWell(
-          borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+          borderRadius: BorderRadius.circular(AppTokens.radiusList),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(
-              horizontal: AppTokens.spaceMd,
-              vertical: AppTokens.spaceSm,
+              horizontal: AppTokens.spaceSm,
+              vertical: 6.5,
             ),
             child: Row(
               children: [
                 leading,
-                const SizedBox(width: AppTokens.spaceMd),
+                const SizedBox(width: AppTokens.spaceSm),
                 Expanded(
                   child: Text(
                     title,
-                    style: textTheme.bodyLarge?.copyWith(
+                    style: textTheme.bodyMedium?.copyWith(
+                      fontSize: 13.5,
                       color: selected
-                          ? colorScheme.onSecondaryContainer
+                          ? colorScheme.primary
                           : colorScheme.onSurface,
-                      fontWeight: selected
-                          ? AppTokens.textTitleWeight
-                          : AppTokens.textBodyWeight,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1256,92 +1196,7 @@ class _DrawerTile extends StatelessWidget {
   }
 }
 
-/// 线性插值：`a + (b - a) * t`（树状连线逐行渐变浓度用，des-2 需求 3）。
-double _lerpAlpha(double a, double b, double t) => a + (b - a) * t;
-
-/// 文件夹树状连线行连接器（des-2 需求 3 自绘）。
-///
-/// 每行绘制：
-/// - **竖线分段**：沿行高自上而下渐变（顶部 [alphaTop] → 底部 [alphaBottom]），
-///   各行的端点浓度按「行位置占整组比例」衔接，拼接后呈一条连续渐变线；
-///   末行（[isLast]）竖线只画到行中线（水平短线处），圆头收口，不再向下延伸；
-/// - **水平短线**：从竖线到内容起点，浓度 [stubAlpha] 与所在行竖线一致；
-/// - 所有线端用 `StrokeCap.round` 圆头——转角处自然呈现圆角而非直角。
-///
-/// 颜色派生自 colorScheme.onSurfaceVariant（明暗主题自适应），
-/// 线宽/渐变浓度走 AppTokens。
-class _FolderTreeConnectorPainter extends CustomPainter {
-  _FolderTreeConnectorPainter({
-    required this.color,
-    required this.isLast,
-    required this.alphaTop,
-    required this.alphaBottom,
-    required this.stubAlpha,
-  });
-
-  /// 连线基色（onSurfaceVariant，明暗自适应）。
-  final Color color;
-
-  /// 是否为整组最后一行（竖线只到中线 + 圆角收口）。
-  final bool isLast;
-
-  /// 本行竖线顶部的渐变浓度（0~1）。
-  final double alphaTop;
-
-  /// 本行竖线底部的渐变浓度（0~1）。
-  final double alphaBottom;
-
-  /// 水平短线浓度（0~1）。
-  final double stubAlpha;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final lineWidth = AppTokens.folderTreeLineWidth;
-    final halfHeight = size.height / 2;
-    final trunkX = lineWidth / 2;
-
-    // 竖线分段：渐变画刷只覆盖本行要画的区间（末行为上半段）。
-    final segmentHeight = isLast ? halfHeight : size.height;
-    final verticalPaint = Paint()
-      ..strokeWidth = lineWidth
-      ..strokeCap = StrokeCap.round
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          color.withValues(alpha: alphaTop),
-          color.withValues(alpha: alphaBottom),
-        ],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, segmentHeight));
-
-    canvas.drawLine(
-      Offset(trunkX, 0),
-      Offset(trunkX, segmentHeight),
-      verticalPaint,
-    );
-
-    // 水平短线：从竖线到内容起点，圆头两端。
-    final stubPaint = Paint()
-      ..strokeWidth = lineWidth
-      ..strokeCap = StrokeCap.round
-      ..color = color.withValues(alpha: stubAlpha);
-    canvas.drawLine(
-      Offset(trunkX, halfHeight),
-      Offset(size.width, halfHeight),
-      stubPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_FolderTreeConnectorPainter oldDelegate) =>
-      oldDelegate.color != color ||
-      oldDelegate.isLast != isLast ||
-      oldDelegate.alphaTop != alphaTop ||
-      oldDelegate.alphaBottom != alphaBottom ||
-      oldDelegate.stubAlpha != stubAlpha;
-}
-
-/// 项目未完成任务数独立轻量徽章（阻断侧边栏重绘传播）。
+/// 项目未完成任务数独立轻量微型徽章（阻断侧边栏重绘传播）。
 class _ProjectUncompletedBadge extends ConsumerWidget {
   const _ProjectUncompletedBadge({required this.projectId});
 
@@ -1350,16 +1205,35 @@ class _ProjectUncompletedBadge extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final count = ref.watch(projectUncompletedCountProvider(projectId));
-    return Text(
-      '$count',
-      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+        border: Border.all(
+          color: isDark
+              ? AppTokens.borderSubtleDark
+              : AppTokens.borderSubtleLight,
+          width: 0.5,
+        ),
+      ),
+      child: Text(
+        '$count',
+        style: theme.textTheme.labelSmall?.copyWith(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w500,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }
 }
 
-/// 文件夹汇总未完成数独立轻量徽章（阻断侧边栏重绘传播）。
+/// 文件夹汇总未完成数独立轻量微型徽章（阻断侧边栏重绘传播）。
 class _FolderUncompletedBadge extends ConsumerWidget {
   const _FolderUncompletedBadge({required this.folderId});
 
@@ -1373,10 +1247,29 @@ class _FolderUncompletedBadge extends ConsumerWidget {
     for (final p in projects) {
       sum += ref.watch(projectUncompletedCountProvider(p.id));
     }
-    return Text(
-      '$sum',
-      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+        border: Border.all(
+          color: isDark
+              ? AppTokens.borderSubtleDark
+              : AppTokens.borderSubtleLight,
+          width: 0.5,
+        ),
+      ),
+      child: Text(
+        '$sum',
+        style: theme.textTheme.labelSmall?.copyWith(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w500,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }

@@ -348,7 +348,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
                   ),
                   const SizedBox(height: AppTokens.spaceXs),
                   Text(
-                    '该视图暂未配置任何面板列',
+                    l10n.emptyCustomView,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),

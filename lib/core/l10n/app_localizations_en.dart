@@ -470,6 +470,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get priorityNone => 'None';
 
   @override
+  String get thisWeekend => 'This weekend';
+
+  @override
   String get nextWeek => 'Next week';
 
   @override
@@ -830,4 +833,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get flatView => 'Flat List';
+
+  @override
+  String get emptyCustomView => 'No panels configured in this view';
 }

@@ -203,12 +203,12 @@ void main() {
     final repo = await _repo('p1');
     await _openSheet(tester, repo: repo);
 
-    // 设置日期（产生内容但标题为空）：工具栏日期图标 → 弹层选「开始时间」→ 今天。
+    // 设置日期（产生内容但标题为空）：工具栏日期图标 → 弹层选快捷预设「今天」→ 完成。
     await tester.tap(find.byIcon(Icons.calendar_today_outlined));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('开始时间'));
-    await tester.pumpAndSettle();
     await tester.tap(find.text('今天'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('完成'));
     await tester.pumpAndSettle();
 
     // 关闭 → 校验失败 → SnackBar + 弹窗仍在。

@@ -956,6 +956,12 @@ abstract class AppLocalizations {
   /// **'无'**
   String get priorityNone;
 
+  /// No description provided for @thisWeekend.
+  ///
+  /// In zh, this message translates to:
+  /// **'本周末'**
+  String get thisWeekend;
+
   /// No description provided for @nextWeek.
   ///
   /// In zh, this message translates to:
@@ -1651,6 +1657,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'扁平列表'**
   String get flatView;
+
+  /// No description provided for @emptyCustomView.
+  ///
+  /// In zh, this message translates to:
+  /// **'该视图暂未配置任何面板列'**
+  String get emptyCustomView;
 }
 
 class _AppLocalizationsDelegate

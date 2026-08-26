@@ -865,148 +865,305 @@ String _statusLabel(AppLocalizations l10n, TaskStatus status) =>
       TaskStatus.cancelled => l10n.statusCancelled,
     };
 
-/// 日期弹层（D6）：单「日期」图标 → 弹层内分设开始/截止两个入口。
+/// 日期弹层（Linear + Things 3 风格）：顶部快捷预设胶囊 + 开始/截止时间交互卡片。
 Future<void> _pickDate(BuildContext context, WidgetRef ref) async {
-  final l10n = AppLocalizations.of(context);
-  final theme = Theme.of(context);
-  final formState = ref.read(taskFormProvider);
-
-  final field = await showModalBottomSheet<String>(
+  await showModalBottomSheet<void>(
     context: context,
-    backgroundColor: theme.colorScheme.surface,
+    backgroundColor: Theme.of(context).colorScheme.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(
         top: Radius.circular(AppTokens.radiusDialog),
       ),
     ),
-    builder: (sheetContext) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: AppTokens.spaceXs),
-          ListTile(
-            title: Text(
-              l10n.dateAndReminder,
-              style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
-                fontWeight: AppTokens.textTitleWeight,
-              ),
-            ),
-          ),
-          const Divider(),
-          _dateFieldTile(
-            sheetContext,
-            label: l10n.taskStartTime,
-            valueText: formState.startAt != null
-                ? formatDueDate(formState.startAt!, l10n)
-                : l10n.noStartTime,
-            onTap: () => Navigator.of(sheetContext).pop('start'),
-          ),
-          _dateFieldTile(
-            sheetContext,
-            label: l10n.taskEndTime,
-            valueText: formState.endAt != null
-                ? formatDueDate(formState.endAt!, l10n)
-                : l10n.noDueDate,
-            onTap: () => Navigator.of(sheetContext).pop('end'),
-          ),
-          const SizedBox(height: AppTokens.spaceXs),
-        ],
-      ),
-    ),
-  );
-  if (field == null || !context.mounted) return;
-  await _pickDueDatePreset(context, ref, isStart: field == 'start');
-}
-
-Widget _dateFieldTile(
-  BuildContext context, {
-  required String label,
-  required String valueText,
-  required VoidCallback onTap,
-}) {
-  final theme = Theme.of(context);
-  return ListTile(
-    leading: const Icon(Icons.event_outlined, size: 20),
-    title: Text(
-      label,
-      style: theme.textTheme.bodySmall?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
-      ),
-    ),
-    subtitle: Text(valueText, style: theme.textTheme.bodyLarge),
-    trailing: const Icon(Icons.chevron_right, size: 18),
-    onTap: onTap,
+    builder: (sheetContext) => const _DateRangePickerSheet(),
   );
 }
 
-/// 日期预设弹层（今天/明天/下周/自定义/清除，D6；写入开始或截止）。
-Future<void> _pickDueDatePreset(
-  BuildContext context,
-  WidgetRef ref, {
-  required bool isStart,
-}) async {
-  final l10n = AppLocalizations.of(context);
-  final theme = Theme.of(context);
-  final choice = await showModalBottomSheet<_DueDateChoice>(
-    context: context,
-    backgroundColor: theme.colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(AppTokens.radiusDialog),
-      ),
-    ),
-    builder: (sheetContext) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: AppTokens.spaceXs),
-          ListTile(
-            title: Text(
-              isStart ? l10n.taskStartTime : l10n.taskEndTime,
-              style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
-                fontWeight: AppTokens.textTitleWeight,
+class _DateRangePickerSheet extends ConsumerWidget {
+  const _DateRangePickerSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final formState = ref.watch(taskFormProvider);
+    final notifier = ref.read(taskFormProvider.notifier);
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTokens.spaceMd,
+          vertical: AppTokens.spaceSm,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── 顶部栏：标题 + 完成 ──
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  l10n.dateAndReminder,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: AppTokens.textTitleWeight,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(l10n.done),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppTokens.spaceSm),
+
+            // ── 快捷预设胶囊行（Things 3 / Linear 式）──
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _PresetChip(
+                    label: l10n.today,
+                    icon: Icons.today_rounded,
+                    onTap: () {
+                      final ms = _dateOnlyMs(DateTime.now());
+                      notifier.updateEndAt(ms);
+                    },
+                  ),
+                  const SizedBox(width: AppTokens.spaceXs),
+                  _PresetChip(
+                    label: l10n.tomorrow,
+                    icon: Icons.wb_sunny_outlined,
+                    onTap: () {
+                      final ms = _dateOnlyMs(
+                        DateTime.now().add(const Duration(days: 1)),
+                      );
+                      notifier.updateEndAt(ms);
+                    },
+                  ),
+                  const SizedBox(width: AppTokens.spaceXs),
+                  _PresetChip(
+                    label: l10n.thisWeekend,
+                    icon: Icons.weekend_outlined,
+                    onTap: () {
+                      final ms = _dateOnlyMs(_thisWeekend(DateTime.now()));
+                      notifier.updateEndAt(ms);
+                    },
+                  ),
+                  const SizedBox(width: AppTokens.spaceXs),
+                  _PresetChip(
+                    label: l10n.nextWeek,
+                    icon: Icons.calendar_view_week_outlined,
+                    onTap: () {
+                      final ms = _dateOnlyMs(_nextMonday(DateTime.now()));
+                      notifier.updateEndAt(ms);
+                    },
+                  ),
+                  const SizedBox(width: AppTokens.spaceXs),
+                  _PresetChip(
+                    label: l10n.custom,
+                    icon: Icons.edit_calendar_outlined,
+                    onTap: () =>
+                        _pickCustomDateTime(context, notifier, isStart: false),
+                  ),
+                  if (formState.startAt != null || formState.endAt != null) ...[
+                    const SizedBox(width: AppTokens.spaceXs),
+                    _PresetChip(
+                      label: l10n.clear,
+                      icon: Icons.clear_rounded,
+                      isDestructive: true,
+                      onTap: () {
+                        notifier.updateStartAt(null);
+                        notifier.updateEndAt(null);
+                      },
+                    ),
+                  ],
+                ],
               ),
             ),
-          ),
-          const Divider(),
-          for (final c in _DueDateChoice.values)
-            ListTile(
-              title: Text(_dueDateChoiceLabel(l10n, c)),
-              onTap: () => Navigator.of(sheetContext).pop(c),
-            ),
-          const SizedBox(height: AppTokens.spaceXs),
-        ],
-      ),
-    ),
-  );
-  if (choice == null || !context.mounted) return;
+            const SizedBox(height: AppTokens.spaceMd),
 
-  final notifier = ref.read(taskFormProvider.notifier);
-  switch (choice) {
-    case _DueDateChoice.clear:
-      if (isStart) {
-        notifier.updateStartAt(null);
-      } else {
-        notifier.updateEndAt(null);
-      }
-    case _DueDateChoice.custom:
-      await _pickCustomDateTime(context, notifier, isStart: isStart);
-    case _DueDateChoice.today:
-    case _DueDateChoice.tomorrow:
-    case _DueDateChoice.nextWeek:
-      final now = DateTime.now();
-      final base = switch (choice) {
-        _DueDateChoice.today => now,
-        _DueDateChoice.tomorrow => now.add(const Duration(days: 1)),
-        _DueDateChoice.nextWeek => _nextMonday(now),
-        _ => now,
-      };
-      final ms = _dateOnlyMs(base);
-      if (isStart) {
-        notifier.updateStartAt(ms);
-      } else {
-        notifier.updateEndAt(ms);
-      }
+            // ── 开始时间卡片 ──
+            _DateSettingCard(
+              title: l10n.taskStartTime,
+              icon: Icons.play_circle_outline_rounded,
+              valueText: formState.startAt != null
+                  ? formatDueDate(formState.startAt!, l10n)
+                  : l10n.noStartTime,
+              hasValue: formState.startAt != null,
+              onTap: () =>
+                  _pickCustomDateTime(context, notifier, isStart: true),
+              onClear: formState.startAt != null
+                  ? () => notifier.updateStartAt(null)
+                  : null,
+            ),
+            const SizedBox(height: AppTokens.spaceSm),
+
+            // ── 截止时间卡片 ──
+            _DateSettingCard(
+              title: l10n.taskEndTime,
+              icon: Icons.flag_outlined,
+              valueText: formState.endAt != null
+                  ? formatDueDate(formState.endAt!, l10n)
+                  : l10n.noDueDate,
+              hasValue: formState.endAt != null,
+              onTap: () =>
+                  _pickCustomDateTime(context, notifier, isStart: false),
+              onClear: formState.endAt != null
+                  ? () => notifier.updateEndAt(null)
+                  : null,
+            ),
+            const SizedBox(height: AppTokens.spaceSm),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PresetChip extends StatelessWidget {
+  const _PresetChip({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.isDestructive = false,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool isDestructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
+    final color = isDestructive ? colorScheme.error : colorScheme.primary;
+
+    return ActionChip(
+      avatar: Icon(icon, size: 15, color: color),
+      label: Text(label),
+      labelStyle: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        color: isDestructive ? colorScheme.error : colorScheme.onSurface,
+      ),
+      backgroundColor: isDark
+          ? AppTokens.surfaceCardDark
+          : colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+        side: BorderSide(
+          color: isDark
+              ? AppTokens.borderSubtleDark
+              : AppTokens.borderSubtleLight,
+          width: 0.8,
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      onPressed: onTap,
+    );
+  }
+}
+
+class _DateSettingCard extends StatelessWidget {
+  const _DateSettingCard({
+    required this.title,
+    required this.icon,
+    required this.valueText,
+    required this.hasValue,
+    required this.onTap,
+    this.onClear,
+  });
+
+  final String title;
+  final IconData icon;
+  final String valueText;
+  final bool hasValue;
+  final VoidCallback onTap;
+  final VoidCallback? onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
+        borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+        border: Border.all(
+          color: isDark
+              ? AppTokens.borderSubtleDark
+              : AppTokens.borderSubtleLight,
+          width: 1.0,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTokens.spaceMd,
+              vertical: AppTokens.spaceSm,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  size: 20,
+                  color: hasValue
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: AppTokens.spaceSm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 11,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        valueText,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: hasValue
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                          color: hasValue
+                              ? colorScheme.onSurface
+                              : colorScheme.onSurfaceVariant.withValues(
+                                  alpha: 0.7,
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (hasValue && onClear != null)
+                  IconButton(
+                    tooltip: '清除',
+                    icon: const Icon(Icons.close, size: 18),
+                    onPressed: onClear,
+                  )
+                else
+                  const Icon(Icons.chevron_right, size: 18),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -1128,17 +1285,13 @@ DateTime _nextMonday(DateTime today) {
   return today.add(Duration(days: days == 0 ? 7 : days));
 }
 
-/// 日期预设选项。
-enum _DueDateChoice { today, tomorrow, nextWeek, custom, clear }
-
-String _dueDateChoiceLabel(AppLocalizations l10n, _DueDateChoice choice) =>
-    switch (choice) {
-      _DueDateChoice.today => l10n.today,
-      _DueDateChoice.tomorrow => l10n.tomorrow,
-      _DueDateChoice.nextWeek => l10n.nextWeek,
-      _DueDateChoice.custom => l10n.custom,
-      _DueDateChoice.clear => l10n.clear,
-    };
+/// 本周末（周六）。
+DateTime _thisWeekend(DateTime today) {
+  final daysUntilSaturday = (DateTime.saturday - today.weekday + 7) % 7;
+  return today.add(
+    Duration(days: daysUntilSaturday == 0 ? 7 : daysUntilSaturday),
+  );
+}
 
 /// 「移动到」清单选择弹层：搜索框 + 清单列表（当前项对勾）+ 添加项目。
 class _ProjectPickerSheet extends ConsumerStatefulWidget {

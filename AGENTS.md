@@ -29,6 +29,9 @@ dart format .                                # 格式化
 flutter test                                 # 跑全部测试
 flutter run -d windows                       # Windows 运行
 flutter run -d <android-device-id>           # Android 运行（flutter devices 查看）
+flutter build apk --release --split-per-abi  # 按abi分包构建apk: build/app/outputs/flutter-apk/
+flutter build linux --release                # 产出 build/linux/x64/release/bundle/
+flutter build windows --release              # 产出 build\windows\x64\runner\Release\
 ```
 
 ## 2.5 本机网络代理

@@ -111,11 +111,10 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // 方形勾选（61 §4.2；有子任务 → 禁用，状态由子任务派生）。
-                      // 触控区 44（与 TaskRow 一致的取舍），视觉 24 居中。
-                      // A 批：勾选/取消时勾选框 scale 弹性脉冲（1→1.15→1 /
-                      // 1→0.85→1，CheckboxBounce），勾线本身由 Material
-                      // Checkbox 的勾动画淡入。
+                      // 圆形勾选（Linear / Things 风格；有子任务 → 禁用，状态由子任务派生）。
+                      // 触控区 44，视觉 24 居中。
+                      // A 批：勾选/取消 scale 弹性脉冲（CheckboxBounce），
+                      // 勾线本身由 Material Checkbox 的勾动画淡入。
                       SizedBox(
                         width: AppTokens.checkboxTapTargetSize,
                         height: AppTokens.checkboxTapTargetSize,
@@ -127,9 +126,16 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                   message: l10n.statusDerivedFromChildren,
                                   child: Checkbox(
                                     value: widget.isDone,
-                                    shape: AppTokens.checkboxShapeSquare,
+                                    shape: AppTokens.checkboxShape,
                                     side: BorderSide(
-                                      color: AppTokens.colorInProgress,
+                                      color: widget.isDone
+                                          ? AppTokens.checkboxDoneFill
+                                          : (theme.brightness == Brightness.dark
+                                                ? Colors.white.withValues(
+                                                    alpha: 0.35,
+                                                  )
+                                                : colorScheme.outline
+                                                      .withValues(alpha: 0.45)),
                                       width: 1.5,
                                     ),
                                     onChanged: null,
@@ -137,9 +143,17 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                 )
                               : Checkbox(
                                   value: widget.isDone,
-                                  shape: AppTokens.checkboxShapeSquare,
+                                  shape: AppTokens.checkboxShape,
                                   side: BorderSide(
-                                    color: AppTokens.colorInProgress,
+                                    color: widget.isDone
+                                        ? AppTokens.checkboxDoneFill
+                                        : (theme.brightness == Brightness.dark
+                                              ? Colors.white.withValues(
+                                                  alpha: 0.35,
+                                                )
+                                              : colorScheme.outline.withValues(
+                                                  alpha: 0.45,
+                                                )),
                                     width: 1.5,
                                   ),
                                   onChanged: widget.onToggleDone,

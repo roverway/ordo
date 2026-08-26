@@ -143,6 +143,7 @@
   "priorityMedium": "中",
   "priorityLow": "低",
   "priorityNone": "无",
+  "thisWeekend": "本周末",
   "nextWeek": "下周",
   "custom": "自定义",
   "clear": "清除",
@@ -265,5 +266,6 @@
   "sortAsc": "升序",
   "sortDesc": "降序",
   "treeView": "树状结构",
-  "flatView": "扁平列表"
+  "flatView": "扁平列表",
+  "emptyCustomView": "该视图暂未配置任何面板列"
 }

@@ -245,15 +245,15 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
             decoration: BoxDecoration(
               color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
               borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-              boxShadow: [
-                BoxShadow(
-                  color: isDark
-                      ? AppTokens.shadowCardDark
-                      : AppTokens.shadowCard,
-                  blurRadius: AppTokens.shadowBlurRest,
-                  offset: const Offset(0, AppTokens.shadowOffsetY),
-                ),
-              ],
+              border: Border.all(
+                color: isDark
+                    ? AppTokens.borderSubtleDark
+                    : AppTokens.borderSubtleLight,
+                width: 1.0,
+              ),
+              boxShadow: isDark
+                  ? AppTokens.cardShadowDarkList
+                  : AppTokens.cardShadowLight,
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(AppTokens.radiusCard),
@@ -317,7 +317,6 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
   /// 在**子级尺寸变化**时（`_layoutStable` 检测 `child.size != 目标`）会自动
   /// 重启动画追平新高度，因此**任意层级**（一级展开/孙级展开或折叠）的高度
   /// 变化都被卡片级外层覆盖；内层若再包一个，仅在顶层展开后重建时是新建的
-  /// （首帧即目标尺寸，不产生动画），属于冗余层，已删除。
   Widget _buildChildrenSection(
     BuildContext context,
     List<TreeNode> children,
@@ -327,38 +326,115 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     required Map<String?, List<Task>> childrenIndexAll,
     required Map<String, Task> byIdAll,
     required bool animateRows,
+    int depth = 1,
+    List<double> ancestorTrunks = const [],
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
+    final lineColor = isDark
+        ? Colors.white.withValues(alpha: 0.16)
+        : colorScheme.outlineVariant.withValues(alpha: 0.75);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (var i = 0; i < children.length; i++) ...[
-          StaggeredFadeSlide(
-            index: i,
-            interval: AppTokens.motionTreeStaggerDelay,
-            animateOnBuild: animateRows,
-            child: _buildDraggableRow(
-              context,
-              children[i],
-              repo,
-              expandState,
-              style: TaskRowStyle.compact,
-              childrenIndexAll: childrenIndexAll,
-              byIdAll: byIdAll,
+        for (var i = 0; i < children.length; i++)
+          _buildChildTreeItem(
+            context,
+            children[i],
+            i,
+            children.length,
+            childrenOf,
+            repo,
+            expandState,
+            childrenIndexAll: childrenIndexAll,
+            byIdAll: byIdAll,
+            animateRows: animateRows,
+            lineColor: lineColor,
+            depth: depth,
+            ancestorTrunks: ancestorTrunks,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildChildTreeItem(
+    BuildContext context,
+    TreeNode childNode,
+    int index,
+    int total,
+    Map<String, List<TreeNode>> childrenOf,
+    TodoRepository repo,
+    Map<String, bool> expandState, {
+    required Map<String?, List<Task>> childrenIndexAll,
+    required Map<String, Task> byIdAll,
+    required bool animateRows,
+    required Color lineColor,
+    required int depth,
+    required List<double> ancestorTrunks,
+  }) {
+    final isLast = index == total - 1;
+    final grandChildren = childrenOf[childNode.task.id];
+    final hasGrandChildren =
+        childNode.isExpanded && (grandChildren?.isNotEmpty ?? false);
+
+    // 局部坐标系中：
+    // 当前主干垂线 X = 26.0（与父级复选框中心垂直共线）
+    // 当前分支引线终止 X = 45.0（直达子任务 18×18 复选框左侧外边框）
+    // 递归下级（孙任务）时：如果当前不是最后兄弟项，在下级局部坐标 X = -2.0 处绘制贯穿线（-2.0 + 28.0 = 26.0）
+    const localTrunkX = 26.0;
+    const localTargetBranchEndX = 45.0;
+    final nextAncestorTrunks = isLast ? <double>[] : <double>[-2.0];
+
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: CustomPaint(
+            painter: _SubtaskTreeConnectorPainter(
+              color: lineColor,
+              isLast: isLast,
+              ancestorTrunks: ancestorTrunks,
+              currentTrunkX: localTrunkX,
+              targetBranchEndX: localTargetBranchEndX,
             ),
           ),
-          if (children[i].isExpanded &&
-              (childrenOf[children[i].task.id]?.isNotEmpty ?? false))
-            _buildChildrenSection(
-              context,
-              childrenOf[children[i].task.id]!,
-              childrenOf,
-              repo,
-              expandState,
-              childrenIndexAll: childrenIndexAll,
-              byIdAll: byIdAll,
-              animateRows: expandState[children[i].task.id] == true,
-            ),
-        ],
+        ),
+        Padding(
+          padding: const EdgeInsets.only(left: 28.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              StaggeredFadeSlide(
+                index: index,
+                interval: AppTokens.motionTreeStaggerDelay,
+                animateOnBuild: animateRows,
+                child: _buildDraggableRow(
+                  context,
+                  childNode,
+                  repo,
+                  expandState,
+                  style: TaskRowStyle.compact,
+                  childrenIndexAll: childrenIndexAll,
+                  byIdAll: byIdAll,
+                ),
+              ),
+              if (hasGrandChildren)
+                _buildChildrenSection(
+                  context,
+                  grandChildren!,
+                  childrenOf,
+                  repo,
+                  expandState,
+                  childrenIndexAll: childrenIndexAll,
+                  byIdAll: byIdAll,
+                  animateRows: expandState[childNode.task.id] == true,
+                  depth: depth + 1,
+                  ancestorTrunks: nextAncestorTrunks,
+                ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -962,4 +1038,67 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
       message: l10n.emptyProjectDetail,
     );
   }
+}
+
+/// 子任务树状层级极细浅色引导线 Painter（Linear / Things 3 极简风格）
+class _SubtaskTreeConnectorPainter extends CustomPainter {
+  const _SubtaskTreeConnectorPainter({
+    required this.color,
+    required this.isLast,
+    required this.ancestorTrunks,
+    required this.currentTrunkX,
+    required this.targetBranchEndX,
+  });
+
+  final Color color;
+  final bool isLast;
+  final List<double> ancestorTrunks;
+  final double currentTrunkX;
+  final double targetBranchEndX;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    const branchY = 22.0; // 严格对准复选框 44 触控区垂直中线 22.0
+
+    // 1. 绘制祖先节点的连续贯穿竖线
+    for (final trunkX in ancestorTrunks) {
+      canvas.drawLine(Offset(trunkX, 0), Offset(trunkX, size.height), paint);
+    }
+
+    // 2. 绘制当前节点的主干线与分支线
+    final trunkX = currentTrunkX;
+    final endX = targetBranchEndX;
+
+    final path = Path();
+    path.moveTo(trunkX, 0);
+    if (isLast) {
+      path.lineTo(trunkX, branchY - 6);
+      path.quadraticBezierTo(trunkX, branchY, trunkX + 6, branchY);
+      path.lineTo(endX, branchY);
+      canvas.drawPath(path, paint);
+    } else {
+      path.lineTo(trunkX, size.height);
+      canvas.drawPath(path, paint);
+
+      final branchPath = Path()
+        ..moveTo(trunkX, branchY - 6)
+        ..quadraticBezierTo(trunkX, branchY, trunkX + 6, branchY)
+        ..lineTo(endX, branchY);
+      canvas.drawPath(branchPath, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SubtaskTreeConnectorPainter oldDelegate) =>
+      oldDelegate.color != color ||
+      oldDelegate.isLast != isLast ||
+      oldDelegate.currentTrunkX != currentTrunkX ||
+      oldDelegate.targetBranchEndX != targetBranchEndX ||
+      oldDelegate.ancestorTrunks != ancestorTrunks;
 }

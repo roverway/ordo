@@ -48,21 +48,29 @@ class PanelColumn extends ConsumerWidget {
         final isHovered = candidateData.isNotEmpty;
         final isDark = theme.brightness == Brightness.dark;
 
+        final isNarrow = !isKanban;
         return Container(
-          decoration: BoxDecoration(
-            color: isHovered
-                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.18)
-                : (isDark
-                      ? theme.colorScheme.surfaceContainerLow
-                      : theme.colorScheme.surfaceContainerLowest),
-            borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-            border: Border.all(
-              color: isHovered
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
-              width: isHovered ? 1.5 : 1,
-            ),
-          ),
+          decoration: isNarrow
+              ? null
+              : BoxDecoration(
+                  color: isHovered
+                      ? theme.colorScheme.primaryContainer.withValues(
+                          alpha: 0.15,
+                        )
+                      : (isDark
+                            ? theme.colorScheme.surfaceContainerLowest
+                                  .withValues(alpha: 0.6)
+                            : const Color(0xFFF1F3F6)),
+                  borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                  border: Border.all(
+                    color: isHovered
+                        ? theme.colorScheme.primary
+                        : (isDark
+                              ? AppTokens.borderSubtleDark
+                              : AppTokens.borderSubtleLight),
+                    width: isHovered ? 1.5 : 1,
+                  ),
+                ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -695,10 +703,14 @@ class PanelColumn extends ConsumerWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppTokens.radiusButton),
               border: Border.all(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
-                width: 0.9,
+                color: theme.brightness == Brightness.dark
+                    ? AppTokens.borderSubtleDark
+                    : AppTokens.borderSubtleLight,
+                width: 1.0,
               ),
-              color: theme.colorScheme.surface.withValues(alpha: 0.5),
+              color: theme.brightness == Brightness.dark
+                  ? AppTokens.surfaceCardDark
+                  : AppTokens.surfaceCard,
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,

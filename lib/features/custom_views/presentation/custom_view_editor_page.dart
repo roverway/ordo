@@ -221,17 +221,13 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
               borderRadius: BorderRadius.circular(AppTokens.radiusCard),
               border: Border.all(
                 color: isDark
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
-                width: 0.8,
+                    ? AppTokens.borderSubtleDark
+                    : AppTokens.borderSubtleLight,
+                width: 1.0,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              boxShadow: isDark
+                  ? AppTokens.cardShadowDarkList
+                  : AppTokens.cardShadowLight,
             ),
             padding: const EdgeInsets.all(AppTokens.spaceMd),
             child: Column(
@@ -516,21 +512,13 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                   borderRadius: BorderRadius.circular(AppTokens.radiusCard),
                   border: Border.all(
                     color: isDark
-                        ? Colors.white.withValues(alpha: 0.08)
-                        : theme.colorScheme.outlineVariant.withValues(
-                            alpha: 0.35,
-                          ),
-                    width: 0.8,
+                        ? AppTokens.borderSubtleDark
+                        : AppTokens.borderSubtleLight,
+                    width: 1.0,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: isDark ? 0.2 : 0.02,
-                      ),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1.5),
-                    ),
-                  ],
+                  boxShadow: isDark
+                      ? AppTokens.cardShadowDarkList
+                      : AppTokens.cardShadowLight,
                 ),
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(

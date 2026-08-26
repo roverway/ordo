@@ -464,6 +464,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get priorityNone => '无';
 
   @override
+  String get thisWeekend => '本周末';
+
+  @override
   String get nextWeek => '下周';
 
   @override
@@ -816,4 +819,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get flatView => '扁平列表';
+
+  @override
+  String get emptyCustomView => '该视图暂未配置任何面板列';
 }

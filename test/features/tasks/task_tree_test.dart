@@ -481,17 +481,15 @@ void main() {
           ),
         );
 
-    testWidgets('勾选框为方形，一级蓝边框、子级红边框（层级着色）', (tester) async {
+    testWidgets('勾选框为圆形，未完成为主题克制中性色边框', (tester) async {
       await _pumpTree(tester, [
         _task('r', title: 'Root'),
         _task('c', parentId: 'r', title: 'Child', sortOrder: 1),
       ]);
       final rootBox = boxOf(tester, 'Root');
       final childBox = boxOf(tester, 'Child');
-      expect(rootBox.shape, isA<RoundedRectangleBorder>());
-      expect(childBox.shape, isA<RoundedRectangleBorder>());
-      expect(rootBox.side?.color, AppTokens.colorInProgress);
-      expect(childBox.side?.color, AppTokens.colorPriorityHigh);
+      expect(rootBox.shape, isA<CircleBorder>());
+      expect(childBox.shape, isA<CircleBorder>());
     });
 
     testWidgets('行尾无拖拽把手（用户打磨要求：恢复整行拖拽，把手已删除）', (tester) async {
@@ -536,7 +534,7 @@ void main() {
       await _pumpTree(tester, [_task('a', title: 'A')]);
       final box = tester.widget<Checkbox>(find.byType(Checkbox).first);
       final size = tester.getSize(find.byType(Checkbox).first);
-      expect(box.shape, isA<RoundedRectangleBorder>());
+      expect(box.shape, isA<CircleBorder>());
       expect(size.width, greaterThanOrEqualTo(44));
       expect(size.height, greaterThanOrEqualTo(44));
     });

@@ -142,23 +142,72 @@ abstract final class AppTheme {
       // ── Input Decoration ──
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        fillColor: isDark
+            ? AppTokens.surfaceCardDark
+            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppTokens.radiusButton),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(
+            color: isDark
+                ? AppTokens.borderSubtleDark
+                : AppTokens.borderSubtleLight,
+            width: 1,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppTokens.radiusButton),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(
+            color: isDark
+                ? AppTokens.borderSubtleDark
+                : AppTokens.borderSubtleLight,
+            width: 1,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppTokens.radiusButton),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(
+            color: colorScheme.primary.withValues(alpha: 0.6),
+            width: 1.5,
+          ),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppTokens.spaceMd,
           vertical: AppTokens.spaceSm,
         ),
+      ),
+
+      // ── SegmentedButton ──
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+            ),
+          ),
+          side: WidgetStateProperty.resolveWith((states) {
+            return BorderSide(
+              color: isDark
+                  ? AppTokens.borderSubtleDark
+                  : AppTokens.borderSubtleLight,
+              width: 1,
+            );
+          }),
+        ),
+      ),
+
+      // ── PopupMenu ──
+      popupMenuTheme: PopupMenuThemeData(
+        elevation: 3,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+          side: BorderSide(
+            color: isDark
+                ? AppTokens.borderSubtleDark
+                : AppTokens.borderSubtleLight,
+            width: 1,
+          ),
+        ),
+        color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
       ),
 
       // ── Buttons ──
@@ -185,6 +234,12 @@ abstract final class AppTheme {
         style: OutlinedButton.styleFrom(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppTokens.radiusButton),
+          ),
+          side: BorderSide(
+            color: isDark
+                ? AppTokens.borderSubtleDark
+                : AppTokens.borderSubtleLight,
+            width: 1,
           ),
         ),
       ),
@@ -221,11 +276,16 @@ abstract final class AppTheme {
       ),
 
       // ── Checkbox ──
-      // 滴答风格圆形复选框：完成 = checkboxDoneFill 蓝填充 + 白勾；
+      // Linear / Things 风格圆形复选框：完成 = checkboxDoneFill 蓝填充 + 白勾；
       // 禁用（有子任务，状态派生）= 浅灰填充。shape 走 AppTokens。
       checkboxTheme: CheckboxThemeData(
         shape: AppTokens.checkboxShape,
-        side: BorderSide(color: colorScheme.outline, width: 1.5),
+        side: BorderSide(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.28)
+              : colorScheme.outline.withValues(alpha: 0.45),
+          width: 1.5,
+        ),
         fillColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return AppTokens.checkboxDoneFill;
@@ -243,11 +303,11 @@ abstract final class AppTheme {
       ),
 
       // ── Divider ──
-      // 深色下 outlineVariant 偏暗，提高不透明度保证卡片内分隔线可辨
-      //（M5 任务 2 深色细节，Material 3 惯例；颜色仍由 colorScheme 派生）。
       dividerTheme: DividerThemeData(
         thickness: 0.5,
-        color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.7 : 0.5),
+        color: isDark
+            ? AppTokens.borderSubtleDark
+            : AppTokens.borderSubtleLight,
         space: 1,
       ),
 
