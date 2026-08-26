@@ -237,27 +237,11 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet> {
     final notifier = ref.read(taskFormProvider.notifier);
     final formState = ref.read(taskFormProvider);
 
-    final hasContent =
-        formState.title.trim().isNotEmpty ||
-        formState.description.isNotEmpty ||
-        formState.notes.isNotEmpty ||
-        formState.startAt != null ||
-        formState.endAt != null ||
-        formState.priority != TaskPriority.none ||
-        formState.selectedTagIds.isNotEmpty ||
-        _editorController.newSubtaskTitles.isNotEmpty;
-
-    if (!hasContent) {
+    if (formState.title.trim().isEmpty) {
       if (mounted) {
         setState(() => _allowPop = true);
         Navigator.of(context).pop();
       }
-      return;
-    }
-    if (formState.title.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.titleRequired)));
       return;
     }
 

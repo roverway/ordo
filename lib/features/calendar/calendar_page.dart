@@ -198,12 +198,10 @@ class CalendarPage extends ConsumerWidget {
   ) {
     return Column(
       children: [
-        _buildCalendarCard(
-          context,
-          ref,
-          buckets,
-          projectsMap,
-          state,
+        _CalendarCard(
+          buckets: buckets,
+          projectsMap: projectsMap,
+          state: state,
           isNarrow: true,
         ),
         Expanded(
@@ -232,12 +230,10 @@ class CalendarPage extends ConsumerWidget {
           width: 440,
           child: Padding(
             padding: const EdgeInsets.all(AppTokens.spaceMd),
-            child: _buildCalendarCard(
-              context,
-              ref,
-              buckets,
-              projectsMap,
-              state,
+            child: _CalendarCard(
+              buckets: buckets,
+              projectsMap: projectsMap,
+              state: state,
               isNarrow: false,
             ),
           ),
@@ -254,22 +250,217 @@ class CalendarPage extends ConsumerWidget {
     );
   }
 
-  // ── 日历视口卡片组件 ──────────────────────────────────────────────────
+  // ── 当日议程与任务列表（下半部）───────────────────────────────────────
 
-  Widget _buildCalendarCard(
+  Widget _buildAgendaList(
     BuildContext context,
     WidgetRef ref,
     Map<DateTime, List<Task>> buckets,
-    Map<String, Project> projectsMap,
-    CalendarState state, {
-    required bool isNarrow,
-  }) {
+    List<Task> allTasks,
+    CalendarState state,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final selected = state.selectedDate;
+    final tasks = tasksForDay(buckets, selected);
+    final childrenIndex = indexChildrenByParent(allTasks);
+
+    final now = DateTime.now();
+    final isToday =
+        selected.year == now.year &&
+        selected.month == now.month &&
+        selected.day == now.day;
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+
+    final dateHeader = isZh
+        ? (isToday
+              ? '${intl.DateFormat('M月d日').format(selected)} · ${l10n.today}'
+              : intl.DateFormat('M月d日 EEEE').format(selected))
+        : (isToday
+              ? '${intl.DateFormat('MMM d').format(selected)} · ${l10n.today}'
+              : intl.DateFormat('EEEE, MMM d').format(selected));
+
+    final countText = tasks.isEmpty ? '' : l10n.tasksCount(tasks.length);
+
+    return CustomScrollView(
+      slivers: [
+        // 当日概览 Sticky / Header 栏
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppTokens.spaceMd,
+              AppTokens.spaceSm,
+              AppTokens.spaceMd,
+              AppTokens.spaceXs,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    dateHeader,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: isToday
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                if (countText.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTokens.spaceXs,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                    ),
+                    child: Text(
+                      countText,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                const SizedBox(width: AppTokens.spaceSm),
+                TextButton.icon(
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: Text(l10n.newTask),
+                  onPressed: () => _createTaskOnDay(context, ref, selected),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (tasks.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(AppTokens.spaceXl),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.event_available_outlined,
+                      size: AppTokens.emptyIconSize,
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.45,
+                      ),
+                    ),
+                    const SizedBox(height: AppTokens.spaceSm),
+                    Text(
+                      l10n.emptyCalendar,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: AppTokens.spaceMd),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppTokens.radiusButton,
+                          ),
+                        ),
+                      ),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: Text(l10n.addTask),
+                      onPressed: () => _createTaskOnDay(context, ref, selected),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+              AppTokens.spaceMd,
+              0,
+              AppTokens.spaceMd,
+              88, // 留出 FAB 底部防遮挡安全边距
+            ),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final task = tasks[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: CalendarTaskTile(
+                    task: task,
+                    children: childrenIndex[task.id] ?? const <Task>[],
+                    allTasks: allTasks,
+                    onTap: () => openTaskEdit(context, taskId: task.id),
+                  ),
+                );
+              }, childCount: tasks.length),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // ── 新建任务预填当日 09:00 ──────────────────────────────────────────
+
+  Future<void> _createTaskOnDay(
+    BuildContext context,
+    WidgetRef ref,
+    DateTime day,
+  ) async {
+    final project = await ref.read(inboxProjectProvider.future);
+    final startAt = DateTime(
+      day.year,
+      day.month,
+      day.day,
+      9,
+    ).toUtc().millisecondsSinceEpoch;
+    if (!context.mounted) return;
+    TaskCreateSheet.show(
+      context,
+      projectId: project.id,
+      initialStartAt: startAt,
+    );
+  }
+}
+
+// ── 日历视口卡片组件 ──────────────────────────────────────────────────
+
+class _CalendarCard extends ConsumerStatefulWidget {
+  const _CalendarCard({
+    required this.buckets,
+    required this.projectsMap,
+    required this.state,
+    required this.isNarrow,
+  });
+
+  final Map<DateTime, List<Task>> buckets;
+  final Map<String, Project> projectsMap;
+  final CalendarState state;
+  final bool isNarrow;
+
+  @override
+  ConsumerState<_CalendarCard> createState() => _CalendarCardState();
+}
+
+class _CalendarCardState extends ConsumerState<_CalendarCard> {
+  double _horizontalDelta = 0;
+  double _verticalDelta = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      margin: isNarrow
+      margin: widget.isNarrow
           ? const EdgeInsets.fromLTRB(
               AppTokens.spaceSm,
               AppTokens.spaceXs,
@@ -291,29 +482,61 @@ class CalendarPage extends ConsumerWidget {
       ),
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
+        onHorizontalDragStart: (_) {
+          _horizontalDelta = 0;
+        },
+        onHorizontalDragUpdate: (details) {
+          _horizontalDelta += details.primaryDelta ?? 0;
+        },
         onHorizontalDragEnd: (details) {
           final velocity = details.primaryVelocity ?? 0;
-          if (velocity < -150) {
+          if (velocity < -150 || _horizontalDelta < -40) {
             // 向左滑动 -> 下一周期
             ref.read(calendarStateProvider.notifier).nextPeriod();
-          } else if (velocity > 150) {
+          } else if (velocity > 150 || _horizontalDelta > 40) {
             // 向右滑动 -> 上一周期
             ref.read(calendarStateProvider.notifier).prevPeriod();
           }
+          _horizontalDelta = 0;
+        },
+        onVerticalDragStart: (_) {
+          _verticalDelta = 0;
+        },
+        onVerticalDragUpdate: (details) {
+          _verticalDelta += details.primaryDelta ?? 0;
+        },
+        onVerticalDragEnd: (details) {
+          final velocity = details.primaryVelocity ?? 0;
+          if (velocity < -150 || _verticalDelta < -30) {
+            // 向上滑动 -> 收起为周视图
+            ref.read(calendarStateProvider.notifier).setMode(CalendarMode.week);
+          } else if (velocity > 150 || _verticalDelta > 30) {
+            // 向下滑动 -> 展开为月视图
+            ref
+                .read(calendarStateProvider.notifier)
+                .setMode(CalendarMode.month);
+          }
+          _verticalDelta = 0;
         },
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // 顶层月份快速导航栏（左右小箭头 + 周期文案）
-            _buildCalendarRibbonHeader(context, ref, state),
+            _buildCalendarRibbonHeader(context, ref, widget.state),
             const SizedBox(height: AppTokens.spaceXxs),
             // 星期表头（一至日）
             _buildWeekdayRow(context),
             const SizedBox(height: AppTokens.spaceXxs),
             // 日期格网
-            _buildDaysGrid(context, ref, buckets, projectsMap, state),
+            _buildDaysGrid(
+              context,
+              ref,
+              widget.buckets,
+              widget.projectsMap,
+              widget.state,
+            ),
             // 底部折叠/展开指示柄（窄屏下提供视觉手势暗示）
-            if (isNarrow)
+            if (widget.isNarrow)
               InkWell(
                 borderRadius: const BorderRadius.vertical(
                   bottom: Radius.circular(AppTokens.radiusCard),
@@ -492,165 +715,6 @@ class CalendarPage extends ConsumerWidget {
     );
   }
 
-  // ── 当日议程与任务列表（下半部）───────────────────────────────────────
-
-  Widget _buildAgendaList(
-    BuildContext context,
-    WidgetRef ref,
-    Map<DateTime, List<Task>> buckets,
-    List<Task> allTasks,
-    CalendarState state,
-  ) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final selected = state.selectedDate;
-    final tasks = tasksForDay(buckets, selected);
-    final childrenIndex = indexChildrenByParent(allTasks);
-
-    final now = DateTime.now();
-    final isToday =
-        selected.year == now.year &&
-        selected.month == now.month &&
-        selected.day == now.day;
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
-
-    final dateHeader = isZh
-        ? (isToday
-              ? '${intl.DateFormat('M月d日').format(selected)} · ${l10n.today}'
-              : intl.DateFormat('M月d日 EEEE').format(selected))
-        : (isToday
-              ? '${intl.DateFormat('MMM d').format(selected)} · ${l10n.today}'
-              : intl.DateFormat('EEEE, MMM d').format(selected));
-
-    final countText = tasks.isEmpty ? '' : l10n.tasksCount(tasks.length);
-
-    return CustomScrollView(
-      slivers: [
-        // 当日概览 Sticky / Header 栏
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppTokens.spaceMd,
-              AppTokens.spaceSm,
-              AppTokens.spaceMd,
-              AppTokens.spaceXs,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    dateHeader,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: isToday
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurface,
-                    ),
-                  ),
-                ),
-                if (countText.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppTokens.spaceXs,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(AppTokens.radiusChip),
-                    ),
-                    child: Text(
-                      countText,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                const SizedBox(width: AppTokens.spaceSm),
-                TextButton.icon(
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                  ),
-                  icon: const Icon(Icons.add, size: 16),
-                  label: Text(l10n.newTask),
-                  onPressed: () => _createTaskOnDay(context, ref, selected),
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (tasks.isEmpty)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppTokens.spaceXl),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.event_available_outlined,
-                      size: AppTokens.emptyIconSize,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.45,
-                      ),
-                    ),
-                    const SizedBox(height: AppTokens.spaceSm),
-                    Text(
-                      l10n.emptyCalendar,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: AppTokens.spaceMd),
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppTokens.radiusButton,
-                          ),
-                        ),
-                      ),
-                      icon: const Icon(Icons.add, size: 18),
-                      label: Text(l10n.addTask),
-                      onPressed: () => _createTaskOnDay(context, ref, selected),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          )
-        else
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(
-              AppTokens.spaceMd,
-              0,
-              AppTokens.spaceMd,
-              88, // 留出 FAB 底部防遮挡安全边距
-            ),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final task = tasks[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
-                  child: CalendarTaskTile(
-                    task: task,
-                    children: childrenIndex[task.id] ?? const <Task>[],
-                    allTasks: allTasks,
-                    onTap: () => openTaskEdit(context, taskId: task.id),
-                  ),
-                );
-              }, childCount: tasks.length),
-            ),
-          ),
-      ],
-    );
-  }
-
-  // ── 日期计算辅助 ─────────────────────────────────────────────────────
-
   List<DateTime> _monthGridDays(DateTime selected) {
     final first = DateTime(selected.year, selected.month, 1);
     final daysInMonth = DateTime(selected.year, selected.month + 1, 0).day;
@@ -673,28 +737,6 @@ class CalendarPage extends ConsumerWidget {
       for (var i = 0; i < 7; i++)
         DateTime(monday.year, monday.month, monday.day + i),
     ];
-  }
-
-  // ── 新建任务预填当日 09:00 ──────────────────────────────────────────
-
-  Future<void> _createTaskOnDay(
-    BuildContext context,
-    WidgetRef ref,
-    DateTime day,
-  ) async {
-    final project = await ref.read(inboxProjectProvider.future);
-    final startAt = DateTime(
-      day.year,
-      day.month,
-      day.day,
-      9,
-    ).toUtc().millisecondsSinceEpoch;
-    if (!context.mounted) return;
-    TaskCreateSheet.show(
-      context,
-      projectId: project.id,
-      initialStartAt: startAt,
-    );
   }
 }
 

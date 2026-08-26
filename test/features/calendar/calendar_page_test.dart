@@ -317,4 +317,58 @@ void main() {
     expect(find.text('E'), findsOneWidget);
     expect(find.text('D'), findsOneWidget);
   });
+
+  testWidgets('上下滑动日历卡片切换月视图与周视图', (tester) async {
+    final db = openTestDatabase();
+    final repo = TodoRepository(database: db);
+    final state = _fixedState(CalendarMode.month);
+
+    final controller = await _pump(tester, repo: repo, state: state);
+    controller.add(buildCalendarBuckets([], state));
+    await tester.pumpAndSettle();
+
+    // 初始为月视图：顶栏显示「2026年8月」
+    expect(find.text('2026年8月'), findsWidgets);
+
+    // 向上滑动手势 -> 收起为周视图
+    await tester.drag(find.text('11').first, const Offset(0, -100));
+    await tester.pumpAndSettle();
+
+    // 切换为周视图：顶栏显示周期区间「8月10日 – 8月16日」
+    expect(find.text('8月10日 – 8月16日'), findsOneWidget);
+
+    // 向下滑动手势 -> 展开为月视图
+    await tester.drag(find.text('11').first, const Offset(0, 100));
+    await tester.pumpAndSettle();
+
+    // 恢复为月视图
+    expect(find.text('2026年8月'), findsWidgets);
+  });
+
+  testWidgets('日历打开新建任务弹窗 → 未输入标题点击遮罩可正常关闭', (tester) async {
+    final db = openTestDatabase();
+    final repo = TodoRepository(database: db);
+    final state = _fixedState(CalendarMode.month);
+
+    final controller = await _pump(tester, repo: repo, state: state);
+    controller.add(buildCalendarBuckets([], state));
+    await tester.pumpAndSettle();
+
+    // 点选 8/15
+    await tester.tap(find.text('15').first);
+    await tester.pumpAndSettle();
+
+    // 打开新建任务
+    await tester.tap(find.text('新建任务'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TaskCreateSheet), findsOneWidget);
+
+    // 点击遮罩空白部分
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    // 弹窗正常关闭，未被阻拦，且无任务落库
+    expect(find.byType(TaskCreateSheet), findsNothing);
+    expect(await repo.tasks.getAllByProject('inbox'), isEmpty);
+  });
 }

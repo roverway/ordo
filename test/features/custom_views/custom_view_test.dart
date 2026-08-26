@@ -374,7 +374,9 @@ void main() {
         expect(find.byType(KanbanTaskCard), findsOneWidget);
 
         // Tap checkbox to mark done
-        final checkboxFinder = find.byKey(ValueKey('kanban_checkbox_${task.id}'));
+        final checkboxFinder = find.byKey(
+          ValueKey('kanban_checkbox_${task.id}'),
+        );
         expect(checkboxFinder, findsOneWidget);
         await tester.tap(checkboxFinder);
         await tester.runAsync(

@@ -199,7 +199,7 @@ void main() {
     expect(await repo.tasks.getAllByProject('p1'), isEmpty);
   });
 
-  testWidgets('有内容但标题为空 → 提示「标题不能为空」并停留在弹窗', (tester) async {
+  testWidgets('设置日期但未输入标题 → 点击遮罩关闭弹窗且不落库（不阻拦退出）', (tester) async {
     final repo = await _repo('p1');
     await _openSheet(tester, repo: repo);
 
@@ -211,13 +211,71 @@ void main() {
     await tester.tap(find.text('完成'));
     await tester.pumpAndSettle();
 
-    // 关闭 → 校验失败 → SnackBar + 弹窗仍在。
+    // 点击遮罩 → 标题为空直接关闭，不阻拦退出、不落库
     await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
 
-    expect(find.text('标题不能为空'), findsOneWidget);
+    expect(find.byType(TaskCreateSheet), findsNothing);
+    expect(await repo.tasks.getAllByProject('p1'), isEmpty);
+  });
+
+  testWidgets('日历预填 startAt 但未输入标题 → 点击遮罩直接关闭且不落库', (tester) async {
+    final repo = await _repo('p1');
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final cache = AppSettingsCache();
+    final project = Project(
+      id: 'p1',
+      name: '测试项目',
+      color: 0xFF3482FF,
+      description: '',
+      sortOrder: 0,
+      createdAt: 0,
+      updatedAt: 0,
+      deleted: 0,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appSettingsCacheProvider.overrideWithValue(cache),
+          todoRepositoryProvider.overrideWithValue(repo),
+          projectsStreamProvider.overrideWithValue(AsyncData([project])),
+          tagsStreamProvider.overrideWithValue(const AsyncData(<Tag>[])),
+        ],
+        child: MaterialApp(
+          locale: const Locale('zh'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () => TaskCreateSheet.show(
+                    context,
+                    projectId: 'p1',
+                    initialStartAt: 1754902800000,
+                  ),
+                  child: const Text('打开日历新建'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('打开日历新建'));
+    await tester.pumpAndSettle();
     expect(find.byType(TaskCreateSheet), findsOneWidget);
-    // 未落库。
+
+    // 点击遮罩空白处
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    // 成功关闭，未落库
+    expect(find.byType(TaskCreateSheet), findsNothing);
     expect(await repo.tasks.getAllByProject('p1'), isEmpty);
   });
 
