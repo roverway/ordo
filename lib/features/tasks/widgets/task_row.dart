@@ -174,14 +174,344 @@ class _TaskRowState extends State<TaskRow> {
       overflow: TextOverflow.ellipsis,
     );
 
+    final rowContent = AnimatedScale(
+      scale: _pressed ? AppTokens.cardPressScaleSubtle : 1,
+      duration: motionFast(context),
+      curve: motionCurve(context),
+      child: AnimatedContainer(
+        duration: motionFast(context),
+        curve: motionCurve(context),
+        decoration: BoxDecoration(
+          color: _rowColor(colorScheme),
+          borderRadius: BorderRadius.circular(rowRadius),
+          border: widget.isDragTarget
+              ? Border.all(
+                  color: widget.isInvalidDragTarget
+                      ? colorScheme.error
+                      : colorScheme.primary,
+                  width: 2,
+                )
+              : null,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(rowRadius),
+            onTap: widget.onTap,
+            // 用户打磨要求（恢复整行拖拽）：行体**长按不再弹菜单**（与整行
+            // LongPressDraggable 互斥，拖拽由 TaskTree 包整行触发）；
+            // 菜单入口保留**桌面右键**（onSecondaryTap，与长按不冲突）。
+            onSecondaryTap: () => _showMenu(context),
+            child: Padding(
+              padding: _contentPadding(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: widget.style == TaskRowStyle.compact
+                      ? AppTokens.taskRowCompactMinHeight
+                      : AppTokens.taskRowMinHeight,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Checkbox（Linear / Things 圆形复选框；有子任务的子任务行禁用：
+                    // 状态由父任务派生，Tooltip 解释原因，AGENTS.md §3-2 +
+                    // NFR-06 语义）。触控区 = checkboxTapTargetSize（44），视觉 24 居中。
+                    // A 批：勾选/取消 scale 弹性脉冲（CheckboxBounce），
+                    // 勾线由 Material Checkbox 勾动画淡入。
+                    SizedBox(
+                      width: AppTokens.checkboxTapTargetSize,
+                      height: AppTokens.checkboxTapTargetSize,
+                      child: CheckboxBounce(
+                        isDone: isDone,
+                        child: (!hasDerived || widget.task.parentId == null)
+                            ? Checkbox(
+                                value: isDone,
+                                shape: AppTokens.checkboxShape,
+                                side: BorderSide(
+                                  color: _checkboxBorderColor(
+                                    isDone,
+                                    colorScheme,
+                                    isDark,
+                                  ),
+                                  width: 1.5,
+                                ),
+                                onChanged: widget.onToggleDone,
+                              )
+                            : Tooltip(
+                                message: l10n.statusDerivedFromChildren,
+                                child: Checkbox(
+                                  value: isDone,
+                                  shape: AppTokens.checkboxShape,
+                                  side: BorderSide(
+                                    color: _checkboxBorderColor(
+                                      isDone,
+                                      colorScheme,
+                                      isDark,
+                                    ),
+                                    width: 1.5,
+                                  ),
+                                  onChanged: null,
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(width: AppTokens.spaceXxs),
+                    // Title + description + tags + date（61 §4.1/§4.4）。
+                    Expanded(
+                      // 已完成 → 内容区整体淡化（勾选/行尾进度环/子任务数与
+                      // 展开箭头保持全不透明，行仍可交互；strikethrough +
+                      // onSurfaceVariant 保留）。
+                      child: AnimatedOpacity(
+                        opacity: isDone ? AppTokens.doneContentOpacity : 1,
+                        duration: motionFast(context),
+                        curve: motionCurve(context),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // 标题首行：固定最小高度与 Checkbox 对齐（y=22 垂直居中）
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(
+                                minHeight: AppTokens.checkboxTapTargetSize,
+                              ),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: widget.task.priority != TaskPriority.none
+                                    ? Row(
+                                        children: [
+                                          Icon(
+                                            Icons.flag_outlined,
+                                            size: 14,
+                                            color: priorityColor(
+                                              widget.task.priority,
+                                            ),
+                                          ),
+                                          const SizedBox(
+                                            width: AppTokens.spaceXxs,
+                                          ),
+                                          Expanded(child: titleText),
+                                        ],
+                                      )
+                                    : titleText,
+                              ),
+                            ),
+                            // 描述文字（61 §4.4）：标题下方灰色小字，有内容才显示。
+                            if (widget.task.description.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  bottom: AppTokens.spaceXxs,
+                                ),
+                                child: Text(
+                                  widget.task.description,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            // 日期行（61 §4.4）：标题下方独立行，日期范围灰色 +
+                            // 相对时间（距开始 X 天）橙色强调。
+                            if (dateText.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  bottom: AppTokens.spaceXxs,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_today_outlined,
+                                      size: 11,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(width: AppTokens.spaceXxs),
+                                    Expanded(
+                                      child: Text(
+                                        dateText,
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color:
+                                                  colorScheme.onSurfaceVariant,
+                                            ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (relativeText.isNotEmpty) ...[
+                                      const SizedBox(width: AppTokens.spaceXs),
+                                      Text(
+                                        relativeText,
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color:
+                                                  AppTokens.colorDateRelative,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            // 标签 chips（61 §4.4）：底部独立行（≤2 + +N）。
+                            if (widget.tags.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  bottom: AppTokens.spaceXs,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Flexible(
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          ...widget.tags
+                                              .take(2)
+                                              .map(
+                                                (tag) => Flexible(
+                                                  child: Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          right: AppTokens
+                                                              .spaceXxs,
+                                                        ),
+                                                    child: TagChip(tag: tag),
+                                                  ),
+                                                ),
+                                              ),
+                                          if (widget.tags.length > 2)
+                                            Text(
+                                              '+${widget.tags.length - 2}',
+                                              style: theme.textTheme.bodySmall
+                                                  ?.copyWith(
+                                                    color: colorScheme
+                                                        .onSurfaceVariant,
+                                                  ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // 行尾组件：与首行 Checkbox 保持相同高度垂直居中
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minHeight: AppTokens.checkboxTapTargetSize,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Progress ring（61 §4.4：行尾，子任务数左侧）。
+                          if (widget.progressValue != null &&
+                              widget.hasChildren) ...[
+                            TaskProgressRing(value: widget.progressValue!),
+                            const SizedBox(width: AppTokens.spaceXs),
+                          ],
+                          // 子任务数 + 展开箭头（61 §4.5：行尾、菜单左侧；无子任务
+                          // 不显示）。展开 = 箭头朝下（turns 0.25），折叠 = 朝右。
+                          if (widget.hasChildren) ...[
+                            Semantics(
+                              button: true,
+                              label: widget.isExpanded
+                                  ? l10n.collapse
+                                  : l10n.expand,
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: widget.onToggleExpand,
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    minWidth: AppTokens.expandTapTargetSize,
+                                    minHeight: AppTokens.expandTapTargetSize,
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 1.5,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: isDark
+                                              ? Colors.white.withValues(
+                                                  alpha: 0.08,
+                                                )
+                                              : colorScheme
+                                                    .surfaceContainerHighest
+                                                    .withValues(alpha: 0.5),
+                                          borderRadius: BorderRadius.circular(
+                                            AppTokens.radiusChip,
+                                          ),
+                                          border: Border.all(
+                                            color: isDark
+                                                ? AppTokens.borderSubtleDark
+                                                : AppTokens.borderSubtleLight,
+                                            width: 0.5,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '${widget.incompleteChildCount}/${widget.childCount}',
+                                          style: theme.textTheme.labelSmall
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 10.5,
+                                                color: isDark
+                                                    ? Colors.white70
+                                                    : colorScheme
+                                                          .onSurfaceVariant,
+                                              ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: AppTokens.spaceXxs),
+                                      AnimatedRotation(
+                                        turns: widget.isExpanded ? 0.25 : 0,
+                                        duration: motionFast(context),
+                                        curve: motionCurve(context),
+                                        child: Icon(
+                                          Icons.arrow_right,
+                                          size: AppTokens.expandArrowSize,
+                                          color: colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: AppTokens.spaceXxs),
+                    // Drop-as-child indicator.
+                    if (widget.isDragTarget &&
+                        widget.dropAsChild &&
+                        !widget.isInvalidDragTarget)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          right: AppTokens.spaceXxs,
+                        ),
+                        child: Icon(
+                          Icons.subdirectory_arrow_right,
+                          size: 18,
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
-      // H 批（des-4 需求 2 减弱）：按压仅保留几乎无感的轻微 scale
-      // （cardPressScaleSubtle 0.995）；抬手恢复。不改变点击/长按拖拽手势
-      // （视觉变换不影响命中）。
-      // mounted 守卫：整行拖拽时源行被 childWhenDragging 替换（dispose），
-      // 指针 up/cancel 仍会路由到本 Listener，避免 setState after dispose。
       child: Listener(
         onPointerDown: (_) {
           if (mounted) setState(() => _pressed = true);
@@ -192,356 +522,20 @@ class _TaskRowState extends State<TaskRow> {
         onPointerCancel: (_) {
           if (mounted) setState(() => _pressed = false);
         },
-        child: AnimatedScale(
-          scale: _pressed ? AppTokens.cardPressScaleSubtle : 1,
-          duration: motionFast(context),
-          curve: motionCurve(context),
-          child: AnimatedContainer(
-            duration: motionFast(context),
-            curve: motionCurve(context),
-            decoration: BoxDecoration(
-              color: _rowColor(colorScheme),
-              borderRadius: BorderRadius.circular(rowRadius),
-              border: widget.isDragTarget
-                  ? Border.all(
-                      color: widget.isInvalidDragTarget
-                          ? colorScheme.error
-                          : colorScheme.primary,
-                      width: 2,
-                    )
-                  : null,
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(rowRadius),
-                onTap: widget.onTap,
-                // 用户打磨要求（恢复整行拖拽）：行体**长按不再弹菜单**（与整行
-                // LongPressDraggable 互斥，拖拽由 TaskTree 包整行触发）；
-                // 菜单入口保留**桌面右键**（onSecondaryTap，与长按不冲突）。
-                onSecondaryTap: () => _showMenu(context),
-                child: Padding(
-                  padding: _contentPadding(),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: widget.style == TaskRowStyle.compact
-                          ? AppTokens.taskRowCompactMinHeight
-                          : AppTokens.taskRowMinHeight,
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Checkbox（Linear / Things 圆形复选框；有子任务的子任务行禁用：
-                        // 状态由父任务派生，Tooltip 解释原因，AGENTS.md §3-2 +
-                        // NFR-06 语义）。触控区 = checkboxTapTargetSize（44），视觉 24 居中。
-                        // A 批：勾选/取消 scale 弹性脉冲（CheckboxBounce），
-                        // 勾线由 Material Checkbox 勾动画淡入。
-                        SizedBox(
-                          width: AppTokens.checkboxTapTargetSize,
-                          height: AppTokens.checkboxTapTargetSize,
-                          child: CheckboxBounce(
-                            isDone: isDone,
-                            child: (!hasDerived || widget.task.parentId == null)
-                                ? Checkbox(
-                                    value: isDone,
-                                    shape: AppTokens.checkboxShape,
-                                    side: BorderSide(
-                                      color: _checkboxBorderColor(
-                                        isDone,
-                                        colorScheme,
-                                        isDark,
-                                      ),
-                                      width: 1.5,
-                                    ),
-                                    onChanged: widget.onToggleDone,
-                                  )
-                                : Tooltip(
-                                    message: l10n.statusDerivedFromChildren,
-                                    child: Checkbox(
-                                      value: isDone,
-                                      shape: AppTokens.checkboxShape,
-                                      side: BorderSide(
-                                        color: _checkboxBorderColor(
-                                          isDone,
-                                          colorScheme,
-                                          isDark,
-                                        ),
-                                        width: 1.5,
-                                      ),
-                                      onChanged: null,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                        const SizedBox(width: AppTokens.spaceXxs),
-                        // Title + description + tags + date（61 §4.1/§4.4）。
-                        Expanded(
-                          // 已完成 → 内容区整体淡化（勾选/行尾进度环/子任务数与
-                          // 展开箭头保持全不透明，行仍可交互；strikethrough +
-                          // onSurfaceVariant 保留）。
-                          child: AnimatedOpacity(
-                            opacity: isDone ? AppTokens.doneContentOpacity : 1,
-                            duration: motionFast(context),
-                            curve: motionCurve(context),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // 标题首行：固定最小高度与 Checkbox 对齐（y=22 垂直居中）
-                                ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    minHeight: AppTokens.checkboxTapTargetSize,
-                                  ),
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child:
-                                        widget.task.priority !=
-                                            TaskPriority.none
-                                        ? Row(
-                                            children: [
-                                              Icon(
-                                                Icons.flag_outlined,
-                                                size: 14,
-                                                color: priorityColor(
-                                                  widget.task.priority,
-                                                ),
-                                              ),
-                                              const SizedBox(
-                                                width: AppTokens.spaceXxs,
-                                              ),
-                                              Expanded(child: titleText),
-                                            ],
-                                          )
-                                        : titleText,
-                                  ),
-                                ),
-                                // 描述文字（61 §4.4）：标题下方灰色小字，有内容才显示。
-                                if (widget.task.description.isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      bottom: AppTokens.spaceXxs,
-                                    ),
-                                    child: Text(
-                                      widget.task.description,
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: colorScheme.onSurfaceVariant,
-                                          ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                // 日期行（61 §4.4）：标题下方独立行，日期范围灰色 +
-                                // 相对时间（距开始 X 天）橙色强调。
-                                if (dateText.isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      bottom: AppTokens.spaceXxs,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.calendar_today_outlined,
-                                          size: 11,
-                                          color: colorScheme.onSurfaceVariant,
-                                        ),
-                                        const SizedBox(
-                                          width: AppTokens.spaceXxs,
-                                        ),
-                                        Expanded(
-                                          child: Text(
-                                            dateText,
-                                            style: theme.textTheme.bodySmall
-                                                ?.copyWith(
-                                                  color: colorScheme
-                                                      .onSurfaceVariant,
-                                                ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                        if (relativeText.isNotEmpty) ...[
-                                          const SizedBox(
-                                            width: AppTokens.spaceXs,
-                                          ),
-                                          Text(
-                                            relativeText,
-                                            style: theme.textTheme.bodySmall
-                                                ?.copyWith(
-                                                  color: AppTokens
-                                                      .colorDateRelative,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                // 标签 chips（61 §4.4）：底部独立行（≤2 + +N）。
-                                if (widget.tags.isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      bottom: AppTokens.spaceXs,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Flexible(
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              ...widget.tags
-                                                  .take(2)
-                                                  .map(
-                                                    (tag) => Flexible(
-                                                      child: Padding(
-                                                        padding:
-                                                            const EdgeInsets.only(
-                                                              right: AppTokens
-                                                                  .spaceXxs,
-                                                            ),
-                                                        child: TagChip(
-                                                          tag: tag,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                              if (widget.tags.length > 2)
-                                                Text(
-                                                  '+${widget.tags.length - 2}',
-                                                  style: theme
-                                                      .textTheme
-                                                      .bodySmall
-                                                      ?.copyWith(
-                                                        color: colorScheme
-                                                            .onSurfaceVariant,
-                                                      ),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        // 行尾组件：与首行 Checkbox 保持相同高度垂直居中
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(
-                            minHeight: AppTokens.checkboxTapTargetSize,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Progress ring（61 §4.4：行尾，子任务数左侧）。
-                              if (widget.progressValue != null &&
-                                  widget.hasChildren) ...[
-                                TaskProgressRing(value: widget.progressValue!),
-                                const SizedBox(width: AppTokens.spaceXs),
-                              ],
-                              // 子任务数 + 展开箭头（61 §4.5：行尾、菜单左侧；无子任务
-                              // 不显示）。展开 = 箭头朝下（turns 0.25），折叠 = 朝右。
-                              if (widget.hasChildren) ...[
-                                Semantics(
-                                  button: true,
-                                  label: widget.isExpanded
-                                      ? l10n.collapse
-                                      : l10n.expand,
-                                  child: GestureDetector(
-                                    behavior: HitTestBehavior.opaque,
-                                    onTap: widget.onToggleExpand,
-                                    child: ConstrainedBox(
-                                      constraints: const BoxConstraints(
-                                        minWidth: AppTokens.expandTapTargetSize,
-                                        minHeight:
-                                            AppTokens.expandTapTargetSize,
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 6,
-                                              vertical: 1.5,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: isDark
-                                                  ? Colors.white.withValues(
-                                                      alpha: 0.08,
-                                                    )
-                                                  : colorScheme
-                                                        .surfaceContainerHighest
-                                                        .withValues(alpha: 0.5),
-                                              borderRadius:
-                                                  BorderRadius.circular(
-                                                    AppTokens.radiusChip,
-                                                  ),
-                                              border: Border.all(
-                                                color: isDark
-                                                    ? AppTokens.borderSubtleDark
-                                                    : AppTokens
-                                                          .borderSubtleLight,
-                                                width: 0.5,
-                                              ),
-                                            ),
-                                            child: Text(
-                                              '${widget.incompleteChildCount}/${widget.childCount}',
-                                              style: theme.textTheme.labelSmall
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 10.5,
-                                                    color: isDark
-                                                        ? Colors.white70
-                                                        : colorScheme
-                                                              .onSurfaceVariant,
-                                                  ),
-                                            ),
-                                          ),
-                                          const SizedBox(
-                                            width: AppTokens.spaceXxs,
-                                          ),
-                                          AnimatedRotation(
-                                            turns: widget.isExpanded ? 0.25 : 0,
-                                            duration: motionFast(context),
-                                            curve: motionCurve(context),
-                                            child: Icon(
-                                              Icons.arrow_right,
-                                              size: AppTokens.expandArrowSize,
-                                              color:
-                                                  colorScheme.onSurfaceVariant,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: AppTokens.spaceXxs),
-                        // Drop-as-child indicator.
-                        if (widget.isDragTarget &&
-                            widget.dropAsChild &&
-                            !widget.isInvalidDragTarget)
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              right: AppTokens.spaceXxs,
-                            ),
-                            child: Icon(
-                              Icons.subdirectory_arrow_right,
-                              size: 18,
-                              color: colorScheme.primary,
-                            ),
-                          ),
-                      ],
-                    ),
+        child: Stack(
+          children: [
+            if (widget.hasChildren && widget.isExpanded)
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _ParentCheckboxConnectorPainter(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.16)
+                        : colorScheme.outlineVariant.withValues(alpha: 0.75),
                   ),
                 ),
               ),
-            ),
-          ),
+            rowContent,
+          ],
         ),
       ),
     );
@@ -635,4 +629,34 @@ class _TaskRowState extends State<TaskRow> {
       ),
     );
   }
+}
+
+/// 父任务展开时，从复选框底部直接向下延伸至行底的连续垂线 Painter
+class _ParentCheckboxConnectorPainter extends CustomPainter {
+  const _ParentCheckboxConnectorPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    // 复选框中心 X: AppTokens.spaceXxs (4.0) + AppTokens.checkboxTapTargetSize / 2 (22.0) = 26.0
+    // 复选框视觉圆圈 (18x18) 底部 Y: 22.0 + 9.0 = 31.0
+    const trunkX = AppTokens.spaceXxs + AppTokens.checkboxTapTargetSize / 2;
+    const checkboxBottomY = 22.0 + 9.0;
+    canvas.drawLine(
+      const Offset(trunkX, checkboxBottomY),
+      Offset(trunkX, size.height),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ParentCheckboxConnectorPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
