@@ -836,4 +836,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get emptyCustomView => 'No panels configured in this view';
+
+  @override
+  String get emptyDayTasks => 'No tasks scheduled for this day';
+
+  @override
+  String get prevPeriod => 'Previous Period';
+
+  @override
+  String get nextPeriod => 'Next Period';
+
+  @override
+  String get switchMonth => 'Select Month';
 }

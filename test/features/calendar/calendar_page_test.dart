@@ -170,7 +170,7 @@ void main() {
     // No locale set → defaults to zh (Chinese).
   });
 
-  testWidgets('月视图：跨天/仅截止日/无时间/月外任务的显示规则（§9.2）', (tester) async {
+  testWidgets('月视图：跨天/仅截止日/无时间/月外任务的显示规则与分桶（§9.2）', (tester) async {
     final db = openTestDatabase();
     final repo = TodoRepository(database: db);
 
@@ -182,23 +182,48 @@ void main() {
       _task('C'),
       _task('G', endAt: _ms(2026, 9, 1, 18)),
     ];
+    final buckets = buildCalendarBuckets(
+      tasks,
+      _fixedState(CalendarMode.month),
+    );
+    expect(buckets[DateTime(2026, 8, 5)]?.map((t) => t.id), ['A']);
+    expect(buckets[DateTime(2026, 8, 6)]?.map((t) => t.id), ['A', 'B']);
+    expect(buckets[DateTime(2026, 8, 7)]?.map((t) => t.id), ['A']);
+    expect(buckets[DateTime(2026, 8, 8)], isNull);
+    expect(buckets[DateTime(2026, 9, 1)], isNull);
+
     final controller = await _pump(
       tester,
       repo: repo,
       state: _fixedState(CalendarMode.month),
     );
-    controller.add(
-      buildCalendarBuckets(tasks, _fixedState(CalendarMode.month)),
-    );
+    controller.add(buckets);
     await tester.pumpAndSettle();
 
-    expect(find.text('A'), findsNWidgets(3)); // 8/5、8/6、8/7 三个日期格
-    expect(find.text('B'), findsOneWidget); // 仅 8/6
-    expect(find.text('C'), findsNothing); // 无时间任务
-    expect(find.text('G'), findsNothing); // 月外任务
+    // 点击 8/5：议程列表联动显示任务 A
+    await tester.tap(find.text('5').first);
+    await tester.pumpAndSettle();
+    expect(find.text('A'), findsOneWidget);
+    expect(find.text('B'), findsNothing);
+
+    // 点击 8/6：议程列表联动显示任务 A 和 B
+    await tester.tap(find.text('6').first);
+    await tester.pumpAndSettle();
+    expect(find.text('A'), findsOneWidget);
+    expect(find.text('B'), findsOneWidget);
+
+    // 点击 8/7：议程列表联动显示任务 A
+    await tester.tap(find.text('7').first);
+    await tester.pumpAndSettle();
+    expect(find.text('A'), findsOneWidget);
+    expect(find.text('B'), findsNothing);
+
+    // 无时间任务 C 和月外任务 G 不在任何日历桶中出现
+    expect(find.text('C'), findsNothing);
+    expect(find.text('G'), findsNothing);
   });
 
-  testWidgets('点含任务日期格 → 弹层列出该任务并可「新建」', (tester) async {
+  testWidgets('点选含任务日期格 → 联动议程列表列出该任务并可「新建任务」', (tester) async {
     final db = openTestDatabase();
     final repo = TodoRepository(database: db);
 
@@ -216,19 +241,19 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 点 8/6 的日期格（该格显示任务 B 标题）。
-    await tester.tap(find.text('B'));
+    // 点击 8/6 日期格
+    await tester.tap(find.text('6').first);
     await tester.pumpAndSettle();
 
-    // 弹层出现：任务行 + 「新建」按钮。
+    // 议程联动区出现：任务行 + 「新建任务」
     expect(find.text('新建任务'), findsOneWidget);
-    expect(find.text('B'), findsNWidgets(2)); // 日期格 + 弹层行
+    expect(find.text('A'), findsOneWidget);
+    expect(find.text('B'), findsOneWidget);
   });
 
-  testWidgets('弹层「新建」→ 打开新建任务底部弹窗并预填该日 09:00 的 startAt', (tester) async {
+  testWidgets('点击「新建任务」→ 打开新建任务底部弹窗并预填选中日 09:00 的 startAt', (tester) async {
     final db = openTestDatabase();
     final repo = TodoRepository(database: db);
-    // 桶里至少有一个任务，月网格才会渲染（空桶 → EmptyState 而非网格）。
     final tasks = [_task('X', endAt: _ms(2026, 8, 6, 18))];
     final controller = await _pump(
       tester,
@@ -240,19 +265,19 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 点一个空日期格（8/15，周六）：弹层只有「新建」。
-    await tester.tap(find.text('15'));
+    // 点选空日期格（8/15，周六）
+    await tester.tap(find.text('15').first);
     await tester.pumpAndSettle();
     expect(find.text('新建任务'), findsOneWidget);
 
     await tester.tap(find.text('新建任务'));
     await tester.pumpAndSettle();
 
-    // 打开的是底部弹窗（D2 定稿，替代全屏 /task/new 路由）。
+    // 打开的是底部弹窗
     expect(find.byType(TaskCreateSheet), findsOneWidget);
     expect(find.textContaining('new:'), findsNothing);
 
-    // 预填该日 09:00 的 startAt（UTC 毫秒）到表单。
+    // 预填该日 09:00 的 startAt（UTC 毫秒）到表单
     final ctx = tester.element(find.byType(TaskCreateSheet));
     final formState = ProviderScope.containerOf(ctx).read(taskFormProvider);
     expect(formState.projectId, 'inbox');
@@ -271,12 +296,25 @@ void main() {
       _task('A', startAt: _ms(2026, 8, 5, 9), endAt: _ms(2026, 8, 7, 18)),
     ];
     final state = _fixedState(CalendarMode.week);
+    final buckets = buildCalendarBuckets(tasks, state);
+    expect(buckets[DateTime(2026, 8, 11)]?.map((t) => t.id), ['E']);
+    expect(buckets[DateTime(2026, 8, 12)]?.map((t) => t.id), ['E', 'D']);
+    expect(buckets[DateTime(2026, 8, 13)]?.map((t) => t.id), ['E']);
+    expect(buckets[DateTime(2026, 8, 5)], isNull);
+
     final controller = await _pump(tester, repo: repo, state: state);
-    controller.add(buildCalendarBuckets(tasks, state));
+    controller.add(buckets);
     await tester.pumpAndSettle();
 
-    expect(find.text('E'), findsNWidgets(3)); // 8/11、8/12、8/13
-    expect(find.text('D'), findsOneWidget); // 仅 8/12
-    expect(find.text('A'), findsNothing); // 周区间外
+    // 默认选中 8/11：议程区显示 E
+    expect(find.text('E'), findsOneWidget);
+    expect(find.text('D'), findsNothing);
+    expect(find.text('A'), findsNothing);
+
+    // 点击 8/12：议程区显示 E 和 D
+    await tester.tap(find.text('12').first);
+    await tester.pumpAndSettle();
+    expect(find.text('E'), findsOneWidget);
+    expect(find.text('D'), findsOneWidget);
   });
 }

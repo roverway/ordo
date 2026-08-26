@@ -267,5 +267,9 @@
   "sortDesc": "Descending",
   "treeView": "Tree View",
   "flatView": "Flat List",
-  "emptyCustomView": "No panels configured in this view"
+  "emptyCustomView": "No panels configured in this view",
+  "emptyDayTasks": "No tasks scheduled for this day",
+  "prevPeriod": "Previous Period",
+  "nextPeriod": "Next Period",
+  "switchMonth": "Select Month"
 }

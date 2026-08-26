@@ -1663,6 +1663,30 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'该视图暂未配置任何面板列'**
   String get emptyCustomView;
+
+  /// No description provided for @emptyDayTasks.
+  ///
+  /// In zh, this message translates to:
+  /// **'该日暂无待办事项'**
+  String get emptyDayTasks;
+
+  /// No description provided for @prevPeriod.
+  ///
+  /// In zh, this message translates to:
+  /// **'上一周期'**
+  String get prevPeriod;
+
+  /// No description provided for @nextPeriod.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一周期'**
+  String get nextPeriod;
+
+  /// No description provided for @switchMonth.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择月份'**
+  String get switchMonth;
 }
 
 class _AppLocalizationsDelegate

@@ -34,11 +34,57 @@ class CalendarNotifier extends Notifier<CalendarState> {
     );
   }
 
+  /// 选中指定日期。
+  void selectDate(DateTime date) {
+    state = state.copyWith(selectedDate: date);
+  }
+
+  /// 设置视图模式（月 / 周）。
+  void setMode(CalendarMode mode) {
+    if (state.mode != mode) {
+      state = state.copyWith(mode: mode);
+    }
+  }
+
   /// 上一月：selectedDate 平移一个月（跨月时按目标月实际天数钳制日期）。
   void prevMonth() => _shiftMonth(-1);
 
   /// 下一月。
   void nextMonth() => _shiftMonth(1);
+
+  /// 上一周：selectedDate 前移 7 天。
+  void prevWeek() {
+    final cur = state.selectedDate;
+    state = state.copyWith(
+      selectedDate: DateTime(cur.year, cur.month, cur.day - 7),
+    );
+  }
+
+  /// 下一周：selectedDate 后移 7 天。
+  void nextWeek() {
+    final cur = state.selectedDate;
+    state = state.copyWith(
+      selectedDate: DateTime(cur.year, cur.month, cur.day + 7),
+    );
+  }
+
+  /// 切换至上一周期（根据当前月/周模式自适应）。
+  void prevPeriod() {
+    if (state.mode == CalendarMode.month) {
+      prevMonth();
+    } else {
+      prevWeek();
+    }
+  }
+
+  /// 切换至下一周期（根据当前月/周模式自适应）。
+  void nextPeriod() {
+    if (state.mode == CalendarMode.month) {
+      nextMonth();
+    } else {
+      nextWeek();
+    }
+  }
 
   /// 月/周视图切换。
   void toggleView() {

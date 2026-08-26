@@ -822,4 +822,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get emptyCustomView => '该视图暂未配置任何面板列';
+
+  @override
+  String get emptyDayTasks => '该日暂无待办事项';
+
+  @override
+  String get prevPeriod => '上一周期';
+
+  @override
+  String get nextPeriod => '下一周期';
+
+  @override
+  String get switchMonth => '选择月份';
 }
