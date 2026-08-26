@@ -229,7 +229,7 @@ class _TaskRowState extends State<TaskRow> {
                           : AppTokens.taskRowMinHeight,
                     ),
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Checkbox（Linear / Things 圆形复选框；有子任务的子任务行禁用：
                         // 状态由父任务派生，Tooltip 解释原因，AGENTS.md §3-2 +
@@ -286,32 +286,39 @@ class _TaskRowState extends State<TaskRow> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // 用户打磨要求 1：移除派生状态小圆点（状态信息由
-                                // 勾选框与进度环承载，标题行不再叠加状态图标）。
-                                // 优先级旗帜（用户要求：与编辑器工具栏同一 flag
-                                // 图标/配色）：有优先级时旗帜在标题左侧；无优先级
-                                // 保持纯文本行布局（改造前）不变。
-                                if (widget.task.priority != TaskPriority.none)
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.flag_outlined,
-                                        size: 14,
-                                        color: priorityColor(
-                                          widget.task.priority,
-                                        ),
-                                      ),
-                                      const SizedBox(width: AppTokens.spaceXxs),
-                                      Expanded(child: titleText),
-                                    ],
-                                  )
-                                else
-                                  titleText,
+                                // 标题首行：固定最小高度与 Checkbox 对齐（y=22 垂直居中）
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    minHeight: AppTokens.checkboxTapTargetSize,
+                                  ),
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child:
+                                        widget.task.priority !=
+                                            TaskPriority.none
+                                        ? Row(
+                                            children: [
+                                              Icon(
+                                                Icons.flag_outlined,
+                                                size: 14,
+                                                color: priorityColor(
+                                                  widget.task.priority,
+                                                ),
+                                              ),
+                                              const SizedBox(
+                                                width: AppTokens.spaceXxs,
+                                              ),
+                                              Expanded(child: titleText),
+                                            ],
+                                          )
+                                        : titleText,
+                                  ),
+                                ),
                                 // 描述文字（61 §4.4）：标题下方灰色小字，有内容才显示。
                                 if (widget.task.description.isNotEmpty)
                                   Padding(
                                     padding: const EdgeInsets.only(
-                                      top: AppTokens.spaceXxs,
+                                      bottom: AppTokens.spaceXxs,
                                     ),
                                     child: Text(
                                       widget.task.description,
@@ -328,7 +335,7 @@ class _TaskRowState extends State<TaskRow> {
                                 if (dateText.isNotEmpty)
                                   Padding(
                                     padding: const EdgeInsets.only(
-                                      top: AppTokens.spaceXxs,
+                                      bottom: AppTokens.spaceXxs,
                                     ),
                                     child: Row(
                                       children: [
@@ -370,15 +377,10 @@ class _TaskRowState extends State<TaskRow> {
                                     ),
                                   ),
                                 // 标签 chips（61 §4.4）：底部独立行（≤2 + +N）。
-                                // 底部对称留白（用户要求）：bottom = top = spaceXxs，
-                                // 与行内元信息行间距节奏一致（行/卡片底部不再贴边）。
-                                // 每个 chip 用 Flexible 包住，使其成为内层 Row 的
-                                // 可收缩子项：NFR-06 字体缩放下按份额收缩，Text 的
-                                // maxLines + ellipsis 真正生效。
                                 if (widget.tags.isNotEmpty)
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: AppTokens.spaceXxs,
+                                    padding: const EdgeInsets.only(
+                                      bottom: AppTokens.spaceXs,
                                     ),
                                     child: Row(
                                       children: [
@@ -423,87 +425,102 @@ class _TaskRowState extends State<TaskRow> {
                             ),
                           ),
                         ),
-                        // Progress ring（61 §4.4：行尾，子任务数左侧）。
-                        if (widget.progressValue != null &&
-                            widget.hasChildren) ...[
-                          TaskProgressRing(value: widget.progressValue!),
-                          const SizedBox(width: AppTokens.spaceXs),
-                        ],
-                        // 子任务数 + 展开箭头（61 §4.5：行尾、菜单左侧；无子任务
-                        // 不显示）。展开 = 箭头朝下（turns 0.25），折叠 = 朝右。
-                        if (widget.hasChildren) ...[
-                          Semantics(
-                            // 无障碍（NFR-06）：纯图标按钮补语义标签（展开/收起）。
-                            button: true,
-                            label: widget.isExpanded
-                                ? l10n.collapse
-                                : l10n.expand,
-                            child: GestureDetector(
-                              // 评审修复 2：ConstrainedBox 恢复最小 32×32 触控区
-                              //（改造前固定 28×28），opaque 使透明区也响应点击；
-                              // Row 自身尺寸不变 → 不改变行尾对齐布局。
-                              behavior: HitTestBehavior.opaque,
-                              onTap: widget.onToggleExpand,
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  minWidth: AppTokens.expandTapTargetSize,
-                                  minHeight: AppTokens.expandTapTargetSize,
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 1.5,
+                        // 行尾组件：与首行 Checkbox 保持相同高度垂直居中
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            minHeight: AppTokens.checkboxTapTargetSize,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Progress ring（61 §4.4：行尾，子任务数左侧）。
+                              if (widget.progressValue != null &&
+                                  widget.hasChildren) ...[
+                                TaskProgressRing(value: widget.progressValue!),
+                                const SizedBox(width: AppTokens.spaceXs),
+                              ],
+                              // 子任务数 + 展开箭头（61 §4.5：行尾、菜单左侧；无子任务
+                              // 不显示）。展开 = 箭头朝下（turns 0.25），折叠 = 朝右。
+                              if (widget.hasChildren) ...[
+                                Semantics(
+                                  button: true,
+                                  label: widget.isExpanded
+                                      ? l10n.collapse
+                                      : l10n.expand,
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: widget.onToggleExpand,
+                                    child: ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        minWidth: AppTokens.expandTapTargetSize,
+                                        minHeight:
+                                            AppTokens.expandTapTargetSize,
                                       ),
-                                      decoration: BoxDecoration(
-                                        color: isDark
-                                            ? Colors.white.withValues(
-                                                alpha: 0.08,
-                                              )
-                                            : colorScheme
-                                                  .surfaceContainerHighest
-                                                  .withValues(alpha: 0.5),
-                                        borderRadius: BorderRadius.circular(
-                                          AppTokens.radiusChip,
-                                        ),
-                                        border: Border.all(
-                                          color: isDark
-                                              ? AppTokens.borderSubtleDark
-                                              : AppTokens.borderSubtleLight,
-                                          width: 0.5,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        '${widget.incompleteChildCount}/${widget.childCount}',
-                                        style: theme.textTheme.labelSmall
-                                            ?.copyWith(
-                                              fontSize: 10.5,
-                                              fontWeight: FontWeight.w500,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 1.5,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: isDark
+                                                  ? Colors.white.withValues(
+                                                      alpha: 0.08,
+                                                    )
+                                                  : colorScheme
+                                                        .surfaceContainerHighest
+                                                        .withValues(alpha: 0.5),
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                    AppTokens.radiusChip,
+                                                  ),
+                                              border: Border.all(
+                                                color: isDark
+                                                    ? AppTokens.borderSubtleDark
+                                                    : AppTokens
+                                                          .borderSubtleLight,
+                                                width: 0.5,
+                                              ),
+                                            ),
+                                            child: Text(
+                                              '${widget.incompleteChildCount}/${widget.childCount}',
+                                              style: theme.textTheme.labelSmall
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 10.5,
+                                                    color: isDark
+                                                        ? Colors.white70
+                                                        : colorScheme
+                                                              .onSurfaceVariant,
+                                                  ),
+                                            ),
+                                          ),
+                                          const SizedBox(
+                                            width: AppTokens.spaceXxs,
+                                          ),
+                                          AnimatedRotation(
+                                            turns: widget.isExpanded ? 0.25 : 0,
+                                            duration: motionFast(context),
+                                            curve: motionCurve(context),
+                                            child: Icon(
+                                              Icons.arrow_right,
+                                              size: AppTokens.expandArrowSize,
                                               color:
                                                   colorScheme.onSurfaceVariant,
                                             ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    const SizedBox(width: AppTokens.spaceXxs),
-                                    AnimatedRotation(
-                                      turns: widget.isExpanded ? 0.25 : 0,
-                                      duration: motionFast(context),
-                                      curve: motionCurve(context),
-                                      child: Icon(
-                                        Icons.arrow_right,
-                                        size: AppTokens.expandArrowSizeRow,
-                                        color: colorScheme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
-                              ),
-                            ),
+                              ],
+                            ],
                           ),
-                          const SizedBox(width: AppTokens.spaceXxs),
-                        ],
+                        ),
+                        const SizedBox(width: AppTokens.spaceXxs),
                         // Drop-as-child indicator.
                         if (widget.isDragTarget &&
                             widget.dropAsChild &&
