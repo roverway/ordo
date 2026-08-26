@@ -174,6 +174,11 @@ class _TaskRowState extends State<TaskRow> {
       overflow: TextOverflow.ellipsis,
     );
 
+    final hasDescription = widget.task.description.isNotEmpty;
+    final hasDate = dateText.isNotEmpty;
+    final hasTags = widget.tags.isNotEmpty;
+    final hasMeta = hasDescription || hasDate || hasTags;
+
     final rowContent = AnimatedScale(
       scale: _pressed ? AppTokens.cardPressScaleSubtle : 1,
       duration: motionFast(context),
@@ -268,37 +273,37 @@ class _TaskRowState extends State<TaskRow> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // 标题首行：固定最小高度与 Checkbox 对齐（y=22 垂直居中）
-                            ConstrainedBox(
-                              constraints: const BoxConstraints(
-                                minHeight: AppTokens.checkboxTapTargetSize,
+                            // 标题首行：固定 10.5dp 顶部留白，使单行与复选框中心严格对齐（y=22）
+                            Padding(
+                              padding: EdgeInsets.only(
+                                top: 10.5,
+                                bottom: hasMeta ? AppTokens.spaceXxs : 10.5,
                               ),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: widget.task.priority != TaskPriority.none
-                                    ? Row(
-                                        children: [
-                                          Icon(
-                                            Icons.flag_outlined,
-                                            size: 14,
-                                            color: priorityColor(
-                                              widget.task.priority,
-                                            ),
+                              child: widget.task.priority != TaskPriority.none
+                                  ? Row(
+                                      children: [
+                                        Icon(
+                                          Icons.flag_outlined,
+                                          size: 14,
+                                          color: priorityColor(
+                                            widget.task.priority,
                                           ),
-                                          const SizedBox(
-                                            width: AppTokens.spaceXxs,
-                                          ),
-                                          Expanded(child: titleText),
-                                        ],
-                                      )
-                                    : titleText,
-                              ),
+                                        ),
+                                        const SizedBox(
+                                          width: AppTokens.spaceXxs,
+                                        ),
+                                        Expanded(child: titleText),
+                                      ],
+                                    )
+                                  : titleText,
                             ),
-                            // 描述文字（61 §4.4）：标题下方灰色小字，有内容才显示。
-                            if (widget.task.description.isNotEmpty)
+                            // 描述文字（61 §4.4）：统一 4dp 间距。
+                            if (hasDescription)
                               Padding(
-                                padding: const EdgeInsets.only(
-                                  bottom: AppTokens.spaceXxs,
+                                padding: EdgeInsets.only(
+                                  bottom: (hasDate || hasTags)
+                                      ? AppTokens.spaceXxs
+                                      : AppTokens.spaceXs,
                                 ),
                                 child: Text(
                                   widget.task.description,
@@ -309,12 +314,13 @@ class _TaskRowState extends State<TaskRow> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                            // 日期行（61 §4.4）：标题下方独立行，日期范围灰色 +
-                            // 相对时间（距开始 X 天）橙色强调。
-                            if (dateText.isNotEmpty)
+                            // 日期行（61 §4.4）：统一 4dp 间距。
+                            if (hasDate)
                               Padding(
-                                padding: const EdgeInsets.only(
-                                  bottom: AppTokens.spaceXxs,
+                                padding: EdgeInsets.only(
+                                  bottom: hasTags
+                                      ? AppTokens.spaceXxs
+                                      : AppTokens.spaceXs,
                                 ),
                                 child: Row(
                                   children: [
@@ -351,8 +357,8 @@ class _TaskRowState extends State<TaskRow> {
                                   ],
                                 ),
                               ),
-                            // 标签 chips（61 §4.4）：底部独立行（≤2 + +N）。
-                            if (widget.tags.isNotEmpty)
+                            // 标签 chips（61 §4.4）：底部 8dp 呼吸间距。
+                            if (hasTags)
                               Padding(
                                 padding: const EdgeInsets.only(
                                   bottom: AppTokens.spaceXs,
