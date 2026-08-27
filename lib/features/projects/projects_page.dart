@@ -10,6 +10,7 @@ import '../../shared/widgets/app_drawer.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/loading_view.dart';
+import '../../shared/widgets/page_hero_header.dart';
 import '../../shared/widgets/staggered_fade_slide.dart';
 import 'project_providers.dart';
 import 'widgets/project_card.dart';
@@ -68,57 +69,86 @@ class ProjectsPage extends ConsumerWidget {
               ),
             );
           }
+          // 大标题头部：项目数 + 文件夹数概览（66 §5，与今日页同语言）。
+          final totalCount = folders.fold<int>(
+            0,
+            (sum, f) => sum + (grouping.folderProjects[f.id]?.length ?? 0),
+          );
+          final header = Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppTokens.spaceMd,
+              AppTokens.spaceSm,
+              AppTokens.spaceMd,
+              0,
+            ),
+            child: PageHeroHeader(
+              title: l10n.navProjects,
+              subtitle: [
+                l10n.projectCount(totalCount + ungrouped.length),
+                if (folders.isNotEmpty) l10n.folderCount(folders.length),
+              ].join(' · '),
+            ),
+          );
           // B 批：卡片逐项错落入场（仅首次 build；分组头不参与，作为锚点
           // 即时呈现）。
           var cardIndex = 0;
-          return Stack(
+          return Column(
             children: [
-              ListView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTokens.spaceMd,
-                  vertical: AppTokens.spaceSm,
-                ),
-                children: [
-                  for (final folder in folders) ...[
-                    _ProjectSectionHeader(
-                      icon: Icons.folder_outlined,
-                      title: folder.name,
-                    ),
-                    for (final project
-                        in grouping.folderProjects[folder.id] ??
-                            const <Project>[])
-                      StaggeredFadeSlide(
-                        index: cardIndex++,
-                        child: ProjectCard(
-                          project: project,
-                          onTap: () => context.push('/projects/${project.id}'),
-                        ),
+              header,
+              Expanded(
+                child: Stack(
+                  children: [
+                    ListView(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTokens.spaceMd,
+                        vertical: AppTokens.spaceXs,
                       ),
-                  ],
-                  // 未分组区（无文件夹时同样展示，保持分组结构一致）。
-                  if (ungrouped.isNotEmpty) ...[
-                    _ProjectSectionHeader(
-                      icon: Icons.folder_off_outlined,
-                      title: l10n.ungrouped,
+                      children: [
+                        for (final folder in folders) ...[
+                          _ProjectSectionHeader(
+                            icon: Icons.folder_outlined,
+                            title: folder.name,
+                          ),
+                          for (final project
+                              in grouping.folderProjects[folder.id] ??
+                                  const <Project>[])
+                            StaggeredFadeSlide(
+                              index: cardIndex++,
+                              child: ProjectCard(
+                                project: project,
+                                onTap: () =>
+                                    context.push('/projects/${project.id}'),
+                              ),
+                            ),
+                        ],
+                        // 未分组区（无文件夹时同样展示，保持分组结构一致）。
+                        if (ungrouped.isNotEmpty) ...[
+                          _ProjectSectionHeader(
+                            icon: Icons.folder_off_outlined,
+                            title: l10n.ungrouped,
+                          ),
+                          for (final project in ungrouped)
+                            StaggeredFadeSlide(
+                              index: cardIndex++,
+                              child: ProjectCard(
+                                project: project,
+                                onTap: () =>
+                                    context.push('/projects/${project.id}'),
+                              ),
+                            ),
+                        ],
+                      ],
                     ),
-                    for (final project in ungrouped)
-                      StaggeredFadeSlide(
-                        index: cardIndex++,
-                        child: ProjectCard(
-                          project: project,
-                          onTap: () => context.push('/projects/${project.id}'),
-                        ),
+                    Positioned(
+                      right: AppTokens.spaceMd,
+                      bottom: AppTokens.spaceMd,
+                      child: FloatingActionButton(
+                        onPressed: () => _showNewProjectDialog(context, ref),
+                        tooltip: l10n.newProject,
+                        child: const Icon(Icons.add),
                       ),
+                    ),
                   ],
-                ],
-              ),
-              Positioned(
-                right: AppTokens.spaceMd,
-                bottom: AppTokens.spaceMd,
-                child: FloatingActionButton(
-                  onPressed: () => _showNewProjectDialog(context, ref),
-                  tooltip: l10n.newProject,
-                  child: const Icon(Icons.add),
                 ),
               ),
             ],

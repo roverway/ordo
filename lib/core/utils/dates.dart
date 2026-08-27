@@ -83,6 +83,27 @@ String formatRelativeStart(int? startAt, AppLocalizations l10n) {
   return l10n.relativeStartInDays(days);
 }
 
+/// 中文星期名称（下标 = DateTime.weekday - 1）。
+const List<String> zhWeekdays = [
+  '星期一',
+  '星期二',
+  '星期三',
+  '星期四',
+  '星期五',
+  '星期六',
+  '星期日',
+];
+
+/// 今日页大标题副标题：完整日期（如「8月27日 星期三」/「Wed, Aug 27」）。
+///
+/// [date] 缺省取当天。
+String formatFullDateLine(DateTime date, {required bool isZh}) {
+  if (isZh) {
+    return '${intl.DateFormat('M月d日').format(date)} ${zhWeekdays[date.weekday - 1]}';
+  }
+  return intl.DateFormat('EEE, MMM d', 'en').format(date);
+}
+
 /// 格式化日历顶栏周期标题（月视图如「2026年8月」/「August 2026」；周视图如「8月10日 – 8月16日」/「Aug 10 – Aug 16, 2026」）。
 String formatCalendarHeader({
   required DateTime selectedDate,

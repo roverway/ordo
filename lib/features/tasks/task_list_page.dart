@@ -8,12 +8,14 @@ import '../../core/db/tables.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_breakpoints.dart';
+import '../../core/utils/dates.dart';
 import '../../core/utils/motion.dart';
 import '../../shared/widgets/app_drawer.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/loading_view.dart';
+import '../../shared/widgets/page_hero_header.dart';
 import '../../shared/widgets/simple_task_tile.dart';
 import '../../shared/widgets/staggered_fade_slide.dart';
 import '../projects/project_providers.dart';
@@ -315,6 +317,9 @@ class TaskListPage extends ConsumerWidget {
 }
 
 /// 今日作用域 body（从 today_page.dart 抽取，行为不变）。
+///
+/// 66 号外观升级：顶部静态大标题头部（日期 + 完成概览细进度条），
+/// 下方列表/空态；头部固定不随列表滚动。
 class _TodayBody extends ConsumerWidget {
   const _TodayBody();
 
@@ -325,13 +330,48 @@ class _TodayBody extends ConsumerWidget {
 
     return viewAsync.when(
       data: (view) {
+        final all = [...view.overdue, ...view.today];
+        final completed = all
+            .where((v) => v.effectiveStatus == TaskStatus.done)
+            .length;
+        final isZh = Localizations.localeOf(context).languageCode == 'zh';
+        final header = Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppTokens.spaceMd,
+            AppTokens.spaceSm,
+            AppTokens.spaceMd,
+            0,
+          ),
+          child: PageHeroHeader(
+            // 大标题 = 完整日期（Things 式编辑感排版），避免与 AppBar
+            // 「今天」小标题字面重复；概览文案走 ARB（66 §5）。
+            title: formatFullDateLine(DateTime.now(), isZh: isZh),
+            progress: all.isEmpty ? null : completed / all.length,
+            progressLabel: all.isEmpty
+                ? null
+                : l10n.tasksCompletedCount(completed, all.length),
+          ),
+        );
         if (view.isEmpty) {
-          return EmptyState(
-            icon: Icons.today_outlined,
-            message: l10n.emptyToday,
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              header,
+              Expanded(
+                child: EmptyState(
+                  icon: Icons.today_outlined,
+                  message: l10n.emptyToday,
+                ),
+              ),
+            ],
           );
         }
-        return _buildList(context, ref, view);
+        return Column(
+          children: [
+            header,
+            Expanded(child: _buildList(context, ref, view)),
+          ],
+        );
       },
       loading: () => const LoadingView(),
       error: (e, st) {
@@ -349,10 +389,11 @@ class _TodayBody extends ConsumerWidget {
     // B 批：列表行逐项错落入场（仅首次 build 播放；长列表自动平铺）。
     var tileIndex = 0;
     return ListView(
-      // 卡片行（SimpleTaskTile）不内置水平 margin，由列表提供页面留白。
+      // 卡片行（SimpleTaskTile）不内置水平 margin，由列表提供页面留白；
+      // 大标题头部已在上方，顶部留白收紧为一档。
       padding: const EdgeInsets.symmetric(
         horizontal: AppTokens.spaceMd,
-        vertical: AppTokens.spaceSm,
+        vertical: AppTokens.spaceXs,
       ),
       children: [
         if (view.overdue.isNotEmpty) ...[

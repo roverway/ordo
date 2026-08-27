@@ -863,4 +863,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get selectDate => 'Select Date';
+
+  @override
+  String tasksCompletedCount(int done, int total) {
+    return '$done/$total completed';
+  }
+
+  @override
+  String projectCount(int count) {
+    return '$count projects';
+  }
+
+  @override
+  String folderCount(int count) {
+    return '$count folders';
+  }
 }

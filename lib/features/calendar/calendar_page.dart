@@ -179,7 +179,10 @@ class CalendarPage extends ConsumerWidget {
       borderRadius: BorderRadius.circular(AppTokens.radiusChip),
       onTap: () => _pickDate(context, ref, state.selectedDate),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTokens.spaceXs,
+          vertical: AppTokens.spaceXxs,
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -192,7 +195,7 @@ class CalendarPage extends ConsumerWidget {
             ),
             const SizedBox(width: 4),
             Icon(
-              Icons.keyboard_arrow_down_rounded,
+              Icons.keyboard_arrow_down,
               size: 18,
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -261,7 +264,7 @@ class CalendarPage extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 400,
+          width: AppTokens.calendarPaneWidth,
           child: _CalendarViewport(
             buckets: buckets,
             projectsMap: projectsMap,
@@ -361,7 +364,7 @@ class CalendarPage extends ConsumerWidget {
                     child: Text(
                       countText,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 11,
+                        fontSize: AppTokens.textMicroSize,
                         fontWeight: FontWeight.w600,
                         color: theme.colorScheme.primary,
                       ),
@@ -434,7 +437,8 @@ class CalendarPage extends ConsumerWidget {
               delegate: SliverChildBuilderDelegate((context, index) {
                 final task = tasks[index];
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
+                  // 66 §6：议程行距对齐全局组内行距 spaceXs（此前 2 过挤）。
+                  padding: const EdgeInsets.only(bottom: AppTokens.spaceXs),
                   child: CalendarTaskTile(
                     task: task,
                     children: childrenIndex[task.id] ?? const <Task>[],
@@ -599,7 +603,7 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
                 child: Text(
                   weekdayLabels[i],
                   style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: 12,
+                    fontSize: AppTokens.textCaptionSize,
                     fontWeight: FontWeight.w600,
                     color: i >= 5
                         ? theme.colorScheme.onSurfaceVariant.withValues(
@@ -789,7 +793,7 @@ class _DayCell extends StatelessWidget {
                   child: Text(
                     '${day.day}',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 13,
+                      fontSize: AppTokens.textFootnoteSize,
                       fontWeight: numWeight,
                       color: numColor,
                     ),

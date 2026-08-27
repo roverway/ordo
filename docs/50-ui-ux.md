@@ -26,6 +26,8 @@
 | `surfaceCard` | 浅 `#FFFFFF` / 深 `#16181D` | 卡片表面（Linear 纯白/碳黑浮层容器） |
 | `borderSubtleLight` | `rgba(0, 0, 0, 0.06)` | 浅色 1px 极细微边框 |
 | `borderSubtleDark` | `rgba(255, 255, 255, 0.06)` | 暗色 1px 极细微发光边框 |
+| `surfaceSunken` | 浅 `#EFF1F4` / 深 `#12141A` | 凹陷面：比页面底沉一档的内嵌区域（看板列井、输入井，66 §3） |
+| `alphaTintFaint / Soft / Strong` | 0.06 / 0.10 / 0.16 | 语义罩染强度三档（配 primary/onSurface，收编 ad-hoc alpha，66 §3） |
 
 > 注：seedColor/语义色均以 `lib/core/theme/app_tokens.dart` 为准（改代码必改文档）。
 
@@ -49,12 +51,20 @@
 
 ### 2.4 字体
 
-| 令牌 | 值 |
-|---|---|
-| `textDisplay` | 28 / w700 |
-| `textTitle` | 20 / w600 |
-| `textBody` | 16 / w400 |
-| `textCaption` | 12 / w400 |
+> 平台系统字体链见 `app_theme.dart`（Win 雅黑 UI / Apple 苹方 / Linux 思源）。
+> 七档字阶（66 §2）：display 供页面大标题头部，micro 仅限徽章/计数等非关键元信息，
+> 正文类文案仍须 ≥ caption（NFR-06 对比度底线）。
+
+| 令牌 | 值 | 用途 |
+|---|---|---|
+| `textDisplaySize/Weight` | 28 / w700（letterSpacing −0.5，行高 1.2） | 页面大标题头部 |
+| `textHeadingSize/Weight` | 22 / w600 | 页标题（AppBar） |
+| `textTitleSize/Weight` | 18 / w600 | 节标题 |
+| `textBodySize/Weight` | 15 / w400（行高 1.45） | 正文 |
+| `textFootnoteSize/Weight` | 13 / w400 | 辅助说明层 |
+| `textCaptionSize/Weight` | 12 / w400（行高 1.35） | 元信息说明 |
+| `textMicroSize/Weight` | 11 / w500 | 徽章/计数 |
+| `fontTabular` | `[FontFeature.tabularFigures()]` | 日期/计数数字纵向对齐 |
 
 ### 2.5 动效（Folme 风格弹簧，M7 打磨后统一入口）
 
@@ -110,7 +120,8 @@
 
 ### 5.1 今日视图（`/today`）
 
-- 顶部：日期标题 + 搜索/设置图标。
+- 大标题头部（66 §5）：静态不随列表滚动——display 级完整日期（如「8月27日 星期三」）+ 完成概览行（「x/y 已完成」ARB 文案 + 4dp 圆角细进度条，填充 colorDone 绿）；AppBar「今日」小标题保留。
+- 顶部：搜索图标；项目作用域另有三点菜单。
 - 分组：**逾期**（红标）→ **今天** → **即将到期**（可选分组）。
 - 任务行：完成勾选（**圆形复选框**，完成=蓝填充白勾）、标题、项目名、标签 chips、时间、派生进度；**白卡片化行**（圆角 16 + 轻阴影，hover/按压轻微抬升）。
 - 空态：无任务时展示引导文案 + 「新建任务」按钮。
@@ -118,7 +129,12 @@
 
 ### 5.2 日历视图（`/calendar`）
 
-- 顶部：周/月切换 + 月份导航（左右箭头）。
+> **沉浸式布局定稿（0ede52e + 66 纲领）**：日历视口去卡片化——无边框/阴影/内边距直接落在页面基底上，
+> 视口底以 1px outlineVariant(25%) 细分隔线与议程区相接；周期标题融入 AppBar（点击弹日期选择器 +
+> keyboard_arrow_down 下拉箭头）；右上操作收拢为三点菜单（回到今天/周月切换/搜索）。宽屏左栏宽
+> `calendarPaneWidth`=400。
+
+- 顶部：AppBar 内周期选择器 + 三点菜单；左右滑动翻页、上下滑折叠周/月（手势不变）。
 - 月视图：7 列网格，日期格内显示任务点/标题（溢出省略）；跨天任务在区间内每天显示。
 - 周视图：横向时间轴或 7 列列表（v1 可用简化实现，见 `70-milestones.md` M3）。
 - 点击日期格：弹出该日任务列表 + 新建入口。
@@ -127,6 +143,7 @@
 ### 5.3 项目视图（`/projects`）
 
 - 项目列表：**按文件夹分组展示**（M6，`62-folder-nav.md` §6.4）——文件夹分组头（图标 + 名称）+ 项目卡片 + 未分组区（分组头「未分组」）。卡片式（颜色圆点 + 名称 + 未完成任务数 + 进度）。**不做拖拽**（仅展示分组，D5）。
+- 大标题头部（66 §5）：display 级「项目」+ 计数副标题（「x 个项目 · y 个文件夹」ARB）。
 - 项目详情（`/projects/:id`）：`TaskListPage` 项目作用域（AppShell 壳内，汉堡/底栏/Rail 常驻）——任务树（最多 3 级），缩进 + 展开/折叠箭头；每行：勾选、标题、标签、时间、状态徽标；AppBar 追加编辑/删除项目（删除后跳 `/today`）；FAB 走滴答式新建弹窗（带 projectId）。
 - 树内操作：长按拖动（排序/调级）、行尾菜单（编辑/删除/上移/下移/缩进/缩出/新建子任务）。
 

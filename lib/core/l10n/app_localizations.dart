@@ -1717,6 +1717,24 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'选择日期'**
   String get selectDate;
+
+  /// 今日页头部完成概览：已完成/总数
+  ///
+  /// In zh, this message translates to:
+  /// **'{done}/{total} 已完成'**
+  String tasksCompletedCount(int done, int total);
+
+  /// 项目页副标题：项目数量
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 个项目'**
+  String projectCount(int count);
+
+  /// 项目页副标题：文件夹数量
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 个文件夹'**
+  String folderCount(int count);
 }
 
 class _AppLocalizationsDelegate
