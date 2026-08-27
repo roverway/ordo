@@ -318,7 +318,7 @@ void main() {
     expect(find.text('D'), findsOneWidget);
   });
 
-  testWidgets('上下滑动日历卡片切换月视图与周视图', (tester) async {
+  testWidgets('上下滑动日历视口切换月视图与周视图', (tester) async {
     final db = openTestDatabase();
     final repo = TodoRepository(database: db);
     final state = _fixedState(CalendarMode.month);
@@ -327,8 +327,13 @@ void main() {
     controller.add(buildCalendarBuckets([], state));
     await tester.pumpAndSettle();
 
-    // 初始为月视图：顶栏显示「2026年8月」
-    expect(find.text('2026年8月'), findsWidgets);
+    // 初始为月视图：顶栏融合显示单处「2026年8月」
+    expect(find.text('2026年8月'), findsOneWidget);
+
+    // 星期表头纯正中文
+    for (final label in ['一', '二', '三', '四', '五', '六', '日']) {
+      expect(find.text(label), findsOneWidget);
+    }
 
     // 向上滑动手势 -> 收起为周视图
     await tester.drag(find.text('11').first, const Offset(0, -100));
@@ -342,7 +347,31 @@ void main() {
     await tester.pumpAndSettle();
 
     // 恢复为月视图
-    expect(find.text('2026年8月'), findsWidgets);
+    expect(find.text('2026年8月'), findsOneWidget);
+  });
+
+  testWidgets('三点更多菜单：展开显示「回到今天」、「切换为周视图」、「搜索」并可交互', (tester) async {
+    final db = openTestDatabase();
+    final repo = TodoRepository(database: db);
+    final state = _fixedState(CalendarMode.month);
+
+    final controller = await _pump(tester, repo: repo, state: state);
+    controller.add(buildCalendarBuckets([], state));
+    await tester.pumpAndSettle();
+
+    // 点击右上角三点菜单
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+
+    expect(find.text('回到今天'), findsOneWidget);
+    expect(find.text('切换为周视图'), findsOneWidget);
+    expect(find.text('搜索'), findsOneWidget);
+
+    // 点击切换为周视图
+    await tester.tap(find.text('切换为周视图'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('8月10日 – 8月16日'), findsOneWidget);
   });
 
   testWidgets('日历打开新建任务弹窗 → 未输入标题点击遮罩可正常关闭', (tester) async {

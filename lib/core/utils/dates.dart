@@ -82,3 +82,35 @@ String formatRelativeStart(int? startAt, AppLocalizations l10n) {
   if (days <= 1) return '';
   return l10n.relativeStartInDays(days);
 }
+
+/// 格式化日历顶栏周期标题（月视图如「2026年8月」/「August 2026」；周视图如「8月10日 – 8月16日」/「Aug 10 – Aug 16, 2026」）。
+String formatCalendarHeader({
+  required DateTime selectedDate,
+  required bool isMonthMode,
+  required DateTime weekStart,
+  required DateTime weekEnd,
+  required bool isZh,
+}) {
+  if (isMonthMode) {
+    return isZh
+        ? intl.DateFormat('y年M月').format(selectedDate)
+        : intl.DateFormat('MMMM yyyy', 'en').format(selectedDate);
+  }
+  if (isZh) {
+    if (weekStart.year != weekEnd.year) {
+      return '${intl.DateFormat('y年M月d日').format(weekStart)} – ${intl.DateFormat('y年M月d日').format(weekEnd)}';
+    }
+    if (weekStart.month != weekEnd.month) {
+      return '${intl.DateFormat('M月d日').format(weekStart)} – ${intl.DateFormat('M月d日').format(weekEnd)}';
+    }
+    return '${intl.DateFormat('M月d日').format(weekStart)} – ${intl.DateFormat('M月d日').format(weekEnd)}';
+  } else {
+    if (weekStart.year != weekEnd.year) {
+      return '${intl.DateFormat('MMM d, y', 'en').format(weekStart)} – ${intl.DateFormat('MMM d, y', 'en').format(weekEnd)}';
+    }
+    if (weekStart.month != weekEnd.month) {
+      return '${intl.DateFormat('MMM d', 'en').format(weekStart)} – ${intl.DateFormat('MMM d, y', 'en').format(weekEnd)}';
+    }
+    return '${intl.DateFormat('MMM d', 'en').format(weekStart)} – ${intl.DateFormat('MMM d, y', 'en').format(weekEnd)}';
+  }
+}

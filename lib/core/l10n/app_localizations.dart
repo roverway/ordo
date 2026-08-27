@@ -1687,6 +1687,36 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'选择月份'**
   String get switchMonth;
+
+  /// No description provided for @moreOptions.
+  ///
+  /// In zh, this message translates to:
+  /// **'更多选项'**
+  String get moreOptions;
+
+  /// No description provided for @goToToday.
+  ///
+  /// In zh, this message translates to:
+  /// **'回到今天'**
+  String get goToToday;
+
+  /// No description provided for @switchToWeekView.
+  ///
+  /// In zh, this message translates to:
+  /// **'切换为周视图'**
+  String get switchToWeekView;
+
+  /// No description provided for @switchToMonthView.
+  ///
+  /// In zh, this message translates to:
+  /// **'切换为月视图'**
+  String get switchToMonthView;
+
+  /// No description provided for @selectDate.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择日期'**
+  String get selectDate;
 }
 
 class _AppLocalizationsDelegate

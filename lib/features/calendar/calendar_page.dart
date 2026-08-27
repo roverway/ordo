@@ -8,6 +8,7 @@ import '../../core/db/tables.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_breakpoints.dart';
+import '../../core/utils/dates.dart';
 import '../../core/utils/derived.dart';
 import '../../core/utils/tree.dart';
 import '../../core/utils/view_rules.dart' as view_rules;
@@ -21,14 +22,18 @@ import '../tasks/task_providers.dart';
 import '../tasks/widgets/task_create_sheet.dart';
 import 'calendar_providers.dart';
 
-/// 现代高质感日历视图（FR-VIEW-02）。
+/// 顶部三点更多菜单的操作枚举。
+enum _CalendarMenuAction { today, toggleView, search }
+
+/// 现代高质感沉浸式日历视图（FR-VIEW-02）。
 ///
 /// 架构设计：
-/// 1. 顶栏：紧凑单行 Header（年月选择 + 今天胶囊 + 月/周折叠 + 搜索入口）。
-/// 2. 日历视口（上部）：统一矩阵格 + 项目色彩微标（Dots）+ 左右滑动手势翻月/周 + 上下折叠手势。
+/// 1. 顶栏融合：周期标题（月/周）置于 AppBar，点击弹出日期快捷面板；右上角操作收拢为三点菜单。
+/// 2. 日历视口（上部）：无边框沉浸式设计 + 统一矩阵格 + 项目色彩微标 + 左右滑动手势翻月/周 + 上下折叠手势。
 /// 3. 当日议程列表（下部）：实时联动展示选中日期的任务清单，支持勾选、进度环、优先级与点击编辑。
 /// 4. 快捷新建（FAB / 内联）：一键唤起创建表单，自动预填选中日期 09:00。
 /// 5. 宽屏适配：桌面/平板下自动启用左侧日历 + 右侧任务流水双栏分栏布局。
+/// 6. 全面国际化：纯正中文星期与议程星期展示，多语言无缝切换。
 class CalendarPage extends ConsumerWidget {
   const CalendarPage({super.key});
 
@@ -58,27 +63,61 @@ class CalendarPage extends ConsumerWidget {
         automaticallyImplyLeading: false,
         title: _buildAppBarTitle(context, ref, state),
         actions: [
-          // 回到今天快捷胶囊
-          _buildTodayButton(context, ref, state),
-          // 月 / 周模式切换
-          IconButton(
-            tooltip: state.mode == CalendarMode.month
-                ? l10n.viewWeek
-                : l10n.viewMonth,
-            icon: Icon(
-              state.mode == CalendarMode.month
-                  ? Icons.calendar_view_week_outlined
-                  : Icons.calendar_view_month_outlined,
-              size: 22,
-            ),
-            onPressed: () =>
-                ref.read(calendarStateProvider.notifier).toggleView(),
-          ),
-          // 搜索
-          IconButton(
-            tooltip: l10n.search,
-            icon: const Icon(Icons.search, size: 22),
-            onPressed: () => context.push('/search'),
+          // 更多操作三点菜单（回到今天、月/周视图切换、搜索）
+          PopupMenuButton<_CalendarMenuAction>(
+            tooltip: l10n.moreOptions,
+            icon: const Icon(Icons.more_vert, size: 22),
+            onSelected: (action) {
+              switch (action) {
+                case _CalendarMenuAction.today:
+                  ref.read(calendarStateProvider.notifier).goToToday();
+                  break;
+                case _CalendarMenuAction.toggleView:
+                  ref.read(calendarStateProvider.notifier).toggleView();
+                  break;
+                case _CalendarMenuAction.search:
+                  context.push('/search');
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: _CalendarMenuAction.today,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.today_outlined, size: 20),
+                  title: Text(l10n.goToToday),
+                ),
+              ),
+              PopupMenuItem(
+                value: _CalendarMenuAction.toggleView,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    state.mode == CalendarMode.month
+                        ? Icons.calendar_view_week_outlined
+                        : Icons.calendar_view_month_outlined,
+                    size: 20,
+                  ),
+                  title: Text(
+                    state.mode == CalendarMode.month
+                        ? l10n.switchToWeekView
+                        : l10n.switchToMonthView,
+                  ),
+                ),
+              ),
+              PopupMenuItem(
+                value: _CalendarMenuAction.search,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.search, size: 20),
+                  title: Text(l10n.search),
+                ),
+              ),
+            ],
           ),
           const SizedBox(width: AppTokens.spaceXs),
         ],
@@ -117,7 +156,7 @@ class CalendarPage extends ConsumerWidget {
     );
   }
 
-  // ── AppBar 标题组件 ──────────────────────────────────────────────────
+  // ── AppBar 标题组件（支持点击弹出日期选择面板）───────────────────────────
 
   Widget _buildAppBarTitle(
     BuildContext context,
@@ -125,65 +164,60 @@ class CalendarPage extends ConsumerWidget {
     CalendarState state,
   ) {
     final theme = Theme.of(context);
+    final range = calendarRangeFor(state);
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
-    final formatted = isZh
-        ? intl.DateFormat('y年M月').format(state.selectedDate)
-        : intl.DateFormat('MMMM yyyy').format(state.selectedDate);
 
-    return Text(
-      formatted,
-      style: theme.textTheme.titleMedium?.copyWith(
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.2,
+    final formatted = formatCalendarHeader(
+      selectedDate: state.selectedDate,
+      isMonthMode: state.mode == CalendarMode.month,
+      weekStart: range.start,
+      weekEnd: range.end,
+      isZh: isZh,
+    );
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+      onTap: () => _pickDate(context, ref, state.selectedDate),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              formatted,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.2,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 18,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildTodayButton(
+  // ── 日期快捷选择面板 ──────────────────────────────────────────────────
+
+  Future<void> _pickDate(
     BuildContext context,
     WidgetRef ref,
-    CalendarState state,
-  ) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final now = DateTime.now();
-    final isCurrentDay =
-        state.selectedDate.year == now.year &&
-        state.selectedDate.month == now.month &&
-        state.selectedDate.day == now.day;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-      child: TextButton(
-        style: TextButton.styleFrom(
-          backgroundColor: isCurrentDay
-              ? theme.colorScheme.primary.withValues(alpha: 0.12)
-              : Colors.transparent,
-          foregroundColor: isCurrentDay
-              ? theme.colorScheme.primary
-              : theme.colorScheme.onSurfaceVariant,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          minimumSize: const Size(0, 32),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppTokens.radiusChip),
-            side: isCurrentDay
-                ? BorderSide.none
-                : BorderSide(
-                    color: theme.colorScheme.outlineVariant.withValues(
-                      alpha: 0.5,
-                    ),
-                  ),
-          ),
-        ),
-        onPressed: () => ref.read(calendarStateProvider.notifier).goToToday(),
-        child: Text(
-          l10n.today,
-          style: theme.textTheme.labelMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
+    DateTime initialDate,
+  ) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2000, 1, 1),
+      lastDate: DateTime(2100, 12, 31),
     );
+    if (picked != null) {
+      ref.read(calendarStateProvider.notifier).selectDate(picked);
+    }
   }
 
   // ── 窄屏布局（上下联动）───────────────────────────────────────────────
@@ -198,7 +232,7 @@ class CalendarPage extends ConsumerWidget {
   ) {
     return Column(
       children: [
-        _CalendarCard(
+        _CalendarViewport(
           buckets: buckets,
           projectsMap: projectsMap,
           state: state,
@@ -227,15 +261,12 @@ class CalendarPage extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 440,
-          child: Padding(
-            padding: const EdgeInsets.all(AppTokens.spaceMd),
-            child: _CalendarCard(
-              buckets: buckets,
-              projectsMap: projectsMap,
-              state: state,
-              isNarrow: false,
-            ),
+          width: 400,
+          child: _CalendarViewport(
+            buckets: buckets,
+            projectsMap: projectsMap,
+            state: state,
+            isNarrow: false,
           ),
         ),
         VerticalDivider(
@@ -272,13 +303,24 @@ class CalendarPage extends ConsumerWidget {
         selected.day == now.day;
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
 
-    final dateHeader = isZh
-        ? (isToday
-              ? '${intl.DateFormat('M月d日').format(selected)} · ${l10n.today}'
-              : intl.DateFormat('M月d日 EEEE').format(selected))
-        : (isToday
-              ? '${intl.DateFormat('MMM d').format(selected)} · ${l10n.today}'
-              : intl.DateFormat('EEEE, MMM d').format(selected));
+    String dateHeader;
+    if (isZh) {
+      if (isToday) {
+        dateHeader =
+            '${intl.DateFormat('M月d日').format(selected)} · ${l10n.today}';
+      } else {
+        const zhWeekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
+        final weekdayStr = zhWeekdays[selected.weekday - 1];
+        dateHeader = '${intl.DateFormat('M月d日').format(selected)} $weekdayStr';
+      }
+    } else {
+      if (isToday) {
+        dateHeader =
+            '${intl.DateFormat('MMM d', 'en').format(selected)} · ${l10n.today}';
+      } else {
+        dateHeader = intl.DateFormat('EEEE, MMM d', 'en').format(selected);
+      }
+    }
 
     final countText = tasks.isEmpty ? '' : l10n.tasksCount(tasks.length);
 
@@ -430,10 +472,10 @@ class CalendarPage extends ConsumerWidget {
   }
 }
 
-// ── 日历视口卡片组件 ──────────────────────────────────────────────────
+// ── 日历沉浸式无边框视口组件 ────────────────────────────────────────────
 
-class _CalendarCard extends ConsumerStatefulWidget {
-  const _CalendarCard({
+class _CalendarViewport extends ConsumerStatefulWidget {
+  const _CalendarViewport({
     required this.buckets,
     required this.projectsMap,
     required this.state,
@@ -446,10 +488,10 @@ class _CalendarCard extends ConsumerStatefulWidget {
   final bool isNarrow;
 
   @override
-  ConsumerState<_CalendarCard> createState() => _CalendarCardState();
+  ConsumerState<_CalendarViewport> createState() => _CalendarViewportState();
 }
 
-class _CalendarCardState extends ConsumerState<_CalendarCard> {
+class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
   double _horizontalDelta = 0;
   double _verticalDelta = 0;
 
@@ -457,191 +499,105 @@ class _CalendarCardState extends ConsumerState<_CalendarCard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
 
-    return Container(
-      margin: widget.isNarrow
-          ? const EdgeInsets.fromLTRB(
-              AppTokens.spaceSm,
-              AppTokens.spaceXs,
-              AppTokens.spaceSm,
-              AppTokens.spaceXs,
-            )
-          : EdgeInsets.zero,
-      decoration: BoxDecoration(
-        color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
-        borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-        boxShadow: isDark
-            ? AppTokens.cardShadowDarkList
-            : AppTokens.cardShadowLight,
-        border: Border.all(
-          color: isDark
-              ? AppTokens.borderSubtleDark
-              : AppTokens.borderSubtleLight,
-        ),
-      ),
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onHorizontalDragStart: (_) {
-          _horizontalDelta = 0;
-        },
-        onHorizontalDragUpdate: (details) {
-          _horizontalDelta += details.primaryDelta ?? 0;
-        },
-        onHorizontalDragEnd: (details) {
-          final velocity = details.primaryVelocity ?? 0;
-          if (velocity < -150 || _horizontalDelta < -40) {
-            // 向左滑动 -> 下一周期
-            ref.read(calendarStateProvider.notifier).nextPeriod();
-          } else if (velocity > 150 || _horizontalDelta > 40) {
-            // 向右滑动 -> 上一周期
-            ref.read(calendarStateProvider.notifier).prevPeriod();
-          }
-          _horizontalDelta = 0;
-        },
-        onVerticalDragStart: (_) {
-          _verticalDelta = 0;
-        },
-        onVerticalDragUpdate: (details) {
-          _verticalDelta += details.primaryDelta ?? 0;
-        },
-        onVerticalDragEnd: (details) {
-          final velocity = details.primaryVelocity ?? 0;
-          if (velocity < -150 || _verticalDelta < -30) {
-            // 向上滑动 -> 收起为周视图
-            ref.read(calendarStateProvider.notifier).setMode(CalendarMode.week);
-          } else if (velocity > 150 || _verticalDelta > 30) {
-            // 向下滑动 -> 展开为月视图
-            ref
-                .read(calendarStateProvider.notifier)
-                .setMode(CalendarMode.month);
-          }
-          _verticalDelta = 0;
-        },
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 顶层月份快速导航栏（左右小箭头 + 周期文案）
-            _buildCalendarRibbonHeader(context, ref, widget.state),
-            const SizedBox(height: AppTokens.spaceXxs),
-            // 星期表头（一至日）
-            _buildWeekdayRow(context),
-            const SizedBox(height: AppTokens.spaceXxs),
-            // 日期格网
-            _buildDaysGrid(
-              context,
-              ref,
-              widget.buckets,
-              widget.projectsMap,
-              widget.state,
-            ),
-            // 底部折叠/展开指示柄（窄屏下提供视觉手势暗示）
-            if (widget.isNarrow)
-              InkWell(
-                borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(AppTokens.radiusCard),
-                ),
-                onTap: () =>
-                    ref.read(calendarStateProvider.notifier).toggleView(),
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onHorizontalDragStart: (_) {
+        _horizontalDelta = 0;
+      },
+      onHorizontalDragUpdate: (details) {
+        _horizontalDelta += details.primaryDelta ?? 0;
+      },
+      onHorizontalDragEnd: (details) {
+        final velocity = details.primaryVelocity ?? 0;
+        if (velocity < -150 || _horizontalDelta < -40) {
+          // 向左滑动 -> 下一周期
+          ref.read(calendarStateProvider.notifier).nextPeriod();
+        } else if (velocity > 150 || _horizontalDelta > 40) {
+          // 向右滑动 -> 上一周期
+          ref.read(calendarStateProvider.notifier).prevPeriod();
+        }
+        _horizontalDelta = 0;
+      },
+      onVerticalDragStart: (_) {
+        _verticalDelta = 0;
+      },
+      onVerticalDragUpdate: (details) {
+        _verticalDelta += details.primaryDelta ?? 0;
+      },
+      onVerticalDragEnd: (details) {
+        final velocity = details.primaryVelocity ?? 0;
+        if (velocity < -150 || _verticalDelta < -30) {
+          // 向上滑动 -> 收起为周视图
+          ref.read(calendarStateProvider.notifier).setMode(CalendarMode.week);
+        } else if (velocity > 150 || _verticalDelta > 30) {
+          // 向下滑动 -> 展开为月视图
+          ref.read(calendarStateProvider.notifier).setMode(CalendarMode.month);
+        }
+        _verticalDelta = 0;
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: AppTokens.spaceXs),
+          // 星期表头（一至日）
+          _buildWeekdayRow(context),
+          const SizedBox(height: AppTokens.spaceXs),
+          // 日期格网
+          _buildDaysGrid(
+            context,
+            ref,
+            widget.buckets,
+            widget.projectsMap,
+            widget.state,
+          ),
+          // 底部折叠/展开指示柄（窄屏下提供视觉手势暗示）
+          if (widget.isNarrow)
+            InkWell(
+              onTap: () =>
+                  ref.read(calendarStateProvider.notifier).toggleView(),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                alignment: Alignment.center,
                 child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  alignment: Alignment.center,
-                  child: Container(
-                    width: 32,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.25,
-                      ),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+                  width: 32,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── 日历小顶栏 ───────────────────────────────────────────────────────
-
-  Widget _buildCalendarRibbonHeader(
-    BuildContext context,
-    WidgetRef ref,
-    CalendarState state,
-  ) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final range = calendarRangeFor(state);
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
-
-    String subTitle;
-    if (state.mode == CalendarMode.month) {
-      subTitle = isZh
-          ? intl.DateFormat('y年M月').format(state.selectedDate)
-          : intl.DateFormat('MMMM yyyy').format(state.selectedDate);
-    } else {
-      subTitle = isZh
-          ? '${intl.DateFormat('M月d日').format(range.start)} – ${intl.DateFormat('M月d日').format(range.end)}'
-          : '${intl.DateFormat('MMM d').format(range.start)} – ${intl.DateFormat('MMM d').format(range.end)}';
-    }
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppTokens.spaceSm,
-        AppTokens.spaceXs,
-        AppTokens.spaceSm,
-        0,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            tooltip: l10n.prevPeriod,
-            icon: const Icon(Icons.chevron_left, size: 20),
-            visualDensity: VisualDensity.compact,
-            onPressed: () =>
-                ref.read(calendarStateProvider.notifier).prevPeriod(),
-          ),
-          Text(
-            subTitle,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurface,
             ),
-          ),
-          IconButton(
-            tooltip: l10n.nextPeriod,
-            icon: const Icon(Icons.chevron_right, size: 20),
-            visualDensity: VisualDensity.compact,
-            onPressed: () =>
-                ref.read(calendarStateProvider.notifier).nextPeriod(),
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: colorScheme.outlineVariant.withValues(alpha: 0.25),
           ),
         ],
       ),
     );
   }
 
-  // ── 星期表头 ─────────────────────────────────────────────────────────
+  // ── 星期表头（全面国际化）──────────────────────────────────────────────
 
   Widget _buildWeekdayRow(BuildContext context) {
     final theme = Theme.of(context);
-    // 2026-08-10 恰为周一，仅用于生成星期名称序列
-    final monday = DateTime(2026, 8, 10);
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final weekdayLabels = isZh
+        ? const ['一', '二', '三', '四', '五', '六', '日']
+        : const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppTokens.spaceXs),
+      padding: const EdgeInsets.symmetric(horizontal: AppTokens.spaceSm),
       child: Row(
         children: [
           for (var i = 0; i < 7; i++)
             Expanded(
               child: Center(
                 child: Text(
-                  intl.DateFormat(
-                    'E',
-                  ).format(DateTime(monday.year, monday.month, monday.day + i)),
+                  weekdayLabels[i],
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -679,9 +635,9 @@ class _CalendarCardState extends ConsumerState<_CalendarCard> {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        AppTokens.spaceXs,
+        AppTokens.spaceSm,
         0,
-        AppTokens.spaceXs,
+        AppTokens.spaceSm,
         AppTokens.spaceXs,
       ),
       child: Column(

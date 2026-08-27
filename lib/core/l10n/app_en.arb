@@ -271,5 +271,10 @@
   "emptyDayTasks": "No tasks scheduled for this day",
   "prevPeriod": "Previous Period",
   "nextPeriod": "Next Period",
-  "switchMonth": "Select Month"
+  "switchMonth": "Select Month",
+  "moreOptions": "More Options",
+  "goToToday": "Go to Today",
+  "switchToWeekView": "Switch to Week View",
+  "switchToMonthView": "Switch to Month View",
+  "selectDate": "Select Date"
 }

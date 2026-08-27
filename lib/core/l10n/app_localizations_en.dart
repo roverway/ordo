@@ -848,4 +848,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get switchMonth => 'Select Month';
+
+  @override
+  String get moreOptions => 'More Options';
+
+  @override
+  String get goToToday => 'Go to Today';
+
+  @override
+  String get switchToWeekView => 'Switch to Week View';
+
+  @override
+  String get switchToMonthView => 'Switch to Month View';
+
+  @override
+  String get selectDate => 'Select Date';
 }

@@ -834,4 +834,19 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get switchMonth => '选择月份';
+
+  @override
+  String get moreOptions => '更多选项';
+
+  @override
+  String get goToToday => '回到今天';
+
+  @override
+  String get switchToWeekView => '切换为周视图';
+
+  @override
+  String get switchToMonthView => '切换为月视图';
+
+  @override
+  String get selectDate => '选择日期';
 }

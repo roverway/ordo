@@ -271,5 +271,10 @@
   "emptyDayTasks": "该日暂无待办事项",
   "prevPeriod": "上一周期",
   "nextPeriod": "下一周期",
-  "switchMonth": "选择月份"
+  "switchMonth": "选择月份",
+  "moreOptions": "更多选项",
+  "goToToday": "回到今天",
+  "switchToWeekView": "切换为周视图",
+  "switchToMonthView": "切换为月视图",
+  "selectDate": "选择日期"
 }
