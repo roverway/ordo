@@ -142,9 +142,10 @@ abstract final class AppTheme {
       // ── Input Decoration ──
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
+        // 输入井 = 凹陷面：比页面底更沉一档的内嵌区域（66 §3）。
         fillColor: isDark
-            ? AppTokens.surfaceCardDark
-            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            ? AppTokens.surfaceSunkenDark
+            : AppTokens.surfaceSunkenLight,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppTokens.radiusButton),
           borderSide: BorderSide(
@@ -329,14 +330,17 @@ abstract final class AppTheme {
             bodyLarge: base.textTheme.bodyLarge?.copyWith(
               fontSize: AppTokens.textBodySize,
               fontWeight: AppTokens.textBodyWeight,
+              height: AppTokens.textBodyHeight,
             ),
             bodyMedium: base.textTheme.bodyMedium?.copyWith(
               fontSize: AppTokens.textBodySize,
               fontWeight: AppTokens.textBodyWeight,
+              height: AppTokens.textBodyHeight,
             ),
             bodySmall: base.textTheme.bodySmall?.copyWith(
               fontSize: AppTokens.textCaptionSize,
               fontWeight: AppTokens.textCaptionWeight,
+              height: AppTokens.textCaptionHeight,
             ),
           ),
 

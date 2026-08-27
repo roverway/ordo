@@ -29,7 +29,7 @@ abstract final class AppTokens {
   static const Color colorInbox = Color(0xFF6C5CE7);
 
   /// Page surface (light) — Linear pure crisp off-white.
-  /// (docs/66-ui-ux-modern-refinement-proposal.md)
+  /// (docs/66-ui-visual-polish-proposal.md)
   static const Color surfacePageLight = Color(0xFFF7F8FA);
 
   /// Page surface (dark) — Linear deep charcoal.
@@ -40,6 +40,29 @@ abstract final class AppTokens {
 
   /// Card surface (dark) — Linear elevated charcoal container.
   static const Color surfaceCardDark = Color(0xFF16181D);
+
+  /// Sunken surface (light) — inset wells that sit one step below the page:
+  /// kanban column background, search input fills.
+  /// (docs/66-ui-visual-polish-proposal.md §3)
+  static const Color surfaceSunkenLight = Color(0xFFEFF1F4);
+
+  /// Sunken surface (dark) — between page charcoal [surfacePageDark] and
+  /// card charcoal [surfaceCardDark].
+  static const Color surfaceSunkenDark = Color(0xFF12141A);
+
+  // ── Semantic tint alphas（语义罩染强度）──
+  //
+  // 收编页面里随手写的 alpha 值。约定：罩染一律「语义令牌 × colorScheme 色」，
+  // 不再出现裸数字透明度。（docs/66-ui-visual-polish-proposal.md §3）
+
+  /// 极淡罩染：hover 底色、幽灵按钮悬停、轻提醒背景。
+  static const double alphaTintFaint = 0.06;
+
+  /// 淡罩染：选中态低饱和染底、数量徽章底（对应既往 10–12% 档）。
+  static const double alphaTintSoft = 0.10;
+
+  /// 强罩染：强选中/拖拽悬停等最高强调档（对应既往 15–16% 档）。
+  static const double alphaTintStrong = 0.16;
 
   /// Subtle border (light) — ~6% black.
   static const Color borderSubtleLight = Color(0x0F000000);
@@ -102,6 +125,17 @@ abstract final class AppTokens {
   static const double spaceXxxl = 48;
 
   // ── Typography ──
+  //
+  // 七档字阶（docs/66-ui-visual-polish-proposal.md §2）：
+  // display / heading / title / body / footnote / caption / micro。
+  // 新增 display、footnote、micro 三档收编此前散落的私有字号（10.5–13.5）。
+
+  /// Page hero large title: 28 / w700（今日页大标题等 Things 式头部）。
+  static const double textDisplaySize = 28;
+  static const FontWeight textDisplayWeight = FontWeight.w700;
+
+  /// Display 级负字距：大字号下收紧排版，获得编辑感。
+  static const double textDisplayLetterSpacing = -0.5;
 
   /// Page heading: 22 / w600.
   static const double textHeadingSize = 22;
@@ -115,9 +149,27 @@ abstract final class AppTokens {
   static const double textBodySize = 15;
   static const FontWeight textBodyWeight = FontWeight.w400;
 
+  /// Footnote: 13 / w400（正文与说明之间的辅助说明层，如抽屉组头说明）。
+  static const double textFootnoteSize = 13;
+  static const FontWeight textFootnoteWeight = FontWeight.w400;
+
   /// Caption / metadata: 12 / w400.
   static const double textCaptionSize = 12;
   static const FontWeight textCaptionWeight = FontWeight.w400;
+
+  /// Micro: 11 / w500（徽章/计数等非关键元信息专用；正文类文案仍须 ≥ caption，
+  /// 保 NFR-06 对比度底线）。
+  static const double textMicroSize = 11;
+  static const FontWeight textMicroWeight = FontWeight.w500;
+
+  // 行高（倍数）：display 紧凑有力，正文宽松以获得呼吸感。
+  static const double textDisplayHeight = 1.2;
+  static const double textBodyHeight = 1.45;
+  static const double textCaptionHeight = 1.35;
+
+  /// 表格数字（tabular figures）：日期、计数、进度等数字纵向对齐用，
+  /// 配 `TextStyle(fontFeatures: AppTokens.fontTabular)` 使用。
+  static const List<FontFeature> fontTabular = [FontFeature.tabularFigures()];
 
   // ── Motion ──
 
@@ -166,36 +218,9 @@ abstract final class AppTokens {
 
   // ── Elevation & Ambient Shadows ──
 
-  /// Card shadow elevation (resting).
+  /// 卡片静止 elevation（浮层/弹层用；普通卡片一律走「细边框 + 弥散阴影」，
+  /// 不用 Material elevation，66 §4）。
   static const double elevationCard = 1.0;
-
-  /// Card shadow elevation while hovered/pressed (subtle lift).
-  static const double elevationCardHover = 2.0;
-
-  /// Card shadow tint (light, resting) — soft black ~8%.
-  static const Color shadowCard = Color(0x14000000);
-
-  /// Card shadow tint (light, hover/press lift) — deeper black ~16%.
-  static const Color shadowCardElevated = Color(0x2A000000);
-
-  /// Card shadow tint (dark, resting) — faint white rim so cards lift off
-  /// the near-black page base.
-  static const Color shadowCardDark = Color(0x0AFFFFFF);
-
-  /// Card shadow tint (dark, hover/press lift).
-  static const Color shadowCardDarkElevated = Color(0x1CFFFFFF);
-
-  /// Card shadow blur radius (resting).
-  static const double shadowBlurRest = 6;
-
-  /// Card shadow blur radius (hover/press lift).
-  static const double shadowBlurElevated = 12;
-
-  /// Card shadow vertical offset (resting).
-  static const double shadowOffsetY = 1;
-
-  /// Card shadow vertical offset (hover/press lift).
-  static const double shadowOffsetYElevated = 3;
 
   /// Diffused ambient dual-shadow for light cards (resting).
   static const List<BoxShadow> cardShadowLight = [
@@ -224,17 +249,6 @@ abstract final class AppTokens {
   /// FAB elevation.
   static const double elevationFab = 4;
 
-  // ── 紧凑底栏（57-task-page-polish.md §4.1，D5）──
-
-  /// 窄屏紧凑底栏高度——明显矮于标准 NavigationBar（80dp）。
-  static const double bottomBarHeight = 56;
-
-  /// 底栏目的地图标尺寸。
-  static const double bottomBarIconSize = 22;
-
-  /// 底栏目的地标签字号（极小，配合紧凑栏）。
-  static const double bottomBarLabelSize = 10;
-
   // ── Progress Ring（仅令牌，批 2 使用 UI）──
 
   /// Circular progress ring diameter for parent tasks
@@ -256,6 +270,9 @@ abstract final class AppTokens {
 
   /// Wide-screen persistent sidebar width (TickTick/Todoist desktop standard: 260dp).
   static const double sidebarWidth = 260;
+
+  /// 宽屏日历页左栏（沉浸式视口）宽度（0ede52e 定稿 400）。
+  static const double calendarPaneWidth = 400;
 
   /// Wide-screen NavigationRail width（80 → 96，55-ui-redesign-proposal.md §3.2）。
   static const double railWidth = 96;
@@ -292,22 +309,16 @@ abstract final class AppTokens {
   /// Task tree indent per depth level.
   static const double treeIndent = 28;
 
-  /// Compact task-row indent per depth level（57-task-page-polish.md §4.2 D1/D7：
-  /// 一级卡片内子任务行的缩进，比平铺树的 28 更紧凑）。
-  static const double treeIndentCompact = 20;
-
   /// Empty state icon size.
   static const double emptyIconSize = 56;
 
+  /// Empty state v2 背衬圆直径（主色调淡染，66 §4）。
+  static const double emptyBackdropSize = 72;
+
+  /// Empty state v2 背衬圆内图标尺寸。
+  static const double emptyBackdropIconSize = 32;
+
   // ── 任务列表扁平行（61-task-list-redesign.md §4/§7）──
-
-  /// 方形勾选框圆角（参考案例方形 □，61 §4.2）。
-  static const double checkboxRadius = 4;
-
-  /// 方形勾选框形状（任务列表行用；编辑页子任务区仍用圆形 [checkboxShape]）。
-  static const OutlinedBorder checkboxShapeSquare = RoundedRectangleBorder(
-    borderRadius: BorderRadius.all(Radius.circular(checkboxRadius)),
-  );
 
   /// 任务树每级缩进量（61 §4.3，替代 [treeIndent]=28 用于扁平行子任务缩进；
   /// 用户打磨要求 2：24 → 20 适度收紧）。
@@ -360,9 +371,6 @@ abstract final class AppTokens {
 
   /// 树状连线竖线渐变结束不透明度（底部/最下方清单处最浓）。
   static const double folderTreeLineAlphaEnd = 0.45;
-
-  /// 树状连线横向短线宽度（连接竖线与项目行内容）。
-  static const double folderTreeConnectorWidth = 12;
 
   /// 树状连线区内项目行的垂直间距（比全局 [drawerRowSpacing] 更紧凑，
   /// 每行上下各留 `spacing / 2`，des-2 需求 2b）。
