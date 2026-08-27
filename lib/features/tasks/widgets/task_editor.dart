@@ -924,7 +924,7 @@ class _DateRangePickerSheet extends ConsumerWidget {
                 children: [
                   _PresetChip(
                     label: l10n.today,
-                    icon: Icons.today_rounded,
+                    icon: Icons.today,
                     onTap: () {
                       final ms = _dateOnlyMs(DateTime.now());
                       notifier.updateEndAt(ms);
@@ -970,7 +970,7 @@ class _DateRangePickerSheet extends ConsumerWidget {
                     const SizedBox(width: AppTokens.spaceXs),
                     _PresetChip(
                       label: l10n.clear,
-                      icon: Icons.clear_rounded,
+                      icon: Icons.clear,
                       isDestructive: true,
                       onTap: () {
                         notifier.updateStartAt(null);
@@ -986,7 +986,7 @@ class _DateRangePickerSheet extends ConsumerWidget {
             // ── 开始时间卡片 ──
             _DateSettingCard(
               title: l10n.taskStartTime,
-              icon: Icons.play_circle_outline_rounded,
+              icon: Icons.play_circle_outline,
               valueText: formState.startAt != null
                   ? formatDueDate(formState.startAt!, l10n)
                   : l10n.noStartTime,
@@ -1045,7 +1045,7 @@ class _PresetChip extends StatelessWidget {
       avatar: Icon(icon, size: 15, color: color),
       label: Text(label),
       labelStyle: TextStyle(
-        fontSize: 12,
+        fontSize: AppTokens.textCaptionSize,
         fontWeight: FontWeight.w500,
         color: isDestructive ? colorScheme.error : colorScheme.onSurface,
       ),
@@ -1130,7 +1130,7 @@ class _DateSettingCard extends StatelessWidget {
                         title,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
-                          fontSize: 11,
+                          fontSize: AppTokens.textMicroSize,
                         ),
                       ),
                       const SizedBox(height: 2),

@@ -173,7 +173,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
           : AppTokens.surfacePageLight,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
+          icon: const Icon(Icons.arrow_back),
           tooltip: MaterialLocalizations.of(context).backButtonTooltip,
           onPressed: _handleBack,
         ),
@@ -360,12 +360,12 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                         ButtonSegment(
                           value: 'kanban',
                           label: Text(l10n.layoutKanban),
-                          icon: const Icon(Icons.view_kanban_rounded, size: 17),
+                          icon: const Icon(Icons.view_kanban, size: 17),
                         ),
                         ButtonSegment(
                           value: 'list',
                           label: Text(l10n.layoutList),
-                          icon: const Icon(Icons.view_agenda_rounded, size: 17),
+                          icon: const Icon(Icons.view_agenda, size: 17),
                         ),
                       ],
                       selected: {_layoutMode},
@@ -394,7 +394,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
           Row(
             children: [
               Icon(
-                Icons.auto_awesome_rounded,
+                Icons.auto_awesome,
                 size: 17,
                 color: theme.colorScheme.primary,
               ),
@@ -414,7 +414,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
             children: [
               ActionChip(
                 avatar: Icon(
-                  Icons.view_column_rounded,
+                  Icons.view_column,
                   size: 15,
                   color: theme.colorScheme.primary,
                 ),
@@ -437,7 +437,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
               ),
               ActionChip(
                 avatar: const Icon(
-                  Icons.flag_rounded,
+                  Icons.flag,
                   size: 15,
                   color: AppTokens.colorPriorityHigh,
                 ),
@@ -475,7 +475,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
               const Spacer(),
               FilledButton.tonalIcon(
                 onPressed: _addNewPanel,
-                icon: const Icon(Icons.add_rounded, size: 17),
+                icon: const Icon(Icons.add, size: 17),
                 label: Text(l10n.addPanel),
                 style: FilledButton.styleFrom(
                   visualDensity: VisualDensity.compact,
@@ -526,7 +526,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                     vertical: 4,
                   ),
                   leading: Icon(
-                    Icons.drag_indicator_rounded,
+                    Icons.drag_indicator,
                     color: theme.colorScheme.onSurfaceVariant.withValues(
                       alpha: 0.5,
                     ),
@@ -545,7 +545,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                       IconButton(
                         tooltip: l10n.filterCriteria,
                         icon: Icon(
-                          Icons.tune_rounded,
+                          Icons.tune,
                           size: 19,
                           color: theme.colorScheme.primary,
                         ),
@@ -571,7 +571,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                       IconButton(
                         tooltip: l10n.deletePanel,
                         icon: Icon(
-                          Icons.delete_outline_rounded,
+                          Icons.delete_outline,
                           size: 18,
                           color: theme.colorScheme.error,
                         ),
@@ -618,7 +618,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
       return Text(
         '全部任务',
         style: TextStyle(
-          fontSize: 12,
+          fontSize: AppTokens.textCaptionSize,
           color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       );
@@ -639,7 +639,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
           child: Text(
             c,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: AppTokens.textMicroSize,
               fontWeight: FontWeight.w500,
               color: Theme.of(context).colorScheme.primary,
             ),

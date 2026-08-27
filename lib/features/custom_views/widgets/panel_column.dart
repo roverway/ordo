@@ -55,12 +55,12 @@ class PanelColumn extends ConsumerWidget {
               : BoxDecoration(
                   color: isHovered
                       ? theme.colorScheme.primaryContainer.withValues(
-                          alpha: 0.15,
+                          alpha: AppTokens.alphaTintStrong,
                         )
+                      // 凹陷面：比页面底沉一档的列井，浅深双模式对称取自令牌。
                       : (isDark
-                            ? theme.colorScheme.surfaceContainerLowest
-                                  .withValues(alpha: 0.6)
-                            : const Color(0xFFF1F3F6)),
+                            ? AppTokens.surfaceSunkenDark
+                            : AppTokens.surfaceSunkenLight),
                   borderRadius: BorderRadius.circular(AppTokens.radiusCard),
                   border: Border.all(
                     color: isHovered
@@ -228,7 +228,7 @@ class PanelColumn extends ConsumerWidget {
           PopupMenuButton<String>(
             tooltip: l10n.sortBy,
             icon: Icon(
-              Icons.swap_vert_rounded,
+              Icons.swap_vert,
               size: 20,
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -273,8 +273,8 @@ class PanelColumn extends ConsumerWidget {
                   children: [
                     Icon(
                       panel.sortDirection == 'asc'
-                          ? Icons.arrow_upward_rounded
-                          : Icons.arrow_downward_rounded,
+                          ? Icons.arrow_upward
+                          : Icons.arrow_downward,
                       size: 16,
                     ),
                     const SizedBox(width: AppTokens.spaceXs),
@@ -294,7 +294,7 @@ class PanelColumn extends ConsumerWidget {
             tooltip: l10n.filterCriteria,
             icon: Icon(
               panel.filter.hasActiveFilter
-                  ? Icons.filter_alt_rounded
+                  ? Icons.filter_alt
                   : Icons.filter_alt_outlined,
               size: 19,
               color: panel.filter.hasActiveFilter
@@ -318,7 +318,7 @@ class PanelColumn extends ConsumerWidget {
           if (onDeletePanel != null)
             PopupMenuButton<String>(
               icon: Icon(
-                Icons.more_horiz_rounded,
+                Icons.more_horiz,
                 size: 20,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -350,7 +350,7 @@ class PanelColumn extends ConsumerWidget {
                   child: Row(
                     children: [
                       Icon(
-                        Icons.delete_outline_rounded,
+                        Icons.delete_outline,
                         size: 16,
                         color: theme.colorScheme.error,
                       ),
@@ -455,11 +455,7 @@ class PanelColumn extends ConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.add_rounded,
-                  size: 17,
-                  color: theme.colorScheme.primary,
-                ),
+                Icon(Icons.add, size: 17, color: theme.colorScheme.primary),
                 const SizedBox(width: 6),
                 Text(
                   l10n.newTask,
@@ -525,60 +521,45 @@ class KanbanTaskCard extends ConsumerWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    GestureDetector(
-                      key: ValueKey('kanban_checkbox_${task.id}'),
-                      onTap: () async {
-                        final repo = ref.read(todoRepositoryProvider);
-                        final children = await repo.tasks.getDirectChildren(
-                          task.projectId,
-                          task.id,
-                        );
-                        if (children.isNotEmpty) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  l10n.parentTaskDerivedStatusNotice,
-                                ),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          }
-                          return;
-                        }
-                        final newStatus = isDone
-                            ? TaskStatus.todo
-                            : TaskStatus.done;
-                        await repo.updateTask(task.id, status: newStatus);
-                      },
-                      child: Container(
-                        width: 18,
-                        height: 18,
-                        margin: const EdgeInsets.only(
-                          top: 2,
-                          right: AppTokens.spaceXs,
+                    // 标准 Checkbox（全 app 唯一勾选形态：主题层圆形 +
+                    // checkboxDoneFill 蓝填充；紧凑卡内用 shrinkWrap 触控区）。
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        top: 1,
+                        right: AppTokens.spaceXs,
+                      ),
+                      child: Checkbox(
+                        key: ValueKey('kanban_checkbox_${task.id}'),
+                        value: isDone,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: const VisualDensity(
+                          horizontal: -4,
+                          vertical: -4,
                         ),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isDone
-                              ? AppTokens.checkboxDoneFill
-                              : Colors.transparent,
-                          border: Border.all(
-                            color: isDone
-                                ? AppTokens.checkboxDoneFill
-                                : theme.colorScheme.outline.withValues(
-                                    alpha: 0.6,
+                        onChanged: (value) async {
+                          final repo = ref.read(todoRepositoryProvider);
+                          final children = await repo.tasks.getDirectChildren(
+                            task.projectId,
+                            task.id,
+                          );
+                          if (children.isNotEmpty) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    l10n.parentTaskDerivedStatusNotice,
                                   ),
-                            width: 1.8,
-                          ),
-                        ),
-                        child: isDone
-                            ? const Icon(
-                                Icons.check_rounded,
-                                size: 13,
-                                color: AppTokens.colorOnCheck,
-                              )
-                            : null,
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
+                            return;
+                          }
+                          final newStatus = value == true
+                              ? TaskStatus.done
+                              : TaskStatus.todo;
+                          await repo.updateTask(task.id, status: newStatus);
+                        },
                       ),
                     ),
                     Expanded(
@@ -636,7 +617,7 @@ class KanbanTaskCard extends ConsumerWidget {
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: Color(project!.color),
                                   fontWeight: FontWeight.w600,
-                                  fontSize: 11,
+                                  fontSize: AppTokens.textMicroSize,
                                 ),
                               ),
                             ],
@@ -694,7 +675,7 @@ class KanbanTaskCard extends ConsumerWidget {
       case TaskPriority.none:
         return const SizedBox.shrink();
     }
-    return Icon(Icons.flag_rounded, size: 15, color: color);
+    return Icon(Icons.flag_outlined, size: 15, color: color);
   }
 
   Widget _buildDueDateBadge(BuildContext context, ThemeData theme, int endAt) {
@@ -716,7 +697,7 @@ class KanbanTaskCard extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.calendar_today_rounded,
+            Icons.calendar_today_outlined,
             size: 11,
             color: isOverdue
                 ? AppTokens.colorOverdue
@@ -726,7 +707,7 @@ class KanbanTaskCard extends ConsumerWidget {
           Text(
             dateStr,
             style: theme.textTheme.labelSmall?.copyWith(
-              fontSize: 11,
+              fontSize: AppTokens.textMicroSize,
               color: isOverdue
                   ? AppTokens.colorOverdue
                   : theme.colorScheme.onSurfaceVariant,

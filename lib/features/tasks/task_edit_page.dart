@@ -233,7 +233,7 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
         // AppBar：返回 + 项目名（新建态带下拉箭头可切换，编辑态只读）+ 保存 + ⋯ 菜单。
         appBar: AppBar(
           leading: IconButton(
-            icon: Icon(isWide ? Icons.close : Icons.arrow_back_rounded),
+            icon: Icon(isWide ? Icons.close : Icons.arrow_back),
             tooltip: isWide
                 ? l10n.cancel
                 : MaterialLocalizations.of(context).backButtonTooltip,

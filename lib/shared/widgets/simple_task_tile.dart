@@ -228,7 +228,8 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                           style: theme.textTheme.bodySmall
                                               ?.copyWith(
                                                 color: AppTokens.colorOverdue,
-                                                fontSize: 10,
+                                                fontSize:
+                                                    AppTokens.textMicroSize,
                                                 fontWeight: FontWeight.w500,
                                               ),
                                         ),

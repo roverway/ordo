@@ -7,6 +7,7 @@ import '../../core/sync/sync_config.dart';
 import '../../core/sync/sync_engine.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/dates.dart';
+import '../../shared/widgets/desktop_hover_container.dart';
 import '../sync_setup/sync_setup_providers.dart';
 import 'settings_providers.dart';
 
@@ -243,6 +244,9 @@ class _SectionHeader extends StatelessWidget {
 }
 
 /// Card wrapper for a settings group.
+///
+/// 66 号外观升级：与任务卡/项目卡统一为「细边框 + 双层弥散阴影」的
+/// [DesktopHoverContainer] 语言，替代全局 Material Card 的 elevation 观感。
 class _SettingsCard extends StatelessWidget {
   const _SettingsCard({required this.children});
 
@@ -250,11 +254,10 @@ class _SettingsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTokens.spaceMd),
-        child: Column(children: children),
-      ),
+    return DesktopHoverContainer(
+      enableHover: false,
+      padding: const EdgeInsets.all(AppTokens.spaceMd),
+      child: Column(children: children),
     );
   }
 }

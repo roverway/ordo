@@ -245,7 +245,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
                     ),
                   ),
                   child: Icon(
-                    Icons.check_circle_outline_rounded,
+                    Icons.check_circle_outline,
                     size: 18,
                     color: theme.colorScheme.primary,
                   ),
@@ -388,7 +388,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
               Text(
                 l10n.customViews,
                 style: theme.textTheme.labelSmall?.copyWith(
-                  fontSize: 11.5,
+                  fontSize: AppTokens.textMicroSize,
                   letterSpacing: 0.4,
                   fontWeight: FontWeight.w600,
                   color: theme.colorScheme.onSurfaceVariant.withValues(
@@ -460,7 +460,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
           Text(
             l10n.taskGroups,
             style: theme.textTheme.labelSmall?.copyWith(
-              fontSize: 11.5,
+              fontSize: AppTokens.textMicroSize,
               letterSpacing: 0.4,
               fontWeight: FontWeight.w600,
               color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
@@ -551,6 +551,10 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
   }
 
   /// 文件夹展开后的现代轻量缩进项目区。
+  ///
+  /// 66 号外观升级：恢复 62-folder-nav.md §6.1 的 des-2 渐变树状引导线
+  /// （此前退化为纯缩进）。竖线位于缩进后内容区左缘，自上而下由淡到浓，
+  /// 与任务树的贝塞尔引导线呼应同一「层级连线」母题。
   Widget _buildFolderTree(
     BuildContext context,
     AppLocalizations l10n,
@@ -558,19 +562,30 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     List<Project> projects,
   ) {
     return Padding(
-      padding: const EdgeInsets.only(left: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      padding: const EdgeInsets.only(left: AppTokens.folderTreeIndent),
+      child: Stack(
         children: [
-          for (var i = 0; i < projects.length; i++)
-            _buildProjectRow(
-              context,
-              l10n,
-              projects[i],
-              grouping,
-              indent: 0,
-              rowSpacing: 2.0,
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _FolderRailPainter(
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < projects.length; i++)
+                _buildProjectRow(
+                  context,
+                  l10n,
+                  projects[i],
+                  grouping,
+                  indent: 0,
+                  rowSpacing: AppTokens.folderTreeRowSpacing.toDouble(),
+                ),
+            ],
+          ),
         ],
       ),
     );
@@ -723,7 +738,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
                   child: Text(
                     folder.name,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      fontSize: 13.5,
+                      fontSize: AppTokens.textFootnoteSize,
                       fontWeight: FontWeight.w600,
                     ),
                     maxLines: 1,
@@ -986,7 +1001,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
                   Text(
                     l10n.ungrouped,
                     style: theme.textTheme.labelSmall?.copyWith(
-                      fontSize: 11.5,
+                      fontSize: AppTokens.textMicroSize,
                       letterSpacing: 0.4,
                       fontWeight: FontWeight.w600,
                       color: colorScheme.onSurfaceVariant.withValues(
@@ -1173,7 +1188,7 @@ class _DrawerTile extends StatelessWidget {
                   child: Text(
                     title,
                     style: textTheme.bodyMedium?.copyWith(
-                      fontSize: 13.5,
+                      fontSize: AppTokens.textFootnoteSize,
                       color: selected
                           ? colorScheme.primary
                           : colorScheme.onSurface,
@@ -1224,7 +1239,7 @@ class _ProjectUncompletedBadge extends ConsumerWidget {
       child: Text(
         '$count',
         style: theme.textTheme.labelSmall?.copyWith(
-          fontSize: 10.5,
+          fontSize: AppTokens.textMicroSize,
           fontWeight: FontWeight.w500,
           color: theme.colorScheme.onSurfaceVariant,
         ),
@@ -1266,11 +1281,43 @@ class _FolderUncompletedBadge extends ConsumerWidget {
       child: Text(
         '$sum',
         style: theme.textTheme.labelSmall?.copyWith(
-          fontSize: 10.5,
+          fontSize: AppTokens.textMicroSize,
           fontWeight: FontWeight.w500,
           color: theme.colorScheme.onSurfaceVariant,
         ),
       ),
     );
   }
+}
+
+/// 文件夹树渐变引导线（62-folder-nav.md §6.1 des-2，66 号恢复）。
+///
+/// 竖向细线，自上而下 alpha 从 [AppTokens.folderTreeLineAlphaStart]
+/// 渐变到 [AppTokens.folderTreeLineAlphaEnd]；圆头笔画。
+class _FolderRailPainter extends CustomPainter {
+  const _FolderRailPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.height <= 0) return;
+    final paint = Paint()
+      ..strokeWidth = AppTokens.folderTreeLineWidth
+      ..strokeCap = StrokeCap.round
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          color.withValues(alpha: AppTokens.folderTreeLineAlphaStart),
+          color.withValues(alpha: AppTokens.folderTreeLineAlphaEnd),
+        ],
+      ).createShader(Offset.zero & size);
+    final x = size.width / 2;
+    canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _FolderRailPainter oldDelegate) =>
+      oldDelegate.color != color;
 }

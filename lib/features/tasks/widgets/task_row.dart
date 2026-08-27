@@ -463,7 +463,8 @@ class _TaskRowState extends State<TaskRow> {
                                           style: theme.textTheme.labelSmall
                                               ?.copyWith(
                                                 fontWeight: FontWeight.w600,
-                                                fontSize: 10.5,
+                                                fontSize:
+                                                    AppTokens.textMicroSize,
                                                 color: isDark
                                                     ? Colors.white70
                                                     : colorScheme

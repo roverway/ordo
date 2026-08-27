@@ -175,7 +175,7 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
                 child: Text(l10n.resetFilter),
               ),
               IconButton(
-                icon: const Icon(Icons.close_rounded, size: 20),
+                icon: const Icon(Icons.close, size: 20),
                 onPressed: () => widget.onClose(null),
               ),
             ],
@@ -194,10 +194,10 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
                 controller: _searchController,
                 decoration: InputDecoration(
                   labelText: l10n.searchHint,
-                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                  prefixIcon: const Icon(Icons.search, size: 20),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear_rounded, size: 18),
+                          icon: const Icon(Icons.clear, size: 18),
                           onPressed: () {
                             setState(() => _searchController.clear());
                           },
@@ -235,7 +235,7 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
               // 状态筛选
               _buildSectionHeader(
                 l10n.filterByStatus,
-                Icons.check_circle_outline_rounded,
+                Icons.check_circle_outline,
               ),
               Wrap(
                 spacing: AppTokens.spaceXs,
@@ -593,7 +593,7 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               fontWeight: FontWeight.w600,
               color: Theme.of(context).colorScheme.primary,
-              fontSize: 12.5,
+              fontSize: AppTokens.textCaptionSize,
             ),
           ),
         ],

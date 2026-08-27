@@ -205,7 +205,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
     return [
       IconButton(
         tooltip: l10n.editCustomView,
-        icon: const Icon(Icons.tune_rounded),
+        icon: const Icon(Icons.tune),
         onPressed: () => _openEditView(context, view),
       ),
       PopupMenuButton<String>(
@@ -223,7 +223,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
             child: Row(
               children: [
                 Icon(
-                  Icons.delete_outline_rounded,
+                  Icons.delete_outline,
                   size: 18,
                   color: theme.colorScheme.error,
                 ),
@@ -356,7 +356,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
                   const SizedBox(height: AppTokens.spaceMd),
                   FilledButton.icon(
                     onPressed: () => _openEditView(context, view),
-                    icon: const Icon(Icons.tune_rounded, size: 18),
+                    icon: const Icon(Icons.tune, size: 18),
                     label: Text(l10n.editCustomView),
                   ),
                 ],
