@@ -877,4 +877,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get customViewModifyProject => '修改所属项目';
+
+  @override
+  String get projectsOverview => '总览';
 }

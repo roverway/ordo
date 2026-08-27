@@ -891,4 +891,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customViewModifyProject => 'Change project';
+
+  @override
+  String get projectsOverview => 'Overview';
 }

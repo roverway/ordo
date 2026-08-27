@@ -322,5 +322,9 @@
       }
     }
   },
-  "customViewModifyProject": "修改所属项目"
+  "customViewModifyProject": "修改所属项目",
+  "projectsOverview": "总览",
+  "@projectsOverview": {
+    "description": "任务分组三点菜单：打开项目总览页"
+  }
 }

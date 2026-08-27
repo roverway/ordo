@@ -218,12 +218,6 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
             selectedIcon: Icons.label,
             label: l10n.navTags,
           ),
-          (
-            path: '/projects',
-            icon: Icons.list_alt_outlined,
-            selectedIcon: Icons.list_alt,
-            label: l10n.navProjects,
-          ),
         ];
 
     return SafeArea(
@@ -473,13 +467,44 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
             ),
           ),
           const Spacer(),
+          // 三点菜单：新建文件夹 / 项目总览（用户定稿：总览入口收进组头菜单，
+          // 不占系统组位）。
           SizedBox.square(
             dimension: 24,
-            child: IconButton(
+            child: PopupMenuButton<String>(
+              tooltip: l10n.moreOptions,
+              icon: const Icon(Icons.more_horiz, size: 16),
               padding: EdgeInsets.zero,
-              tooltip: l10n.newFolder,
-              icon: const Icon(Icons.create_new_folder_outlined, size: 16),
-              onPressed: () => _showNewFolderDialog(context, ref),
+              onSelected: (value) {
+                switch (value) {
+                  case 'newFolder':
+                    _showNewFolderDialog(context, ref);
+                  case 'overview':
+                    _go(context, '/projects');
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'newFolder',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.create_new_folder_outlined, size: 18),
+                      const SizedBox(width: AppTokens.spaceMd),
+                      Text(l10n.newFolder),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'overview',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.dashboard_outlined, size: 18),
+                      const SizedBox(width: AppTokens.spaceMd),
+                      Text(l10n.projectsOverview),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],

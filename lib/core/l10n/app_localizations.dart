@@ -1753,6 +1753,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'修改所属项目'**
   String get customViewModifyProject;
+
+  /// 任务分组三点菜单：打开项目总览页
+  ///
+  /// In zh, this message translates to:
+  /// **'总览'**
+  String get projectsOverview;
 }
 
 class _AppLocalizationsDelegate

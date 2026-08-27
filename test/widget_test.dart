@@ -1057,13 +1057,15 @@ void main() {
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();
 
-    // 「任务分组」分组头「新建文件夹」图标 → 名称弹窗（Dialog）。
+    // 「任务分组」分组头三点菜单 → 「新建文件夹」→ 名称弹窗（Dialog）。
     await tester.tap(
       find.descendant(
         of: find.byType(Drawer),
-        matching: find.byIcon(Icons.create_new_folder_outlined),
+        matching: find.byIcon(Icons.more_horiz),
       ),
     );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('新建文件夹'));
     await tester.pumpAndSettle();
     expect(find.byType(Dialog), findsOneWidget);
 
