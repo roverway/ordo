@@ -277,18 +277,6 @@
   "switchToWeekView": "切换为周视图",
   "switchToMonthView": "切换为月视图",
   "selectDate": "选择日期",
-  "tasksCompletedCount": "{done}/{total} 已完成",
-  "@tasksCompletedCount": {
-    "description": "今日页头部完成概览：已完成/总数",
-    "placeholders": {
-      "done": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
   "projectCount": "{count} 个项目",
   "@projectCount": {
     "description": "项目页副标题：项目数量",

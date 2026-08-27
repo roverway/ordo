@@ -1718,12 +1718,6 @@ abstract class AppLocalizations {
   /// **'选择日期'**
   String get selectDate;
 
-  /// 今日页头部完成概览：已完成/总数
-  ///
-  /// In zh, this message translates to:
-  /// **'{done}/{total} 已完成'**
-  String tasksCompletedCount(int done, int total);
-
   /// 项目页副标题：项目数量
   ///
   /// In zh, this message translates to:

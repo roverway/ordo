@@ -851,11 +851,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get selectDate => '选择日期';
 
   @override
-  String tasksCompletedCount(int done, int total) {
-    return '$done/$total 已完成';
-  }
-
-  @override
   String projectCount(int count) {
     return '$count 个项目';
   }

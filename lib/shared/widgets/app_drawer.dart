@@ -550,11 +550,8 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     );
   }
 
-  /// 文件夹展开后的现代轻量缩进项目区。
-  ///
-  /// 66 号外观升级：恢复 62-folder-nav.md §6.1 的 des-2 渐变树状引导线
-  /// （此前退化为纯缩进）。竖线位于缩进后内容区左缘，自上而下由淡到浓，
-  /// 与任务树的贝塞尔引导线呼应同一「层级连线」母题。
+  /// 文件夹展开后的现代轻量缩进项目区（用户反馈：渐变引导线未对齐，移除，
+  /// 回归纯缩进；62-folder-nav.md §6.1 的 des-2 连线方案正式废弃）。
   Widget _buildFolderTree(
     BuildContext context,
     AppLocalizations l10n,
@@ -563,29 +560,18 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
   ) {
     return Padding(
       padding: const EdgeInsets.only(left: AppTokens.folderTreeIndent),
-      child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _FolderRailPainter(
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
+          for (var i = 0; i < projects.length; i++)
+            _buildProjectRow(
+              context,
+              l10n,
+              projects[i],
+              grouping,
+              indent: 0,
+              rowSpacing: AppTokens.folderTreeRowSpacing.toDouble(),
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (var i = 0; i < projects.length; i++)
-                _buildProjectRow(
-                  context,
-                  l10n,
-                  projects[i],
-                  grouping,
-                  indent: 0,
-                  rowSpacing: AppTokens.folderTreeRowSpacing.toDouble(),
-                ),
-            ],
-          ),
         ],
       ),
     );
@@ -1288,36 +1274,4 @@ class _FolderUncompletedBadge extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// 文件夹树渐变引导线（62-folder-nav.md §6.1 des-2，66 号恢复）。
-///
-/// 竖向细线，自上而下 alpha 从 [AppTokens.folderTreeLineAlphaStart]
-/// 渐变到 [AppTokens.folderTreeLineAlphaEnd]；圆头笔画。
-class _FolderRailPainter extends CustomPainter {
-  const _FolderRailPainter({required this.color});
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (size.height <= 0) return;
-    final paint = Paint()
-      ..strokeWidth = AppTokens.folderTreeLineWidth
-      ..strokeCap = StrokeCap.round
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          color.withValues(alpha: AppTokens.folderTreeLineAlphaStart),
-          color.withValues(alpha: AppTokens.folderTreeLineAlphaEnd),
-        ],
-      ).createShader(Offset.zero & size);
-    final x = size.width / 2;
-    canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _FolderRailPainter oldDelegate) =>
-      oldDelegate.color != color;
 }

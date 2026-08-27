@@ -17,8 +17,8 @@
 3. **克制而精确的微交互**——既有 motion.dart 纪律（reduced-motion 全覆盖）
    不变；错落入场、勾选弹性、按压缩放全部保留。
 
-与日历顶栏的关系：日历是工具型周期导航放 AppBar；今日页等情感型概览页用
-静态大标题头部（`PageHeroHeader`，不折叠）。两者并存互补。
+与日历顶栏的关系：日历是工具型周期导航放 AppBar。~~今日页大标题头部~~
+**用户实机评审后回退**（见 §5 修订记录），`PageHeroHeader` 仅保留于项目列表页。
 
 ## 2. 字阶体系化（4 → 7 档）
 
@@ -57,21 +57,21 @@
 4. **EmptyState v2**：主色调淡染背衬圆（`emptyBackdropSize`=72、内部图标 32，
    primary × alphaTintSoft）+ 加权主文案 + 可选副描述 + 可选操作按钮插槽；
    日历议程空态保持自有更丰富实现（已是标杆）。
-5. **抽屉树状引导线复活**：按 62-folder-nav §6.1 des-2 以 `_FolderRailPainter`
-   自绘全高渐变竖线（folderTreeLineWidth=2 圆头，alpha 0.12→0.45 上淡下浓），
-   替代退化的纯缩进；`folderTreeConnectorWidth` 随新形态删除。
+5. ~~抽屉树状引导线复活~~：**用户实机评审否决**——渐变竖线与行内容无对齐
+    锚点、观感突兀，已移除 `_FolderRailPainter`，树状区回归纯缩进；
+   `folderTreeLineWidth / LineAlphaStart / LineAlphaEnd`（及此前 `ConnectorWidth`）
+   全部删除，仅保留 `folderTreeIndent` 与 `folderTreeRowSpacing`。
 
-## 5. 页面层定稿：静态大标题头部（今日/项目）
+## 5. 页面层定稿：静态大标题头部（修订：仅项目页）
 
 新共享组件 `shared/widgets/page_hero_header.dart`：
 
-- display 大标题 + 可选副标题 + 完成概览行（ARB 文案 `tasksCompletedCount` +
-  LinearProgressIndicator minHeight 4、圆角胶囊、填充 colorDone 绿）。
-- **今日页**：固定头部（不随列表滚动）：大标题 = 完整日期（「8月27日 星期三」/
-  `formatFullDateLine`），避免与 AppBar「今日」字面重复；概览 = 逾期+今天两桶汇总。
-  空态时头部照常显示、下方出 EmptyState。
+- display 大标题 + 可选副标题 + 可选完成概览行（4dp 圆角细进度条）。
+- **今日页**：用户实机评审后整体移除大标题与进度条（2026-08-27 回退，
+  恢复分组列表原样）；ARB 词条 `tasksCompletedCount` 一并删除。
+  今日视觉以既有分组头 + SimpleTaskTile 行为准。
 - **项目列表页**：大标题「项目」+ 计数副标题（`projectCount`·`folderCount` ARB）。
-- 新增 ARB 词条：`tasksCompletedCount` / `projectCount` / `folderCount`（zh/en）。
+- 新增 ARB 词条：`projectCount` / `folderCount`（zh/en）。
 
 ## 6. 留白节奏统一
 
@@ -93,5 +93,5 @@
 
 - [x] analyze 0 error / test 全绿 / dart format
 - [x] 功能区内 `_rounded` 图标清零、私有 fontSize 清零、裸 hex 清零
-- [x] 今日/项目页呈现大标题头部与完成概览
+- [x] 项目页呈现大标题头部；今日页与抽屉树状连线按用户评审回退
 - [x] 死令牌全部处置（删除或复活），50-ui-ux.md 与代码一致

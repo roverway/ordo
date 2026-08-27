@@ -94,16 +94,6 @@ const List<String> zhWeekdays = [
   '星期日',
 ];
 
-/// 今日页大标题副标题：完整日期（如「8月27日 星期三」/「Wed, Aug 27」）。
-///
-/// [date] 缺省取当天。
-String formatFullDateLine(DateTime date, {required bool isZh}) {
-  if (isZh) {
-    return '${intl.DateFormat('M月d日').format(date)} ${zhWeekdays[date.weekday - 1]}';
-  }
-  return intl.DateFormat('EEE, MMM d', 'en').format(date);
-}
-
 /// 星期表头缩写序列（从周一到周日，下标 0..6）。
 const List<String> zhWeekdayShorts = ['一', '二', '三', '四', '五', '六', '日'];
 const List<String> enWeekdayShorts = [

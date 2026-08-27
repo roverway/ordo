@@ -277,18 +277,6 @@
   "switchToWeekView": "Switch to Week View",
   "switchToMonthView": "Switch to Month View",
   "selectDate": "Select Date",
-  "tasksCompletedCount": "{done}/{total} completed",
-  "@tasksCompletedCount": {
-    "description": "Today header progress summary: completed/total",
-    "placeholders": {
-      "done": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
   "projectCount": "{count} projects",
   "@projectCount": {
     "description": "Projects page subtitle: project count",

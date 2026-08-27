@@ -355,22 +355,11 @@ abstract final class AppTokens {
   /// 保证整个抽屉的垂直节奏统一（des-1 需求 4）。
   static const double drawerRowSpacing = 4;
 
-  // ── 文件夹树状连线（62-folder-nav.md §6.1，des-2 视觉优化）──
+  // ── 抽屉文件夹树（62-folder-nav.md §6.1；des-2 连线方案经用户评审废弃，
+  //    仅保留缩进与行距令牌）──
 
-  /// 树状连线竖线的横向位置：与文件夹行图标中心对齐
-  /// （= 行外 padding spaceXs + 行内 padding spaceMd + 图标半径 expandArrowSize/2）。
+  /// 树状区缩进量。
   static const double folderTreeIndent = 34;
-
-  /// 树状连线竖线宽度（细线，滴答式克制风格；圆角转角/圆头由
-  /// StrokeCap.round 提供，圆角半径 = 线宽的一半）。
-  static const double folderTreeLineWidth = 2;
-
-  /// 树状连线竖线渐变起始不透明度（顶部最淡，自上而下渐浓，
-  /// 越接近下方清单越醒目，des-2 需求 3）。
-  static const double folderTreeLineAlphaStart = 0.12;
-
-  /// 树状连线竖线渐变结束不透明度（底部/最下方清单处最浓）。
-  static const double folderTreeLineAlphaEnd = 0.45;
 
   /// 树状连线区内项目行的垂直间距（比全局 [drawerRowSpacing] 更紧凑，
   /// 每行上下各留 `spacing / 2`，des-2 需求 2b）。

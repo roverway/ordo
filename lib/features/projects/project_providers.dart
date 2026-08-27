@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/db/database.dart';
 import '../../core/db/repositories/todo_repository.dart';
-import '../../core/utils/derived.dart';
 
 export '../../core/db/repositories/todo_repository.dart' show TodoRepository;
 
