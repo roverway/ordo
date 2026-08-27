@@ -218,6 +218,12 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
             selectedIcon: Icons.label,
             label: l10n.navTags,
           ),
+          (
+            path: '/projects',
+            icon: Icons.list_alt_outlined,
+            selectedIcon: Icons.list_alt,
+            label: l10n.navProjects,
+          ),
         ];
 
     return SafeArea(
