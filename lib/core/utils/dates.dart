@@ -104,6 +104,46 @@ String formatFullDateLine(DateTime date, {required bool isZh}) {
   return intl.DateFormat('EEE, MMM d', 'en').format(date);
 }
 
+/// 星期表头缩写序列（从周一到周日，下标 0..6）。
+const List<String> zhWeekdayShorts = ['一', '二', '三', '四', '五', '六', '日'];
+const List<String> enWeekdayShorts = [
+  'Mon',
+  'Tue',
+  'Wed',
+  'Thu',
+  'Fri',
+  'Sat',
+  'Sun',
+];
+
+/// 获取按语言环境的星期表头缩写序列。
+List<String> getWeekdayShorts({required bool isZh}) =>
+    isZh ? zhWeekdayShorts : enWeekdayShorts;
+
+/// 格式化日历议程列表日期标题（如「8月27日 · 今天」/「8月28日 星期四」）。
+String formatAgendaDateHeader({
+  required DateTime selected,
+  required String todayLabel,
+  required bool isZh,
+}) {
+  final now = DateTime.now();
+  final isToday =
+      selected.year == now.year &&
+      selected.month == now.month &&
+      selected.day == now.day;
+  if (isZh) {
+    if (isToday) {
+      return '${intl.DateFormat('M月d日').format(selected)} · $todayLabel';
+    }
+    return '${intl.DateFormat('M月d日').format(selected)} ${zhWeekdays[selected.weekday - 1]}';
+  } else {
+    if (isToday) {
+      return '${intl.DateFormat('MMM d', 'en').format(selected)} · $todayLabel';
+    }
+    return intl.DateFormat('EEEE, MMM d', 'en').format(selected);
+  }
+}
+
 /// 格式化日历顶栏周期标题（月视图如「2026年8月」/「August 2026」；周视图如「8月10日 – 8月16日」/「Aug 10 – Aug 16, 2026」）。
 String formatCalendarHeader({
   required DateTime selectedDate,

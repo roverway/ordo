@@ -15,22 +15,10 @@ import '../widgets/panel_column.dart';
 import 'custom_view_editor_page.dart';
 
 /// 自定义视图主页面（支持多栏看板与多 Tab 响应式切换）。
-class CustomViewPage extends ConsumerStatefulWidget {
+class CustomViewPage extends ConsumerWidget {
   const CustomViewPage({super.key, required this.viewId});
 
   final String viewId;
-
-  @override
-  ConsumerState<CustomViewPage> createState() => _CustomViewPageState();
-}
-
-class _CustomViewPageState extends ConsumerState<CustomViewPage> {
-  // 本地临时面板状态（支持在视图页微调面板筛选与排序）
-  List<CustomViewPanelConfig>? _localPanels;
-
-  List<CustomViewPanelConfig> _getEffectivePanels(CustomView view) {
-    return _localPanels ?? decodePanelsJson(view.panelsJson);
-  }
 
   void _openEditView(BuildContext context, CustomView view) {
     if (AppBreakpoints.isNarrow(context)) {
@@ -41,27 +29,29 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
   }
 
   void _onUpdatePanel(
+    WidgetRef ref,
     CustomView view,
     int index,
     CustomViewPanelConfig updated,
   ) {
-    final panels = List<CustomViewPanelConfig>.from(_getEffectivePanels(view));
+    final panels = List<CustomViewPanelConfig>.from(
+      decodePanelsJson(view.panelsJson),
+    );
     panels[index] = updated;
-    setState(() => _localPanels = panels);
-
-    // 异步持久化至数据库
     ref.read(customViewOperationsProvider).updateView(view.id, panels: panels);
   }
 
-  void _onDeletePanel(CustomView view, int index) {
-    final panels = List<CustomViewPanelConfig>.from(_getEffectivePanels(view));
+  void _onDeletePanel(WidgetRef ref, CustomView view, int index) {
+    final panels = List<CustomViewPanelConfig>.from(
+      decodePanelsJson(view.panelsJson),
+    );
     panels.removeAt(index);
-    setState(() => _localPanels = panels);
-
     ref.read(customViewOperationsProvider).updateView(view.id, panels: panels);
   }
 
   Future<void> _handleTaskDrop({
+    required BuildContext context,
+    required WidgetRef ref,
     required CustomView view,
     required Task task,
     required CustomViewPanelConfig targetPanel,
@@ -71,7 +61,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
     final ops = ref.read(customViewOperationsProvider);
 
     // 查找 sourcePanel
-    final panels = _getEffectivePanels(view);
+    final panels = decodePanelsJson(view.panelsJson);
     CustomViewPanelConfig? sourcePanel;
     for (final p in panels) {
       if (p.id != targetPanel.id) {
@@ -95,7 +85,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
       hasSubtasks: hasSubtasks,
     );
 
-    if (!mounted) return;
+    if (!context.mounted) return;
 
     if (result.actionType == PanelDropActionType.derivedStatusBlocked) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -105,11 +95,13 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
         ),
       );
     } else if (result.actionType == PanelDropActionType.requiresConfirmation) {
-      _showConfirmationDialog(task, targetPanel, result);
+      _showConfirmationDialog(context, ref, task, targetPanel, result);
     }
   }
 
   void _showConfirmationDialog(
+    BuildContext context,
+    WidgetRef ref,
     Task task,
     CustomViewPanelConfig targetPanel,
     PanelDropResult result,
@@ -124,7 +116,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
           borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
         ),
         title: Text(l10n.confirm),
-        content: Text('移动到「${targetPanel.title}」面板，请确认要修改的任务属性：'),
+        content: Text(l10n.customViewMoveConfirmMessage(targetPanel.title)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogCtx).pop(),
@@ -136,7 +128,9 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
                 await repo.updateTask(task.id, status: result.targetStatus!);
                 if (dialogCtx.mounted) Navigator.of(dialogCtx).pop();
               },
-              child: Text('修改状态为 ${result.targetStatus!.name}'),
+              child: Text(
+                l10n.customViewModifyStatusTo(result.targetStatus!.name),
+              ),
             ),
           if (result.targetPriority != null)
             FilledButton.tonal(
@@ -147,7 +141,9 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
                 );
                 if (dialogCtx.mounted) Navigator.of(dialogCtx).pop();
               },
-              child: Text('修改优先级为 ${result.targetPriority!.name}'),
+              child: Text(
+                l10n.customViewModifyPriorityTo(result.targetPriority!.name),
+              ),
             ),
           if (result.targetProjectId != null)
             FilledButton.tonal(
@@ -155,14 +151,18 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
                 await repo.moveTaskToProject(task.id, result.targetProjectId!);
                 if (dialogCtx.mounted) Navigator.of(dialogCtx).pop();
               },
-              child: const Text('修改所属项目'),
+              child: Text(l10n.customViewModifyProject),
             ),
         ],
       ),
     );
   }
 
-  Future<void> _confirmDeleteView(CustomView view) async {
+  Future<void> _confirmDeleteView(
+    BuildContext context,
+    WidgetRef ref,
+    CustomView view,
+  ) async {
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
@@ -188,9 +188,9 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
       ),
     );
 
-    if (confirmed == true) {
+    if (confirmed == true && context.mounted) {
       await ref.read(customViewOperationsProvider).deleteView(view.id);
-      if (mounted) {
+      if (context.mounted) {
         context.go('/today');
       }
     }
@@ -198,6 +198,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
 
   List<Widget> _buildActions(
     BuildContext context,
+    WidgetRef ref,
     AppLocalizations l10n,
     ThemeData theme,
     CustomView view,
@@ -214,7 +215,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
         ),
         onSelected: (val) {
           if (val == 'delete') {
-            _confirmDeleteView(view);
+            _confirmDeleteView(context, ref, view);
           }
         },
         itemBuilder: (ctx) => [
@@ -241,13 +242,13 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final isWide = AppBreakpoints.isWide(context);
 
-    final viewAsync = ref.watch(customViewDetailProvider(widget.viewId));
+    final viewAsync = ref.watch(customViewDetailProvider(viewId));
 
     final narrow = AppBreakpoints.isNarrow(context);
 
@@ -307,8 +308,8 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
           );
         }
 
-        final panels = _getEffectivePanels(view);
-        final actions = _buildActions(context, l10n, theme, view);
+        final panels = decodePanelsJson(view.panelsJson);
+        final actions = _buildActions(context, ref, l10n, theme, view);
 
         Widget bodyContent;
 
@@ -380,9 +381,11 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
                   panel: panel,
                   isKanban: true,
                   onUpdatePanel: (updated) =>
-                      _onUpdatePanel(view, index, updated),
-                  onDeletePanel: () => _onDeletePanel(view, index),
+                      _onUpdatePanel(ref, view, index, updated),
+                  onDeletePanel: () => _onDeletePanel(ref, view, index),
                   onTaskDropped: (task, targetPanel) => _handleTaskDrop(
+                    context: context,
+                    ref: ref,
                     view: view,
                     task: task,
                     targetPanel: targetPanel,
@@ -427,9 +430,11 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
                     panel: panel,
                     isKanban: false,
                     onUpdatePanel: (updated) =>
-                        _onUpdatePanel(view, index, updated),
-                    onDeletePanel: () => _onDeletePanel(view, index),
+                        _onUpdatePanel(ref, view, index, updated),
+                    onDeletePanel: () => _onDeletePanel(ref, view, index),
                     onTaskDropped: (task, targetPanel) => _handleTaskDrop(
+                      context: context,
+                      ref: ref,
                       view: view,
                       task: task,
                       targetPanel: targetPanel,

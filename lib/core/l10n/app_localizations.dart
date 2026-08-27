@@ -1735,6 +1735,30 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'{count} 个文件夹'**
   String folderCount(int count);
+
+  /// 自定义视图移动任务弹窗提示
+  ///
+  /// In zh, this message translates to:
+  /// **'移动到「{panelTitle}」面板，请确认要修改的任务属性：'**
+  String customViewMoveConfirmMessage(String panelTitle);
+
+  /// 自定义视图修改状态按钮
+  ///
+  /// In zh, this message translates to:
+  /// **'修改状态为 {status}'**
+  String customViewModifyStatusTo(String status);
+
+  /// 自定义视图修改优先级按钮
+  ///
+  /// In zh, this message translates to:
+  /// **'修改优先级为 {priority}'**
+  String customViewModifyPriorityTo(String priority);
+
+  /// No description provided for @customViewModifyProject.
+  ///
+  /// In zh, this message translates to:
+  /// **'修改所属项目'**
+  String get customViewModifyProject;
 }
 
 class _AppLocalizationsDelegate

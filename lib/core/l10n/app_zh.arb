@@ -306,5 +306,33 @@
         "type": "int"
       }
     }
-  }
+  },
+  "customViewMoveConfirmMessage": "移动到「{panelTitle}」面板，请确认要修改的任务属性：",
+  "@customViewMoveConfirmMessage": {
+    "description": "自定义视图移动任务弹窗提示",
+    "placeholders": {
+      "panelTitle": {
+        "type": "String"
+      }
+    }
+  },
+  "customViewModifyStatusTo": "修改状态为 {status}",
+  "@customViewModifyStatusTo": {
+    "description": "自定义视图修改状态按钮",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "customViewModifyPriorityTo": "修改优先级为 {priority}",
+  "@customViewModifyPriorityTo": {
+    "description": "自定义视图修改优先级按钮",
+    "placeholders": {
+      "priority": {
+        "type": "String"
+      }
+    }
+  },
+  "customViewModifyProject": "修改所属项目"
 }

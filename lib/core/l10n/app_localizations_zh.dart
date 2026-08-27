@@ -864,4 +864,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String folderCount(int count) {
     return '$count 个文件夹';
   }
+
+  @override
+  String customViewMoveConfirmMessage(String panelTitle) {
+    return '移动到「$panelTitle」面板，请确认要修改的任务属性：';
+  }
+
+  @override
+  String customViewModifyStatusTo(String status) {
+    return '修改状态为 $status';
+  }
+
+  @override
+  String customViewModifyPriorityTo(String priority) {
+    return '修改优先级为 $priority';
+  }
+
+  @override
+  String get customViewModifyProject => '修改所属项目';
 }

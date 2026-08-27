@@ -389,6 +389,45 @@ final hideCompletedTasksProvider =
       HideCompletedTasksNotifier.new,
     );
 
+/// 项目任务概览数据（未完成数、总数、完成进度）。
+class ProjectTaskSummary {
+  const ProjectTaskSummary({
+    this.totalCount = 0,
+    this.uncompletedCount = 0,
+    this.progress = 0.0,
+  });
+
+  final int totalCount;
+  final int uncompletedCount;
+  final double progress;
+}
+
+/// 单个项目任务概览数据 Provider（未完成数、总数、完成进度）。
+///
+/// 将卡片原本分别监听的 3 个 Provider 聚合成 1 个基于 [projectTasksProvider] 的只读数据结构。
+final projectSummaryProvider = Provider.family<ProjectTaskSummary, String>((
+  ref,
+  projectId,
+) {
+  final tasksAsync = ref.watch(projectTasksProvider(projectId));
+  return tasksAsync.when(
+    data: (tasks) {
+      if (tasks.isEmpty) return const ProjectTaskSummary();
+      final uncompleted = uncompletedCount(tasks);
+      final subtree = tasks.toList();
+      final roots = subtree.where((t) => t.parentId == null).toList();
+      final prog = roots.isEmpty ? 0.0 : progress(roots.first, subtree);
+      return ProjectTaskSummary(
+        totalCount: tasks.length,
+        uncompletedCount: uncompleted,
+        progress: prog,
+      );
+    },
+    loading: () => const ProjectTaskSummary(),
+    error: (_, _) => const ProjectTaskSummary(),
+  );
+});
+
 /// 项目未完成任务数 Provider。
 ///
 /// 统计口径与 [projectProgressProvider] 一致：父任务按**派生状态**（§6.1）计数，

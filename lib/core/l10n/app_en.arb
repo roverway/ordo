@@ -306,5 +306,33 @@
         "type": "int"
       }
     }
-  }
+  },
+  "customViewMoveConfirmMessage": "Moved to panel \"{panelTitle}\". Please confirm the attributes to modify:",
+  "@customViewMoveConfirmMessage": {
+    "description": "Custom view move task prompt message",
+    "placeholders": {
+      "panelTitle": {
+        "type": "String"
+      }
+    }
+  },
+  "customViewModifyStatusTo": "Change status to {status}",
+  "@customViewModifyStatusTo": {
+    "description": "Custom view modify status button",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "customViewModifyPriorityTo": "Change priority to {priority}",
+  "@customViewModifyPriorityTo": {
+    "description": "Custom view modify priority button",
+    "placeholders": {
+      "priority": {
+        "type": "String"
+      }
+    }
+  },
+  "customViewModifyProject": "Change project"
 }

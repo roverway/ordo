@@ -40,4 +40,5 @@ coverage/
 
 # 本地工具产物（不进版本库）
 .codegraph/
+.zcode/
 ux-ui-agent-skills/

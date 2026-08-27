@@ -32,18 +32,10 @@ class _ProjectCardState extends ConsumerState<ProjectCard> {
     final colorScheme = theme.colorScheme;
     final projectColor = Color(widget.project.color);
 
-    final uncompleted = ref.watch(
-      projectUncompletedCountProvider(widget.project.id),
-    );
-    final projectProgress = ref.watch(
-      projectProgressProvider(widget.project.id),
-    );
-    final tasksAsync = ref.watch(projectTasksProvider(widget.project.id));
-    final totalCount = tasksAsync.when(
-      data: (tasks) => tasks.length,
-      loading: () => 0,
-      error: (_, _) => 0,
-    );
+    final summary = ref.watch(projectSummaryProvider(widget.project.id));
+    final uncompleted = summary.uncompletedCount;
+    final projectProgress = summary.progress;
+    final totalCount = summary.totalCount;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppTokens.spaceSm),

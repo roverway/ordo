@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart' as intl;
 
 import '../../core/db/database.dart';
 import '../../core/db/tables.dart';
@@ -43,10 +42,6 @@ class CalendarPage extends ConsumerWidget {
     final isNarrow = AppBreakpoints.isNarrow(context);
     final state = ref.watch(calendarStateProvider);
     final bucketsAsync = ref.watch(calendarBucketsProvider);
-    final allTasks = ref.watch(allActiveTasksProvider).value ?? const <Task>[];
-    final projects =
-        ref.watch(projectsStreamProvider).value ?? const <Project>[];
-    final projectsMap = {for (final p in projects) p.id: p};
 
     return Scaffold(
       drawer: isNarrow ? const AppDrawer() : null,
@@ -124,22 +119,8 @@ class CalendarPage extends ConsumerWidget {
       ),
       body: bucketsAsync.when(
         data: (buckets) => isNarrow
-            ? _buildNarrowLayout(
-                context,
-                ref,
-                buckets,
-                allTasks,
-                projectsMap,
-                state,
-              )
-            : _buildWideLayout(
-                context,
-                ref,
-                buckets,
-                allTasks,
-                projectsMap,
-                state,
-              ),
+            ? _buildNarrowLayout(context, ref, buckets, state)
+            : _buildWideLayout(context, ref, buckets, state),
         loading: () => const LoadingView(),
         error: (e, st) {
           logAsyncError(e, st);
@@ -229,21 +210,12 @@ class CalendarPage extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     Map<DateTime, List<Task>> buckets,
-    List<Task> allTasks,
-    Map<String, Project> projectsMap,
     CalendarState state,
   ) {
     return Column(
       children: [
-        _CalendarViewport(
-          buckets: buckets,
-          projectsMap: projectsMap,
-          state: state,
-          isNarrow: true,
-        ),
-        Expanded(
-          child: _buildAgendaList(context, ref, buckets, allTasks, state),
-        ),
+        _CalendarViewport(buckets: buckets, state: state, isNarrow: true),
+        Expanded(child: _buildAgendaList(context, ref, buckets, state)),
       ],
     );
   }
@@ -254,8 +226,6 @@ class CalendarPage extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     Map<DateTime, List<Task>> buckets,
-    List<Task> allTasks,
-    Map<String, Project> projectsMap,
     CalendarState state,
   ) {
     final theme = Theme.of(context);
@@ -267,7 +237,6 @@ class CalendarPage extends ConsumerWidget {
           width: AppTokens.calendarPaneWidth,
           child: _CalendarViewport(
             buckets: buckets,
-            projectsMap: projectsMap,
             state: state,
             isNarrow: false,
           ),
@@ -277,9 +246,7 @@ class CalendarPage extends ConsumerWidget {
           thickness: 1,
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
         ),
-        Expanded(
-          child: _buildAgendaList(context, ref, buckets, allTasks, state),
-        ),
+        Expanded(child: _buildAgendaList(context, ref, buckets, state)),
       ],
     );
   }
@@ -290,40 +257,26 @@ class CalendarPage extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     Map<DateTime, List<Task>> buckets,
-    List<Task> allTasks,
     CalendarState state,
   ) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final selected = state.selectedDate;
     final tasks = tasksForDay(buckets, selected);
+    final allTasks = ref.watch(allActiveTasksProvider).value ?? const <Task>[];
     final childrenIndex = indexChildrenByParent(allTasks);
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
 
+    final dateHeader = formatAgendaDateHeader(
+      selected: selected,
+      todayLabel: l10n.today,
+      isZh: isZh,
+    );
     final now = DateTime.now();
     final isToday =
         selected.year == now.year &&
         selected.month == now.month &&
         selected.day == now.day;
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
-
-    String dateHeader;
-    if (isZh) {
-      if (isToday) {
-        dateHeader =
-            '${intl.DateFormat('M月d日').format(selected)} · ${l10n.today}';
-      } else {
-        const zhWeekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
-        final weekdayStr = zhWeekdays[selected.weekday - 1];
-        dateHeader = '${intl.DateFormat('M月d日').format(selected)} $weekdayStr';
-      }
-    } else {
-      if (isToday) {
-        dateHeader =
-            '${intl.DateFormat('MMM d', 'en').format(selected)} · ${l10n.today}';
-      } else {
-        dateHeader = intl.DateFormat('EEEE, MMM d', 'en').format(selected);
-      }
-    }
 
     final countText = tasks.isEmpty ? '' : l10n.tasksCount(tasks.length);
 
@@ -481,13 +434,11 @@ class CalendarPage extends ConsumerWidget {
 class _CalendarViewport extends ConsumerStatefulWidget {
   const _CalendarViewport({
     required this.buckets,
-    required this.projectsMap,
     required this.state,
     required this.isNarrow,
   });
 
   final Map<DateTime, List<Task>> buckets;
-  final Map<String, Project> projectsMap;
   final CalendarState state;
   final bool isNarrow;
 
@@ -503,6 +454,7 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final projectsMap = ref.watch(projectsMapProvider);
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -552,7 +504,7 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
             context,
             ref,
             widget.buckets,
-            widget.projectsMap,
+            projectsMap,
             widget.state,
           ),
           // 底部折叠/展开指示柄（窄屏下提供视觉手势暗示）
@@ -589,9 +541,7 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
   Widget _buildWeekdayRow(BuildContext context) {
     final theme = Theme.of(context);
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
-    final weekdayLabels = isZh
-        ? const ['一', '二', '三', '四', '五', '六', '日']
-        : const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final weekdayLabels = getWeekdayShorts(isZh: isZh);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppTokens.spaceSm),
@@ -904,8 +854,8 @@ class CalendarTaskTile extends ConsumerWidget {
     final newStatus = value == true ? TaskStatus.done : TaskStatus.todo;
     try {
       await repo.updateTask(task.id, status: newStatus);
-    } catch (_) {
-      // 状态切换失败由数据流自动回滚，静默处理
+    } catch (e, st) {
+      logAsyncError(e, st);
     }
   }
 }

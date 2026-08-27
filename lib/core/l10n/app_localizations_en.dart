@@ -878,4 +878,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String folderCount(int count) {
     return '$count folders';
   }
+
+  @override
+  String customViewMoveConfirmMessage(String panelTitle) {
+    return 'Moved to panel \"$panelTitle\". Please confirm the attributes to modify:';
+  }
+
+  @override
+  String customViewModifyStatusTo(String status) {
+    return 'Change status to $status';
+  }
+
+  @override
+  String customViewModifyPriorityTo(String priority) {
+    return 'Change priority to $priority';
+  }
+
+  @override
+  String get customViewModifyProject => 'Change project';
 }

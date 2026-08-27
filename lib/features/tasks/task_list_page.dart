@@ -229,17 +229,8 @@ class TaskListPage extends ConsumerWidget {
           ...actions,
         ],
       ),
-      body: Stack(
-        children: [
-          Positioned.fill(child: _buildBody(context, ref)),
-          if (showFab)
-            Positioned(
-              right: AppTokens.spaceMd,
-              bottom: AppTokens.spaceMd,
-              child: _buildFab(context),
-            ),
-        ],
-      ),
+      body: _buildBody(context, ref),
+      floatingActionButton: showFab ? _buildFab(context) : null,
     );
   }
 

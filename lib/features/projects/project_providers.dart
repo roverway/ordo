@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/db/database.dart';
 import '../../core/db/repositories/todo_repository.dart';
+import '../../core/utils/derived.dart';
 
 export '../../core/db/repositories/todo_repository.dart' show TodoRepository;
 
@@ -20,6 +21,12 @@ final todoRepositoryProvider = Provider<TodoRepository>((ref) {
 final projectsStreamProvider = StreamProvider<List<Project>>((ref) {
   final repo = ref.watch(todoRepositoryProvider);
   return repo.projects.watchAll();
+});
+
+/// 全部项目 Map（id -> Project，只读 Provider）。
+final projectsMapProvider = Provider<Map<String, Project>>((ref) {
+  final projects = ref.watch(projectsStreamProvider).value ?? const <Project>[];
+  return {for (final p in projects) p.id: p};
 });
 
 /// 全部未删除文件夹（按 sortOrder 升序，StreamProvider 自动刷新）。

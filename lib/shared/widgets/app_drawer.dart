@@ -1219,7 +1219,7 @@ class _ProjectUncompletedBadge extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final count = ref.watch(projectUncompletedCountProvider(projectId));
+    final count = ref.watch(projectSummaryProvider(projectId)).uncompletedCount;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     return Container(
@@ -1260,7 +1260,7 @@ class _FolderUncompletedBadge extends ConsumerWidget {
     final projects = grouping?.folderProjects[folderId] ?? const <Project>[];
     var sum = 0;
     for (final p in projects) {
-      sum += ref.watch(projectUncompletedCountProvider(p.id));
+      sum += ref.watch(projectSummaryProvider(p.id)).uncompletedCount;
     }
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
