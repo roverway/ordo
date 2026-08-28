@@ -48,9 +48,6 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
   /// 当前拖拽悬停目标行的位置：false=上半（同级排序），true=下半（成为子级）。
   bool _dropAsChild = false;
 
-  /// H 批：一级卡片是否处于按压态（阴影抬升 + 轻微 scale 0.98）。
-  bool _cardPressed = false;
-
   /// 每行 GlobalKey，用于在 onMove 时换算悬停位置（上半/下半）。
   /// 覆盖两类行：一级卡片头与卡片内紧凑子行（每个任务 id 唯一）。
   final Map<String, GlobalKey> _rowKeys = {};
@@ -217,8 +214,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
 
   /// 一级任务大卡片（D1）：卡片头 + 展开区（Divider 分隔的紧凑子任务行）。
   ///
-  /// 卡片容器提供白卡底/圆角/轻阴影；卡片头与内部子行均为独立拖拽源
-  /// （各包自己的 DragTarget，几何不重叠 → 命中互不干扰）。
+  /// 形态 A（极简平铺流）：1 级任务直接平铺于纯净画布上；展开子任务时
+  /// 采用一块轻微凹陷底色（surfaceSunken）包裹，表达层级归属而无多重卡片嵌套感。
   Widget _buildCard(
     BuildContext context,
     TreeNode rootNode,
@@ -233,84 +230,67 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     final children = childrenOf[rootNode.task.id] ?? const <TreeNode>[];
 
     return Padding(
-      // 用户打磨要求 4：一级卡片底部间距 spaceXxs→spaceXs，
-      // 与卡片↔屏幕左右边缘距离（列表水平 padding spaceXs）相等。
-      padding: const EdgeInsets.only(bottom: AppTokens.spaceXs),
-      // H 批（des-4 需求 2 减弱）：卡片按压仅保留**几乎无感**的轻微 scale
-      // （cardPressScaleSubtle 0.998），去掉阴影抬升；motionFast + motionCurve，
-      // 抬手恢复，不影响点击/拖拽。这是卡片按压缩放的**唯一一层**——行内层
-      // 的同款 scale 仅对 compact 子行生效，避免双层叠加体感明显。
-      child: Listener(
-        onPointerDown: (_) {
-          if (mounted) setState(() => _cardPressed = true);
-        },
-        onPointerUp: (_) {
-          if (mounted) setState(() => _cardPressed = false);
-        },
-        onPointerCancel: (_) {
-          if (mounted) setState(() => _cardPressed = false);
-        },
-        child: AnimatedScale(
-          scale: _cardPressed ? AppTokens.cardPressScaleSubtle : 1,
-          duration: motionFast(context),
-          curve: motionCurve(context),
-          child: Container(
-            decoration: BoxDecoration(
-              color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
-              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-              border: Border.all(
-                color: isDark
-                    ? AppTokens.borderSubtleDark
-                    : AppTokens.borderSubtleLight,
-                width: 1.0,
-              ),
-              boxShadow: isDark
-                  ? AppTokens.cardShadowDarkList
-                  : AppTokens.cardShadowLight,
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildDraggableRow(
-                    context,
-                    rootNode,
-                    repo,
-                    expandState,
-                    style: TaskRowStyle.cardHeader,
-                    childrenIndexAll: childrenIndexAll,
-                    byIdAll: byIdAll,
-                  ),
-                  // 用户打磨要求 2：去掉子行间 Divider（行间靠间距区分）。
-                  // des-4 需求 3 + 评审 #3：**唯一**的 AnimatedSize 高度过渡层
-                  // （motionNormal + motionCurve，clip 使行随高度渐进露出）。
-                  // 任意层级（一级展开/孙级展开或折叠）的高度变化都经本层
-                  // 动画（RenderAnimatedSize 在子级尺寸变化时自动重启动画），
-                  // 内层不再重复包 AnimatedSize；子行不叠加自身动画，随容器
-                  // 自上而下揭示（与侧边栏文件夹展开观感一致）。
-                  AnimatedSize(
-                    duration: motionNormal(context),
-                    curve: motionCurve(context),
-                    alignment: Alignment.topCenter,
-                    clipBehavior: Clip.hardEdge,
-                    child: rootNode.isExpanded && children.isNotEmpty
-                        ? _buildChildrenSection(
-                            context,
-                            children,
-                            childrenOf,
-                            repo,
-                            expandState,
-                            childrenIndexAll: childrenIndexAll,
-                            byIdAll: byIdAll,
-                          )
-                        : const SizedBox(width: double.infinity),
-                  ),
-                ],
-              ),
-            ),
+      // 形态 A：行间保留适度呼吸间距
+      padding: const EdgeInsets.only(bottom: AppTokens.spaceXxs),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildDraggableRow(
+            context,
+            rootNode,
+            repo,
+            expandState,
+            style: TaskRowStyle.cardHeader,
+            childrenIndexAll: childrenIndexAll,
+            byIdAll: byIdAll,
           ),
-        ),
+          // 高度过渡层：子任务随凹槽容器自上而下平滑揭示
+          AnimatedSize(
+            duration: motionNormal(context),
+            curve: motionCurve(context),
+            alignment: Alignment.topCenter,
+            clipBehavior: Clip.hardEdge,
+            child: rootNode.isExpanded && children.isNotEmpty
+                ? Padding(
+                    padding: const EdgeInsets.only(
+                      left: AppTokens.spaceXxs,
+                      right: AppTokens.spaceXxs,
+                      top: 2,
+                      bottom: AppTokens.spaceXs,
+                    ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        // 凹陷微底色（比背景沉约 2%）：轻量包裹，表达层级归属
+                        color: isDark
+                            ? AppTokens.surfaceSunkenDark
+                            : AppTokens.surfaceSunkenLight,
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusList,
+                        ),
+                        border: Border.all(
+                          color: isDark
+                              ? AppTokens.borderSubtleDark
+                              : AppTokens.borderSubtleLight,
+                          width: 0.5,
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppTokens.spaceXxs,
+                      ),
+                      child: _buildChildrenSection(
+                        context,
+                        children,
+                        childrenOf,
+                        repo,
+                        expandState,
+                        childrenIndexAll: childrenIndexAll,
+                        byIdAll: byIdAll,
+                      ),
+                    ),
+                  )
+                : const SizedBox(width: double.infinity),
+          ),
+        ],
       ),
     );
   }

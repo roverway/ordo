@@ -69,7 +69,6 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final colorScheme = theme.colorScheme;
     final timeText = formatDateRange(
       widget.task.startAt,
@@ -99,36 +98,21 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
           duration: motionFast(context),
           curve: motionCurve(context),
           decoration: BoxDecoration(
-            // 形态 B：轻质感白卡（与 TaskTree / KanbanTaskCard 统一层级）
-            color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
-            borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-            border: Border.all(
-              color: _hovered
-                  ? (isDark
-                      ? AppTokens.borderSubtleHoverDark
-                      : AppTokens.borderSubtleHoverLight)
-                  : (isDark
-                      ? AppTokens.borderSubtleDark
-                      : AppTokens.borderSubtleLight),
-              width: 1.0,
-            ),
-            boxShadow: isDark
-                ? (_hovered
-                    ? AppTokens.cardShadowDarkHoverList
-                    : AppTokens.cardShadowDarkList)
-                : (_hovered
-                    ? AppTokens.cardShadowLightHover
-                    : AppTokens.cardShadowLight),
+            // 形态 A：极简平铺（透明底，悬停给轻微底色反馈）
+            color: _hovered
+                ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.35)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppTokens.radiusList),
           ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+              borderRadius: BorderRadius.circular(AppTokens.radiusList),
               onTap: widget.onTap,
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTokens.spaceSm,
-                  vertical: AppTokens.spaceXxs,
+                padding: const EdgeInsets.only(
+                  left: AppTokens.spaceXxs,
+                  right: AppTokens.spaceXxs,
                 ),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(
