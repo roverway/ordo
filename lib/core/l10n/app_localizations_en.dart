@@ -72,6 +72,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutVersion => 'Version';
 
   @override
+  String get aboutSlogan => 'Pure order for your daily flow.';
+
+  @override
+  String get aboutBrandZhTitle => '知序 (Zhī Xù)';
+
+  @override
+  String get aboutBrandZhDesc =>
+      '\"Clarify priorities, act with order.\" Emphasizes local data ownership and pure, distraction-free personal flow.';
+
+  @override
+  String get aboutBrandEnTitle => 'Ordo';
+
+  @override
+  String get aboutBrandEnDesc =>
+      'The Latin root for \'order\' — clean, four-letter visual balance designed for clarity and focus.';
+
+  @override
   String get emptyToday => 'No tasks today';
 
   @override

@@ -224,6 +224,36 @@ abstract class AppLocalizations {
   /// **'版本'**
   String get aboutVersion;
 
+  /// No description provided for @aboutSlogan.
+  ///
+  /// In zh, this message translates to:
+  /// **'知其轻重，行止有序。'**
+  String get aboutSlogan;
+
+  /// No description provided for @aboutBrandZhTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'知序（Zhī Xù）'**
+  String get aboutBrandZhTitle;
+
+  /// No description provided for @aboutBrandZhDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'“明悉轻重，行止有序”。强调本地数据掌控、无推送干扰的纯净个人秩序。'**
+  String get aboutBrandZhDesc;
+
+  /// No description provided for @aboutBrandEnTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'Ordo'**
+  String get aboutBrandEnTitle;
+
+  /// No description provided for @aboutBrandEnDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'拉丁语中的‘秩序与条理’（英文 Order 的词源），四字母首尾对称，极简且辨识度高。'**
+  String get aboutBrandEnDesc;
+
   /// No description provided for @emptyToday.
   ///
   /// In zh, this message translates to:

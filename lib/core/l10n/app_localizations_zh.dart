@@ -72,6 +72,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aboutVersion => '版本';
 
   @override
+  String get aboutSlogan => '知其轻重，行止有序。';
+
+  @override
+  String get aboutBrandZhTitle => '知序（Zhī Xù）';
+
+  @override
+  String get aboutBrandZhDesc => '“明悉轻重，行止有序”。强调本地数据掌控、无推送干扰的纯净个人秩序。';
+
+  @override
+  String get aboutBrandEnTitle => 'Ordo';
+
+  @override
+  String get aboutBrandEnDesc => '拉丁语中的‘秩序与条理’（英文 Order 的词源），四字母首尾对称，极简且辨识度高。';
+
+  @override
   String get emptyToday => '今天还没有任务';
 
   @override

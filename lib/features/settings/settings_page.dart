@@ -155,20 +155,56 @@ class SettingsBody extends ConsumerWidget {
           children: [
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const AppLogo(size: 36),
-              title: Text(l10n.appTitle),
+              leading: const AppLogo(size: 40),
+              title: Text(
+                l10n.appTitle,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               subtitle: Text(
-                l10n.aboutVersion,
+                '${l10n.aboutVersion} $appVersion',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
-              trailing: Text(
-                appVersion,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: AppTokens.spaceSm),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTokens.spaceMd,
+                vertical: AppTokens.spaceSm,
+              ),
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                border: Border.all(
+                  color: colorScheme.primary.withValues(alpha: 0.15),
+                  width: 0.8,
                 ),
               ),
+              child: Center(
+                child: Text(
+                  '“${l10n.aboutSlogan}”',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppTokens.spaceMd),
+            _BrandMeaningItem(
+              title: l10n.aboutBrandZhTitle,
+              description: l10n.aboutBrandZhDesc,
+            ),
+            const SizedBox(height: AppTokens.spaceXs),
+            _BrandMeaningItem(
+              title: l10n.aboutBrandEnTitle,
+              description: l10n.aboutBrandEnDesc,
             ),
           ],
         ),
@@ -260,6 +296,55 @@ class _SettingsCard extends StatelessWidget {
       enableHover: false,
       padding: const EdgeInsets.all(AppTokens.spaceMd),
       child: Column(children: children),
+    );
+  }
+}
+
+/// 品牌寓意展示行。
+class _BrandMeaningItem extends StatelessWidget {
+  const _BrandMeaningItem({required this.title, required this.description});
+
+  final String title;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          margin: const EdgeInsets.only(top: 7),
+          width: 5,
+          height: 5,
+          decoration: BoxDecoration(
+            color: colorScheme.primary,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: AppTokens.spaceSm),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                height: 1.45,
+              ),
+              children: [
+                TextSpan(
+                  text: '$title：',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                TextSpan(text: description),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
