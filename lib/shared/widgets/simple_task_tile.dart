@@ -76,6 +76,18 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
       l10n,
     );
     final relativeText = formatRelativeStart(widget.task.startAt, l10n);
+    // 标题首行行高 = textScaler 缩放后的 fontSize × height（行高由主题
+    // height 钉死，与具体字体度量无关；textScaler 覆盖系统字号缩放）。
+    final titleLineHeight =
+        MediaQuery.textScalerOf(
+          context,
+        ).scale(theme.textTheme.bodyLarge?.fontSize ?? AppTokens.textBodySize) *
+        (theme.textTheme.bodyLarge?.height ?? AppTokens.textBodyHeight);
+    // 标题首行顶部留白 = (复选框触控区 − 首行行高) / 2：外层 Row 改 start
+    // 对齐后，首行文本中心仍与复选框中心（触控区 y=22）严格重合——任务带
+    // 描述/日期/标签行时复选框对齐**标题首行**而非整块中心（用户评审
+    // 2026-08，与 TaskRow 同款几何）。
+    final titleTopPad = (AppTokens.checkboxTapTargetSize - titleLineHeight) / 2;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -109,7 +121,10 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                     minHeight: AppTokens.taskRowMinHeight,
                   ),
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    // start 对齐（用户评审 2026-08）：复选框钉在首行，与标题
+                    // 首行中心对齐（此前 center 对齐到整块中心，带描述/日期/
+                    // 标签行时复选框明显偏低）。
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // 圆形勾选（Linear / Things 风格；有子任务 → 禁用，状态由子任务派生）。
                       // 触控区 44，视觉 24 居中。
@@ -170,183 +185,204 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                               : 1,
                           duration: motionFast(context),
                           curve: motionCurve(context),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  // 优先级旗帜（用户要求：与编辑器工具栏同一
-                                  // flag 图标/配色）；无优先级不渲染，行布局
-                                  // 与改造前完全一致。
-                                  if (widget.task.priority !=
-                                      TaskPriority.none) ...[
-                                    Icon(
-                                      Icons.flag_outlined,
-                                      size: 14,
-                                      color: priorityColor(
-                                        widget.task.priority,
+                          child: Padding(
+                            // 首行顶部留白：start 对齐下标题首行中心仍与复选
+                            // 框中心重合（见 titleTopPad 注释）。
+                            padding: EdgeInsets.only(top: titleTopPad),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    // 优先级旗帜（用户要求：与编辑器工具栏同一
+                                    // flag 图标/配色）；无优先级不渲染，行布局
+                                    // 与改造前完全一致。
+                                    if (widget.task.priority !=
+                                        TaskPriority.none) ...[
+                                      Icon(
+                                        Icons.flag_outlined,
+                                        size: 14,
+                                        color: priorityColor(
+                                          widget.task.priority,
+                                        ),
+                                      ),
+                                      const SizedBox(width: AppTokens.spaceXxs),
+                                    ],
+                                    Expanded(
+                                      child: AnimatedStrikethrough(
+                                        text: widget.task.title,
+                                        isDone: widget.isDone,
+                                        style: theme.textTheme.bodyLarge
+                                            ?.copyWith(
+                                              color: widget.isDone
+                                                  ? colorScheme.onSurfaceVariant
+                                                  : widget.isOverdue
+                                                  ? AppTokens.colorOverdue
+                                                  : colorScheme.onSurface,
+                                            ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                    const SizedBox(width: AppTokens.spaceXxs),
+                                    // 逾期徽标。
+                                    if (widget.isOverdue)
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          left: AppTokens.spaceXxs,
+                                        ),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: AppTokens.spaceXs,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppTokens.colorOverdue
+                                                .withValues(alpha: 0.12),
+                                            borderRadius: BorderRadius.circular(
+                                              AppTokens.radiusChip,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            l10n.overdue,
+                                            style: theme.textTheme.bodySmall
+                                                ?.copyWith(
+                                                  color: AppTokens.colorOverdue,
+                                                  fontSize:
+                                                      AppTokens.textMicroSize,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                          ),
+                                        ),
+                                      ),
                                   ],
-                                  Expanded(
-                                    child: AnimatedStrikethrough(
-                                      text: widget.task.title,
-                                      isDone: widget.isDone,
-                                      style: theme.textTheme.bodyLarge
+                                ),
+                                // 描述文字（61 §4.4）：标题下方灰色小字。
+                                if (widget.task.description.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      top: AppTokens.spaceXxs,
+                                    ),
+                                    child: Text(
+                                      widget.task.description,
+                                      style: theme.textTheme.bodySmall
                                           ?.copyWith(
-                                            color: widget.isDone
-                                                ? colorScheme.onSurfaceVariant
-                                                : widget.isOverdue
-                                                ? AppTokens.colorOverdue
-                                                : colorScheme.onSurface,
+                                            color: colorScheme.onSurfaceVariant,
                                           ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                  // 逾期徽标。
-                                  if (widget.isOverdue)
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                        left: AppTokens.spaceXxs,
-                                      ),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: AppTokens.spaceXs,
-                                          vertical: 2,
+                                // 日期行（61 §4.4）：标题下方独立行，范围灰色 +
+                                // 相对时间橙色强调。
+                                if (timeText.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      top: AppTokens.spaceXxs,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.calendar_today_outlined,
+                                          size: 11,
+                                          color: colorScheme.onSurfaceVariant,
                                         ),
-                                        decoration: BoxDecoration(
-                                          color: AppTokens.colorOverdue
-                                              .withValues(alpha: 0.12),
-                                          borderRadius: BorderRadius.circular(
-                                            AppTokens.radiusChip,
+                                        const SizedBox(
+                                          width: AppTokens.spaceXxs,
+                                        ),
+                                        Expanded(
+                                          child: Text(
+                                            timeText,
+                                            style: theme.textTheme.bodySmall
+                                                ?.copyWith(
+                                                  color: colorScheme
+                                                      .onSurfaceVariant,
+                                                ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
-                                        child: Text(
-                                          l10n.overdue,
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                color: AppTokens.colorOverdue,
-                                                fontSize:
-                                                    AppTokens.textMicroSize,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              // 描述文字（61 §4.4）：标题下方灰色小字。
-                              if (widget.task.description.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                    top: AppTokens.spaceXxs,
-                                  ),
-                                  child: Text(
-                                    widget.task.description,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: colorScheme.onSurfaceVariant,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              // 日期行（61 §4.4）：标题下方独立行，范围灰色 +
-                              // 相对时间橙色强调。
-                              if (timeText.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                    top: AppTokens.spaceXxs,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.calendar_today_outlined,
-                                        size: 11,
-                                        color: colorScheme.onSurfaceVariant,
-                                      ),
-                                      const SizedBox(width: AppTokens.spaceXxs),
-                                      Expanded(
-                                        child: Text(
-                                          timeText,
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                color: colorScheme
-                                                    .onSurfaceVariant,
-                                              ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      if (relativeText.isNotEmpty) ...[
-                                        const SizedBox(
-                                          width: AppTokens.spaceXs,
-                                        ),
-                                        Text(
-                                          relativeText,
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                color:
-                                                    AppTokens.colorDateRelative,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                        ),
+                                        if (relativeText.isNotEmpty) ...[
+                                          const SizedBox(
+                                            width: AppTokens.spaceXs,
+                                          ),
+                                          Text(
+                                            relativeText,
+                                            style: theme.textTheme.bodySmall
+                                                ?.copyWith(
+                                                  color: AppTokens
+                                                      .colorDateRelative,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                          ),
+                                        ],
                                       ],
-                                    ],
+                                    ),
                                   ),
-                                ),
-                              // 标签 chips（61 §4.4）：底部独立行（≤2 + +N）。
-                              // 底部对称留白（用户要求）：bottom = top = spaceXxs，
-                              // 与行内元信息行间距节奏一致（行/卡片底部不再贴边）。
-                              if (widget.tags.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: AppTokens.spaceXxs,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Flexible(
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            ...widget.tags
-                                                .take(2)
-                                                .map(
-                                                  (tag) => Flexible(
-                                                    child: Padding(
-                                                      padding:
-                                                          const EdgeInsets.only(
-                                                            right: AppTokens
-                                                                .spaceXxs,
-                                                          ),
-                                                      child: TagChip(tag: tag),
+                                // 标签 chips（61 §4.4）：底部独立行（≤2 + +N）。
+                                // 底部对称留白（用户要求）：bottom = top = spaceXxs，
+                                // 与行内元信息行间距节奏一致（行/卡片底部不再贴边）。
+                                if (widget.tags.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: AppTokens.spaceXxs,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Flexible(
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              ...widget.tags
+                                                  .take(2)
+                                                  .map(
+                                                    (tag) => Flexible(
+                                                      child: Padding(
+                                                        padding:
+                                                            const EdgeInsets.only(
+                                                              right: AppTokens
+                                                                  .spaceXxs,
+                                                            ),
+                                                        child: TagChip(
+                                                          tag: tag,
+                                                        ),
+                                                      ),
                                                     ),
                                                   ),
+                                              if (widget.tags.length > 2)
+                                                Text(
+                                                  '+${widget.tags.length - 2}',
+                                                  style: theme
+                                                      .textTheme
+                                                      .bodySmall
+                                                      ?.copyWith(
+                                                        color: colorScheme
+                                                            .onSurfaceVariant,
+                                                      ),
                                                 ),
-                                            if (widget.tags.length > 2)
-                                              Text(
-                                                '+${widget.tags.length - 2}',
-                                                style: theme.textTheme.bodySmall
-                                                    ?.copyWith(
-                                                      color: colorScheme
-                                                          .onSurfaceVariant,
-                                                    ),
-                                              ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
                       // 进度环 + 百分比（61 §4.4：行尾，有子任务任务的派生完成度）。
+                      // 定高 44 居中：start 对齐下进度环始终与复选框中心对齐，
+                      // 不随描述/日期/标签行撑高的内容块偏移。
                       if (widget.hasChildren &&
                           widget.progressValue != null) ...[
-                        TaskProgressRing(value: widget.progressValue!),
+                        SizedBox(
+                          height: AppTokens.checkboxTapTargetSize,
+                          child: Center(
+                            child: TaskProgressRing(
+                              value: widget.progressValue!,
+                            ),
+                          ),
+                        ),
                         const SizedBox(width: AppTokens.spaceXs),
                       ],
                     ],

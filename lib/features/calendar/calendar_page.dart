@@ -493,12 +493,31 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
               duration: motionNormal(context),
               switchInCurve: motionCurve(context),
               switchOutCurve: motionCurve(context).flipped,
+              // Stack 尺寸只取**新网格**：退场旧网格以 Positioned 叠放（不参与
+              // Stack 尺寸测定）。默认 layoutBuilder 的 Stack 尺寸取最大子项，
+              // 月视图（6 行）退场期间高度迟迟不塌，AnimatedSize 收起被拖到
+              // 退场结束才开始——这正是上滑后"等一段时间才显示周日历"的迟滞
+              // 来源；旧网格保持自然高度、随高度收起被 Stack hardEdge 裁剪。
+              layoutBuilder: (currentChild, previousChildren) {
+                return Stack(
+                  alignment: Alignment.topCenter,
+                  children: [
+                    for (final child in previousChildren)
+                      Positioned(top: 0, left: 0, right: 0, child: child),
+                    ?currentChild,
+                  ],
+                );
+              },
               transitionBuilder: (child, animation) {
                 final dir = _slideDirection;
-                if (dir == 0) {
-                  return FadeTransition(opacity: animation, child: child);
-                }
                 final isIncoming = child.key == ValueKey(days.first);
+                // 垂直切换（月↔周）：新网格**立即完整显示**（无淡入），仅旧
+                // 网格淡出，高度过渡交给外层 AnimatedSize——即时呈现无迟滞。
+                if (dir == 0) {
+                  return isIncoming
+                      ? child
+                      : FadeTransition(opacity: animation, child: child);
+                }
                 final begin = isIncoming
                     ? Offset(0.18 * dir, 0)
                     : Offset(-0.18 * dir, 0);

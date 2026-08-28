@@ -51,14 +51,25 @@ Future<void> showTaskEditSideSheet(
 /// 统一任务编辑/新建导航入口：
 /// - 宽屏（≥600dp）：右侧浮动抽屉（Side Sheet，宽 [AppTokens.sideSheetEditorWidth]）
 /// - 窄屏（<600dp）：全屏页面 push
-void openTaskEdit(
+///
+/// 编辑态（taskId 非空）在**打开前**预载 loadTask（用户评审 2026-08：此前
+/// 标题/日期/标签在入场后异步填充，内容整块位移表现为底部行跳动）——首帧
+/// 即最终内容；页面自身 `_loadData` 幂等重跑同值，无视觉变化。
+Future<void> openTaskEdit(
   BuildContext context, {
   String? taskId,
   String? projectId,
   String? parentId,
   int? initialStartAt,
   int? initialEndAt,
-}) {
+}) async {
+  if (taskId != null) {
+    await ProviderScope.containerOf(
+      context,
+      listen: false,
+    ).read(taskFormProvider.notifier).loadTask(taskId);
+    if (!context.mounted) return;
+  }
   if (AppBreakpoints.isWide(context)) {
     showTaskEditSideSheet(
       context,

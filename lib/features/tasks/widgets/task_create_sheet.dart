@@ -48,17 +48,20 @@ class TaskCreateSheet extends ConsumerStatefulWidget {
 
   /// 打开新建任务底部弹窗（滴答式，viewInsets 适配键盘）。
   ///
-  /// 入场转场（docs/63-motion-polish.md §5 G）：slide-up + `motionBounceCurve`
-  /// （easeOutBack 弹性）+ `motionSlow`（350ms），遮罩随同一动画同步淡入
+  /// 入场转场（docs/63-motion-polish.md §5 G）：slide-up + `motionCurve`
+  /// （easeOutCubic，无过冲）+ `motionSlow`（350ms），遮罩随同一动画同步淡入
   /// （showGeneralDialog 的 barrier 用默认 linear curve 淡入）。
-  /// reduced motion 自动降级：时长为零（瞬时到位）+ 曲线退化为 easeOut。
+  /// reduced motion 自动降级：时长为零（瞬时到位）。
+  ///
+  /// 历史：曾用 `motionBounceCurve`（easeOutBack）做弹性入场——其 ~10% 过冲
+  /// 在整屏滑入行程上被放大到约 6% 屏高，实机表现为弹窗"冲过终点再回落"
+  /// 的明显上下跳动（用户评审 2026-08），故回退到 easeOutCubic；弹性曲线
+  /// 仅保留给微交互（勾选缩放/FAB 按压等几个像素的小行程）。
   ///
   /// 说明：改用 [showGeneralDialog] 而非 [showModalBottomSheet]，是因为后者的
   /// 转场曲线由框架内部 `_modalBottomSheetCurve`（legacyDecelerate）固定，
-  /// `transitionAnimationController` 只能改时长、无法注入弹性曲线；而框架
-  /// 自管 controller 又无法从静态方法获得 vsync。若未来评审认为 easeOutBack
-  /// 弹性过度，可把下方 `motionBounceCurve` 换成 `motionCurve`（easeOutCubic，
-  /// 63-motion-polish §5 G「回退」路径），其余结构不变。
+  /// `transitionAnimationController` 只能改时长、无法注入自定义曲线；而框架
+  /// 自管 controller 又无法从静态方法获得 vsync。
   ///
   /// - [projectId] 缺省时默认落入内置收件箱（产品决策 #3）；
   /// - [parentId] 非空 = 创建子任务（此时不展示子任务区，层级受 3 级上限约束）。
@@ -71,6 +74,24 @@ class TaskCreateSheet extends ConsumerStatefulWidget {
     TaskPriority? initialPriority,
     List<String>? initialTagIds,
   }) {
+    // 表单在**路由打开前**同步复位/预填（用户评审 2026-08）：此前首帧渲染
+    // 的是 taskFormProvider 里上一次的表单残留（日期/标签/子任务俱全），
+    // 首帧后才被 resetForNew 清空/预填——底部对齐弹窗的高度即内容高度，
+    // 入场中途的高度突变表现为"突然向上弹一下"。同步预清后首帧即最终内容
+    // （不 await：弹窗必须即时弹出，收件箱 ensure 留在 _initForm 异步完成
+    // ——它仅校正项目字段，不改变内容高度）。_initForm 幂等，保留作兜底。
+    final notifier = ProviderScope.containerOf(
+      context,
+      listen: false,
+    ).read(taskFormProvider.notifier);
+    notifier.resetForNew(projectId ?? inboxProjectId, parentId);
+    if (initialStartAt != null) notifier.updateStartAt(initialStartAt);
+    if (initialEndAt != null) notifier.updateEndAt(initialEndAt);
+    if (initialPriority != null) notifier.updatePriority(initialPriority);
+    if (initialTagIds != null && initialTagIds.isNotEmpty) {
+      notifier.setSelectedTags(initialTagIds);
+    }
+
     return showGeneralDialog<void>(
       context: context,
       // 遮罩点击关闭（走 PopScope 拦截 → 自动保存 → 手动 pop；与
@@ -81,13 +102,14 @@ class TaskCreateSheet extends ConsumerStatefulWidget {
       barrierColor: Colors.black54,
       transitionDuration: motionSlow(context),
       transitionBuilder: (dialogContext, animation, secondaryAnimation, child) {
-        // 弹性滑入：自底部整屏上滑，easeOutBack 的 ~10% 过冲带来轻微回弹。
-        // reduced motion 时 motionBounceCurve → easeOut 且时长为零 → 瞬时。
+        // 平滑滑入：自底部整屏上滑，easeOutCubic 无过冲（弹性曲线的过冲在
+        // 整屏行程上会被放大成可见跳动，见类注释）。reduced motion 时时长
+        // 归零 → 瞬时。
         final slide = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
             .animate(
               CurvedAnimation(
                 parent: animation,
-                curve: motionBounceCurve(dialogContext),
+                curve: motionCurve(dialogContext),
               ),
             );
         return SlideTransition(position: slide, child: child);

@@ -75,6 +75,7 @@
 | `motionNormal` | 250ms | 页面转场、树展开、进度环 |
 | `motionSlow` | 350ms | 弹层/底部弹窗 |
 | `motionStaggerDelay` | 50ms | 列表错落入场逐项间隔 |
+| `cardPressScaleSubtle` | 0.998 | 任务列表按压轻微缩放（卡片包裹层单层承担；0.998 几乎无感） |
 
 > **统一入口（M7，`docs/63-motion-polish.md`）**：所有自定义动画经 `lib/core/utils/motion.dart`
 > 选取时长/曲线（`motionDuration`/`motionNormal/Fast/Slow`/`motionCurve`/`motionBounceCurve`）。

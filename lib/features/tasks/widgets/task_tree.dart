@@ -237,8 +237,9 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
       // 与卡片↔屏幕左右边缘距离（列表水平 padding spaceXs）相等。
       padding: const EdgeInsets.only(bottom: AppTokens.spaceXs),
       // H 批（des-4 需求 2 减弱）：卡片按压仅保留**几乎无感**的轻微 scale
-      // （cardPressScaleSubtle 0.995），去掉阴影抬升；motionFast + motionCurve，
-      // 抬手恢复，不影响点击/拖拽。
+      // （cardPressScaleSubtle 0.998），去掉阴影抬升；motionFast + motionCurve，
+      // 抬手恢复，不影响点击/拖拽。这是卡片按压缩放的**唯一一层**——行内层
+      // 的同款 scale 仅对 compact 子行生效，避免双层叠加体感明显。
       child: Listener(
         onPointerDown: (_) {
           if (mounted) setState(() => _cardPressed = true);

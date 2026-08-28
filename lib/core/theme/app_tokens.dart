@@ -205,9 +205,11 @@ abstract final class AppTokens {
   /// 卡片按压轻微缩放（project_card / 任务卡片，docs/63-motion-polish.md §5 H）。
   static const double cardPressScale = 0.98;
 
-  /// 任务列表按压缩放（des-4 需求 2：0.98 → 0.995，克制到「几乎无感」，
-  /// 仅保留轻微的按压反馈；项目卡片仍用 [cardPressScale]）。
-  static const double cardPressScaleSubtle = 0.995;
+  /// 任务列表按压缩放（des-4 需求 2：0.98 → 0.995，用户评审 2026-08 再减：
+  /// 0.995 → 0.998——此前一级卡片「卡片包裹层 + 行内层」双层缩放叠加
+  /// ≈0.990 体感明显；现卡片层单层承担、行级仅剩 compact 子行，取 0.998
+  /// 几乎无感。项目卡片仍用 [cardPressScale]）。
+  static const double cardPressScaleSubtle = 0.998;
 
   /// FAB 按压缩放（docs/63-motion-polish.md §5 I：按压回弹）。
   static const double fabPressScale = 0.9;

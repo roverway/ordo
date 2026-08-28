@@ -57,7 +57,7 @@
 
 | # | 位置 | 方案 |
 |---|---|---|
-| G | 新建任务底部弹窗（`task_create_sheet.dart`） | 自定义 bottom sheet 转场：slide-up + `motionBounceCurve` + `motionSlow`，遮罩淡入 |
+| G | 新建任务底部弹窗（`task_create_sheet.dart`） | 自定义 bottom sheet 转场：slide-up + `motionCurve` + `motionSlow`，遮罩淡入。（曾用 `motionBounceCurve`，其 ~10% 过冲在整屏行程上被放大到 ~6% 屏高，实机为明显上下跳动，用户评审 2026-08 回退为无过冲的 easeOutCubic；弹性曲线仅保留给勾选/FAB 等微交互小行程） |
 | H | 卡片按压反馈（`project_card.dart` / 任务卡片） | 按压时阴影抬升 + 轻微 scale 0.98，接 `elevationCardHover` 令牌 |
 | I | FAB 按压回弹 | FAB 按压 scale 回弹（`motionBounceCurve`）；完成勾选加涟漪（`InkResponse`） |
 

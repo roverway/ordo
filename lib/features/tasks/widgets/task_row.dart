@@ -94,8 +94,10 @@ class TaskRow extends StatefulWidget {
 class _TaskRowState extends State<TaskRow> {
   bool _hovered = false;
 
-  /// H 批（des-4 需求 2 减弱）：按压态仅保留几乎无感的轻微 scale
-  /// （cardPressScaleSubtle 0.995），不再加深行底色。
+  /// H 批（des-4 需求 2 减弱）：按压态仅保留几乎无感的轻微 scale，不再
+  /// 加深行底色。cardHeader 一级行**不缩放**——外层 TaskTree 卡片包裹层
+  /// 已有同款 scale，双层叠加（≈0.990）体感明显（用户评审 2026-08）；
+  /// 行级 scale 仅剩 compact 子行单层承担。
   bool _pressed = false;
 
   /// 行背景（61 §2/§4.7）：扁平行无自身卡片底，透明底 + 仅拖拽/悬停态叠加色。
@@ -183,6 +185,10 @@ class _TaskRowState extends State<TaskRow> {
           context,
         ).scale(titleStyle?.fontSize ?? AppTokens.textBodySize) *
         (titleStyle?.height ?? AppTokens.textBodyHeight);
+    // 标题首行顶部留白 = (复选框触控区 − 首行行高) / 2，使首行文本中心与
+    // 复选框中心（触控区 y=22）严格重合。此前硬编码 10.5 对应中心
+    // y≈21.375，比复选框中心高 0.625px（用户实机察觉的细微偏差）。
+    final titleTopPad = (AppTokens.checkboxTapTargetSize - titleLineHeight) / 2;
 
     final hasDescription = widget.task.description.isNotEmpty;
     final hasDate = dateText.isNotEmpty;
@@ -190,7 +196,9 @@ class _TaskRowState extends State<TaskRow> {
     final hasMeta = hasDescription || hasDate || hasTags;
 
     final rowContent = AnimatedScale(
-      scale: _pressed ? AppTokens.cardPressScaleSubtle : 1,
+      scale: (_pressed && widget.style == TaskRowStyle.compact)
+          ? AppTokens.cardPressScaleSubtle
+          : 1,
       duration: motionFast(context),
       curve: motionCurve(context),
       child: AnimatedContainer(
@@ -283,11 +291,14 @@ class _TaskRowState extends State<TaskRow> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // 标题首行：固定 10.5dp 顶部留白，使单行与复选框中心严格对齐（y=22）
+                            // 标题首行：计算留白使首行文本中心与复选框中心
+                            // （y=22）严格重合（见 titleTopPad 注释）。
                             Padding(
                               padding: EdgeInsets.only(
-                                top: 10.5,
-                                bottom: hasMeta ? AppTokens.spaceXxs : 10.5,
+                                top: titleTopPad,
+                                bottom: hasMeta
+                                    ? AppTokens.spaceXxs
+                                    : titleTopPad,
                               ),
                               child: widget.task.priority != TaskPriority.none
                                   ? Row(
