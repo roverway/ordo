@@ -133,13 +133,13 @@ class _TaskRowState extends State<TaskRow> {
     );
   }
 
-  /// 勾选框边框色：完成 = 蓝填充白勾；未完成 = 统一克制浅灰中性色。
+  /// 勾选框边框色：完成 = 中性灰填充白勾；未完成 = 统一克制浅灰中性色。
   Color _checkboxBorderColor(
     bool isDone,
     ColorScheme colorScheme,
     bool isDark,
   ) {
-    if (isDone) return AppTokens.checkboxDoneFill;
+    if (isDone) return colorScheme.onSurfaceVariant;
     return isDark
         ? Colors.white.withValues(alpha: 0.35)
         : colorScheme.outline.withValues(alpha: 0.45);

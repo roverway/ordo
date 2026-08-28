@@ -79,8 +79,8 @@ abstract final class AppTokens {
   /// Checkmark glyph on the filled (done) circular checkbox.
   static const Color colorOnCheck = Colors.white;
 
-  /// Done checkbox fill — Linear Indigo.
-  static const Color checkboxDoneFill = colorInProgress;
+  /// Done checkbox fill / border — Neutral Gray (matches onSurfaceVariant in theme).
+  static const Color checkboxDoneFill = Color(0xFF767680);
 
   // ── Priority colors（红/橙/蓝/无）──
 

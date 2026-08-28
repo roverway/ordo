@@ -15,6 +15,7 @@ import '../../features/projects/widgets/project_form_dialog.dart';
 import '../../features/settings/widgets/settings_side_sheet.dart';
 import '../../features/tasks/task_providers.dart';
 import '../../shared/widgets/confirm_dialog.dart';
+import 'app_logo.dart';
 import 'app_menu_item.dart';
 import 'error_view.dart';
 import 'loading_view.dart';
@@ -235,25 +236,10 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
             ),
             child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(AppTokens.radiusChip),
-                    border: Border.all(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.25),
-                      width: 0.8,
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.check_circle_outline,
-                    size: 18,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
+                const AppLogo(size: 24),
                 const SizedBox(width: AppTokens.spaceSm),
                 Text(
-                  'Todo',
+                  l10n.appTitle,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.3,
@@ -775,10 +761,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
                       onSelected: (action) =>
                           _handleFolderMenu(context, l10n, folder, action),
                       itemBuilder: (context) => [
-                        AppMenuItem(
-                          value: 'rename',
-                          label: l10n.renameFolder,
-                        ),
+                        AppMenuItem(value: 'rename', label: l10n.renameFolder),
                         AppMenuItem(
                           value: 'delete',
                           label: l10n.deleteFolder,

@@ -7,6 +7,7 @@ import '../../core/sync/sync_config.dart';
 import '../../core/sync/sync_engine.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/dates.dart';
+import '../../shared/widgets/app_logo.dart';
 import '../../shared/widgets/desktop_hover_container.dart';
 import '../sync_setup/sync_setup_providers.dart';
 import 'settings_providers.dart';
@@ -154,6 +155,7 @@ class SettingsBody extends ConsumerWidget {
           children: [
             ListTile(
               contentPadding: EdgeInsets.zero,
+              leading: const AppLogo(size: 36),
               title: Text(l10n.appTitle),
               subtitle: Text(
                 l10n.aboutVersion,

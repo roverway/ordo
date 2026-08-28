@@ -20,7 +20,7 @@ import 'task_progress_ring.dart';
 ///
 /// 视觉规格（61-task-list-redesign.md §2/§4）：
 /// - 扁平行：无独立卡片底/阴影，hover 给轻微底色反馈；与 `TaskRow` 视觉统一。
-/// - 方形复选框：完成 = 蓝填充白勾（[AppTokens.checkboxDoneFill] +
+/// - 方形复选框：完成 = 中性灰填充白勾（[AppTokens.checkboxDoneFill] +
 ///   [AppTokens.colorOnCheck]，由 AppTheme.checkboxTheme 提供填充），
 ///   未完成边框 = [AppTokens.colorInProgress]（今日等作用域恒为一级行）。
 /// - 元信息（描述/标签/日期）为标题下方独立行，标签在描述下方，日期行尾
@@ -144,7 +144,7 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                     shape: AppTokens.checkboxShape,
                                     side: BorderSide(
                                       color: widget.isDone
-                                          ? AppTokens.checkboxDoneFill
+                                          ? colorScheme.onSurfaceVariant
                                           : (theme.brightness == Brightness.dark
                                                 ? Colors.white.withValues(
                                                     alpha: 0.35,
@@ -161,7 +161,7 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                   shape: AppTokens.checkboxShape,
                                   side: BorderSide(
                                     color: widget.isDone
-                                        ? AppTokens.checkboxDoneFill
+                                        ? colorScheme.onSurfaceVariant
                                         : (theme.brightness == Brightness.dark
                                               ? Colors.white.withValues(
                                                   alpha: 0.35,

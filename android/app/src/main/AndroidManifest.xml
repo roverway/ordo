@@ -4,7 +4,7 @@
          必须显式声明，否则所有同步请求失败（Android release 打包后网络权限缺失）。 -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="todo"
+        android:label="知序"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

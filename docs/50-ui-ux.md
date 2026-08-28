@@ -43,7 +43,7 @@
 | `radiusChip` | 6 | 标签/筛选 mini badge 胶囊 |
 | `radiusDialog` | 16 | 对话框/底部弹层 |
 | `radiusList` | 8 | 列表行 |
-| `checkboxShape` | 圆形 | 任务完成勾选（完成=靛蓝填充白勾） |
+| `checkboxShape` | 圆形 | 任务完成勾选（完成=中性灰填充白勾） |
 
 ### 2.3 间距
 

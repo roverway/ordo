@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In zh, this message translates to:
-  /// **'Todo'**
+  /// **'知序'**
   String get appTitle;
 
   /// No description provided for @inbox.

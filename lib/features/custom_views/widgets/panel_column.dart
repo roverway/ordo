@@ -497,7 +497,7 @@ class KanbanTaskCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // 标准 Checkbox（全 app 唯一勾选形态：主题层圆形 +
-                    // checkboxDoneFill 蓝填充；紧凑卡内用 shrinkWrap 触控区）。
+                    // 中性灰填充；紧凑卡内用 shrinkWrap 触控区）。
                     Padding(
                       padding: const EdgeInsets.only(right: AppTokens.spaceXs),
                       child: Checkbox(
