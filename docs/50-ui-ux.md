@@ -17,14 +17,14 @@
 
 | 令牌 | 值 | 说明 |
 |---|---|---|
-| `seedColor` | `#5E6AD2` | 默认种子色（Linear 风格靛蓝，2026-08 现代质感升级） |
-| `colorDone` | 绿 `#45B26B` | 已完成 |
-| `colorInProgress` | 蓝 `#5E6AD2` | 进行中（与 seedColor 一致） |
+| `seedColor` | `#4F46E5` | 默认种子色（Electric Indigo / Iris 质感升级） |
+| `colorDone` | 翡翠绿 `#059669` | 已完成 |
+| `colorInProgress` | 靛蓝 `#4F46E5` | 进行中（与 seedColor 一致） |
 | `colorCancelled` | 灰 `#9CA3AF` | 已取消 |
-| `colorOverdue` | 珊瑚红 `#F87171` | 逾期（柔和红，非刺眼） |
-| `surfacePage` | 浅 `#F7F8FA` / 深 `#0D0E11` | 页面基底（Scaffold 背景，Linear 纯净冷白/深度碳黑） |
-| `surfaceCard` | 浅 `#FFFFFF` / 深 `#16181D` | 卡片表面（Linear 纯白/碳黑浮层容器） |
-| `borderSubtleLight` | `rgba(0, 0, 0, 0.06)` | 浅色 1px 极细微边框 |
+| `colorOverdue` | 玫瑰红 `#E11D48` | 逾期（优雅冷调红，非刺眼） |
+| `surfacePage` | 浅 `#F8F9FA` / 深 `#0D0E11` | 页面基底（Scaffold 背景，纯净冷白/深度碳黑） |
+| `surfaceCard` | 浅 `#FFFFFF` / 深 `#16181D` | 卡片表面（纯白/碳黑浮层容器） |
+| `borderSubtleLight` | `rgba(0, 0, 0, 0.047)` | 浅色 1px 极细微边框 |
 | `borderSubtleDark` | `rgba(255, 255, 255, 0.06)` | 暗色 1px 极细微发光边框 |
 | `surfaceSunken` | 浅 `#EFF1F4` / 深 `#12141A` | 凹陷面：比页面底沉一档的内嵌区域（看板列井、输入井，66 §3） |
 | `alphaTintFaint / Soft / Strong` | 0.06 / 0.10 / 0.16 | 语义罩染强度三档（配 primary/onSurface，收编 ad-hoc alpha，66 §3） |

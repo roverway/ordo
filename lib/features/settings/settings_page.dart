@@ -62,6 +62,7 @@ class SettingsBody extends ConsumerWidget {
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: AppTokens.spaceSm),
                 child: SegmentedButton<ThemeMode>(
+                  showSelectedIcon: false,
                   segments: [
                     ButtonSegment(
                       value: ThemeMode.system,
@@ -93,6 +94,7 @@ class SettingsBody extends ConsumerWidget {
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: AppTokens.spaceSm),
                 child: SegmentedButton<Locale>(
+                  showSelectedIcon: false,
                   segments: [
                     ButtonSegment(
                       value: const Locale('zh'),

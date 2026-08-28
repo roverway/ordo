@@ -22,10 +22,17 @@ String formatDueDate(int utcMs, AppLocalizations l10n) {
 
   if (target == today) return l10n.today;
   if (target == tomorrow) return l10n.tomorrow;
-  if (target.year == now.year) {
-    return intl.DateFormat('MMM d').format(date);
+  final isZh = l10n.localeName.startsWith('zh');
+  if (isZh) {
+    if (target.year == now.year) {
+      return intl.DateFormat('M月d日').format(date);
+    }
+    return intl.DateFormat('y年M月d日').format(date);
   }
-  return intl.DateFormat('MMM d, y').format(date);
+  if (target.year == now.year) {
+    return intl.DateFormat('MMM d', l10n.localeName).format(date);
+  }
+  return intl.DateFormat('MMM d, y', l10n.localeName).format(date);
 }
 
 /// Format a UTC millisecond timestamp to full date + time string.

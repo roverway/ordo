@@ -414,14 +414,12 @@ class PanelColumn extends ConsumerWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppTokens.radiusButton),
               border: Border.all(
-                color: theme.brightness == Brightness.dark
-                    ? AppTokens.borderSubtleDark
-                    : AppTokens.borderSubtleLight,
+                color: theme.colorScheme.primary.withValues(alpha: 0.25),
                 width: 1.0,
               ),
-              color: theme.brightness == Brightness.dark
-                  ? AppTokens.surfaceCardDark
-                  : AppTokens.surfaceCard,
+              color: theme.colorScheme.primary.withValues(
+                alpha: AppTokens.alphaTintFaint,
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -547,15 +545,13 @@ class KanbanTaskCard extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    if (task.priority != TaskPriority.none) ...[
-                      const SizedBox(width: AppTokens.spaceXs),
-                      _buildPriorityFlag(task.priority),
-                    ],
                   ],
                 ),
 
-                // 项目徽章与日期
-                if (project != null || task.endAt != null) ...[
+                // 项目徽章、优先级与日期
+                if (project != null ||
+                    task.priority != TaskPriority.none ||
+                    task.endAt != null) ...[
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 6,
@@ -571,7 +567,7 @@ class KanbanTaskCard extends ConsumerWidget {
                           decoration: BoxDecoration(
                             color: Color(
                               project!.color,
-                            ).withValues(alpha: 0.12),
+                            ).withValues(alpha: 0.10),
                             borderRadius: BorderRadius.circular(
                               AppTokens.radiusChip,
                             ),
@@ -595,6 +591,8 @@ class KanbanTaskCard extends ConsumerWidget {
                             ],
                           ),
                         ),
+                      if (task.priority != TaskPriority.none)
+                        _buildPriorityFlag(task.priority, l10n),
                       if (task.endAt != null)
                         _buildDueDateBadge(context, theme, task.endAt!),
                     ],
@@ -635,19 +633,44 @@ class KanbanTaskCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildPriorityFlag(TaskPriority priority) {
+  Widget _buildPriorityFlag(TaskPriority priority, AppLocalizations l10n) {
     Color color;
+    String label;
     switch (priority) {
       case TaskPriority.high:
         color = AppTokens.colorPriorityHigh;
+        label = l10n.priorityHigh;
       case TaskPriority.medium:
         color = AppTokens.colorPriorityMedium;
+        label = l10n.priorityMedium;
       case TaskPriority.low:
         color = AppTokens.colorPriorityLow;
+        label = l10n.priorityLow;
       case TaskPriority.none:
         return const SizedBox.shrink();
     }
-    return Icon(Icons.flag_outlined, size: 15, color: color);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.flag_outlined, size: 11, color: color),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: AppTokens.textMicroSize,
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildDueDateBadge(BuildContext context, ThemeData theme, int endAt) {

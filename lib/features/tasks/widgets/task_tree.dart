@@ -343,8 +343,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     final isDark = theme.brightness == Brightness.dark;
     final colorScheme = theme.colorScheme;
     final lineColor = isDark
-        ? Colors.white.withValues(alpha: 0.16)
-        : colorScheme.outlineVariant.withValues(alpha: 0.75);
+        ? Colors.white.withValues(alpha: 0.08)
+        : colorScheme.onSurface.withValues(alpha: 0.08);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -389,10 +389,10 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
 
     // 局部坐标系中：
     // 当前主干垂线 X = 26.0（与父级复选框中心垂直共线）
-    // 当前分支引线终止 X = 45.0（直达子任务 18×18 复选框左侧外边框）
+    // 当前分支引线终止 X = 41.0（与子任务复选框保持 4-5px 呼吸间隙，解耦流程图感）
     // 递归下级（孙任务）时：如果当前不是最后兄弟项，在下级局部坐标 X = -2.0 处绘制贯穿线（-2.0 + 28.0 = 26.0）
     const localTrunkX = 26.0;
-    const localTargetBranchEndX = 45.0;
+    const localTargetBranchEndX = 41.0;
     final nextAncestorTrunks = isLast ? <double>[] : <double>[-2.0];
 
     return Stack(

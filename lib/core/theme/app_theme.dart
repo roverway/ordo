@@ -182,15 +182,36 @@ abstract final class AppTheme {
         style: ButtonStyle(
           shape: WidgetStatePropertyAll(
             RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+              borderRadius: BorderRadius.circular(AppTokens.radiusChip + 2),
             ),
+          ),
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard;
+            }
+            return Colors.transparent;
+          }),
+          foregroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return colorScheme.onSurface;
+            }
+            return colorScheme.onSurfaceVariant;
+          }),
+          elevation: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return 1.0;
+            }
+            return 0.0;
+          }),
+          shadowColor: WidgetStatePropertyAll(
+            isDark ? Colors.black54 : const Color(0x14000000),
           ),
           side: WidgetStateProperty.resolveWith((states) {
             return BorderSide(
               color: isDark
                   ? AppTokens.borderSubtleDark
                   : AppTokens.borderSubtleLight,
-              width: 1,
+              width: 0.5,
             );
           }),
         ),
@@ -253,7 +274,10 @@ abstract final class AppTheme {
 
       // ── FAB ──
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        elevation: AppTokens.elevationFab,
+        elevation: 2,
+        highlightElevation: 4,
+        backgroundColor: colorScheme.primary,
+        foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTokens.radiusButton),
         ),
@@ -275,7 +299,9 @@ abstract final class AppTheme {
         // 宽屏 Rail 加宽 80 → 96（55-ui-redesign-proposal.md §3.2）。
         minWidth: AppTokens.railWidth,
         // 选中态药丸高亮：浅色容器 + 圆角（colorScheme 派生，不硬编码）。
-        indicatorColor: colorScheme.secondaryContainer,
+        indicatorColor: colorScheme.primary.withValues(
+          alpha: AppTokens.alphaTintSoft,
+        ),
         indicatorShape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTokens.radiusButton),
         ),

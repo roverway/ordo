@@ -9,28 +9,28 @@ import 'package:flutter/material.dart';
 abstract final class AppTokens {
   // ── Color ──
 
-  /// Seed color: refined Indigo blue (Linear-inspired).
-  static const Color seedColor = Color(0xFF5E6AD2);
+  /// Seed color: refined Electric Indigo / Iris.
+  static const Color seedColor = Color(0xFF4F46E5);
 
-  /// Done — crisp forest green.
-  static const Color colorDone = Color(0xFF45B26B);
+  /// Done — refined Emerald green.
+  static const Color colorDone = Color(0xFF059669);
 
-  /// In Progress — match seed blue.
-  static const Color colorInProgress = Color(0xFF5E6AD2);
+  /// In Progress — match seed indigo.
+  static const Color colorInProgress = Color(0xFF4F46E5);
 
   /// Cancelled — neutral gray.
   static const Color colorCancelled = Color(0xFF9CA3AF);
 
-  /// Overdue — coral red (gentle, not harsh).
-  static const Color colorOverdue = Color(0xFFF87171);
+  /// Overdue — elegant rose red (gentle, not harsh).
+  static const Color colorOverdue = Color(0xFFE11D48);
 
   /// Inbox project accent — warm violet.
   /// 与 todo_repository.dart 的 inboxProjectColor 保持一致（DB 实际写入值）。
   static const Color colorInbox = Color(0xFF6C5CE7);
 
-  /// Page surface (light) — Linear pure crisp off-white.
+  /// Page surface (light) — pure crisp cool off-white.
   /// (docs/66-ui-visual-polish-proposal.md)
-  static const Color surfacePageLight = Color(0xFFF7F8FA);
+  static const Color surfacePageLight = Color(0xFFF8F9FA);
 
   /// Page surface (dark) — Linear deep charcoal.
   static const Color surfacePageDark = Color(0xFF0D0E11);
@@ -64,11 +64,11 @@ abstract final class AppTokens {
   /// 强罩染：强选中/拖拽悬停等最高强调档（对应既往 15–16% 档）。
   static const double alphaTintStrong = 0.16;
 
-  /// Subtle border (light) — ~6% black.
-  static const Color borderSubtleLight = Color(0x0F000000);
+  /// Subtle border (light) — ~4.7% black.
+  static const Color borderSubtleLight = Color(0x0C000000);
 
-  /// Subtle border hover (light) — ~12% black.
-  static const Color borderSubtleHoverLight = Color(0x1F000000);
+  /// Subtle border hover (light) — ~10% black.
+  static const Color borderSubtleHoverLight = Color(0x1A000000);
 
   /// Subtle border (dark) — ~6% white micro-glow.
   static const Color borderSubtleDark = Color(0x0FFFFFFF);
@@ -84,14 +84,14 @@ abstract final class AppTokens {
 
   // ── Priority colors（红/橙/蓝/无）──
 
-  /// High priority — red（与 presetColors[3] 同值）。
-  static const Color colorPriorityHigh = Color(0xFFEF6B6B);
+  /// High priority — refined rose.
+  static const Color colorPriorityHigh = Color(0xFFE11D48);
 
-  /// Medium priority — warm amber（与 presetColors[2] 同值）。
-  static const Color colorPriorityMedium = Color(0xFFF4A74A);
+  /// Medium priority — warm amber.
+  static const Color colorPriorityMedium = Color(0xFFD97706);
 
-  /// Low priority — seed blue（与 presetColors[0] 同值）。
-  static const Color colorPriorityLow = Color(0xFF5E6AD2);
+  /// Low priority — seed indigo.
+  static const Color colorPriorityLow = Color(0xFF4F46E5);
 
   // ── Border Radius ──
 
@@ -222,14 +222,14 @@ abstract final class AppTokens {
 
   /// Diffused ambient dual-shadow for light cards (resting).
   static const List<BoxShadow> cardShadowLight = [
-    BoxShadow(color: Color(0x08000000), blurRadius: 3, offset: Offset(0, 1)),
-    BoxShadow(color: Color(0x0A000000), blurRadius: 12, offset: Offset(0, 4)),
+    BoxShadow(color: Color(0x05000000), blurRadius: 4, offset: Offset(0, 1)),
+    BoxShadow(color: Color(0x08000000), blurRadius: 16, offset: Offset(0, 4)),
   ];
 
   /// Diffused ambient dual-shadow for light cards (hovered/elevated).
   static const List<BoxShadow> cardShadowLightHover = [
-    BoxShadow(color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 2)),
-    BoxShadow(color: Color(0x14000000), blurRadius: 20, offset: Offset(0, 6)),
+    BoxShadow(color: Color(0x08000000), blurRadius: 6, offset: Offset(0, 2)),
+    BoxShadow(color: Color(0x10000000), blurRadius: 20, offset: Offset(0, 6)),
   ];
 
   /// Ambient shadow for dark cards (resting).
@@ -367,8 +367,8 @@ abstract final class AppTokens {
   // ── 抽屉文件夹树（62-folder-nav.md §6.1；des-2 连线方案经用户评审废弃，
   //    仅保留缩进与行距令牌）──
 
-  /// 树状区缩进量。
-  static const double folderTreeIndent = 34;
+  /// 树状区缩进量（与父级文件夹正文文字起始线严格纵向对齐）。
+  static const double folderTreeIndent = 26;
 
   /// 树状连线区内项目行的垂直间距（比全局 [drawerRowSpacing] 更紧凑，
   /// 每行上下各留 `spacing / 2`，des-2 需求 2b）。
@@ -396,15 +396,15 @@ abstract final class AppTokens {
 
   // ── Preset Colors (project palette) ──
 
-  /// TickTick-inspired soft palette for project colors.
+  /// Refined palette for project colors (Tailwind/Radix inspired).
   static const List<Color> presetColors = [
-    Color(0xFF4A6CF7), // blue
-    Color(0xFF5CAB7D), // sage
-    Color(0xFFF4A74A), // warm amber
-    Color(0xFFEF6B6B), // coral
+    Color(0xFF4F46E5), // indigo
+    Color(0xFF059669), // emerald
+    Color(0xFFD97706), // warm amber
+    Color(0xFFE11D48), // rose
     Color(0xFF8B5CF6), // violet
-    Color(0xFF3BA5D9), // sky
-    Color(0xFFEC6B8F), // rose
+    Color(0xFF0284C7), // sky
+    Color(0xFFDB2777), // pink
     Color(0xFF6B7280), // slate
   ];
 }

@@ -69,6 +69,7 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final colorScheme = theme.colorScheme;
     final timeText = formatDateRange(
       widget.task.startAt,
@@ -98,23 +99,36 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
           duration: motionFast(context),
           curve: motionCurve(context),
           decoration: BoxDecoration(
-            // 扁平行：透明底，仅 hover 给轻微底色（61 §2/§4.7）。
-            color: _hovered
-                ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.4)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(AppTokens.radiusList),
+            // 形态 B：轻质感白卡（与 TaskTree / KanbanTaskCard 统一层级）
+            color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
+            borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+            border: Border.all(
+              color: _hovered
+                  ? (isDark
+                      ? AppTokens.borderSubtleHoverDark
+                      : AppTokens.borderSubtleHoverLight)
+                  : (isDark
+                      ? AppTokens.borderSubtleDark
+                      : AppTokens.borderSubtleLight),
+              width: 1.0,
+            ),
+            boxShadow: isDark
+                ? (_hovered
+                    ? AppTokens.cardShadowDarkHoverList
+                    : AppTokens.cardShadowDarkList)
+                : (_hovered
+                    ? AppTokens.cardShadowLightHover
+                    : AppTokens.cardShadowLight),
           ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              borderRadius: BorderRadius.circular(AppTokens.radiusList),
+              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
               onTap: widget.onTap,
               child: Padding(
-                padding: const EdgeInsets.only(
-                  // 用户打磨要求 4（与 TaskRow 视觉一致）：行内水平边距收紧、
-                  // 垂直 padding 为 0（单行行高由勾选框触控区 44 决定）。
-                  left: AppTokens.spaceXxs,
-                  right: AppTokens.spaceXxs,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTokens.spaceSm,
+                  vertical: AppTokens.spaceXxs,
                 ),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(
@@ -216,8 +230,6 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                             ?.copyWith(
                                               color: widget.isDone
                                                   ? colorScheme.onSurfaceVariant
-                                                  : widget.isOverdue
-                                                  ? AppTokens.colorOverdue
                                                   : colorScheme.onSurface,
                                             ),
                                         maxLines: 1,

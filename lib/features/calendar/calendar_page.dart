@@ -782,6 +782,7 @@ class _DayCell extends StatelessWidget {
                       fontSize: AppTokens.textFootnoteSize,
                       fontWeight: numWeight,
                       color: numColor,
+                      fontFeatures: AppTokens.fontTabular,
                     ),
                   ),
                 ),
