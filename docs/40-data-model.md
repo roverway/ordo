@@ -166,11 +166,20 @@ TaskStatus derivedStatus(Task parent, List<Task> directChildren):
 ### 6.2 完成度（基于整棵子树，排除 cancelled 与 deleted）
 
 ```
-double progress(Task root, List<Task> subtree):
-  total = count(t in subtree, t.status != cancelled)
-  done  = count(t in subtree, t.status == done)
+double progress(Task root, List<Task> subtree, {bool includeSelf = true}):
+  total = count(t in subtree, t != root 或 includeSelf, 有效状态 != cancelled)
+  done  = count(t in subtree, t != root 或 includeSelf, 有效状态 == done)
   return total == 0 ? 0.0 : done / total
 ```
+
+**includeSelf 双口径（用户定稿 2026-08）**：
+
+- `includeSelf: true`（默认，**项目级总进度**）：`root` 自身计入——项目列表
+  卡片进度条（`projectSummaryProvider` / `projectProgressProvider`）中顶层
+  任务是真实任务，应参与；
+- `includeSelf: false`（**UI 进度环**）：父任务只是容器不参与计算，仅统计
+  子树后代——与行尾 x/y 数字进度（只算子任务）口径一致。深度仍为整棵
+  子树递归（`taskProgress`），cancelled/deleted 排除规则不变。
 
 ### 6.3 UI 约束
 

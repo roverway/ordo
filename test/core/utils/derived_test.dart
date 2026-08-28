@@ -172,6 +172,20 @@ void main() {
       // 父派生 todo（计入分母）+ c1 done + c2 todo → done=1 / total=3。
       expect(progress(root, subtree), closeTo(1 / 3, 1e-9));
     });
+
+    test('includeSelf: false → 父任务自身不计入（UI 进度环口径）', () {
+      final root = _task('r', TaskStatus.todo);
+      final subtree = [
+        root,
+        _task('c1', TaskStatus.done, parentId: 'r', sortOrder: 1),
+        _task('c2', TaskStatus.todo, parentId: 'r', sortOrder: 2),
+      ];
+      // 默认（项目级口径）：父按派生 todo 计入 → 1/3。
+      expect(progress(root, subtree), closeTo(1 / 3, 1e-9));
+      // 进度环口径：父任务只是容器不参与计算，与行尾 x/y 数字进度一致
+      // （只算子任务）→ 1/2（用户定稿 2026-08）。
+      expect(progress(root, subtree, includeSelf: false), closeTo(0.5, 1e-9));
+    });
   });
 
   group('uncompletedCount（§6.1 派生口径，Bug 4 回归）', () {
@@ -219,7 +233,7 @@ void main() {
       expect(taskProgress(root, all), isNull);
     });
 
-    test('有直接子任务 → 按整棵子树统计', () {
+    test('有直接子任务 → 按整棵子树统计（父任务自身不计入）', () {
       final root = _task('r', TaskStatus.todo);
       final c1 = _task('c1', TaskStatus.done, parentId: 'r', sortOrder: 1);
       final c2 = _task(
@@ -229,20 +243,21 @@ void main() {
         sortOrder: 2,
       );
       final all = [root, c1, c2];
-      // 整棵子树 3 个节点，done=1 → 1/3。
-      expect(taskProgress(root, all), closeTo(1 / 3, 1e-9));
+      // 子树整棵但父任务不计入（进度环口径）：c1 done + c2 inProgress
+      // → done=1 / total=2。
+      expect(taskProgress(root, all), closeTo(0.5, 1e-9));
     });
 
-    test('统计到孙级（子树整棵，非仅直接子级）', () {
+    test('统计到孙级（子树整棵，非仅直接子级；父任务不计入）', () {
       final root = _task('r', TaskStatus.todo);
       final c1 = _task('c1', TaskStatus.todo, parentId: 'r', sortOrder: 1);
       final gc = _task('gc', TaskStatus.done, parentId: 'c1', sortOrder: 1);
       final all = [root, c1, gc];
-      // total=3（root 派生 todo + c1 派生 done + gc done），done=2 → 2/3。
-      expect(taskProgress(root, all), closeTo(2 / 3, 1e-9));
+      // 父任务不计入：c1 派生 done + gc done → 2/2 = 1.0。
+      expect(taskProgress(root, all), 1.0);
     });
 
-    test('全部子任务 done → 1.0（父任务派生 done 计入完成）', () {
+    test('全部子任务 done → 1.0（父任务不计入，2/2）', () {
       final root = _task('r', TaskStatus.todo);
       final c1 = _task('c1', TaskStatus.done, parentId: 'r', sortOrder: 1);
       final c2 = _task('c2', TaskStatus.done, parentId: 'r', sortOrder: 2);
@@ -255,8 +270,8 @@ void main() {
       final c1 = _task('c1', TaskStatus.done, parentId: 'r', sortOrder: 1);
       final other = _task('other', TaskStatus.todo); // 无关行
       final all = [other, c1, root];
-      // 子树 = root + c1（root 派生 done + c1 done）→ 1.0；
-      // 若无关行被误计入子树，则 done=1 / total=3 → 1/3。
+      // 子树 = root + c1（父任务不计入，c1 done）→ 1.0；
+      // 若无关行被误计入子树，则 done=1 / total=2 → 0.5。
       expect(taskProgress(root, all), 1.0);
     });
   });

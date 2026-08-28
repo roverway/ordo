@@ -309,7 +309,7 @@ void main() {
     expect(find.text('开会-C'), findsOneWidget);
 
     // 状态下拉 →「已完成」。
-    await tester.tap(find.byType(DropdownButton<TaskStatus?>));
+    await tester.tap(find.byType(PopupMenuButton<TaskStatus?>));
     await tester.pumpAndSettle();
     await tester.tap(find.text('已完成').last);
     await tester.pumpAndSettle();
@@ -367,7 +367,7 @@ void main() {
     expect(find.text('任务-无时间'), findsOneWidget);
 
     // 时间段下拉 →「今天」。
-    await tester.tap(find.byType(DropdownButton<TimeRange>));
+    await tester.tap(find.byType(PopupMenuButton<TimeRange>));
     await tester.pumpAndSettle();
     await tester.tap(find.text('今天').last);
     await tester.pumpAndSettle();
@@ -409,7 +409,7 @@ void main() {
     expect(find.text('开会乙'), findsOneWidget);
 
     // 标签下拉 →「工作」。
-    await tester.tap(find.byType(DropdownButton<String?>));
+    await tester.tap(find.byType(PopupMenuButton<String?>));
     await tester.pumpAndSettle();
     await tester.tap(find.text('工作').last);
     await tester.pumpAndSettle();
@@ -451,7 +451,7 @@ void main() {
     expect(find.text('开会-C'), findsOneWidget);
 
     // 应用状态筛选 → 只剩已完成。
-    await tester.tap(find.byType(DropdownButton<TaskStatus?>));
+    await tester.tap(find.byType(PopupMenuButton<TaskStatus?>));
     await tester.pumpAndSettle();
     await tester.tap(find.text('已完成').last);
     await tester.pumpAndSettle();

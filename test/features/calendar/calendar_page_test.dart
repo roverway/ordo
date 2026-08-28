@@ -3,8 +3,8 @@
 // 覆盖：
 // 1. 月视图：跨天任务在区间内每天显示；仅 endAt 任务只显示在截止日；
 //    无时间任务不出现；月外任务不出现；
-// 2. 点含任务日期格 → 底部弹层列出该任务 +「新建」入口；
-// 3. 弹层「新建」→ 打开新建任务底部弹窗（TaskCreateSheet）且预填该日 09:00 的 startAt；
+// 2. 点含任务日期格 → 底部弹层列出该任务；
+// 3. 底部 FAB → 打开新建任务底部弹窗（TaskCreateSheet）且预填该日 09:00 的 startAt；
 // 4. 周视图：周区间内每天列出任务（跨天任务出现在多天）。
 //
 // 说明：widget 测试用 StreamController 覆盖 calendarBucketsProvider（避免 drift
@@ -223,7 +223,7 @@ void main() {
     expect(find.text('G'), findsNothing);
   });
 
-  testWidgets('点选含任务日期格 → 联动议程列表列出该任务并可「新建任务」', (tester) async {
+  testWidgets('点选含任务日期格 → 联动议程列表列出该任务', (tester) async {
     final db = openTestDatabase();
     final repo = TodoRepository(database: db);
 
@@ -245,13 +245,13 @@ void main() {
     await tester.tap(find.text('6').first);
     await tester.pumpAndSettle();
 
-    // 议程联动区出现：任务行 + 「新建任务」
-    expect(find.text('新建任务'), findsOneWidget);
+    // 议程联动区出现：任务行 A、B（新建入口统一走底部 FAB，头部无按钮）。
+    expect(find.byType(FloatingActionButton), findsOneWidget);
     expect(find.text('A'), findsOneWidget);
     expect(find.text('B'), findsOneWidget);
   });
 
-  testWidgets('点击「新建任务」→ 打开新建任务底部弹窗并预填选中日 09:00 的 startAt', (tester) async {
+  testWidgets('点击底部 FAB → 打开新建任务底部弹窗并预填选中日 09:00 的 startAt', (tester) async {
     final db = openTestDatabase();
     final repo = TodoRepository(database: db);
     final tasks = [_task('X', endAt: _ms(2026, 8, 6, 18))];
@@ -268,9 +268,9 @@ void main() {
     // 点选空日期格（8/15，周六）
     await tester.tap(find.text('15').first);
     await tester.pumpAndSettle();
-    expect(find.text('新建任务'), findsOneWidget);
 
-    await tester.tap(find.text('新建任务'));
+    // 新建入口 = 底部 FAB（与选中日联动）
+    await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
 
     // 打开的是底部弹窗
@@ -387,8 +387,8 @@ void main() {
     await tester.tap(find.text('15').first);
     await tester.pumpAndSettle();
 
-    // 打开新建任务
-    await tester.tap(find.text('新建任务'));
+    // 打开新建任务（底部 FAB）
+    await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
     expect(find.byType(TaskCreateSheet), findsOneWidget);
 

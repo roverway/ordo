@@ -1,6 +1,6 @@
-// 筛选条（FR-VIEW-06）：状态下拉 + 标签下拉 + 时间段下拉 + 清除按钮。
+// 筛选条（FR-VIEW-06）：状态筛选 + 标签筛选 + 时间段筛选 + 清除按钮。
 //
-// 横向可滚动紧凑下拉组合；任一筛选条件激活时显示「清除」（clearFilter）。
+// 横向可滚动紧凑筛选组合；任一筛选条件激活时显示「清除」（clearFilter）。
 // 本组件仅搜索页使用（M3 无其他调用方）；不感知 Provider，参数由调用方传入
 // （当前筛选状态 + 全部标签 + 回调）。全部颜色/圆角/间距使用 AppTokens。
 
@@ -11,6 +11,7 @@ import '../../core/db/tables.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../features/search/search_providers.dart';
+import 'app_menu_item.dart';
 
 /// 筛选条（FR-VIEW-06）。
 class TaskFilterBar extends StatelessWidget {
@@ -65,63 +66,35 @@ class TaskFilterBar extends StatelessWidget {
         children: [
           _FilterDropdown(
             label: l10n.filterStatus,
-            child: DropdownButton<TaskStatus?>(
+            child: _FilterMenu<TaskStatus?>(
               value: status,
-              isDense: true,
-              underline: const SizedBox.shrink(),
-              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-              elevation: 3,
-              items: [
-                DropdownMenuItem<TaskStatus?>(
-                  value: null,
-                  child: Text(l10n.filterAll),
-                ),
+              entries: [
+                MapEntry(null, l10n.filterAll),
                 for (final s in TaskStatus.values)
-                  DropdownMenuItem<TaskStatus?>(
-                    value: s,
-                    child: Text(_statusLabel(l10n, s)),
-                  ),
+                  MapEntry(s, _statusLabel(l10n, s)),
               ],
               onChanged: onStatusChanged,
             ),
           ),
           _FilterDropdown(
             label: l10n.filterTag,
-            child: DropdownButton<String?>(
+            child: _FilterMenu<String?>(
               // 防御：tagId 指向已删除/不存在的标签时回退「全部」。
               value: tags.any((t) => t.id == tagId) ? tagId : null,
-              isDense: true,
-              underline: const SizedBox.shrink(),
-              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-              elevation: 3,
-              items: [
-                DropdownMenuItem<String?>(
-                  value: null,
-                  child: Text(l10n.filterAll),
-                ),
-                for (final tag in tags)
-                  DropdownMenuItem<String?>(
-                    value: tag.id,
-                    child: Text(tag.name),
-                  ),
+              entries: [
+                MapEntry(null, l10n.filterAll),
+                for (final tag in tags) MapEntry(tag.id, tag.name),
               ],
               onChanged: onTagChanged,
             ),
           ),
           _FilterDropdown(
             label: l10n.filterTimeRange,
-            child: DropdownButton<TimeRange>(
+            child: _FilterMenu<TimeRange>(
               value: range,
-              isDense: true,
-              underline: const SizedBox.shrink(),
-              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-              elevation: 3,
-              items: [
+              entries: [
                 for (final r in TimeRange.values)
-                  DropdownMenuItem<TimeRange>(
-                    value: r,
-                    child: Text(_timeRangeLabel(l10n, r)),
-                  ),
+                  MapEntry(r, _timeRangeLabel(l10n, r)),
               ],
               onChanged: (value) {
                 if (value != null) onTimeRangeChanged(value);
@@ -152,6 +125,64 @@ class TaskFilterBar extends StatelessWidget {
     TimeRange.week => l10n.timeRangeThisWeek,
     TimeRange.month => l10n.timeRangeThisMonth,
   };
+}
+
+/// 筛选弹出菜单（用户打磨 2026-08：与全局三点菜单同规格紧凑化）。
+///
+/// 替代 DropdownButton——后者的菜单项（48 高、默认文本样式）不受
+/// popupMenuTheme 管辖；本组件菜单项走共享 [AppMenuItem]（高 40 /
+/// bodyMedium，容器圆角/描边/底色/内边距由 popupMenuTheme 统一），当前
+/// 选中项带 check 图标；触发区显示选中项文字 + 下拉箭头。
+class _FilterMenu<T> extends StatelessWidget {
+  const _FilterMenu({
+    required this.value,
+    required this.entries,
+    required this.onChanged,
+  });
+
+  /// 当前选中值（与 [entries] 的 key 比较）。
+  final T? value;
+
+  /// 可选项（值 + 文案），首项通常为「全部」。
+  final List<MapEntry<T?, String>> entries;
+
+  final ValueChanged<T?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final selectedLabel = entries
+        .firstWhere((e) => e.key == value, orElse: () => entries.first)
+        .value;
+    return PopupMenuButton<T>(
+      padding: EdgeInsets.zero,
+      position: PopupMenuPosition.under,
+      onSelected: onChanged,
+      icon: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: AppTokens.spaceXxs),
+            child: Text(selectedLabel, style: theme.textTheme.bodyMedium),
+          ),
+          const SizedBox(width: AppTokens.spaceXxs),
+          Icon(
+            Icons.arrow_drop_down,
+            size: 20,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ],
+      ),
+      itemBuilder: (_) => [
+        for (final entry in entries)
+          AppMenuItem<T>(
+            value: entry.key,
+            label: entry.value,
+            icon: entry.key == value ? Icons.check : null,
+          ),
+      ],
+    );
+  }
 }
 
 /// 单个筛选下拉的容器（标签 + 下拉，chip 化外观）。

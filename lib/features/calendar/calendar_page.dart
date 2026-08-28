@@ -9,6 +9,7 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_breakpoints.dart';
 import '../../core/utils/dates.dart';
 import '../../core/utils/derived.dart';
+import '../../core/utils/motion.dart';
 import '../../core/utils/tree.dart';
 import '../../core/utils/view_rules.dart' as view_rules;
 import '../../shared/widgets/app_drawer.dart';
@@ -307,16 +308,8 @@ class CalendarPage extends ConsumerWidget {
                       ),
                     ),
                   ),
-                const SizedBox(width: AppTokens.spaceSm),
-                TextButton.icon(
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                  ),
-                  icon: const Icon(Icons.add, size: 16),
-                  label: Text(l10n.newTask),
-                  onPressed: () => _createTaskOnDay(context, ref, selected),
-                ),
+                // 不设「新建任务」按钮：与底部 FAB 完全重复（同一
+                // _createTaskOnDay），新建入口统一走 FAB。
               ],
             ),
           ),
@@ -344,19 +337,7 @@ class CalendarPage extends ConsumerWidget {
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
-                    const SizedBox(height: AppTokens.spaceMd),
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppTokens.radiusButton,
-                          ),
-                        ),
-                      ),
-                      icon: const Icon(Icons.add, size: 18),
-                      label: Text(l10n.addTask),
-                      onPressed: () => _createTaskOnDay(context, ref, selected),
-                    ),
+                    // 不设「添加任务」按钮：与底部 FAB 重复，新建入口统一走 FAB。
                   ],
                 ),
               ),
@@ -434,11 +415,22 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
   double _horizontalDelta = 0;
   double _verticalDelta = 0;
 
+  // 本次网格切换方向：1 = 下一周期（新网格自右滑入）、-1 = 上一周期（自左
+  // 滑入）、0 = 非水平翻页（月↔周折叠/点选柄，仅淡入）。手势触发点先行
+  // 写入，AnimatedSwitcher 的 transitionBuilder 在随之而来的重建中读取。
+  int _slideDirection = 0;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final projectsMap = ref.watch(projectsMapProvider);
+
+    // 网格日期集（月 = 整月矩阵、周 = 单周行）；首日作 AnimatedSwitcher 的
+    // key——翻月/翻周/月周切换时 key 变化触发过渡。
+    final days = widget.state.mode == CalendarMode.month
+        ? _monthGridDays(widget.state.selectedDate)
+        : _weekDays(widget.state.selectedDate);
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -452,9 +444,11 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
         final velocity = details.primaryVelocity ?? 0;
         if (velocity < -150 || _horizontalDelta < -40) {
           // 向左滑动 -> 下一周期
+          _slideDirection = 1;
           ref.read(calendarStateProvider.notifier).nextPeriod();
         } else if (velocity > 150 || _horizontalDelta > 40) {
           // 向右滑动 -> 上一周期
+          _slideDirection = -1;
           ref.read(calendarStateProvider.notifier).prevPeriod();
         }
         _horizontalDelta = 0;
@@ -468,10 +462,12 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
       onVerticalDragEnd: (details) {
         final velocity = details.primaryVelocity ?? 0;
         if (velocity < -150 || _verticalDelta < -30) {
-          // 向上滑动 -> 收起为周视图
+          // 向上滑动 -> 收起为周视图（非水平翻页，方向归零仅淡入）
+          _slideDirection = 0;
           ref.read(calendarStateProvider.notifier).setMode(CalendarMode.week);
         } else if (velocity > 150 || _verticalDelta > 30) {
           // 向下滑动 -> 展开为月视图
+          _slideDirection = 0;
           ref.read(calendarStateProvider.notifier).setMode(CalendarMode.month);
         }
         _verticalDelta = 0;
@@ -483,19 +479,58 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
           // 星期表头（一至日）
           _buildWeekdayRow(context),
           const SizedBox(height: AppTokens.spaceXs),
-          // 日期格网
-          _buildDaysGrid(
-            context,
-            ref,
-            widget.buckets,
-            projectsMap,
-            widget.state,
+          // 日期格网：上下（月↔周）的高度过渡由外层 AnimatedSize 承担
+          // （周视图即同结构矩阵的 1 行，与任务树/侧边栏同一范式）；左右
+          // 翻页由内层 AnimatedSwitcher 做方向性推入 + 淡入淡出。滑动位移
+          // 为宽度分数（0.18），分辨率无关；reduced motion 经 motionNormal
+          // 归零全部瞬时切换。
+          AnimatedSize(
+            duration: motionNormal(context),
+            curve: motionCurve(context),
+            alignment: Alignment.topCenter,
+            clipBehavior: Clip.hardEdge,
+            child: AnimatedSwitcher(
+              duration: motionNormal(context),
+              switchInCurve: motionCurve(context),
+              switchOutCurve: motionCurve(context).flipped,
+              transitionBuilder: (child, animation) {
+                final dir = _slideDirection;
+                if (dir == 0) {
+                  return FadeTransition(opacity: animation, child: child);
+                }
+                final isIncoming = child.key == ValueKey(days.first);
+                final begin = isIncoming
+                    ? Offset(0.18 * dir, 0)
+                    : Offset(-0.18 * dir, 0);
+                return SlideTransition(
+                  position: Tween(
+                    begin: begin,
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: FadeTransition(opacity: animation, child: child),
+                );
+              },
+              child: KeyedSubtree(
+                key: ValueKey(days.first),
+                child: _buildDaysGrid(
+                  context,
+                  ref,
+                  widget.buckets,
+                  projectsMap,
+                  widget.state,
+                  days,
+                ),
+              ),
+            ),
           ),
           // 底部折叠/展开指示柄（窄屏下提供视觉手势暗示）
           if (widget.isNarrow)
             InkWell(
-              onTap: () =>
-                  ref.read(calendarStateProvider.notifier).toggleView(),
+              onTap: () {
+                // 点选柄折叠/展开：非水平翻页，方向归零（仅淡入 + 高度过渡）。
+                _slideDirection = 0;
+                ref.read(calendarStateProvider.notifier).toggleView();
+              },
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 6),
@@ -561,13 +596,11 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
     Map<DateTime, List<Task>> buckets,
     Map<String, Project> projectsMap,
     CalendarState state,
+    List<DateTime> days,
   ) {
     final selected = state.selectedDate;
     final now = DateTime.now();
     final todayKey = DateTime(now.year, now.month, now.day);
-    final days = state.mode == CalendarMode.month
-        ? _monthGridDays(selected)
-        : _weekDays(selected);
 
     final weeks = (days.length / 7).ceil();
 

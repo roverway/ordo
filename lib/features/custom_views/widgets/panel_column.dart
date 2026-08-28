@@ -489,16 +489,17 @@ class KanbanTaskCard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 状态勾选 + 标题 + 优先级
+                // 标题为单行（AnimatedStrikethrough 默认 maxLines 1），center
+                // 对齐使收缩复选框中心与标题中心严格重合（此前 start 对齐 +
+                // 无补偿，复选框中心比标题首行中心低约 8dp）。纯布局对齐，
+                // 字体/系统字号缩放变化时自动保持重合。
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // 标准 Checkbox（全 app 唯一勾选形态：主题层圆形 +
                     // checkboxDoneFill 蓝填充；紧凑卡内用 shrinkWrap 触控区）。
                     Padding(
-                      padding: const EdgeInsets.only(
-                        top: 1,
-                        right: AppTokens.spaceXs,
-                      ),
+                      padding: const EdgeInsets.only(right: AppTokens.spaceXs),
                       child: Checkbox(
                         key: ValueKey('kanban_checkbox_${task.id}'),
                         value: isDone,

@@ -163,17 +163,26 @@ class _TaskRowState extends State<TaskRow> {
         ? AppTokens.radiusList
         : AppTokens.radiusCard;
 
-    // 标题文本（优先级旗帜存在时与旗帜同行；平滑划线动效；长标题自动折行，
-    // 首行仍与复选框中心对齐，引导线画到行底自适应）。
+    // 标题文本（平滑划线动效；长标题自动折行，首行仍与复选框中心对齐，
+    // 引导线画到行底自适应）。
+    final titleStyle = theme.textTheme.bodyLarge?.copyWith(
+      color: isDone ? colorScheme.onSurfaceVariant : colorScheme.onSurface,
+    );
     final titleText = AnimatedStrikethrough(
       text: widget.task.title,
       isDone: isDone,
-      style: theme.textTheme.bodyLarge?.copyWith(
-        color: isDone ? colorScheme.onSurfaceVariant : colorScheme.onSurface,
-      ),
+      style: titleStyle,
       maxLines: null,
       overflow: TextOverflow.clip,
     );
+    // 标题首行行高（优先级旗帜行内对齐补偿用）＝ textScaler 缩放后的
+    // fontSize × height：行高由主题 height 钉死（与具体字体度量无关），
+    // textScaler 覆盖系统字号缩放（Android fontScale 等），缩放下不错位。
+    final titleLineHeight =
+        MediaQuery.textScalerOf(
+          context,
+        ).scale(titleStyle?.fontSize ?? AppTokens.textBodySize) *
+        (titleStyle?.height ?? AppTokens.textBodyHeight);
 
     final hasDescription = widget.task.description.isNotEmpty;
     final hasDate = dateText.isNotEmpty;
@@ -282,12 +291,22 @@ class _TaskRowState extends State<TaskRow> {
                               ),
                               child: widget.task.priority != TaskPriority.none
                                   ? Row(
+                                      // 旗帜与标题**首行**行内对齐：start 对齐 +
+                                      // 首行行高居中补偿——标题折行时旗帜仍与
+                                      // 首行/复选框对齐，而非相对整块垂直居中。
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Icon(
-                                          Icons.flag_outlined,
-                                          size: 14,
-                                          color: priorityColor(
-                                            widget.task.priority,
+                                        Padding(
+                                          padding: EdgeInsets.only(
+                                            top: (titleLineHeight - 14) / 2,
+                                          ),
+                                          child: Icon(
+                                            Icons.flag_outlined,
+                                            size: 14,
+                                            color: priorityColor(
+                                              widget.task.priority,
+                                            ),
                                           ),
                                         ),
                                         const SizedBox(

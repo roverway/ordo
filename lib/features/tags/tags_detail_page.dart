@@ -11,6 +11,7 @@ import '../../core/utils/derived.dart';
 import '../../core/utils/tree.dart';
 import '../../core/utils/view_rules.dart';
 import '../../shared/widgets/app_drawer.dart';
+import '../../shared/widgets/app_menu_item.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/loading_view.dart';
@@ -245,24 +246,43 @@ class _TagsDetailPageState extends ConsumerState<TagsDetailPage> {
             ),
           ),
           const SizedBox(width: AppTokens.spaceSm),
-          DropdownButton<TaskStatus?>(
-            value: _filterStatus,
-            isDense: true,
-            underline: const SizedBox.shrink(),
-            borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-            elevation: 3,
-            items: [
-              DropdownMenuItem<TaskStatus?>(
+          // 状态筛选：紧凑弹出菜单（与全局三点菜单/搜索筛选同规格，
+          // AppMenuItem 菜单项），触发区显示选中项文字 + 下拉箭头。
+          PopupMenuButton<TaskStatus?>(
+            padding: EdgeInsets.zero,
+            position: PopupMenuPosition.under,
+            tooltip: l10n.filterStatus,
+            onSelected: (value) => setState(() => _filterStatus = value),
+            icon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _filterStatus == null
+                      ? l10n.filterAll
+                      : _statusLabel(l10n, _filterStatus!),
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(width: AppTokens.spaceXxs),
+                Icon(
+                  Icons.arrow_drop_down,
+                  size: 20,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+            itemBuilder: (_) => [
+              AppMenuItem<TaskStatus?>(
                 value: null,
-                child: Text(l10n.filterAll),
+                label: l10n.filterAll,
+                icon: _filterStatus == null ? Icons.check : null,
               ),
               for (final status in TaskStatus.values)
-                DropdownMenuItem<TaskStatus?>(
+                AppMenuItem<TaskStatus?>(
                   value: status,
-                  child: Text(_statusLabel(l10n, status)),
+                  label: _statusLabel(l10n, status),
+                  icon: _filterStatus == status ? Icons.check : null,
                 ),
             ],
-            onChanged: (value) => setState(() => _filterStatus = value),
           ),
         ],
       ),

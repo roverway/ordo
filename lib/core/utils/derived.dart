@@ -35,14 +35,21 @@ TaskStatus derivedStatus(Task parent, List<Task> directChildren) {
 
 /// 完成度（§6.2，基于**整棵子树**，排除 cancelled 与 deleted）。
 ///
-/// [subtree] 应为根任务及其全部后代。有直接子任务的任务按**派生状态**计
-/// （派生 cancelled 同样排除，与 [uncompletedCount] 口径一致），
-/// 无子任务（叶子）按其存储 status 计。total == 0 时返回 0.0。
-double progress(Task root, List<Task> subtree) {
+/// [subtree] 应为根任务及其全部后代（项目级口径为项目全部任务）。有直接
+/// 子任务的任务按**派生状态**计（派生 cancelled 同样排除，与
+/// [uncompletedCount] 口径一致），无子任务（叶子）按其存储 status 计。
+/// total == 0 时返回 0.0。
+///
+/// [includeSelf]：是否把 [root] 自身计入分子/分母。
+/// - **true（默认）**：项目级总进度口径——顶层任务是真实任务，计入；
+/// - **false**：**UI 进度环**口径——父任务只是容器不参与计算，与行尾
+///   x/y 数字进度（只算子任务）一致（用户定稿 2026-08）。
+double progress(Task root, List<Task> subtree, {bool includeSelf = true}) {
   final childrenIndex = indexChildrenByParent(subtree);
   var total = 0;
   var done = 0;
   for (final t in subtree) {
+    if (!includeSelf && t.id == root.id) continue;
     if (t.deleted != 0) continue;
     final children = childrenIndex[t.id] ?? const <Task>[];
     final effective = children.isEmpty ? t.status : derivedStatus(t, children);
@@ -75,8 +82,9 @@ int uncompletedCount(List<Task> tasks) {
 /// 有直接子任务的任务的完成度（UI 进度环用，55-ui-redesign §5 progressRing）。
 ///
 /// [allTasks] 为该任务所属项目的完整任务列表（含任务自身与全部后代）。
-/// 内部复用 [progress]（§6.2 整棵子树口径）；无直接子任务时返回 null
-/// （叶子任务不显示进度环，状态手动可改）。
+/// 内部复用 [progress]（§6.2 整棵子树口径），`includeSelf: false`——父任务
+/// 只是容器不参与计算，与行尾 x/y 数字进度（只算子任务）一致（用户定稿
+/// 2026-08）；无直接子任务时返回 null（叶子任务不显示进度环，状态手动可改）。
 double? taskProgress(Task task, List<Task> allTasks) {
   final childrenIndex = indexChildrenByParent(allTasks);
   if ((childrenIndex[task.id] ?? const <Task>[]).isEmpty) return null;
@@ -92,5 +100,5 @@ double? taskProgress(Task task, List<Task> allTasks) {
   }
 
   collect(task.id);
-  return progress(task, subtree);
+  return progress(task, subtree, includeSelf: false);
 }

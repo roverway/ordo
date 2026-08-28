@@ -821,7 +821,9 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
         ? derivedStatus(node.task, directChildren)
         : null;
     final progressValue = directChildren.isNotEmpty
-        ? progress(node.task, subtree)
+        // includeSelf: false——父任务只是容器不参与进度计算，与行尾 x/y
+        // 数字进度（只算子任务）一致（用户定稿 2026-08）。
+        ? progress(node.task, subtree, includeSelf: false)
         : null;
     // 标签 chips：一级卡片头与紧凑子行均展示（61 §4.1/§4.4 统一规格，
     // 覆盖 57 文档 D7「紧凑子行保持精简」；参考案例子任务同样显示标签）。
