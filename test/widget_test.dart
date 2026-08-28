@@ -844,12 +844,13 @@ void main() {
       ),
       findsNothing,
     );
+    // 竖排三点 = 组头菜单（常驻）+ 文件夹行菜单（展开时）= 2 处。
     expect(
       find.descendant(
         of: find.byType(Drawer),
         matching: find.byIcon(Icons.more_vert),
       ),
-      findsOneWidget,
+      findsNWidgets(2),
     );
 
     // 点击文件夹行 → 折叠：夹内项目行隐藏，未分组区不受影响。
@@ -865,7 +866,8 @@ void main() {
       find.descendant(of: find.byType(Drawer), matching: find.text('项目B')),
       findsOneWidget,
     );
-    // 折叠态：箭头朝左（chevron_left），三点菜单隐藏（des-1 需求 1/2）。
+    // 折叠态：箭头朝左（chevron_left），文件夹行三点菜单隐藏（des-1 需求 1/2；
+    // 组头菜单常驻，仍剩 1 处竖排三点）。
     expect(
       find.descendant(
         of: find.byType(Drawer),
@@ -885,7 +887,7 @@ void main() {
         of: find.byType(Drawer),
         matching: find.byIcon(Icons.more_vert),
       ),
-      findsNothing,
+      findsOneWidget,
     );
 
     // 再点 → 展开恢复。
@@ -897,13 +899,13 @@ void main() {
       find.descendant(of: find.byType(Drawer), matching: find.text('项目A')),
       findsOneWidget,
     );
-    // 展开恢复：菜单与向下箭头回到可见。
+    // 展开恢复：文件夹行菜单与向下箭头回到可见。
     expect(
       find.descendant(
         of: find.byType(Drawer),
         matching: find.byIcon(Icons.more_vert),
       ),
-      findsOneWidget,
+      findsNWidgets(2),
     );
     expect(
       find.descendant(
@@ -1057,11 +1059,11 @@ void main() {
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();
 
-    // 「任务分组」分组头三点菜单 → 「新建文件夹」→ 名称弹窗（Dialog）。
+    // 「任务分组」分组头三点菜单（竖排三点）→「新建文件夹」→ 名称弹窗（Dialog）。
     await tester.tap(
       find.descendant(
         of: find.byType(Drawer),
-        matching: find.byIcon(Icons.more_horiz),
+        matching: find.byIcon(Icons.more_vert),
       ),
     );
     await tester.pumpAndSettle();
@@ -1090,14 +1092,15 @@ void main() {
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();
 
-    // 文件夹行尾菜单 → 重命名 → 名称弹窗预填 → 保存。
+    // 文件夹行尾菜单（.last：组头菜单在前，文件夹行菜单在后）→ 重命名 →
+    // 名称弹窗预填 → 保存。
     await tester.tap(
       find
           .descendant(
             of: find.byType(Drawer),
             matching: find.byIcon(Icons.more_vert),
           )
-          .first,
+          .last,
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('重命名文件夹'));
@@ -1131,7 +1134,7 @@ void main() {
             of: find.byType(Drawer),
             matching: find.byIcon(Icons.more_vert),
           )
-          .first,
+          .last,
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('删除文件夹'));

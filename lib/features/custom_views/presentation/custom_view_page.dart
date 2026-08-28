@@ -8,6 +8,7 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/app_breakpoints.dart';
 import '../../../core/utils/custom_view_models.dart';
 import '../../../shared/widgets/app_drawer.dart';
+import '../../../shared/widgets/app_menu_item.dart';
 import '../../projects/project_providers.dart';
 import '../providers/custom_view_providers.dart';
 import '../widgets/icon_picker_dialog.dart';
@@ -200,7 +201,6 @@ class CustomViewPage extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
-    ThemeData theme,
     CustomView view,
   ) {
     return [
@@ -210,31 +210,17 @@ class CustomViewPage extends ConsumerWidget {
         onPressed: () => _openEditView(context, view),
       ),
       PopupMenuButton<String>(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-        ),
         onSelected: (val) {
           if (val == 'delete') {
             _confirmDeleteView(context, ref, view);
           }
         },
         itemBuilder: (ctx) => [
-          PopupMenuItem(
+          AppMenuItem(
             value: 'delete',
-            child: Row(
-              children: [
-                Icon(
-                  Icons.delete_outline,
-                  size: 18,
-                  color: theme.colorScheme.error,
-                ),
-                const SizedBox(width: AppTokens.spaceXs),
-                Text(
-                  l10n.deleteCustomView,
-                  style: TextStyle(color: theme.colorScheme.error),
-                ),
-              ],
-            ),
+            icon: Icons.delete_outline,
+            label: l10n.deleteCustomView,
+            destructive: true,
           ),
         ],
       ),
@@ -309,7 +295,7 @@ class CustomViewPage extends ConsumerWidget {
         }
 
         final panels = decodePanelsJson(view.panelsJson);
-        final actions = _buildActions(context, ref, l10n, theme, view);
+        final actions = _buildActions(context, ref, l10n, view);
 
         Widget bodyContent;
 

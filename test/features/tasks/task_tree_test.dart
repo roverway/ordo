@@ -747,12 +747,12 @@ void main() {
       expect(find.text('Child'), findsOneWidget);
     });
 
-    testWidgets('显式展开时子行错落入场播放；默认展开不重放（des-4 需求 3）', (tester) async {
+    testWidgets('显式展开时子行随容器揭示（无逐项错落，与侧边栏文件夹一致）', (tester) async {
       await _pumpTree(tester, [
         _task('r', title: 'Root'),
         _task('c', parentId: 'r', title: 'Child', sortOrder: 1),
       ]);
-      // 默认展开（从未显式操作）→ 子行错落不播放，直接可见。
+      // 默认展开（从未显式操作）→ 子行直接可见。
       expect(find.text('Child'), findsOneWidget);
 
       // 折叠 → 子区收起。
@@ -760,24 +760,24 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Child'), findsNothing);
 
-      // 再次展开 → 子行错落入场播放：展开触发的首帧内存在尚未到位的
-      // 错落 FadeTransition（opacity < 1；TaskRow 内部 AnimatedOpacity 等
-      // 其它 FadeTransition 恒为 1.0，可区分），settle 后全部到位。
+      // 再次展开 → 子行由卡片级 AnimatedSize 自上而下揭示，**无**逐项
+      // 错落（子行 StaggeredFadeSlide 已移除：其自下而上滑入与容器揭示
+      // 方向相反）。首帧起子行相关 FadeTransition 全部不透明（无
+      // opacity < 1 的错落层），且高度动画进行中（尺寸未到位）。
       await tester.tap(find.byIcon(Icons.arrow_right).first);
       await tester.pump();
       final childFades = find.ancestor(
         of: find.text('Child'),
         matching: find.byType(FadeTransition),
       );
-      final midFlight = tester
+      final midFlightStagger = tester
           .widgetList<FadeTransition>(childFades)
           .any((f) => f.opacity.value < 1.0);
-      expect(midFlight, isTrue);
+      expect(midFlightStagger, isFalse);
+      final heightDuring = tester.getSize(find.byType(AnimatedSize)).height;
       await tester.pumpAndSettle();
-      final settled = tester
-          .widgetList<FadeTransition>(childFades)
-          .every((f) => f.opacity.value == 1.0);
-      expect(settled, isTrue);
+      final heightSettled = tester.getSize(find.byType(AnimatedSize)).height;
+      expect(heightSettled, greaterThan(heightDuring));
     });
 
     testWidgets('孙级展开高度动画由单层 AnimatedSize 承担（评审 #3 回归）', (tester) async {

@@ -178,14 +178,14 @@ void main() {
       reason: 'S3 表单不得残留 WebDAV 服务器地址',
     );
 
-    // 切回 WebDAV：清空 S3 字段，重载 WebDAV 已存凭据。
-    await tester.tap(find.text('WebDAV'));
+    // 切回坚果云（WebDAV）：清空 S3 字段，重载已存凭据。
+    await tester.tap(find.text('坚果云'));
     await tester.pumpAndSettle();
     expect(find.text('Bucket'), findsNothing);
     expect(
       find.widgetWithText(TextField, 'https://dav.example.com/todo/'),
       findsOneWidget,
-      reason: '切回 WebDAV 应重载其已存凭据',
+      reason: '切回坚果云（WebDAV）应重载其已存凭据',
     );
   });
 

@@ -29,6 +29,7 @@ import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/priority_color.dart';
 import '../../../core/utils/dates.dart';
+import '../../../shared/widgets/app_menu_item.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/tag_chip.dart';
 import '../../projects/project_providers.dart';
@@ -671,9 +672,9 @@ class TaskEditorMenuButton extends StatelessWidget {
         }
       },
       itemBuilder: (context) => [
-        PopupMenuItem(value: 'notes', child: Text(l10n.taskNotes)),
+        AppMenuItem(value: 'notes', label: l10n.taskNotes),
         if (onDeleteRequested != null)
-          PopupMenuItem(value: 'delete', child: Text(l10n.delete)),
+          AppMenuItem(value: 'delete', label: l10n.delete, destructive: true),
       ],
     );
   }

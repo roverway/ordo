@@ -18,15 +18,12 @@ import '../../core/utils/motion.dart';
 ///
 /// 行为约定：
 /// - **首帧逐项入场**：fade + slide-up [AppTokens.motionStaggerSlideOffset]px，
-///   间隔 [AppTokens.motionStaggerDelay]（可经 [interval] 覆盖，如树内行用
-///   更短的 [AppTokens.motionTreeStaggerDelay]），可视动画段总时长
-///   [AppTokens.motionNormal]，曲线 [motionCurve]；
+///   间隔 [AppTokens.motionStaggerDelay]（可经 [interval] 覆盖），可视动画段
+///   总时长 [AppTokens.motionNormal]，曲线 [motionCurve]；
 /// - **仅首次 build 播放一次**：数据刷新/排序变更导致的列表重建不会重放
 ///   （内部 [AnimationController] 播放一次后保持终值；如需重播，用新的 key
 ///   重建本组件即可）；
-/// - **[animateOnBuild] = false**：本次 build 不播放（保持终值即时可见）——
-///   用于「默认展开」场景：进页面首帧入场由外层错落统一承担，子区不重复
-///   动画（des-4 需求 3：子区错落仅在显式展开时触发）；
+/// - **[animateOnBuild] = false**：本次 build 不播放（保持终值即时可见）；
 /// - **reduced motion**：经 [motionNormal]（reduced → 零时长）瞬时到位，
 ///   纯淡入语义（无位移残留）；
 /// - **长列表保护**：`index >= [maxStaggerItems]` 时直接平铺不包动画，

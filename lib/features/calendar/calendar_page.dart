@@ -12,6 +12,7 @@ import '../../core/utils/derived.dart';
 import '../../core/utils/tree.dart';
 import '../../core/utils/view_rules.dart' as view_rules;
 import '../../shared/widgets/app_drawer.dart';
+import '../../shared/widgets/app_menu_item.dart';
 import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/loading_view.dart';
 import '../../shared/widgets/simple_task_tile.dart';
@@ -76,41 +77,24 @@ class CalendarPage extends ConsumerWidget {
               }
             },
             itemBuilder: (context) => [
-              PopupMenuItem(
+              AppMenuItem(
                 value: _CalendarMenuAction.today,
-                child: ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.today_outlined, size: 20),
-                  title: Text(l10n.goToToday),
-                ),
+                icon: Icons.today_outlined,
+                label: l10n.goToToday,
               ),
-              PopupMenuItem(
+              AppMenuItem(
                 value: _CalendarMenuAction.toggleView,
-                child: ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(
-                    state.mode == CalendarMode.month
-                        ? Icons.calendar_view_week_outlined
-                        : Icons.calendar_view_month_outlined,
-                    size: 20,
-                  ),
-                  title: Text(
-                    state.mode == CalendarMode.month
-                        ? l10n.switchToWeekView
-                        : l10n.switchToMonthView,
-                  ),
-                ),
+                icon: state.mode == CalendarMode.month
+                    ? Icons.calendar_view_week_outlined
+                    : Icons.calendar_view_month_outlined,
+                label: state.mode == CalendarMode.month
+                    ? l10n.switchToWeekView
+                    : l10n.switchToMonthView,
               ),
-              PopupMenuItem(
+              AppMenuItem(
                 value: _CalendarMenuAction.search,
-                child: ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.search, size: 20),
-                  title: Text(l10n.search),
-                ),
+                icon: Icons.search,
+                label: l10n.search,
               ),
             ],
           ),

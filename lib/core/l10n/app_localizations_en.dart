@@ -515,7 +515,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncType => 'Remote type';
 
   @override
-  String get syncTypeWebdav => 'WebDAV';
+  String get syncTypeNutstore => 'Nutstore';
 
   @override
   String get syncTypeS3 => 'S3-compatible bucket';
@@ -527,7 +527,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncServerUrl => 'Server URL';
 
   @override
-  String get syncServerUrlHint => 'e.g. https://dav.example.com/todo/';
+  String get syncServerUrlHint => 'e.g. https://dav.jianguoyun.com/dav/';
 
   @override
   String get syncEndpoint => 'Endpoint';
@@ -541,6 +541,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncPassword => 'Password';
+
+  @override
+  String get syncWebdavPasswordHint =>
+      'Use an app password generated in Nutstore security settings';
 
   @override
   String get syncAccessKey => 'Access Key';

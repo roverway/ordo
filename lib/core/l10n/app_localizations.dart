@@ -1046,11 +1046,11 @@ abstract class AppLocalizations {
   /// **'远端类型'**
   String get syncType;
 
-  /// No description provided for @syncTypeWebdav.
+  /// No description provided for @syncTypeNutstore.
   ///
   /// In zh, this message translates to:
-  /// **'WebDAV'**
-  String get syncTypeWebdav;
+  /// **'坚果云'**
+  String get syncTypeNutstore;
 
   /// No description provided for @syncTypeS3.
   ///
@@ -1073,7 +1073,7 @@ abstract class AppLocalizations {
   /// No description provided for @syncServerUrlHint.
   ///
   /// In zh, this message translates to:
-  /// **'如 https://dav.example.com/todo/'**
+  /// **'如 https://dav.jianguoyun.com/dav/'**
   String get syncServerUrlHint;
 
   /// No description provided for @syncEndpoint.
@@ -1099,6 +1099,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'密码'**
   String get syncPassword;
+
+  /// No description provided for @syncWebdavPasswordHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'坚果云需使用「安全选项」中生成的应用密码'**
+  String get syncWebdavPasswordHint;
 
   /// No description provided for @syncAccessKey.
   ///

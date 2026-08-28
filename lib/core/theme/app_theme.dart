@@ -209,6 +209,12 @@ abstract final class AppTheme {
           ),
         ),
         color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
+        // 去 M3 表面染色：菜单底色精确等于卡片色，与主体卡片层次一致。
+        surfaceTintColor: Colors.transparent,
+        // 菜单项文本用 bodyMedium（M3 默认 bodyLarge 16 偏大，与紧凑行不协调）。
+        labelTextStyle: WidgetStatePropertyAll(base.textTheme.bodyMedium),
+        // 紧凑化：容器上下内边距 4（M3 默认 8），配合 menuItemHeight 40。
+        menuPadding: const EdgeInsets.symmetric(vertical: AppTokens.spaceXxs),
       ),
 
       // ── Buttons ──

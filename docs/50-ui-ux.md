@@ -86,6 +86,28 @@
 > （`CustomTransitionPage` + `SlideTransition`）、抽屉滑入曲线、进度环数值平滑过渡、
 > 底部弹窗弹簧入场、卡片按压抬升（阴影 + scale 0.98）、FAB 按压回弹。
 
+### 2.6 菜单（弹出/下拉统一规格）
+
+弹出菜单（PopupMenuButton）与下拉菜单（DropdownButton）共用同一套紧凑规格，样式收敛在
+全局 `popupMenuTheme` 与共享组件 `AppMenuItem`（`shared/widgets/app_menu_item.dart`），
+调用点不得局部覆盖 shape/constraints：
+
+| 令牌/配置 | 值 | 用途 |
+|---|---|---|
+| `menuItemHeight` | 40（M3 默认 48 紧凑化） | 菜单项行高 |
+| `menuItemIconSize` | 18 | 菜单项图标（icon 与文字间距 `spaceXs`） |
+| `menuMinWidth` | 120 | 菜单容器最小宽度（菜单随内容收缩） |
+| `popupMenuTheme.menuPadding` | 垂直 `spaceXxs`(4) | 菜单容器上下内边距 |
+| 菜单项文本 | `bodyMedium`（`labelTextStyle` 统一） | M3 默认 bodyLarge 偏大 |
+| 圆角 | `radiusCard`(12) | 弹出菜单与 DropdownButton 菜单统一 |
+| elevation | 3 | 弹出菜单与 DropdownButton 菜单统一 |
+| destructive 项 | `colorScheme.error`（图标+文字） | 删除类条目（`AppMenuItem.destructive`） |
+
+其他约定：侧边栏「任务分组」组头、文件夹行、面板列头等「更多」入口一律竖排三点
+（`more_vert`）；任务树展开动画与侧边栏文件夹展开一致——仅卡片级 `AnimatedSize`
+自上而下揭示，子行不叠加逐项动画（已移除子行 `StaggeredFadeSlide` 及
+`motionTreeStaggerDelay` 令牌）。
+
 ## 3. 主题
 
 - 模式：跟随系统 / 浅色 / 深色（`FR-SET-01`），持久化于 settings 表。
@@ -98,7 +120,7 @@
   - 顶部：应用名/Logo（无账号体系，不做头像）。
   - 系统组（无分隔线）：**今日 / 收集箱 / 日历 / 标签**；当前项浅色药丸高亮（`secondaryContainer` 派生 + 圆角 8–12）。
   - 细分隔线 + 项目区（M6）：**文件夹组（各含项目行）+ 未分组区**。
-    - 「任务分组」组头右侧为**三点菜单**（`more_horiz`，tooltip「更多选项」）：**新建文件夹**（原组头直按钮收编入菜单）/ **总览**（进入 `/projects` 项目总览页，此前该页无可达入口）。
+    - 「任务分组」组头右侧为**竖排三点菜单**（`more_vert`，tooltip「更多选项」，与文件夹行菜单方向一致）：**新建文件夹**（原组头直按钮收编入菜单）/ **总览**（进入 `/projects` 项目总览页，此前该页无可达入口）。
     - 文件夹行：`[展开/折叠箭头] [文件夹图标] 名称 [汇总未完成数]`；点击切换展开/折叠；展开状态设备本地持久化（settings，不同步）。
     - 项目行：颜色圆点 + 项目名 + 未完成数；缩进在所属文件夹下；当前项目药丸高亮。
     - 未分组区：小标题「未分组」+ 平铺项目行（在文件夹之后；收件箱仍由系统组承载，不参与文件夹）。
@@ -181,7 +203,7 @@
 ### 5.7 设置（`/settings`）
 
 - 分组：外观（主题模式、语言）、同步（入口）、关于。
-- 同步配置（`/settings/sync`）：类型选择（WebDAV/S3）、连接参数表单、测试连接、自动同步开关、WiFi-only、立即同步、上次同步时间。
+- 同步配置（`/settings/sync`）：类型选择（坚果云（WebDAV 协议）/S3）、连接参数表单（坚果云提示使用应用密码）、测试连接、自动同步开关、WiFi-only、立即同步、上次同步时间。
 
 ## 6. 交互规格
 

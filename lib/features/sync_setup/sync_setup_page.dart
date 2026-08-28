@@ -316,7 +316,7 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
                   segments: [
                     ButtonSegment(
                       value: RemoteType.webdav,
-                      label: Text(l10n.syncTypeWebdav),
+                      label: Text(l10n.syncTypeNutstore),
                     ),
                     ButtonSegment(
                       value: RemoteType.s3,
@@ -369,6 +369,10 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
                 labelText: _type == RemoteType.webdav
                     ? l10n.syncPassword
                     : l10n.syncSecretKey,
+                // 坚果云要求「应用密码」（安全选项中生成），登录密码会 401。
+                helperText: _type == RemoteType.webdav
+                    ? l10n.syncWebdavPasswordHint
+                    : null,
               ),
             ),
             if (_type == RemoteType.s3) ...[

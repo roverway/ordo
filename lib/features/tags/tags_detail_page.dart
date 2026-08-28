@@ -248,6 +248,9 @@ class _TagsDetailPageState extends ConsumerState<TagsDetailPage> {
           DropdownButton<TaskStatus?>(
             value: _filterStatus,
             isDense: true,
+            underline: const SizedBox.shrink(),
+            borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+            elevation: 3,
             items: [
               DropdownMenuItem<TaskStatus?>(
                 value: null,

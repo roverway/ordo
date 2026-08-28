@@ -15,6 +15,7 @@ import '../../features/projects/widgets/project_form_dialog.dart';
 import '../../features/settings/widgets/settings_side_sheet.dart';
 import '../../features/tasks/task_providers.dart';
 import '../../shared/widgets/confirm_dialog.dart';
+import 'app_menu_item.dart';
 import 'error_view.dart';
 import 'loading_view.dart';
 
@@ -468,12 +469,16 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
           ),
           const Spacer(),
           // 三点菜单：新建文件夹 / 项目总览（用户定稿：总览入口收进组头菜单，
-          // 不占系统组位）。
+          // 不占系统组位；竖排三点与文件夹行菜单方向一致）。
           SizedBox.square(
             dimension: 24,
             child: PopupMenuButton<String>(
               tooltip: l10n.moreOptions,
-              icon: const Icon(Icons.more_horiz, size: 16),
+              icon: Icon(
+                Icons.more_vert,
+                size: 16,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
               padding: EdgeInsets.zero,
               onSelected: (value) {
                 switch (value) {
@@ -484,25 +489,15 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
                 }
               },
               itemBuilder: (context) => [
-                PopupMenuItem(
+                AppMenuItem(
                   value: 'newFolder',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.create_new_folder_outlined, size: 18),
-                      const SizedBox(width: AppTokens.spaceMd),
-                      Text(l10n.newFolder),
-                    ],
-                  ),
+                  icon: Icons.create_new_folder_outlined,
+                  label: l10n.newFolder,
                 ),
-                PopupMenuItem(
+                AppMenuItem(
                   value: 'overview',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.dashboard_outlined, size: 18),
-                      const SizedBox(width: AppTokens.spaceMd),
-                      Text(l10n.projectsOverview),
-                    ],
-                  ),
+                  icon: Icons.dashboard_outlined,
+                  label: l10n.projectsOverview,
                 ),
               ],
             ),
@@ -780,13 +775,14 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
                       onSelected: (action) =>
                           _handleFolderMenu(context, l10n, folder, action),
                       itemBuilder: (context) => [
-                        PopupMenuItem(
+                        AppMenuItem(
                           value: 'rename',
-                          child: Text(l10n.renameFolder),
+                          label: l10n.renameFolder,
                         ),
-                        PopupMenuItem(
+                        AppMenuItem(
                           value: 'delete',
-                          child: Text(l10n.deleteFolder),
+                          label: l10n.deleteFolder,
+                          destructive: true,
                         ),
                       ],
                     ),

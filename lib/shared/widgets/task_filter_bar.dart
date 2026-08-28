@@ -69,7 +69,8 @@ class TaskFilterBar extends StatelessWidget {
               value: status,
               isDense: true,
               underline: const SizedBox.shrink(),
-              borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+              elevation: 3,
               items: [
                 DropdownMenuItem<TaskStatus?>(
                   value: null,
@@ -91,7 +92,8 @@ class TaskFilterBar extends StatelessWidget {
               value: tags.any((t) => t.id == tagId) ? tagId : null,
               isDense: true,
               underline: const SizedBox.shrink(),
-              borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+              elevation: 3,
               items: [
                 DropdownMenuItem<String?>(
                   value: null,
@@ -112,7 +114,8 @@ class TaskFilterBar extends StatelessWidget {
               value: range,
               isDense: true,
               underline: const SizedBox.shrink(),
-              borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+              elevation: 3,
               items: [
                 for (final r in TimeRange.values)
                   DropdownMenuItem<TimeRange>(

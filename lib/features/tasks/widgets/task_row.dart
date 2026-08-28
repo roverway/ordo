@@ -163,15 +163,16 @@ class _TaskRowState extends State<TaskRow> {
         ? AppTokens.radiusList
         : AppTokens.radiusCard;
 
-    // 标题文本（优先级旗帜存在时与旗帜同行；平滑划线动效，maxLines 1 + ellipsis 保留）。
+    // 标题文本（优先级旗帜存在时与旗帜同行；平滑划线动效；长标题自动折行，
+    // 首行仍与复选框中心对齐，引导线画到行底自适应）。
     final titleText = AnimatedStrikethrough(
       text: widget.task.title,
       isDone: isDone,
       style: theme.textTheme.bodyLarge?.copyWith(
         color: isDone ? colorScheme.onSurfaceVariant : colorScheme.onSurface,
       ),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
+      maxLines: null,
+      overflow: TextOverflow.clip,
     );
 
     final hasDescription = widget.task.description.isNotEmpty;

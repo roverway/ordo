@@ -286,7 +286,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
                   // （motionNormal + motionCurve，clip 使行随高度渐进露出）。
                   // 任意层级（一级展开/孙级展开或折叠）的高度变化都经本层
                   // 动画（RenderAnimatedSize 在子级尺寸变化时自动重启动画），
-                  // 内层不再重复包 AnimatedSize；子行错落见 _buildChildrenSection。
+                  // 内层不再重复包 AnimatedSize；子行不叠加自身动画，随容器
+                  // 自上而下揭示（与侧边栏文件夹展开观感一致）。
                   AnimatedSize(
                     duration: motionNormal(context),
                     curve: motionCurve(context),
@@ -301,9 +302,6 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
                             expandState,
                             childrenIndexAll: childrenIndexAll,
                             byIdAll: byIdAll,
-                            // 仅「显式展开」时播放子行错落：进页面默认展开
-                            // 不重复动画（首帧入场已由列表错落统一承担）。
-                            animateRows: expandState[rootNode.task.id] == true,
                           )
                         : const SizedBox(width: double.infinity),
                   ),
@@ -319,13 +317,13 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
   /// 卡片展开区：紧凑子任务行（用户打磨要求 2：无 Divider，行间靠间距
   /// 区分），有子任务的子行递归缩进展开（至 3 级）。
   ///
-  /// des-4 需求 3：子行逐项错落滑入（[StaggeredFadeSlide]，间隔
-  /// [AppTokens.motionTreeStaggerDelay] 30ms）——**仅显式展开时播放**
-  /// （[animateRows]；进页面默认展开不重复动画），折叠时子行瞬时移除、
-  /// 高度快速收起（不逐项慢）。reduced motion 全瞬时。
+  /// 子行**不自带**逐项动画：高度过渡由卡片级（[_buildCard]）那一个
+  /// [AnimatedSize] 统一承担，子行随容器自上而下揭示（与侧边栏文件夹
+  /// 展开观感一致）；折叠时子行瞬时移除、高度快速收起。reduced motion
+  /// 全瞬时。
   ///
   /// **高度过渡只有一层**（评审 #3 清理）：本方法不再内包 [AnimatedSize]，
-  /// 由卡片级（[_buildCard]）那一个 AnimatedSize 统一承担——`RenderAnimatedSize`
+  /// 由卡片级那一个 AnimatedSize 统一承担——`RenderAnimatedSize`
   /// 在**子级尺寸变化**时（`_layoutStable` 检测 `child.size != 目标`）会自动
   /// 重启动画追平新高度，因此**任意层级**（一级展开/孙级展开或折叠）的高度
   /// 变化都被卡片级外层覆盖；内层若再包一个，仅在顶层展开后重建时是新建的
@@ -337,7 +335,6 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     Map<String, bool> expandState, {
     required Map<String?, List<Task>> childrenIndexAll,
     required Map<String, Task> byIdAll,
-    required bool animateRows,
     int depth = 1,
     List<double> ancestorTrunks = const [],
   }) {
@@ -362,7 +359,6 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
             expandState,
             childrenIndexAll: childrenIndexAll,
             byIdAll: byIdAll,
-            animateRows: animateRows,
             lineColor: lineColor,
             depth: depth,
             ancestorTrunks: ancestorTrunks,
@@ -381,7 +377,6 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     Map<String, bool> expandState, {
     required Map<String?, List<Task>> childrenIndexAll,
     required Map<String, Task> byIdAll,
-    required bool animateRows,
     required Color lineColor,
     required int depth,
     required List<double> ancestorTrunks,
@@ -417,19 +412,14 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              StaggeredFadeSlide(
-                index: index,
-                interval: AppTokens.motionTreeStaggerDelay,
-                animateOnBuild: animateRows,
-                child: _buildDraggableRow(
-                  context,
-                  childNode,
-                  repo,
-                  expandState,
-                  style: TaskRowStyle.compact,
-                  childrenIndexAll: childrenIndexAll,
-                  byIdAll: byIdAll,
-                ),
+              _buildDraggableRow(
+                context,
+                childNode,
+                repo,
+                expandState,
+                style: TaskRowStyle.compact,
+                childrenIndexAll: childrenIndexAll,
+                byIdAll: byIdAll,
               ),
               if (hasGrandChildren)
                 _buildChildrenSection(
@@ -440,7 +430,6 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
                   expandState,
                   childrenIndexAll: childrenIndexAll,
                   byIdAll: byIdAll,
-                  animateRows: expandState[childNode.task.id] == true,
                   depth: depth + 1,
                   ancestorTrunks: nextAncestorTrunks,
                 ),

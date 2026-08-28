@@ -10,6 +10,7 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_breakpoints.dart';
 import '../../core/utils/motion.dart';
 import '../../shared/widgets/app_drawer.dart';
+import '../../shared/widgets/app_menu_item.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
@@ -120,54 +121,26 @@ class TaskListPage extends ConsumerWidget {
                     itemBuilder: (context) => [
                       // 名称随状态表达**可执行动作**：显示中 →「隐藏已完成任务」，
                       // 已隐藏 →「显示已完成任务」；眼睛图标同态（睁/闭眼）。
-                      PopupMenuItem<String>(
+                      AppMenuItem<String>(
                         value: 'toggleCompleted',
-                        child: Row(
-                          children: [
-                            Icon(
-                              hideDone
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                              size: 20,
-                            ),
-                            SizedBox(width: AppTokens.spaceMd),
-                            Text(
-                              hideDone
-                                  ? l10n.showCompletedTasks
-                                  : l10n.hideCompletedTasks,
-                            ),
-                          ],
-                        ),
+                        icon: hideDone
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        label: hideDone
+                            ? l10n.showCompletedTasks
+                            : l10n.hideCompletedTasks,
                       ),
                       const PopupMenuDivider(),
-                      PopupMenuItem<String>(
+                      AppMenuItem<String>(
                         value: 'edit',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.edit_outlined, size: 20),
-                            SizedBox(width: AppTokens.spaceMd),
-                            Text(l10n.edit),
-                          ],
-                        ),
+                        icon: Icons.edit_outlined,
+                        label: l10n.edit,
                       ),
-                      PopupMenuItem<String>(
+                      AppMenuItem<String>(
                         value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.delete_outlined,
-                              size: 20,
-                              color: Theme.of(context).colorScheme.error,
-                            ),
-                            SizedBox(width: AppTokens.spaceMd),
-                            Text(
-                              l10n.delete,
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.error,
-                              ),
-                            ),
-                          ],
-                        ),
+                        icon: Icons.delete_outlined,
+                        label: l10n.delete,
+                        destructive: true,
                       ),
                     ],
                   ),

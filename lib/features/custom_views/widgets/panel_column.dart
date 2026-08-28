@@ -7,6 +7,7 @@ import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/custom_view_models.dart';
 import '../../../shared/widgets/animated_strikethrough.dart';
+import '../../../shared/widgets/app_menu_item.dart';
 import '../../projects/project_providers.dart';
 import '../../tasks/task_edit_page.dart';
 import '../../tasks/widgets/task_create_sheet.dart';
@@ -233,10 +234,6 @@ class PanelColumn extends ConsumerWidget {
               color: theme.colorScheme.onSurfaceVariant,
             ),
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 160),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-            ),
             onSelected: (val) {
               if (val == 'toggle_direction') {
                 final newDir = panel.sortDirection == 'asc' ? 'desc' : 'asc';
@@ -247,44 +244,38 @@ class PanelColumn extends ConsumerWidget {
             },
             itemBuilder: (ctx) => [
               CheckedPopupMenuItem<String>(
+                height: AppTokens.menuItemHeight,
                 value: 'sortOrder',
                 checked: panel.sortBy == 'sortOrder',
                 child: Text(l10n.sortOrderManual),
               ),
               CheckedPopupMenuItem<String>(
+                height: AppTokens.menuItemHeight,
                 value: 'priority',
                 checked: panel.sortBy == 'priority',
                 child: Text(l10n.sortOrderPriority),
               ),
               CheckedPopupMenuItem<String>(
+                height: AppTokens.menuItemHeight,
                 value: 'endAt',
                 checked: panel.sortBy == 'endAt',
                 child: Text(l10n.sortOrderDueDate),
               ),
               CheckedPopupMenuItem<String>(
+                height: AppTokens.menuItemHeight,
                 value: 'title',
                 checked: panel.sortBy == 'title',
                 child: Text(l10n.sortOrderTitle),
               ),
               const PopupMenuDivider(),
-              PopupMenuItem<String>(
+              AppMenuItem<String>(
                 value: 'toggle_direction',
-                child: Row(
-                  children: [
-                    Icon(
-                      panel.sortDirection == 'asc'
-                          ? Icons.arrow_upward
-                          : Icons.arrow_downward,
-                      size: 16,
-                    ),
-                    const SizedBox(width: AppTokens.spaceXs),
-                    Text(
-                      panel.sortDirection == 'asc'
-                          ? l10n.sortAsc
-                          : l10n.sortDesc,
-                    ),
-                  ],
-                ),
+                icon: panel.sortDirection == 'asc'
+                    ? Icons.arrow_upward
+                    : Icons.arrow_downward,
+                label: panel.sortDirection == 'asc'
+                    ? l10n.sortAsc
+                    : l10n.sortDesc,
               ),
             ],
           ),
@@ -318,15 +309,11 @@ class PanelColumn extends ConsumerWidget {
           if (onDeletePanel != null)
             PopupMenuButton<String>(
               icon: Icon(
-                Icons.more_horiz,
+                Icons.more_vert,
                 size: 20,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 140),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-              ),
               onSelected: (val) {
                 if (val == 'delete') {
                   onDeletePanel?.call();
@@ -335,32 +322,16 @@ class PanelColumn extends ConsumerWidget {
                 }
               },
               itemBuilder: (ctx) => [
-                PopupMenuItem(
+                AppMenuItem(
                   value: 'edit_title',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.edit_outlined, size: 16),
-                      const SizedBox(width: AppTokens.spaceXs),
-                      Text(l10n.editPanel),
-                    ],
-                  ),
+                  icon: Icons.edit_outlined,
+                  label: l10n.editPanel,
                 ),
-                PopupMenuItem(
+                AppMenuItem(
                   value: 'delete',
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.delete_outline,
-                        size: 16,
-                        color: theme.colorScheme.error,
-                      ),
-                      const SizedBox(width: AppTokens.spaceXs),
-                      Text(
-                        l10n.deletePanel,
-                        style: TextStyle(color: theme.colorScheme.error),
-                      ),
-                    ],
-                  ),
+                  icon: Icons.delete_outline,
+                  label: l10n.deletePanel,
+                  destructive: true,
                 ),
               ],
             ),

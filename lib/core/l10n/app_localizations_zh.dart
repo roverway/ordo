@@ -509,7 +509,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncType => '远端类型';
 
   @override
-  String get syncTypeWebdav => 'WebDAV';
+  String get syncTypeNutstore => '坚果云';
 
   @override
   String get syncTypeS3 => 'S3 兼容桶';
@@ -521,7 +521,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncServerUrl => '服务器地址';
 
   @override
-  String get syncServerUrlHint => '如 https://dav.example.com/todo/';
+  String get syncServerUrlHint => '如 https://dav.jianguoyun.com/dav/';
 
   @override
   String get syncEndpoint => 'Endpoint';
@@ -534,6 +534,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get syncPassword => '密码';
+
+  @override
+  String get syncWebdavPasswordHint => '坚果云需使用「安全选项」中生成的应用密码';
 
   @override
   String get syncAccessKey => 'Access Key';

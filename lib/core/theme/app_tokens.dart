@@ -195,10 +195,6 @@ abstract final class AppTokens {
   /// 列表错落入场上移距离（fade + slide-up，docs/63-motion-polish.md §5 B）。
   static const double motionStaggerSlideOffset = 8;
 
-  /// 任务树子任务区展开错落间隔（比列表入场 50ms 更短，树内行多；
-  /// des-4 需求 3：每次展开播放）。
-  static const Duration motionTreeStaggerDelay = Duration(milliseconds: 30);
-
   /// 勾选弹性幅度：勾选时勾选框 scale 1 → [checkboxBounceScale] → 1
   /// （docs/63-motion-polish.md §5 A）。
   static const double checkboxBounceScale = 1.15;
@@ -317,6 +313,17 @@ abstract final class AppTokens {
 
   /// Empty state v2 背衬圆内图标尺寸。
   static const double emptyBackdropIconSize = 32;
+
+  // ── Menu（弹出/下拉菜单统一规格）──
+
+  /// 弹出菜单项高度（M3 默认 48 的紧凑化；50-ui-ux §2.6 菜单规格）。
+  static const double menuItemHeight = 40;
+
+  /// 菜单项图标尺寸（统一各调用点 16/18/20 混用）。
+  static const double menuItemIconSize = 18;
+
+  /// 弹出菜单容器最小宽度（默认 minWidth 112 略收紧；各调用点不再局部覆盖）。
+  static const double menuMinWidth = 120;
 
   // ── 任务列表扁平行（61-task-list-redesign.md §4/§7）──
 
