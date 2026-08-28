@@ -29,7 +29,6 @@ import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/priority_color.dart';
 import '../../../core/utils/dates.dart';
-import '../../../core/utils/motion.dart';
 import '../../../shared/widgets/app_menu_item.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/tag_chip.dart';
@@ -78,6 +77,9 @@ class TaskEditorController extends ChangeNotifier {
   TaskEditorController({required this.mode});
 
   final TaskEditorMode mode;
+
+  /// 标题输入框焦点节点（支持容器受控聚焦，避免入场动画中途唤起软键盘导致弹窗上跳）。
+  final FocusNode titleFocusNode = FocusNode();
 
   /// 表单文本控制器（编辑器 ↔ taskFormProvider 的双向桥）。
   final TextEditingController titleController = TextEditingController();
@@ -178,6 +180,7 @@ class TaskEditorController extends ChangeNotifier {
 
   @override
   void dispose() {
+    titleFocusNode.dispose();
     titleController.dispose();
     descriptionController.dispose();
     notesController.dispose();
@@ -198,6 +201,7 @@ class TaskEditor extends ConsumerStatefulWidget {
     this.showToolbar = true,
     this.showSubtasks = true,
     this.hasExistingChildren = false,
+    this.autofocus = true,
     this.onDeleteRequested,
   });
 
@@ -217,6 +221,10 @@ class TaskEditor extends ConsumerStatefulWidget {
 
   /// 任务当前在 DB 中是否已有子任务（状态派生禁用的静态依据）。
   final bool hasExistingChildren;
+
+  /// 是否在挂载时自动聚焦标题（全屏页等默认为 true；底部弹窗等由容器在
+  /// 入场动画完成后受控聚焦，避免动画与软键盘弹起冲突导致上跳）。
+  final bool autofocus;
 
   /// 编辑态 ⋯ 菜单「删除」回调（容器执行确认 + 级联删除，D4）。
   final VoidCallback? onDeleteRequested;
@@ -288,78 +296,47 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
         // ②.5 日期展示行（用户反馈：已设开始/截止日期在编辑器正文不可见，
         // 仅工具栏弹层内可见）：form 驱动实时展示，纯展示无交互（工具栏
         // 日期图标仍是唯一交互入口）；无已设日期不渲染。
-        // AnimatedSize：数据经 loadTask/tagsStream 异步分批填充（编辑态首帧
-        // 为空），条件渲染瞬时插入会让下方内容整块跳动，高度变化平滑过渡
-        // （用户评审 2026-08；reduced motion 瞬时）。
-        AnimatedSize(
-          duration: motionFast(context),
-          curve: motionCurve(context),
-          alignment: Alignment.topCenter,
-          clipBehavior: Clip.hardEdge,
-          child: (formState.startAt != null || formState.endAt != null)
-              ? Padding(
-                  padding: const EdgeInsets.only(top: AppTokens.spaceXs),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.calendar_today_outlined,
-                        size: 14,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: AppTokens.spaceXxs),
-                      Expanded(
-                        child: Text(
-                          formatDateRange(
-                            formState.startAt,
-                            formState.endAt,
-                            l10n,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                    ],
+        if (formState.startAt != null || formState.endAt != null)
+          Padding(
+            padding: const EdgeInsets.only(top: AppTokens.spaceXs),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.calendar_today_outlined,
+                  size: 14,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: AppTokens.spaceXxs),
+                Expanded(
+                  child: Text(
+                    formatDateRange(formState.startAt, formState.endAt, l10n),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                )
-              : const SizedBox(width: double.infinity),
-        ),
+                ),
+              ],
+            ),
+          ),
         // ②.6 已选标签 chips（用户要求）：form 驱动实时预览，纯展示无交互，
         // 外观与任务行/扁平行标签 chip 一致；无已选标签不渲染。
-        // 顺序与任务列表行一致（日期在上、标签在底部）。同上 AnimatedSize
-        // 平滑高度过渡（tagsStream 晚一拍到达时 chips 二次撑高不再跳）。
-        AnimatedSize(
-          duration: motionFast(context),
-          curve: motionCurve(context),
-          alignment: Alignment.topCenter,
-          clipBehavior: Clip.hardEdge,
-          child: formState.selectedTagIds.isNotEmpty
-              ? Padding(
-                  padding: const EdgeInsets.only(top: AppTokens.spaceXs),
-                  child: _buildSelectedTagChips(context, formState),
-                )
-              : const SizedBox(width: double.infinity),
-        ),
-        // ③ 子任务列表（仅 1 级任务展示）。AnimatedSize：编辑态子任务行在
-        // loadTask 后异步初始化、新增/删除行也会即时变高——瞬时插入会让
-        // 下方工具栏整块位移（用户评审 2026-08），高度平滑过渡。
-        AnimatedSize(
-          duration: motionFast(context),
-          curve: motionCurve(context),
-          alignment: Alignment.topCenter,
-          clipBehavior: Clip.hardEdge,
-          child: widget.showSubtasks
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: AppTokens.spaceXs),
-                    _buildSubtasks(context, l10n),
-                  ],
-                )
-              : const SizedBox(width: double.infinity),
-        ),
+        // 顺序与任务列表行一致（日期在上、标签在底部）。
+        if (formState.selectedTagIds.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: AppTokens.spaceXs),
+            child: _buildSelectedTagChips(context, formState),
+          ),
+        // ③ 子任务列表（仅 1 级任务展示）。
+        if (widget.showSubtasks)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: AppTokens.spaceXs),
+              _buildSubtasks(context, l10n),
+            ],
+          ),
         // 底部工具栏（常驻，替代原选项行，D5）。
         if (widget.showToolbar) ...[
           const SizedBox(height: AppTokens.spaceXs),
@@ -390,7 +367,8 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
     final theme = Theme.of(context);
     return TextField(
       controller: widget.controller.titleController,
-      autofocus: true,
+      focusNode: widget.controller.titleFocusNode,
+      autofocus: widget.autofocus,
       // 长标题自动换行（用户要求）：maxLines: null = 不限行数，随输入自动
       // 增高；键盘回车由平台改为换行（单行 next 动作失效，无 textInputAction）。
       maxLines: null,
@@ -545,46 +523,49 @@ class TaskEditorToolbar extends ConsumerWidget {
     final hasDate = formState.startAt != null || formState.endAt != null;
     final hasTags = formState.selectedTagIds.isNotEmpty;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _ToolbarAction(
-          tooltip: l10n.dateAndReminder,
-          icon: Icons.calendar_today_outlined,
-          active: hasDate,
-          onTap: () => _pickDate(context, ref),
-        ),
-        _ToolbarAction(
-          tooltip: statusDisabled
-              ? l10n.statusDerivedFromChildren
-              : _statusLabel(l10n, formState.status),
-          icon: _statusIcon(formState.status),
-          iconColor: _statusColor(formState.status),
-          active: formState.status != TaskStatus.todo,
-          enabled: !statusDisabled,
-          onTap: statusDisabled ? null : () => _pickStatus(context, ref),
-        ),
-        _ToolbarAction(
-          tooltip: l10n.taskTags,
-          icon: Icons.label_outline,
-          active: hasTags,
-          onTap: () => _pickTags(context, ref),
-        ),
-        _ToolbarAction(
-          tooltip: l10n.priority,
-          icon: Icons.flag_outlined,
-          iconColor: priorityColor(formState.priority),
-          active: formState.priority != TaskPriority.none,
-          onTap: () => _pickPriority(context, ref),
-        ),
-        // 附件占位（v1 数据模型无附件字段，D5）。
-        _ToolbarAction(
-          tooltip: l10n.attachmentComingSoon,
-          icon: Icons.attach_file,
-          enabled: false,
-          onTap: null,
-        ),
-      ],
+    return SizedBox(
+      height: AppTokens.touchTarget,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _ToolbarAction(
+            tooltip: l10n.dateAndReminder,
+            icon: Icons.calendar_today_outlined,
+            active: hasDate,
+            onTap: () => _pickDate(context, ref),
+          ),
+          _ToolbarAction(
+            tooltip: statusDisabled
+                ? l10n.statusDerivedFromChildren
+                : _statusLabel(l10n, formState.status),
+            icon: _statusIcon(formState.status),
+            iconColor: _statusColor(formState.status),
+            active: formState.status != TaskStatus.todo,
+            enabled: !statusDisabled,
+            onTap: statusDisabled ? null : () => _pickStatus(context, ref),
+          ),
+          _ToolbarAction(
+            tooltip: l10n.taskTags,
+            icon: Icons.label_outline,
+            active: hasTags,
+            onTap: () => _pickTags(context, ref),
+          ),
+          _ToolbarAction(
+            tooltip: l10n.priority,
+            icon: Icons.flag_outlined,
+            iconColor: priorityColor(formState.priority),
+            active: formState.priority != TaskPriority.none,
+            onTap: () => _pickPriority(context, ref),
+          ),
+          // 附件占位（v1 数据模型无附件字段，D5）。
+          _ToolbarAction(
+            tooltip: l10n.attachmentComingSoon,
+            icon: Icons.attach_file,
+            enabled: false,
+            onTap: null,
+          ),
+        ],
+      ),
     );
   }
 }

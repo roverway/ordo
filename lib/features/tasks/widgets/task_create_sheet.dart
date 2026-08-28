@@ -74,12 +74,6 @@ class TaskCreateSheet extends ConsumerStatefulWidget {
     TaskPriority? initialPriority,
     List<String>? initialTagIds,
   }) {
-    // 表单在**路由打开前**同步复位/预填（用户评审 2026-08）：此前首帧渲染
-    // 的是 taskFormProvider 里上一次的表单残留（日期/标签/子任务俱全），
-    // 首帧后才被 resetForNew 清空/预填——底部对齐弹窗的高度即内容高度，
-    // 入场中途的高度突变表现为"突然向上弹一下"。同步预清后首帧即最终内容
-    // （不 await：弹窗必须即时弹出，收件箱 ensure 留在 _initForm 异步完成
-    // ——它仅校正项目字段，不改变内容高度）。_initForm 幂等，保留作兜底。
     final notifier = ProviderScope.containerOf(
       context,
       listen: false,
@@ -92,65 +86,40 @@ class TaskCreateSheet extends ConsumerStatefulWidget {
       notifier.setSelectedTags(initialTagIds);
     }
 
-    return showGeneralDialog<void>(
+    final sheetTheme = Theme.of(context).bottomSheetTheme;
+
+    return showModalBottomSheet<void>(
       context: context,
-      // 遮罩点击关闭（走 PopScope 拦截 → 自动保存 → 手动 pop；与
-      // showModalBottomSheet 的 barrierDismissible 语义一致）。
-      barrierDismissible: true,
-      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-      // 与 showModalBottomSheet 默认遮罩同色（Material 常量，非散落魔法值）。
-      barrierColor: Colors.black54,
-      transitionDuration: motionSlow(context),
-      transitionBuilder: (dialogContext, animation, secondaryAnimation, child) {
-        // 平滑滑入：自底部整屏上滑，easeOutCubic 无过冲（弹性曲线的过冲在
-        // 整屏行程上会被放大成可见跳动，见类注释）。reduced motion 时时长
-        // 归零 → 瞬时。
-        final slide = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
-            .animate(
-              CurvedAnimation(
-                parent: animation,
-                curve: motionCurve(dialogContext),
-              ),
-            );
-        return SlideTransition(position: slide, child: child);
-      },
-      pageBuilder: (dialogContext, animation, secondaryAnimation) {
-        final sheetTheme = Theme.of(dialogContext).bottomSheetTheme;
-        return Align(
-          // 底部对齐：保持底部弹窗形态（60–65% 高、顶部圆角、遮罩、
-          // 键盘 viewInsets 上移；等效 showModalBottomSheet isScrollControlled）。
-          alignment: Alignment.bottomCenter,
-          child: SafeArea(
-            // 与 showModalBottomSheet(useSafeArea: true) 一致：底部安全区
-            // 不设 padding（sheet 背景铺满屏幕底沿）。
-            bottom: false,
-            child: Material(
-              color: Theme.of(dialogContext).colorScheme.surface,
-              // 与框架 M3 默认 modalElevation 对齐（AppTokens.elevationCard=1.0）。
-              elevation:
-                  sheetTheme.modalElevation ??
-                  sheetTheme.elevation ??
-                  AppTokens.elevationCard,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(AppTokens.radiusDialog),
-                ),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Padding(
-                // 键盘弹出时弹窗整体上移，内容区保持输入可见（55-ui-redesign §4.1）。
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.viewInsetsOf(dialogContext).bottom,
-                ),
-                child: TaskCreateSheet(
-                  projectId: projectId,
-                  parentId: parentId,
-                  initialStartAt: initialStartAt,
-                  initialEndAt: initialEndAt,
-                  initialPriority: initialPriority,
-                  initialTagIds: initialTagIds,
-                ),
-              ),
+      isScrollControlled: true,
+      useSafeArea: true,
+      sheetAnimationStyle: AnimationStyle(
+        duration: motionSlow(context),
+        reverseDuration: motionSlow(context),
+      ),
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      elevation:
+          sheetTheme.modalElevation ??
+          sheetTheme.elevation ??
+          AppTokens.elevationCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppTokens.radiusDialog),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      builder: (sheetContext) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
+          ),
+          child: SingleChildScrollView(
+            child: TaskCreateSheet(
+              projectId: projectId,
+              parentId: parentId,
+              initialStartAt: initialStartAt,
+              initialEndAt: initialEndAt,
+              initialPriority: initialPriority,
+              initialTagIds: initialTagIds,
             ),
           ),
         );
@@ -166,6 +135,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet> {
   final _editorController = TaskEditorController(mode: TaskEditorMode.create);
   bool _isSaving = false;
   bool _initialized = false;
+  bool _focusRequested = false;
 
   /// 自动保存完成后置 true，放行 PopScope 的 pop（canPop 由状态驱动）。
   bool _allowPop = false;
@@ -176,6 +146,42 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet> {
     // 首帧后初始化表单（Riverpod 禁止在 initState 中写 provider，
     // 与 task_edit_page._loadData 的 addPostFrameCallback 模式一致）。
     WidgetsBinding.instance.addPostFrameCallback((_) => _initForm());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _setupAutoFocus();
+  }
+
+  /// 延迟聚焦：待入场转场动画（motionSlow 350ms）完全结束后再唤起软键盘，
+  /// 彻底消除软键盘异步弹起（viewInsets 突变）与整屏滑入动画重叠导致的「上跳」跳动。
+  void _setupAutoFocus() {
+    if (_focusRequested) return;
+    final modalRoute = ModalRoute.of(context);
+    if (modalRoute == null) {
+      _focusRequested = true;
+      _editorController.titleFocusNode.requestFocus();
+      return;
+    }
+
+    final animation = modalRoute.animation;
+    if (animation == null || animation.isCompleted) {
+      _focusRequested = true;
+      _editorController.titleFocusNode.requestFocus();
+    } else {
+      void listener(AnimationStatus status) {
+        if (status == AnimationStatus.completed) {
+          animation.removeStatusListener(listener);
+          if (mounted && !_focusRequested) {
+            _focusRequested = true;
+            _editorController.titleFocusNode.requestFocus();
+          }
+        }
+      }
+
+      animation.addStatusListener(listener);
+    }
   }
 
   /// 初始化表单：同步复位 + 解析项目（缺省收件箱，幂等 ensure，产品决策 #3）。
@@ -204,7 +210,10 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet> {
     if (widget.projectId == null) {
       try {
         final inbox = await ref.read(inboxProjectProvider.future);
-        notifier.setProjectAndParent(inbox.id, widget.parentId);
+        final currentState = ref.read(taskFormProvider);
+        if (currentState.projectId != inbox.id) {
+          notifier.setProjectAndParent(inbox.id, widget.parentId);
+        }
       } catch (_) {
         // ensure 失败极罕见（SQLite 本地库）：表单已按收件箱 id 初始化，
         // 保存时若行缺失会经 RepositoryException 走 SnackBar，不静默丢数据。
@@ -227,7 +236,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet> {
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _saveAndClose();
       },
-      child: SingleChildScrollView(
+      child: Padding(
         padding: const EdgeInsets.fromLTRB(
           AppTokens.spaceMd,
           AppTokens.spaceSm,
@@ -236,6 +245,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet> {
         ),
         child: TaskEditor(
           controller: _editorController,
+          autofocus: false,
           // 子任务区仅 1 级任务展示（新建子任务时隐藏）。
           showSubtasks: widget.parentId == null,
         ),

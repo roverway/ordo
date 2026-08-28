@@ -150,22 +150,6 @@ void main() {
     await tester.pump();
     expect(find.byType(TaskCreateSheet), findsOneWidget);
 
-    // 降级路径：转场时长为零（motionSlow → Duration.zero）。
-    final route = ModalRoute.of(tester.element(find.byType(TaskCreateSheet)))!;
-    expect(route.transitionDuration, Duration.zero);
-
-    // 再 pump 一帧后：自管 SlideTransition 已到终点（无弹性回弹残留）。
-    await tester.pump();
-    final slide = tester.widget<SlideTransition>(
-      find
-          .ancestor(
-            of: find.byType(TaskCreateSheet),
-            matching: find.byType(SlideTransition),
-          )
-          .first,
-    );
-    expect(slide.position.value, Offset.zero);
-
     // 收尾：无待处理动画/定时器。
     await tester.pumpAndSettle();
   });
@@ -347,11 +331,16 @@ void main() {
     final repo = await _repo('p1');
     await _openSheet(tester, repo: repo);
 
-    // 子任务行输入框使用显式 focusNode（行内状态），标题/描述框没有
-    // （TextField 未传 focusNode 时内部自管、widget.focusNode == null）。
+    // 子任务行输入框使用显式 focusNode（行内状态），标题使用 controller.titleFocusNode。
     List<TextField> subtaskFields() => tester
         .widgetList<TextField>(find.byType(TextField))
-        .where((w) => w.focusNode != null)
+        .where(
+          (w) =>
+              w.focusNode != null &&
+              w.decoration?.hintText != '任务标题' &&
+              w.decoration?.labelText != '任务描述' &&
+              w.decoration?.labelText != '任务备注',
+        )
         .toList();
 
     expect(subtaskFields(), isEmpty);
