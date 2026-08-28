@@ -333,6 +333,27 @@ abstract final class AppTokens {
   /// 用户打磨要求 2：24 → 20 适度收紧）。
   static const double treeIndentLevel = 20;
 
+  /// 一级任务缩进（卡片顶格）
+  static const double treeIndentL1 = 0;
+
+  /// 二级任务缩进（对准一级复选框右侧）
+  static const double treeIndentL2 = 20;
+
+  /// 三级任务缩进（对准二级标题正文起始线）
+  static const double treeIndentL3 = 38;
+
+  /// 一级任务标题字阶
+  static const double textTaskL1Size = 16;
+  static const FontWeight textTaskL1Weight = FontWeight.w600;
+
+  /// 二级任务标题字阶
+  static const double textTaskL2Size = 15;
+  static const FontWeight textTaskL2Weight = FontWeight.w500;
+
+  /// 三级任务标题字阶
+  static const double textTaskL3Size = 14;
+  static const FontWeight textTaskL3Weight = FontWeight.w400;
+
   /// 行尾展开/折叠箭头尺寸（61 §4.5，比 AppBar/树内 [expandArrowSize] 20 稍小）。
   static const double expandArrowSizeRow = 16;
 

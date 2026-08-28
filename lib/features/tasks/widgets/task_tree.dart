@@ -212,10 +212,11 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     return result;
   }
 
-  /// 一级任务大卡片（D1）：卡片头 + 展开区（Divider 分隔的紧凑子任务行）。
+  /// 一级任务大卡片（D1）：卡片头 + 展开区（自然梯队缩进子任务行）。
   ///
-  /// 形态 A（极简平铺流）：1 级任务直接平铺于纯净画布上；展开子任务时
-  /// 采用一块轻微凹陷底色（surfaceSunken）包裹，表达层级归属而无多重卡片嵌套感。
+  /// 现代一体化卡片容器：1 级任务及其全部后代任务（2 级、3 级）包裹在同一个
+  /// 精致白卡容器（surfaceCard + radiusCard + cardShadowLight）内，
+  /// 告别生硬折线，采用纯净字阶与阶梯缩进表达层级。
   Widget _buildCard(
     BuildContext context,
     TreeNode rootNode,
@@ -229,9 +230,22 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     final isDark = theme.brightness == Brightness.dark;
     final children = childrenOf[rootNode.task.id] ?? const <TreeNode>[];
 
-    return Padding(
-      // 形态 A：行间保留适度呼吸间距
-      padding: const EdgeInsets.only(bottom: AppTokens.spaceXxs),
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppTokens.spaceSm),
+      decoration: BoxDecoration(
+        color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
+        borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+        boxShadow: isDark
+            ? AppTokens.cardShadowDarkList
+            : AppTokens.cardShadowLight,
+        border: Border.all(
+          color: isDark
+              ? AppTokens.borderSubtleDark
+              : AppTokens.borderSubtleLight,
+          width: 0.5,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -244,7 +258,7 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
             childrenIndexAll: childrenIndexAll,
             byIdAll: byIdAll,
           ),
-          // 高度过渡层：子任务随凹槽容器自上而下平滑揭示
+          // 高度过渡层：子任务随容器自上而下平滑揭示
           AnimatedSize(
             duration: motionNormal(context),
             curve: motionCurve(context),
@@ -253,39 +267,17 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
             child: rootNode.isExpanded && children.isNotEmpty
                 ? Padding(
                     padding: const EdgeInsets.only(
-                      left: AppTokens.spaceXxs,
-                      right: AppTokens.spaceXxs,
-                      top: 2,
+                      top: AppTokens.spaceXxs / 2,
                       bottom: AppTokens.spaceXs,
                     ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        // 凹陷微底色（比背景沉约 2%）：轻量包裹，表达层级归属
-                        color: isDark
-                            ? AppTokens.surfaceSunkenDark
-                            : AppTokens.surfaceSunkenLight,
-                        borderRadius: BorderRadius.circular(
-                          AppTokens.radiusList,
-                        ),
-                        border: Border.all(
-                          color: isDark
-                              ? AppTokens.borderSubtleDark
-                              : AppTokens.borderSubtleLight,
-                          width: 0.5,
-                        ),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: AppTokens.spaceXxs,
-                      ),
-                      child: _buildChildrenSection(
-                        context,
-                        children,
-                        childrenOf,
-                        repo,
-                        expandState,
-                        childrenIndexAll: childrenIndexAll,
-                        byIdAll: byIdAll,
-                      ),
+                    child: _buildChildrenSection(
+                      context,
+                      children,
+                      childrenOf,
+                      repo,
+                      expandState,
+                      childrenIndexAll: childrenIndexAll,
+                      byIdAll: byIdAll,
                     ),
                   )
                 : const SizedBox(width: double.infinity),
@@ -295,19 +287,11 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     );
   }
 
-  /// 卡片展开区：紧凑子任务行（用户打磨要求 2：无 Divider，行间靠间距
-  /// 区分），有子任务的子行递归缩进展开（至 3 级）。
+  /// 卡片展开区：紧凑子任务行（无生硬折线，行间靠间距与 3 级自然梯度缩进区分），
+  /// 有子任务的子行递归缩进展开（至 3 级）。
   ///
-  /// 子行**不自带**逐项动画：高度过渡由卡片级（[_buildCard]）那一个
-  /// [AnimatedSize] 统一承担，子行随容器自上而下揭示（与侧边栏文件夹
-  /// 展开观感一致）；折叠时子行瞬时移除、高度快速收起。reduced motion
-  /// 全瞬时。
-  ///
-  /// **高度过渡只有一层**（评审 #3 清理）：本方法不再内包 [AnimatedSize]，
-  /// 由卡片级那一个 AnimatedSize 统一承担——`RenderAnimatedSize`
-  /// 在**子级尺寸变化**时（`_layoutStable` 检测 `child.size != 目标`）会自动
-  /// 重启动画追平新高度，因此**任意层级**（一级展开/孙级展开或折叠）的高度
-  /// 变化都被卡片级外层覆盖；内层若再包一个，仅在顶层展开后重建时是新建的
+  /// 子行不自带逐项动画：高度过渡由卡片级（[_buildCard]）那一个
+  /// [AnimatedSize] 统一承担，子行随容器自上而下揭示。
   Widget _buildChildrenSection(
     BuildContext context,
     List<TreeNode> children,
@@ -317,15 +301,7 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     required Map<String?, List<Task>> childrenIndexAll,
     required Map<String, Task> byIdAll,
     int depth = 1,
-    List<double> ancestorTrunks = const [],
   }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final colorScheme = theme.colorScheme;
-    final lineColor = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : colorScheme.onSurface.withValues(alpha: 0.08);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -340,9 +316,7 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
             expandState,
             childrenIndexAll: childrenIndexAll,
             byIdAll: byIdAll,
-            lineColor: lineColor,
             depth: depth,
-            ancestorTrunks: ancestorTrunks,
           ),
       ],
     );
@@ -358,66 +332,50 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     Map<String, bool> expandState, {
     required Map<String?, List<Task>> childrenIndexAll,
     required Map<String, Task> byIdAll,
-    required Color lineColor,
     required int depth,
-    required List<double> ancestorTrunks,
   }) {
-    final isLast = index == total - 1;
     final grandChildren = childrenOf[childNode.task.id];
     final hasGrandChildren =
         childNode.isExpanded && (grandChildren?.isNotEmpty ?? false);
 
-    // 局部坐标系中：
-    // 当前主干垂线 X = 26.0（与父级复选框中心垂直共线）
-    // 当前分支引线终止 X = 41.0（与子任务复选框保持 4-5px 呼吸间隙，解耦流程图感）
-    // 递归下级（孙任务）时：如果当前不是最后兄弟项，在下级局部坐标 X = -2.0 处绘制贯穿线（-2.0 + 28.0 = 26.0）
-    const localTrunkX = 26.0;
-    const localTargetBranchEndX = 41.0;
-    final nextAncestorTrunks = isLast ? <double>[] : <double>[-2.0];
+    // 3 级自然梯度缩进：
+    // depth == 1 (二级子任务) 缩进 treeIndentL2 (20dp)
+    // depth == 2 (三级孙任务) 额外缩进 (treeIndentL3 - treeIndentL2 = 18dp)
+    final indentLeft = depth == 1
+        ? AppTokens.treeIndentL2
+        : (AppTokens.treeIndentL3 - AppTokens.treeIndentL2);
 
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: CustomPaint(
-            painter: _SubtaskTreeConnectorPainter(
-              color: lineColor,
-              isLast: isLast,
-              ancestorTrunks: ancestorTrunks,
-              currentTrunkX: localTrunkX,
-              targetBranchEndX: localTargetBranchEndX,
+    return Padding(
+      padding: EdgeInsets.only(
+        left: indentLeft,
+        top: AppTokens.spaceXxs / 2,
+        bottom: AppTokens.spaceXxs / 2,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildDraggableRow(
+            context,
+            childNode,
+            repo,
+            expandState,
+            style: TaskRowStyle.compact,
+            childrenIndexAll: childrenIndexAll,
+            byIdAll: byIdAll,
+          ),
+          if (hasGrandChildren)
+            _buildChildrenSection(
+              context,
+              grandChildren!,
+              childrenOf,
+              repo,
+              expandState,
+              childrenIndexAll: childrenIndexAll,
+              byIdAll: byIdAll,
+              depth: depth + 1,
             ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(left: 28.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildDraggableRow(
-                context,
-                childNode,
-                repo,
-                expandState,
-                style: TaskRowStyle.compact,
-                childrenIndexAll: childrenIndexAll,
-                byIdAll: byIdAll,
-              ),
-              if (hasGrandChildren)
-                _buildChildrenSection(
-                  context,
-                  grandChildren!,
-                  childrenOf,
-                  repo,
-                  expandState,
-                  childrenIndexAll: childrenIndexAll,
-                  byIdAll: byIdAll,
-                  depth: depth + 1,
-                  ancestorTrunks: nextAncestorTrunks,
-                ),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1022,67 +980,4 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
       message: l10n.emptyProjectDetail,
     );
   }
-}
-
-/// 子任务树状层级极细浅色引导线 Painter（Linear / Things 3 极简风格）
-class _SubtaskTreeConnectorPainter extends CustomPainter {
-  const _SubtaskTreeConnectorPainter({
-    required this.color,
-    required this.isLast,
-    required this.ancestorTrunks,
-    required this.currentTrunkX,
-    required this.targetBranchEndX,
-  });
-
-  final Color color;
-  final bool isLast;
-  final List<double> ancestorTrunks;
-  final double currentTrunkX;
-  final double targetBranchEndX;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.0
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    const branchY = 22.0; // 严格对准复选框 44 触控区垂直中线 22.0
-
-    // 1. 绘制祖先节点的连续贯穿竖线
-    for (final trunkX in ancestorTrunks) {
-      canvas.drawLine(Offset(trunkX, 0), Offset(trunkX, size.height), paint);
-    }
-
-    // 2. 绘制当前节点的主干线与分支线
-    final trunkX = currentTrunkX;
-    final endX = targetBranchEndX;
-
-    final path = Path();
-    path.moveTo(trunkX, 0);
-    if (isLast) {
-      path.lineTo(trunkX, branchY - 6);
-      path.quadraticBezierTo(trunkX, branchY, trunkX + 6, branchY);
-      path.lineTo(endX, branchY);
-      canvas.drawPath(path, paint);
-    } else {
-      path.lineTo(trunkX, size.height);
-      canvas.drawPath(path, paint);
-
-      final branchPath = Path()
-        ..moveTo(trunkX, branchY - 6)
-        ..quadraticBezierTo(trunkX, branchY, trunkX + 6, branchY)
-        ..lineTo(endX, branchY);
-      canvas.drawPath(branchPath, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _SubtaskTreeConnectorPainter oldDelegate) =>
-      oldDelegate.color != color ||
-      oldDelegate.isLast != isLast ||
-      oldDelegate.currentTrunkX != currentTrunkX ||
-      oldDelegate.targetBranchEndX != targetBranchEndX ||
-      oldDelegate.ancestorTrunks != ancestorTrunks;
 }

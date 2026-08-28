@@ -60,10 +60,14 @@
 | `textDisplaySize/Weight` | 28 / w700（letterSpacing −0.5，行高 1.2） | 页面大标题头部 |
 | `textHeadingSize/Weight` | 22 / w600 | 页标题（AppBar） |
 | `textTitleSize/Weight` | 18 / w600 | 节标题 |
+| `textTaskL1Size/Weight` | 16 / w600 | 一级任务标题 |
+| `textTaskL2Size/Weight` | 15 / w500 | 二级任务标题 |
+| `textTaskL3Size/Weight` | 14 / w400 | 三级任务标题 |
 | `textBodySize/Weight` | 15 / w400（行高 1.45） | 正文 |
 | `textFootnoteSize/Weight` | 13 / w400 | 辅助说明层 |
 | `textCaptionSize/Weight` | 12 / w400（行高 1.35） | 元信息说明 |
 | `textMicroSize/Weight` | 11 / w500 | 徽章/计数 |
+| `treeIndentL1/L2/L3` | 0 / 20 / 38 | 任务树 3 级自然阶梯缩进 |
 | `fontTabular` | `[FontFeature.tabularFigures()]` | 日期/计数数字纵向对齐 |
 
 ### 2.5 动效（Folme 风格弹簧，M7 打磨后统一入口）

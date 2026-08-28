@@ -212,6 +212,10 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                         isDone: widget.isDone,
                                         style: theme.textTheme.bodyLarge
                                             ?.copyWith(
+                                              fontSize:
+                                                  AppTokens.textTaskL1Size,
+                                              fontWeight:
+                                                  AppTokens.textTaskL1Weight,
                                               color: widget.isDone
                                                   ? colorScheme.onSurfaceVariant
                                                   : colorScheme.onSurface,

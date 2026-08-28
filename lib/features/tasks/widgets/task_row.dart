@@ -10,7 +10,6 @@ import '../../../core/utils/motion.dart';
 import '../../../shared/widgets/animated_strikethrough.dart';
 import '../../../shared/widgets/checkbox_bounce.dart';
 import '../../../shared/widgets/tag_chip.dart';
-import '../../../shared/widgets/task_progress_ring.dart';
 
 /// 任务行渲染形态（57-task-page-polish.md §4.2，D1/D7；61-task-list-redesign.md §4）。
 ///
@@ -165,10 +164,38 @@ class _TaskRowState extends State<TaskRow> {
         ? AppTokens.radiusList
         : AppTokens.radiusCard;
 
-    // 标题文本（平滑划线动效；长标题自动折行，首行仍与复选框中心对齐，
-    // 引导线画到行底自适应）。
+    final (
+      titleFontSize,
+      titleFontWeight,
+      titleFontColor,
+    ) = switch (widget.depth) {
+      0 => (
+        AppTokens.textTaskL1Size,
+        AppTokens.textTaskL1Weight,
+        isDone ? colorScheme.onSurface : colorScheme.onSurface,
+      ),
+      1 => (
+        AppTokens.textTaskL2Size,
+        AppTokens.textTaskL2Weight,
+        isDone
+            ? colorScheme.onSurfaceVariant
+            : (isDark
+                  ? Colors.white.withValues(alpha: 0.90)
+                  : colorScheme.onSurface.withValues(alpha: 0.88)),
+      ),
+      _ => (
+        AppTokens.textTaskL3Size,
+        AppTokens.textTaskL3Weight,
+        isDone
+            ? colorScheme.onSurfaceVariant
+            : (isDark ? Colors.white70 : colorScheme.onSurfaceVariant),
+      ),
+    };
+
     final titleStyle = theme.textTheme.bodyLarge?.copyWith(
-      color: isDone ? colorScheme.onSurfaceVariant : colorScheme.onSurface,
+      fontSize: titleFontSize,
+      fontWeight: titleFontWeight,
+      color: isDone ? colorScheme.onSurfaceVariant : titleFontColor,
     );
     final titleText = AnimatedStrikethrough(
       text: widget.task.title,
@@ -177,17 +204,9 @@ class _TaskRowState extends State<TaskRow> {
       maxLines: null,
       overflow: TextOverflow.clip,
     );
-    // 标题首行行高（优先级旗帜行内对齐补偿用）＝ textScaler 缩放后的
-    // fontSize × height：行高由主题 height 钉死（与具体字体度量无关），
-    // textScaler 覆盖系统字号缩放（Android fontScale 等），缩放下不错位。
     final titleLineHeight =
-        MediaQuery.textScalerOf(
-          context,
-        ).scale(titleStyle?.fontSize ?? AppTokens.textBodySize) *
+        MediaQuery.textScalerOf(context).scale(titleFontSize) *
         (titleStyle?.height ?? AppTokens.textBodyHeight);
-    // 标题首行顶部留白 = (复选框触控区 − 首行行高) / 2，使首行文本中心与
-    // 复选框中心（触控区 y=22）严格重合。此前硬编码 10.5 对应中心
-    // y≈21.375，比复选框中心高 0.625px（用户实机察觉的细微偏差）。
     final titleTopPad = (AppTokens.checkboxTapTargetSize - titleLineHeight) / 2;
 
     final hasDescription = widget.task.description.isNotEmpty;
@@ -441,12 +460,6 @@ class _TaskRowState extends State<TaskRow> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Progress ring（61 §4.4：行尾，子任务数左侧）。
-                          if (widget.progressValue != null &&
-                              widget.hasChildren) ...[
-                            TaskProgressRing(value: widget.progressValue!),
-                            const SizedBox(width: AppTokens.spaceXs),
-                          ],
                           // 子任务数 + 展开箭头（61 §4.5：行尾、菜单左侧；无子任务
                           // 不显示）。展开 = 箭头朝下（turns 0.25），折叠 = 朝右。
                           if (widget.hasChildren) ...[
@@ -468,17 +481,16 @@ class _TaskRowState extends State<TaskRow> {
                                     children: [
                                       Container(
                                         padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 1.5,
+                                          horizontal: 7,
+                                          vertical: 2,
                                         ),
                                         decoration: BoxDecoration(
                                           color: isDark
                                               ? Colors.white.withValues(
                                                   alpha: 0.08,
                                                 )
-                                              : colorScheme
-                                                    .surfaceContainerHighest
-                                                    .withValues(alpha: 0.5),
+                                              : colorScheme.onSurface
+                                                    .withValues(alpha: 0.05),
                                           borderRadius: BorderRadius.circular(
                                             AppTokens.radiusChip,
                                           ),
@@ -489,29 +501,40 @@ class _TaskRowState extends State<TaskRow> {
                                             width: 0.5,
                                           ),
                                         ),
-                                        child: Text(
-                                          '${widget.incompleteChildCount}/${widget.childCount}',
-                                          style: theme.textTheme.labelSmall
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w600,
-                                                fontSize:
-                                                    AppTokens.textMicroSize,
-                                                color: isDark
-                                                    ? Colors.white70
-                                                    : colorScheme
-                                                          .onSurfaceVariant,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              '${widget.incompleteChildCount}/${widget.childCount}',
+                                              style: theme.textTheme.labelSmall
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize:
+                                                        AppTokens.textMicroSize,
+                                                    fontFeatures:
+                                                        AppTokens.fontTabular,
+                                                    color: isDark
+                                                        ? Colors.white70
+                                                        : colorScheme
+                                                              .onSurfaceVariant,
+                                                  ),
+                                            ),
+                                            const SizedBox(width: 2),
+                                            AnimatedRotation(
+                                              turns: widget.isExpanded
+                                                  ? 0.25
+                                                  : 0,
+                                              duration: motionFast(context),
+                                              curve: motionCurve(context),
+                                              child: Icon(
+                                                Icons.arrow_right,
+                                                size: AppTokens
+                                                    .expandArrowSizeRow,
+                                                color: colorScheme
+                                                    .onSurfaceVariant,
                                               ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: AppTokens.spaceXxs),
-                                      AnimatedRotation(
-                                        turns: widget.isExpanded ? 0.25 : 0,
-                                        duration: motionFast(context),
-                                        curve: motionCurve(context),
-                                        child: Icon(
-                                          Icons.arrow_right,
-                                          size: AppTokens.expandArrowSize,
-                                          color: colorScheme.onSurfaceVariant,
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ],
@@ -560,21 +583,7 @@ class _TaskRowState extends State<TaskRow> {
         onPointerCancel: (_) {
           if (mounted) setState(() => _pressed = false);
         },
-        child: Stack(
-          children: [
-            if (widget.hasChildren && widget.isExpanded)
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _ParentCheckboxConnectorPainter(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.16)
-                        : colorScheme.outlineVariant.withValues(alpha: 0.75),
-                  ),
-                ),
-              ),
-            rowContent,
-          ],
-        ),
+        child: rowContent,
       ),
     );
   }
@@ -667,34 +676,4 @@ class _TaskRowState extends State<TaskRow> {
       ),
     );
   }
-}
-
-/// 父任务展开时，从复选框底部直接向下延伸至行底的连续垂线 Painter
-class _ParentCheckboxConnectorPainter extends CustomPainter {
-  const _ParentCheckboxConnectorPainter({required this.color});
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.0
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    // 复选框中心 X: AppTokens.spaceXxs (4.0) + AppTokens.checkboxTapTargetSize / 2 (22.0) = 26.0
-    // 复选框视觉圆圈 (18x18) 底部 Y: 22.0 + 9.0 = 31.0
-    const trunkX = AppTokens.spaceXxs + AppTokens.checkboxTapTargetSize / 2;
-    const checkboxBottomY = 22.0 + 9.0;
-    canvas.drawLine(
-      const Offset(trunkX, checkboxBottomY),
-      Offset(trunkX, size.height),
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _ParentCheckboxConnectorPainter oldDelegate) =>
-      oldDelegate.color != color;
 }
