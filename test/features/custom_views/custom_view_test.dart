@@ -10,6 +10,7 @@ import 'package:todo/features/custom_views/presentation/custom_view_page.dart';
 import 'package:todo/features/custom_views/providers/custom_view_providers.dart';
 import 'package:todo/features/custom_views/widgets/panel_column.dart';
 import 'package:todo/features/projects/project_providers.dart';
+import 'package:todo/shared/widgets/animated_strikethrough.dart';
 
 import '../../helpers/db_test_setup.dart';
 
@@ -387,6 +388,58 @@ void main() {
 
         final reloaded = await repo.tasks.getById(task.id);
         expect(reloaded!.status, TaskStatus.done);
+      },
+    );
+
+    testWidgets(
+      'KanbanTaskCard renders multi-line task title and wraps with AnimatedStrikethrough',
+      (tester) async {
+        final project = await repo.createProject(
+          name: '看板项目',
+          color: 0xFF4A6CF7,
+        );
+        final longTitle = '这是一个非常长非常长非常长的任务标题需要自动折行显示在自定义视图看板中不会被省略号截断';
+        final task = await repo.createTask(
+          projectId: project.id,
+          title: longTitle,
+          status: TaskStatus.todo,
+        );
+        final panel = CustomViewPanelConfig(
+          id: 'p1',
+          title: '待办列',
+          filter: const FilterCriteria(statuses: [TaskStatus.todo]),
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              todoRepositoryProvider.overrideWithValue(repo),
+              panelTasksProvider(panel).overrideWithValue(
+                AsyncData(PanelTasksResult(tasks: [task], totalCount: 1)),
+              ),
+              allProjectsMapProvider.overrideWithValue(
+                AsyncData({project.id: project}),
+              ),
+            ],
+            child: MaterialApp(
+              locale: const Locale('zh'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(body: PanelColumn(panel: panel)),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        expect(find.text(longTitle), findsOneWidget);
+        final strikethroughFinder = find.byWidgetPredicate(
+          (widget) =>
+              widget is AnimatedStrikethrough &&
+              widget.text == longTitle &&
+              widget.maxLines == null &&
+              widget.overflow == TextOverflow.clip,
+        );
+        expect(strikethroughFinder, findsOneWidget);
       },
     );
 

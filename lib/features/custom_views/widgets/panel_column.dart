@@ -632,13 +632,9 @@ class KanbanTaskCard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 状态勾选 + 标题 + 优先级
-                // 标题为单行（AnimatedStrikethrough 默认 maxLines 1），center
-                // 对齐使收缩复选框中心与标题中心严格重合（此前 start 对齐 +
-                // 无补偿，复选框中心比标题首行中心低约 8dp）。纯布局对齐，
-                // 字体/系统字号缩放变化时自动保持重合。
+                // 状态勾选 + 标题（支持多行自动换行）
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // 标准 Checkbox（全 app 唯一勾选形态：主题层圆形 +
                     // 中性灰填充；紧凑卡内用 shrinkWrap 触控区）。
@@ -679,15 +675,20 @@ class KanbanTaskCard extends ConsumerWidget {
                       ),
                     ),
                     Expanded(
-                      child: AnimatedStrikethrough(
-                        text: task.title,
-                        isDone: isDone,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: isDone
-                              ? theme.colorScheme.onSurfaceVariant
-                              : theme.colorScheme.onSurface,
-                          fontWeight: FontWeight.w500,
-                          height: 1.3,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 1.5),
+                        child: AnimatedStrikethrough(
+                          text: task.title,
+                          isDone: isDone,
+                          maxLines: null,
+                          overflow: TextOverflow.clip,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: isDone
+                                ? theme.colorScheme.onSurfaceVariant
+                                : theme.colorScheme.onSurface,
+                            fontWeight: FontWeight.w500,
+                            height: 1.3,
+                          ),
                         ),
                       ),
                     ),
