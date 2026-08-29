@@ -6,6 +6,7 @@ import 'package:todo/core/db/tables.dart';
 import 'package:todo/core/l10n/app_localizations.dart';
 import 'package:todo/core/utils/custom_view_models.dart';
 import 'package:todo/features/custom_views/presentation/custom_view_editor_page.dart';
+import 'package:todo/features/custom_views/presentation/custom_view_page.dart';
 import 'package:todo/features/custom_views/providers/custom_view_providers.dart';
 import 'package:todo/features/custom_views/widgets/panel_column.dart';
 import 'package:todo/features/projects/project_providers.dart';
@@ -386,6 +387,169 @@ void main() {
 
         final reloaded = await repo.tasks.getById(task.id);
         expect(reloaded!.status, TaskStatus.done);
+      },
+    );
+
+    testWidgets('PanelColumn (isKanban: false) renders compact narrow toolbar', (
+      tester,
+    ) async {
+      final panel = CustomViewPanelConfig(
+        id: 'p1',
+        title: '高优先',
+        filter: const FilterCriteria(priorities: [TaskPriority.high]),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            todoRepositoryProvider.overrideWithValue(repo),
+            panelTasksProvider(panel).overrideWithValue(
+              const AsyncData(PanelTasksResult(tasks: [], totalCount: 0)),
+            ),
+            allProjectsMapProvider.overrideWithValue(const AsyncData({})),
+          ],
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(body: PanelColumn(panel: panel, isKanban: false)),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // In narrow mode, the title '高优先' is omitted in PanelColumn (deferred to TabBar),
+      // but sort chip and active filter button are rendered.
+      expect(find.text('高优先'), findsNothing);
+      expect(find.byIcon(Icons.swap_vert), findsOneWidget);
+      expect(find.byIcon(Icons.filter_alt), findsOneWidget);
+    });
+
+    testWidgets(
+      'CustomViewPage in narrow mode with multi-panels renders TabBar with count badges',
+      (tester) async {
+        tester.view.physicalSize = const Size(400, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.reset);
+
+        final panel1 = CustomViewPanelConfig(
+          id: 'p1',
+          title: '高优先',
+          filter: const FilterCriteria(priorities: [TaskPriority.high]),
+        );
+        final panel2 = CustomViewPanelConfig(
+          id: 'p2',
+          title: '其他待办',
+          filter: const FilterCriteria(priorities: [TaskPriority.none]),
+        );
+
+        final view = CustomView(
+          id: 'v1',
+          name: '开发看板',
+          icon: 'view_kanban_outlined',
+          color: 0xFF4A6CF7,
+          layoutMode: 'list',
+          panelsJson: encodePanelsJson([panel1, panel2]),
+          sortOrder: 0,
+          createdAt: 0,
+          updatedAt: 0,
+          deleted: 0,
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              todoRepositoryProvider.overrideWithValue(repo),
+              customViewDetailProvider.overrideWith(
+                (ref, id) => Stream.value(view),
+              ),
+              allActiveTasksStreamProvider.overrideWithValue(
+                const AsyncData([]),
+              ),
+              panelTasksProvider(panel1).overrideWithValue(
+                const AsyncData(PanelTasksResult(tasks: [], totalCount: 5)),
+              ),
+              panelTasksProvider(panel2).overrideWithValue(
+                const AsyncData(PanelTasksResult(tasks: [], totalCount: 0)),
+              ),
+              allProjectsMapProvider.overrideWithValue(const AsyncData({})),
+            ],
+            child: const MaterialApp(
+              locale: Locale('zh'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: CustomViewPage(viewId: 'v1'),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        // Custom view title in AppBar
+        expect(find.text('开发看板'), findsOneWidget);
+
+        // TabBar rendered with tab titles and count badges
+        expect(find.byType(TabBar), findsOneWidget);
+        expect(find.text('高优先'), findsOneWidget);
+        expect(find.text('5'), findsOneWidget);
+        expect(find.text('其他待办'), findsOneWidget);
+        expect(find.text('0'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'CustomViewPage in narrow mode with single panel omits TabBar',
+      (tester) async {
+        tester.view.physicalSize = const Size(400, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.reset);
+
+        final panel1 = CustomViewPanelConfig(
+          id: 'p1',
+          title: '全部任务',
+          filter: const FilterCriteria(),
+        );
+
+        final view = CustomView(
+          id: 'v2',
+          name: '单一视图',
+          icon: 'view_kanban_outlined',
+          color: 0xFF4A6CF7,
+          layoutMode: 'list',
+          panelsJson: encodePanelsJson([panel1]),
+          sortOrder: 0,
+          createdAt: 0,
+          updatedAt: 0,
+          deleted: 0,
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              todoRepositoryProvider.overrideWithValue(repo),
+              customViewDetailProvider.overrideWith(
+                (ref, id) => Stream.value(view),
+              ),
+              allActiveTasksStreamProvider.overrideWithValue(
+                const AsyncData([]),
+              ),
+              panelTasksProvider(panel1).overrideWithValue(
+                const AsyncData(PanelTasksResult(tasks: [], totalCount: 2)),
+              ),
+              allProjectsMapProvider.overrideWithValue(const AsyncData({})),
+            ],
+            child: const MaterialApp(
+              locale: Locale('zh'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: CustomViewPage(viewId: 'v2'),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        // Single panel mode has no TabBar
+        expect(find.byType(TabBar), findsNothing);
+        expect(find.text('单一视图'), findsOneWidget);
       },
     );
   });

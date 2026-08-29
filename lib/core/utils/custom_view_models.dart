@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 import '../db/database.dart';
 import '../db/tables.dart';
@@ -171,6 +172,38 @@ class FilterCriteria {
       searchQuery: json['searchQuery'] as String?,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is FilterCriteria &&
+        listEquals(other.folderIds, folderIds) &&
+        listEquals(other.projectIds, projectIds) &&
+        listEquals(other.tagIds, tagIds) &&
+        other.tagMatchAll == tagMatchAll &&
+        listEquals(other.priorities, priorities) &&
+        listEquals(other.statuses, statuses) &&
+        other.dateScope == dateScope &&
+        other.customDateStart == customDateStart &&
+        other.customDateEnd == customDateEnd &&
+        other.hierarchyScope == hierarchyScope &&
+        other.searchQuery == searchQuery;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    Object.hashAll(folderIds),
+    Object.hashAll(projectIds),
+    Object.hashAll(tagIds),
+    tagMatchAll,
+    Object.hashAll(priorities),
+    Object.hashAll(statuses),
+    dateScope,
+    customDateStart,
+    customDateEnd,
+    hierarchyScope,
+    searchQuery,
+  );
 }
 
 /// 面板配置纯 Dart 模型。
@@ -243,6 +276,22 @@ class CustomViewPanelConfig {
       sortDirection: json['sortDirection'] as String? ?? 'asc',
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is CustomViewPanelConfig &&
+        other.id == id &&
+        other.title == title &&
+        other.filter == filter &&
+        other.displayMode == displayMode &&
+        other.sortBy == sortBy &&
+        other.sortDirection == sortDirection;
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, title, filter, displayMode, sortBy, sortDirection);
 }
 
 /// 解析 panelsJson 字符串。

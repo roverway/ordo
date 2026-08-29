@@ -75,13 +75,16 @@ class PanelColumn extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── 面板头部 ──
-              _buildHeader(
-                context,
-                theme,
-                l10n,
-                panelTasksAsync.value?.totalCount ?? 0,
-              ),
+              // ── 面板头部 / 工具条 ──
+              if (isKanban)
+                _buildKanbanHeader(
+                  context,
+                  theme,
+                  l10n,
+                  panelTasksAsync.value?.totalCount ?? 0,
+                )
+              else
+                _buildNarrowToolbar(context, theme, l10n),
 
               // ── 任务列表区 ──
               Expanded(
@@ -174,12 +177,134 @@ class PanelColumn extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(
+  /// 窄屏单 Tab 模式工具栏：高度紧凑，展示当前排序状态并提供快捷排序/筛选/面板菜单，不重复显示标题。
+  Widget _buildNarrowToolbar(
+    BuildContext context,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    final sortLabel = _getSortLabel(l10n, panel.sortBy, panel.sortDirection);
+    final hasActiveFilter = panel.filter.hasActiveFilter;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTokens.spaceSm,
+        vertical: AppTokens.spaceXs,
+      ),
+      child: Row(
+        children: [
+          // 左侧：排序快捷切换 Chip（文字+方向箭头）
+          PopupMenuButton<String>(
+            tooltip: l10n.sortBy,
+            padding: EdgeInsets.zero,
+            onSelected: (val) {
+              if (val == 'toggle_direction') {
+                final newDir = panel.sortDirection == 'asc' ? 'desc' : 'asc';
+                onUpdatePanel?.call(panel.copyWith(sortDirection: newDir));
+              } else {
+                onUpdatePanel?.call(panel.copyWith(sortBy: val));
+              }
+            },
+            itemBuilder: (ctx) => _buildSortMenuItems(l10n),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.45,
+                ),
+                borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.swap_vert,
+                    size: 15,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    sortLabel,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const Spacer(),
+
+          // 筛选按钮（若有激活条件则高亮主题色）
+          IconButton(
+            tooltip: l10n.filterCriteria,
+            icon: Icon(
+              hasActiveFilter ? Icons.filter_alt : Icons.filter_alt_outlined,
+              size: 18,
+              color: hasActiveFilter
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            onPressed: () async {
+              final newCriteria = await showFilterCriteriaSheet(
+                context: context,
+                initialCriteria: panel.filter,
+              );
+              if (newCriteria != null) {
+                onUpdatePanel?.call(panel.copyWith(filter: newCriteria));
+              }
+            },
+          ),
+
+          // 更多操作
+          if (onDeletePanel != null)
+            PopupMenuButton<String>(
+              icon: Icon(
+                Icons.more_vert,
+                size: 18,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 28, minHeight: 32),
+              onSelected: (val) {
+                if (val == 'delete') {
+                  onDeletePanel?.call();
+                } else if (val == 'edit_title') {
+                  _showEditTitleDialog(context, l10n);
+                }
+              },
+              itemBuilder: (ctx) => [
+                AppMenuItem(
+                  value: 'edit_title',
+                  icon: Icons.edit_outlined,
+                  label: l10n.editPanel,
+                ),
+                AppMenuItem(
+                  value: 'delete',
+                  icon: Icons.delete_outline,
+                  label: l10n.deletePanel,
+                  destructive: true,
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 宽屏/横向看板列头：标题 + 数量徽标 + 排序/筛选/更多操作。
+  Widget _buildKanbanHeader(
     BuildContext context,
     ThemeData theme,
     AppLocalizations l10n,
     int count,
   ) {
+    final hasActiveFilter = panel.filter.hasActiveFilter;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppTokens.spaceMd,
@@ -234,6 +359,7 @@ class PanelColumn extends ConsumerWidget {
               color: theme.colorScheme.onSurfaceVariant,
             ),
             padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             onSelected: (val) {
               if (val == 'toggle_direction') {
                 final newDir = panel.sortDirection == 'asc' ? 'desc' : 'asc';
@@ -242,53 +368,16 @@ class PanelColumn extends ConsumerWidget {
                 onUpdatePanel?.call(panel.copyWith(sortBy: val));
               }
             },
-            itemBuilder: (ctx) => [
-              CheckedPopupMenuItem<String>(
-                height: AppTokens.menuItemHeight,
-                value: 'sortOrder',
-                checked: panel.sortBy == 'sortOrder',
-                child: Text(l10n.sortOrderManual),
-              ),
-              CheckedPopupMenuItem<String>(
-                height: AppTokens.menuItemHeight,
-                value: 'priority',
-                checked: panel.sortBy == 'priority',
-                child: Text(l10n.sortOrderPriority),
-              ),
-              CheckedPopupMenuItem<String>(
-                height: AppTokens.menuItemHeight,
-                value: 'endAt',
-                checked: panel.sortBy == 'endAt',
-                child: Text(l10n.sortOrderDueDate),
-              ),
-              CheckedPopupMenuItem<String>(
-                height: AppTokens.menuItemHeight,
-                value: 'title',
-                checked: panel.sortBy == 'title',
-                child: Text(l10n.sortOrderTitle),
-              ),
-              const PopupMenuDivider(),
-              AppMenuItem<String>(
-                value: 'toggle_direction',
-                icon: panel.sortDirection == 'asc'
-                    ? Icons.arrow_upward
-                    : Icons.arrow_downward,
-                label: panel.sortDirection == 'asc'
-                    ? l10n.sortAsc
-                    : l10n.sortDesc,
-              ),
-            ],
+            itemBuilder: (ctx) => _buildSortMenuItems(l10n),
           ),
 
           // 筛选按钮
           IconButton(
             tooltip: l10n.filterCriteria,
             icon: Icon(
-              panel.filter.hasActiveFilter
-                  ? Icons.filter_alt
-                  : Icons.filter_alt_outlined,
+              hasActiveFilter ? Icons.filter_alt : Icons.filter_alt_outlined,
               size: 19,
-              color: panel.filter.hasActiveFilter
+              color: hasActiveFilter
                   ? theme.colorScheme.primary
                   : theme.colorScheme.onSurfaceVariant,
             ),
@@ -314,6 +403,7 @@ class PanelColumn extends ConsumerWidget {
                 color: theme.colorScheme.onSurfaceVariant,
               ),
               padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               onSelected: (val) {
                 if (val == 'delete') {
                   onDeletePanel?.call();
@@ -338,6 +428,59 @@ class PanelColumn extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  String _getSortLabel(
+    AppLocalizations l10n,
+    String sortBy,
+    String sortDirection,
+  ) {
+    final name = switch (sortBy) {
+      'priority' => l10n.sortOrderPriority,
+      'endAt' => l10n.sortOrderDueDate,
+      'title' => l10n.sortOrderTitle,
+      'sortOrder' => l10n.sortOrderManual,
+      _ => l10n.sortOrderManual,
+    };
+    final arrow = sortDirection == 'asc' ? '↑' : '↓';
+    return '$name $arrow';
+  }
+
+  List<PopupMenuEntry<String>> _buildSortMenuItems(AppLocalizations l10n) {
+    return [
+      CheckedPopupMenuItem<String>(
+        height: AppTokens.menuItemHeight,
+        value: 'sortOrder',
+        checked: panel.sortBy == 'sortOrder',
+        child: Text(l10n.sortOrderManual),
+      ),
+      CheckedPopupMenuItem<String>(
+        height: AppTokens.menuItemHeight,
+        value: 'priority',
+        checked: panel.sortBy == 'priority',
+        child: Text(l10n.sortOrderPriority),
+      ),
+      CheckedPopupMenuItem<String>(
+        height: AppTokens.menuItemHeight,
+        value: 'endAt',
+        checked: panel.sortBy == 'endAt',
+        child: Text(l10n.sortOrderDueDate),
+      ),
+      CheckedPopupMenuItem<String>(
+        height: AppTokens.menuItemHeight,
+        value: 'title',
+        checked: panel.sortBy == 'title',
+        child: Text(l10n.sortOrderTitle),
+      ),
+      const PopupMenuDivider(),
+      AppMenuItem<String>(
+        value: 'toggle_direction',
+        icon: panel.sortDirection == 'asc'
+            ? Icons.arrow_upward
+            : Icons.arrow_downward,
+        label: panel.sortDirection == 'asc' ? l10n.sortAsc : l10n.sortDesc,
+      ),
+    ];
   }
 
   void _showEditTitleDialog(BuildContext context, AppLocalizations l10n) {

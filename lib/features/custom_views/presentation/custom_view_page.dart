@@ -380,8 +380,41 @@ class CustomViewPage extends ConsumerWidget {
               },
             ),
           );
+        } else if (panels.length == 1) {
+          // 窄屏单面板模式：无需 TabBar，直接渲染单面板与工具条
+          return Scaffold(
+            drawer: narrow ? const AppDrawer() : null,
+            appBar: AppBar(
+              leading: narrow
+                  ? Builder(
+                      builder: (context) => IconButton(
+                        tooltip: l10n.openDrawer,
+                        icon: const Icon(Icons.menu, size: 22),
+                        onPressed: () => Scaffold.of(context).openDrawer(),
+                      ),
+                    )
+                  : null,
+              automaticallyImplyLeading: false,
+              title: _buildViewTitle(view),
+              actions: actions,
+            ),
+            body: PanelColumn(
+              key: ValueKey(panels.first.id),
+              panel: panels.first,
+              isKanban: false,
+              onUpdatePanel: (updated) => _onUpdatePanel(ref, view, 0, updated),
+              onDeletePanel: () => _onDeletePanel(ref, view, 0),
+              onTaskDropped: (task, targetPanel) => _handleTaskDrop(
+                context: context,
+                ref: ref,
+                view: view,
+                task: task,
+                targetPanel: targetPanel,
+              ),
+            ),
+          );
         } else {
-          // 窄屏列表模式：顶部 TabBar + PageView
+          // 窄屏多面板列表模式：顶部 TabBar（带标题+数量微标） + PageView
           return DefaultTabController(
             length: panels.length,
             child: Scaffold(
@@ -404,7 +437,7 @@ class CustomViewPage extends ConsumerWidget {
                   tabAlignment: panels.length > 3 ? TabAlignment.start : null,
                   dividerColor: Colors.transparent,
                   indicatorSize: TabBarIndicatorSize.label,
-                  tabs: panels.map((p) => Tab(text: p.title)).toList(),
+                  tabs: panels.map((p) => _PanelTabItem(panel: p)).toList(),
                 ),
               ),
               body: TabBarView(
@@ -482,6 +515,47 @@ class CustomViewPage extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 单个 Tab 标签项，内置监听面板任务总数并展示胶囊徽标。
+class _PanelTabItem extends ConsumerWidget {
+  const _PanelTabItem({required this.panel});
+
+  final CustomViewPanelConfig panel;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final count = ref.watch(panelTasksProvider(panel)).value?.totalCount ?? 0;
+
+    return Tab(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Flexible(child: Text(panel.title, overflow: TextOverflow.ellipsis)),
+          const SizedBox(width: AppTokens.spaceXs),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.7,
+              ),
+              borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+            ),
+            child: Text(
+              count.toString(),
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontSize: AppTokens.textMicroSize,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
