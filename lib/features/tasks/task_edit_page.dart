@@ -267,16 +267,8 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
             ),
           ],
         ),
-        body: ValueListenableBuilder<double>(
-          valueListenable: KeyboardInsetBridge.instance.imeHeightPx,
-          builder: (context, imeHeightPx, _) {
-            final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
-            final mediaQueryInset = MediaQuery.viewInsetsOf(context).bottom;
-            final nativeInset = imeHeightPx / devicePixelRatio;
-            final effectiveInset = nativeInset > 0.5
-                ? nativeInset
-                : mediaQueryInset;
-
+        body: KeyboardInsetBuilder(
+          builder: (context, effectiveInset, bottomGap, _) {
             return Stack(
               children: [
                 // 正文区：留出工具栏高度及键盘高度空间，确保键盘弹出时正文不被遮挡且可滚动到底部。
@@ -298,61 +290,33 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
                     ),
                   ),
                 ),
-                _buildKeyboardTrackingToolbar(context, colorScheme),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: effectiveInset,
+                  child: Material(
+                    color: colorScheme.surface,
+                    elevation: AppTokens.elevationCard,
+                    child: Padding(
+                      padding: EdgeInsets.only(bottom: bottomGap),
+                      child: ListenableBuilder(
+                        listenable: _editorController,
+                        builder: (context, _) {
+                          return TaskEditorToolbar(
+                            // 已有子任务或待保存的新建子任务行 → 状态由子任务派生，禁用。
+                            statusDisabled:
+                                _hasChildren ||
+                                _editorController.hasPendingNewSubtasks,
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
               ],
             );
           },
         ),
-      ),
-    );
-  }
-
-  /// 原生/MediaQuery 双轨键盘追踪底部工具栏。
-  /// 原生 WindowInsetsAnimation 逐帧驱动 bottom 偏移；兜底使用 MediaQuery.viewInsets。
-  Widget _buildKeyboardTrackingToolbar(
-    BuildContext context,
-    ColorScheme colorScheme,
-  ) {
-    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
-    final viewPaddingBottom = MediaQuery.viewPaddingOf(context).bottom;
-    final mediaQueryInset = MediaQuery.viewInsetsOf(context).bottom; // 兜底
-
-    return ValueListenableBuilder<double>(
-      valueListenable: KeyboardInsetBridge.instance.imeHeightPx,
-      builder: (context, imeHeightPx, child) {
-        final nativeInset = imeHeightPx / devicePixelRatio;
-        // 原生逐帧值可用则优先用它（真正丝滑）；否则退回 MediaQuery（有阶跃，但至少不会错位）。
-        final effectiveInset = nativeInset > 0.5
-            ? nativeInset
-            : mediaQueryInset;
-        final bottomGap = (viewPaddingBottom - effectiveInset).clamp(
-          0.0,
-          double.infinity,
-        );
-
-        return Positioned(
-          left: 0,
-          right: 0,
-          bottom: effectiveInset,
-          child: Material(
-            color: colorScheme.surface,
-            elevation: AppTokens.elevationCard,
-            child: Padding(
-              padding: EdgeInsets.only(bottom: bottomGap),
-              child: child,
-            ),
-          ),
-        );
-      },
-      child: ListenableBuilder(
-        listenable: _editorController,
-        builder: (context, _) {
-          return TaskEditorToolbar(
-            // 已有子任务或待保存的新建子任务行 → 状态由子任务派生，禁用。
-            statusDisabled:
-                _hasChildren || _editorController.hasPendingNewSubtasks,
-          );
-        },
       ),
     );
   }

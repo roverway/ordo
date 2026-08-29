@@ -26,6 +26,7 @@ import '../../../core/db/database.dart';
 import '../../../core/db/repositories/todo_repository.dart';
 import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
+import '../../../core/platform/keyboard_inset_bridge.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/priority_color.dart';
 import '../../../core/utils/dates.dart';
@@ -654,11 +655,13 @@ class TaskProjectSwitcher extends ConsumerWidget {
           top: Radius.circular(AppTokens.radiusDialog),
         ),
       ),
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
+      builder: (sheetContext) => KeyboardInsetBuilder(
+        builder: (context, effectiveInset, _, _) => Padding(
+          padding: EdgeInsets.only(bottom: effectiveInset),
+          child: _ProjectPickerSheet(
+            currentProjectId: formState.projectId ?? '',
+          ),
         ),
-        child: _ProjectPickerSheet(currentProjectId: formState.projectId ?? ''),
       ),
     );
     if (result != null && context.mounted) {

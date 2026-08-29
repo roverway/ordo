@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/db/repositories/todo_repository.dart';
 import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
+import '../../../core/platform/keyboard_inset_bridge.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/motion.dart';
 import '../../projects/project_providers.dart';
@@ -46,22 +47,12 @@ class TaskCreateSheet extends ConsumerStatefulWidget {
   /// 预填关联标签（看板/筛选列「按标签筛选」传入）。
   final List<String>? initialTagIds;
 
-  /// 打开新建任务底部弹窗（滴答式，viewInsets 适配键盘）。
+  /// 打开新建任务底部弹窗（滴答式，原生逐帧键盘桥接适配）。
   ///
   /// 入场转场（docs/63-motion-polish.md §5 G）：slide-up + `motionCurve`
   /// （easeOutCubic，无过冲）+ `motionSlow`（350ms），遮罩随同一动画同步淡入
   /// （showGeneralDialog 的 barrier 用默认 linear curve 淡入）。
   /// reduced motion 自动降级：时长为零（瞬时到位）。
-  ///
-  /// 历史：曾用 `motionBounceCurve`（easeOutBack）做弹性入场——其 ~10% 过冲
-  /// 在整屏滑入行程上被放大到约 6% 屏高，实机表现为弹窗"冲过终点再回落"
-  /// 的明显上下跳动（用户评审 2026-08），故回退到 easeOutCubic；弹性曲线
-  /// 仅保留给微交互（勾选缩放/FAB 按压等几个像素的小行程）。
-  ///
-  /// 说明：改用 [showGeneralDialog] 而非 [showModalBottomSheet]，是因为后者的
-  /// 转场曲线由框架内部 `_modalBottomSheetCurve`（legacyDecelerate）固定，
-  /// `transitionAnimationController` 只能改时长、无法注入自定义曲线；而框架
-  /// 自管 controller 又无法从静态方法获得 vsync。
   ///
   /// - [projectId] 缺省时默认落入内置收件箱（产品决策 #3）；
   /// - [parentId] 非空 = 创建子任务（此时不展示子任务区，层级受 3 级上限约束）。
@@ -108,21 +99,23 @@ class TaskCreateSheet extends ConsumerStatefulWidget {
       ),
       clipBehavior: Clip.antiAlias,
       builder: (sheetContext) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
-          ),
-          child: SingleChildScrollView(
-            physics: const ClampingScrollPhysics(),
-            child: TaskCreateSheet(
-              projectId: projectId,
-              parentId: parentId,
-              initialStartAt: initialStartAt,
-              initialEndAt: initialEndAt,
-              initialPriority: initialPriority,
-              initialTagIds: initialTagIds,
-            ),
-          ),
+        return KeyboardInsetBuilder(
+          builder: (context, effectiveInset, _, _) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: effectiveInset),
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: TaskCreateSheet(
+                  projectId: projectId,
+                  parentId: parentId,
+                  initialStartAt: initialStartAt,
+                  initialEndAt: initialEndAt,
+                  initialPriority: initialPriority,
+                  initialTagIds: initialTagIds,
+                ),
+              ),
+            );
+          },
         );
       },
     );
