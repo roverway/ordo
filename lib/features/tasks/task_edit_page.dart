@@ -17,6 +17,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/db/repositories/todo_repository.dart';
 import '../../core/l10n/app_localizations.dart';
+import '../../core/platform/keyboard_inset_bridge.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_breakpoints.dart';
 import '../../core/utils/tree.dart';
@@ -238,9 +239,9 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
         }
       },
       child: Scaffold(
-        // 显式声明：body 高度会扣除键盘 inset（Scaffold contentBottom），
-        // 底部工具栏随 body 上移，键盘弹出时不遮挡（59 修复）。
-        resizeToAvoidBottomInset: true,
+        // 由 Stack + KeyboardInsetBridge 逐帧绝对定位工具栏及滚动区，
+        // 禁用 Scaffold 自带阶跃式 resize，避免双重偏移或跳跃。
+        resizeToAvoidBottomInset: false,
         // AppBar：返回 + 项目名（新建态带下拉箭头可切换，编辑态只读）+ 保存 + ⋯ 菜单。
         appBar: AppBar(
           leading: IconButton(
@@ -266,56 +267,92 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
             ),
           ],
         ),
-        body: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppTokens.spaceMd),
-                child: TaskEditor(
-                  controller: _editorController,
-                  autofocus: !_isEditing,
-                  showTopBar: false,
-                  showToolbar: false,
-                  // 编辑态：子任务区按自身深度（<3 展示，方案 B）；新建态维持「仅 1 级任务」。
-                  showSubtasks: _isEditing
-                      ? _showSubtasks
-                      : formState.parentId == null,
-                  hasExistingChildren: _hasChildren,
-                  onDeleteRequested: _isEditing ? _confirmDeleteTask : null,
+        body: ValueListenableBuilder<double>(
+          valueListenable: KeyboardInsetBridge.instance.imeHeightPx,
+          builder: (context, imeHeightPx, _) {
+            final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+            final mediaQueryInset = MediaQuery.viewInsetsOf(context).bottom;
+            final nativeInset = imeHeightPx / devicePixelRatio;
+            final effectiveInset = nativeInset > 0.5
+                ? nativeInset
+                : mediaQueryInset;
+
+            return Stack(
+              children: [
+                // 正文区：留出工具栏高度及键盘高度空间，确保键盘弹出时正文不被遮挡且可滚动到底部。
+                Positioned.fill(
+                  bottom: effectiveInset + AppTokens.toolbarHeight,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(AppTokens.spaceMd),
+                    child: TaskEditor(
+                      controller: _editorController,
+                      autofocus: !_isEditing,
+                      showTopBar: false,
+                      showToolbar: false,
+                      // 编辑态：子任务区按自身深度（<3 展示，方案 B）；新建态维持「仅 1 级任务」。
+                      showSubtasks: _isEditing
+                          ? _showSubtasks
+                          : formState.parentId == null,
+                      hasExistingChildren: _hasChildren,
+                      onDeleteRequested: _isEditing ? _confirmDeleteTask : null,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            // 底部工具栏常驻：作为 body 的一部分（body 高度已扣键盘 inset），
-            // Material 铺满屏幕底沿（无缝承接系统手势条）。
-            // 底部留白采用精确数学插值 max(0, viewPadding.bottom - viewInsets.bottom)：
-            // 软键盘弹起过程中，留白与键盘升起物理帧严格同步线性递减（当 viewInsets 从 0 增至手势条高度时，
-            // 留白从 viewPadding 减至 0，图标相对屏幕物理位置完全静止；随后工具栏与键盘 1:1 严丝合缝升起）；
-            // 彻底消除 AnimatedPadding 异步动画导致的软键盘重叠遮挡与最终「上跳」阶跃。
-            Material(
-              color: colorScheme.surface,
-              elevation: AppTokens.elevationCard,
-              child: Padding(
-                padding: EdgeInsets.only(
-                  bottom:
-                      (MediaQuery.viewPaddingOf(context).bottom -
-                              MediaQuery.viewInsetsOf(context).bottom)
-                          .clamp(0.0, double.infinity),
-                ),
-                child: ListenableBuilder(
-                  listenable: _editorController,
-                  builder: (context, _) {
-                    return TaskEditorToolbar(
-                      // 已有子任务或待保存的新建子任务行 → 状态由子任务派生，禁用。
-                      statusDisabled:
-                          _hasChildren ||
-                          _editorController.hasPendingNewSubtasks,
-                    );
-                  },
-                ),
-              ),
-            ),
-          ],
+                _buildKeyboardTrackingToolbar(context, colorScheme),
+              ],
+            );
+          },
         ),
+      ),
+    );
+  }
+
+  /// 原生/MediaQuery 双轨键盘追踪底部工具栏。
+  /// 原生 WindowInsetsAnimation 逐帧驱动 bottom 偏移；兜底使用 MediaQuery.viewInsets。
+  Widget _buildKeyboardTrackingToolbar(
+    BuildContext context,
+    ColorScheme colorScheme,
+  ) {
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+    final viewPaddingBottom = MediaQuery.viewPaddingOf(context).bottom;
+    final mediaQueryInset = MediaQuery.viewInsetsOf(context).bottom; // 兜底
+
+    return ValueListenableBuilder<double>(
+      valueListenable: KeyboardInsetBridge.instance.imeHeightPx,
+      builder: (context, imeHeightPx, child) {
+        final nativeInset = imeHeightPx / devicePixelRatio;
+        // 原生逐帧值可用则优先用它（真正丝滑）；否则退回 MediaQuery（有阶跃，但至少不会错位）。
+        final effectiveInset = nativeInset > 0.5
+            ? nativeInset
+            : mediaQueryInset;
+        final bottomGap = (viewPaddingBottom - effectiveInset).clamp(
+          0.0,
+          double.infinity,
+        );
+
+        return Positioned(
+          left: 0,
+          right: 0,
+          bottom: effectiveInset,
+          child: Material(
+            color: colorScheme.surface,
+            elevation: AppTokens.elevationCard,
+            child: Padding(
+              padding: EdgeInsets.only(bottom: bottomGap),
+              child: child,
+            ),
+          ),
+        );
+      },
+      child: ListenableBuilder(
+        listenable: _editorController,
+        builder: (context, _) {
+          return TaskEditorToolbar(
+            // 已有子任务或待保存的新建子任务行 → 状态由子任务派生，禁用。
+            statusDisabled:
+                _hasChildren || _editorController.hasPendingNewSubtasks,
+          );
+        },
       ),
     );
   }

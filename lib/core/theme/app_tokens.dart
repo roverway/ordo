@@ -291,6 +291,9 @@ abstract final class AppTokens {
   /// Minimum touch target (accessibility).
   static const double touchTarget = 48;
 
+  /// Task editor toolbar fixed height (48dp).
+  static const double toolbarHeight = 48;
+
   /// Checkbox touch area size.
   static const double checkboxSize = 24;
 
