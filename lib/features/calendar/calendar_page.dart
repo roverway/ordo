@@ -336,8 +336,8 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
     // 网格日期集（月 = 整月矩阵、周 = 单周行）；首日作 AnimatedSwitcher 的
     // key——翻月/翻周/月周切换时 key 变化触发过渡。
     final days = widget.state.mode == CalendarMode.month
-        ? _monthGridDays(widget.state.selectedDate)
-        : _weekDays(widget.state.selectedDate);
+        ? calculateMonthGridDays(widget.state.selectedDate)
+        : calculateWeekDays(widget.state.selectedDate);
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -566,30 +566,6 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
         ],
       ),
     );
-  }
-
-  List<DateTime> _monthGridDays(DateTime selected) {
-    final first = DateTime(selected.year, selected.month, 1);
-    final daysInMonth = DateTime(selected.year, selected.month + 1, 0).day;
-    final leading = first.weekday - DateTime.monday;
-    final total = leading + daysInMonth;
-    final padded = (total / 7).ceil() * 7;
-    return [
-      for (var i = 0; i < padded; i++)
-        DateTime(selected.year, selected.month, i - leading + 1),
-    ];
-  }
-
-  List<DateTime> _weekDays(DateTime selected) {
-    final monday = DateTime(
-      selected.year,
-      selected.month,
-      selected.day - (selected.weekday - DateTime.monday),
-    );
-    return [
-      for (var i = 0; i < 7; i++)
-        DateTime(monday.year, monday.month, monday.day + i),
-    ];
   }
 }
 

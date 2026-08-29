@@ -57,13 +57,16 @@ class KeyboardInsetBuilder extends StatelessWidget {
     final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
     final viewPaddingBottom = MediaQuery.viewPaddingOf(context).bottom;
     final mediaQueryInset = MediaQuery.viewInsetsOf(context).bottom;
+    final isAndroid = !kIsWeb && Platform.isAndroid;
 
     return ValueListenableBuilder<double>(
       valueListenable: KeyboardInsetBridge.instance.imeHeightPx,
       builder: (context, imeHeightPx, child) {
         final nativeInset = imeHeightPx / devicePixelRatio;
-        final effectiveInset = nativeInset > 0.5
-            ? nativeInset
+        final effectiveInset = isAndroid
+            ? (nativeInset > 0.0
+                  ? nativeInset
+                  : (mediaQueryInset > 0.5 ? mediaQueryInset : 0.0))
             : mediaQueryInset;
         final bottomGap = (viewPaddingBottom - effectiveInset).clamp(
           0.0,

@@ -49,12 +49,14 @@ class SubtaskRow {
   SubtaskRow.newRow()
     : id = null,
       status = TaskStatus.todo,
-      controller = TextEditingController();
+      controller = TextEditingController(),
+      focusNode = FocusNode();
 
   SubtaskRow.existing(Task task)
     : id = task.id,
       status = task.status,
-      controller = TextEditingController(text: task.title);
+      controller = TextEditingController(text: task.title),
+      focusNode = FocusNode();
 
   /// 已存在子任务的 id；null = 新建行。
   final String? id;
@@ -65,9 +67,14 @@ class SubtaskRow {
   final TextEditingController controller;
 
   /// 行内标题输入的焦点（用户要求：添加新行后自动聚焦到新行输入框）。
-  final FocusNode focusNode = FocusNode();
+  final FocusNode focusNode;
 
   bool get isNew => id == null;
+
+  void dispose() {
+    controller.dispose();
+    focusNode.dispose();
+  }
 }
 
 /// 任务编辑器共享控制器（容器持有）。
@@ -102,6 +109,9 @@ class TaskEditorController extends ChangeNotifier {
 
   /// 用已存在的子任务初始化（编辑模式加载完成后调用；创建模式无需调用）。
   void initializeSubtasks(List<Task> existing) {
+    for (final row in subtaskRows) {
+      row.dispose();
+    }
     subtaskRows
       ..clear()
       ..addAll(existing.map(SubtaskRow.existing));
@@ -164,8 +174,7 @@ class TaskEditorController extends ChangeNotifier {
   void removeSubtask(SubtaskRow row) {
     if (row.id != null) removedSubtaskIds.add(row.id!);
     subtaskRows.remove(row);
-    row.controller.dispose();
-    row.focusNode.dispose();
+    row.dispose();
     notifyListeners();
   }
 
@@ -186,8 +195,7 @@ class TaskEditorController extends ChangeNotifier {
     descriptionController.dispose();
     notesController.dispose();
     for (final row in subtaskRows) {
-      row.controller.dispose();
-      row.focusNode.dispose();
+      row.dispose();
     }
     super.dispose();
   }

@@ -219,3 +219,29 @@ String formatCalendarHeader({
     return '${intl.DateFormat('MMM d', 'en').format(weekStart)} – ${intl.DateFormat('MMM d, y', 'en').format(weekEnd)}';
   }
 }
+
+/// 计算指定选定日期所在月份的日历完整网格日期序列（包含前后补齐对齐周一的日期）。
+List<DateTime> calculateMonthGridDays(DateTime selected) {
+  final first = DateTime(selected.year, selected.month, 1);
+  final daysInMonth = DateTime(selected.year, selected.month + 1, 0).day;
+  final leading = first.weekday - DateTime.monday;
+  final total = leading + daysInMonth;
+  final padded = (total / 7).ceil() * 7;
+  return [
+    for (var i = 0; i < padded; i++)
+      DateTime(selected.year, selected.month, i - leading + 1),
+  ];
+}
+
+/// 计算指定选定日期所在周（周一至周日）的 7 天日期序列。
+List<DateTime> calculateWeekDays(DateTime selected) {
+  final monday = DateTime(
+    selected.year,
+    selected.month,
+    selected.day - (selected.weekday - DateTime.monday),
+  );
+  return [
+    for (var i = 0; i < 7; i++)
+      DateTime(monday.year, monday.month, monday.day + i),
+  ];
+}
