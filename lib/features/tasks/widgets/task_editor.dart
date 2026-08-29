@@ -394,6 +394,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
         TextField(
           controller: widget.controller.descriptionController,
           maxLines: 3,
+          scrollPadding: EdgeInsets.zero,
           decoration: InputDecoration(labelText: l10n.taskDescription),
           onChanged: (v) =>
               ref.read(taskFormProvider.notifier).updateDescription(v),
@@ -403,6 +404,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
           TextField(
             controller: widget.controller.notesController,
             maxLines: 2,
+            scrollPadding: EdgeInsets.zero,
             decoration: InputDecoration(labelText: l10n.taskNotes),
             onChanged: (v) =>
                 ref.read(taskFormProvider.notifier).updateNotes(v),
@@ -738,6 +740,7 @@ class _SubtaskRowTile extends StatelessWidget {
             // 行内持有焦点（用户要求：新增行后自动聚焦，行移除/控制器
             // dispose 时释放）。
             focusNode: row.focusNode,
+            scrollPadding: EdgeInsets.zero,
             decoration: InputDecoration(
               hintText: l10n.subtaskHint,
               border: InputBorder.none,

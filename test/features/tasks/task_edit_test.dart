@@ -779,6 +779,40 @@ void main() {
       // 工具栏仍完整可见。
       expect(toolbarRect.top, greaterThan(0));
     });
+
+    testWidgets('键盘升起过程中工具栏物理位置平滑同步无阶跃', (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      tester.view.viewPadding = const FakeViewPadding(bottom: 34);
+      addTearDown(tester.view.resetViewPadding);
+
+      final tasks = [_task('t1', title: '任务一')];
+      await _pumpEdit(tester, taskId: 't1', existingTasks: tasks);
+      await tester.pumpAndSettle();
+
+      // 阶段 1：初始状态（键盘未弹，viewInsets=0），工具栏在手势条上方 y=766
+      var toolbarRect = tester.getRect(find.byType(TaskEditorToolbar));
+      expect(toolbarRect.bottom, equals(766));
+
+      // 阶段 2：键盘正在升起（viewInsets=15 < viewPadding=34），工具栏物理位置完全不动
+      tester.view.viewInsets = const FakeViewPadding(bottom: 15);
+      await tester.pump();
+      toolbarRect = tester.getRect(find.byType(TaskEditorToolbar));
+      expect(toolbarRect.bottom, equals(766));
+
+      // 阶段 3：键盘到达手势条高度（viewInsets=34 == viewPadding=34），工具栏物理位置依然保持 766
+      tester.view.viewInsets = const FakeViewPadding(bottom: 34);
+      await tester.pump();
+      toolbarRect = tester.getRect(find.byType(TaskEditorToolbar));
+      expect(toolbarRect.bottom, equals(766));
+
+      // 阶段 4：键盘继续升起到 300，工具栏紧贴键盘顶边 y=500 且无多余空白
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      await tester.pump();
+      toolbarRect = tester.getRect(find.byType(TaskEditorToolbar));
+      expect(toolbarRect.bottom, equals(500));
+    });
   });
 
   // ────────────────────────────────────────

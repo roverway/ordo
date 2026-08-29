@@ -286,12 +286,21 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
               ),
             ),
             // 底部工具栏常驻：作为 body 的一部分（body 高度已扣键盘 inset），
-            // Material 铺满屏幕底沿（无缝承接系统手势条），SafeArea 置于内部提供边距。
+            // Material 铺满屏幕底沿（无缝承接系统手势条）。
+            // 底部留白采用精确数学插值 max(0, viewPadding.bottom - viewInsets.bottom)：
+            // 软键盘弹起过程中，留白与键盘升起物理帧严格同步线性递减（当 viewInsets 从 0 增至手势条高度时，
+            // 留白从 viewPadding 减至 0，图标相对屏幕物理位置完全静止；随后工具栏与键盘 1:1 严丝合缝升起）；
+            // 彻底消除 AnimatedPadding 异步动画导致的软键盘重叠遮挡与最终「上跳」阶跃。
             Material(
               color: colorScheme.surface,
               elevation: AppTokens.elevationCard,
-              child: SafeArea(
-                top: false,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom:
+                      (MediaQuery.viewPaddingOf(context).bottom -
+                              MediaQuery.viewInsetsOf(context).bottom)
+                          .clamp(0.0, double.infinity),
+                ),
                 child: ListenableBuilder(
                   listenable: _editorController,
                   builder: (context, _) {
