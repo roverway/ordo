@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -141,6 +142,8 @@ class CalendarPage extends ConsumerWidget {
         ],
       ),
       body: bucketsAsync.when(
+        skipLoadingOnRefresh: true,
+        skipLoadingOnReload: true,
         data: (buckets) => isNarrow
             ? _buildNarrowLayout(context, ref, buckets, state)
             : _buildWideLayout(context, ref, buckets, state),
@@ -359,6 +362,11 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
         ? (isReducedMotion(context) ? Curves.easeOut : Curves.easeInOutCubic)
         : motionCurve(context);
 
+    // 当前网格唯一 Key（包含视图模式与首日，确保月↔周切换时必触发 AnimatedSwitcher）
+    final currentGridKey = ValueKey(
+      '${widget.state.mode.name}_${days.first.toIso8601String()}',
+    );
+
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onHorizontalDragStart: (_) {
@@ -437,16 +445,37 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
               },
               transitionBuilder: (child, animation) {
                 final dir = _slideDirection;
-                final isIncoming = child.key == ValueKey(days.first);
-                // 垂直切换（月↔周）：新旧网格采用柔和的双向平滑交叉淡入淡出（Cross-Fade），
-                // 配合外层 AnimatedSize 的 350ms easeInOutCubic 曲线，
-                // 与下方列表回弹节奏自然统一，彻底消除瞬间突变与闪烁感。
+                final isIncoming = child.key == currentGridKey;
+                // 垂直切换（月↔周）：新旧网格采用「垂直平移 + 交叉淡入淡出」：
+                // - 当收起为周视图时（向上手势）：入场周网格自下方 (+0.08) 向上推入入位，退场月网格向上 (-0.12) 滑出；
+                // - 当展开为月视图时（向下手势）：入场月网格自上方 (-0.12) 向下滑入展开，退场周网格向下 (+0.08) 滑出；
+                // 配合外层 AnimatedSize 的 350ms easeInOutCubic 曲线，与用户的上下滑动手势完美同向契合。
                 if (dir == 0) {
-                  return FadeTransition(opacity: animation, child: child);
+                  if (isReducedMotion(context)) {
+                    return FadeTransition(opacity: animation, child: child);
+                  }
+                  final isToWeek = widget.state.mode == CalendarMode.week;
+                  final beginOffset = isToWeek
+                      ? (isIncoming
+                            ? const Offset(0, 0.08)
+                            : const Offset(0, -0.12))
+                      : (isIncoming
+                            ? const Offset(0, -0.12)
+                            : const Offset(0, 0.08));
+                  return SlideTransition(
+                    position: Tween<Offset>(
+                      begin: beginOffset,
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
                 }
                 final begin = isIncoming
                     ? Offset(0.18 * dir, 0)
                     : Offset(-0.18 * dir, 0);
+                if (isReducedMotion(context)) {
+                  return FadeTransition(opacity: animation, child: child);
+                }
                 return SlideTransition(
                   position: Tween(
                     begin: begin,
@@ -456,7 +485,7 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
                 );
               },
               child: KeyedSubtree(
-                key: ValueKey(days.first),
+                key: currentGridKey,
                 child: _buildDaysGrid(
                   context,
                   ref,
@@ -768,6 +797,23 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
   double _overscrollBottom = 0;
   bool _isDragging = false;
 
+  void _checkAndTriggerModeSwitch({double velocity = 0}) {
+    if (!_isDragging) return;
+    if (_overscrollTop > 25 || (velocity > 120 && _overscrollTop > 5)) {
+      if (widget.state.mode != CalendarMode.month) {
+        ref.read(calendarStateProvider.notifier).setMode(CalendarMode.month);
+      }
+    } else if (_overscrollBottom > 25 ||
+        (velocity < -120 && _overscrollBottom > 5)) {
+      if (widget.state.mode != CalendarMode.week) {
+        ref.read(calendarStateProvider.notifier).setMode(CalendarMode.week);
+      }
+    }
+    _isDragging = false;
+    _overscrollTop = 0;
+    _overscrollBottom = 0;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -846,29 +892,18 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
                   notification.metrics.pixels -
                   notification.metrics.maxScrollExtent;
             }
+          } else if (_isDragging) {
+            // 用户松手瞬间（dragDetails 变为 null），在回弹起始时立即与日历动画协同触发
+            _checkAndTriggerModeSwitch();
+          }
+        } else if (notification is UserScrollNotification) {
+          if (notification.direction == ScrollDirection.idle && _isDragging) {
+            _checkAndTriggerModeSwitch();
           }
         } else if (notification is ScrollEndNotification) {
           if (_isDragging) {
             final velocity = notification.dragDetails?.primaryVelocity ?? 0;
-            if (_overscrollTop > 30 || (velocity > 150 && _overscrollTop > 5)) {
-              // 任务列表下拉到顶部继续下拉 -> 作用于日历：展开为月视图
-              if (widget.state.mode != CalendarMode.month) {
-                ref
-                    .read(calendarStateProvider.notifier)
-                    .setMode(CalendarMode.month);
-              }
-            } else if (_overscrollBottom > 30 ||
-                (velocity < -150 && _overscrollBottom > 5)) {
-              // 任务列表上拉到底部继续上拉 -> 作用于日历：收起为周视图
-              if (widget.state.mode != CalendarMode.week) {
-                ref
-                    .read(calendarStateProvider.notifier)
-                    .setMode(CalendarMode.week);
-              }
-            }
-            _isDragging = false;
-            _overscrollTop = 0;
-            _overscrollBottom = 0;
+            _checkAndTriggerModeSwitch(velocity: velocity);
           }
         }
         return false;
