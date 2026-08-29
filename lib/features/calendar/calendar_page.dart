@@ -793,25 +793,37 @@ class _CalendarAgendaList extends ConsumerStatefulWidget {
 }
 
 class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
+  static const double _kMinTriggerOverscroll = 25.0;
+  static const double _kFlingVelocityThreshold = 120.0;
+  static const double _kFlingMinOverscroll = 5.0;
+
   double _overscrollTop = 0;
   double _overscrollBottom = 0;
   bool _isDragging = false;
 
   void _checkAndTriggerModeSwitch({double velocity = 0}) {
     if (!_isDragging) return;
-    if (_overscrollTop > 25 || (velocity > 120 && _overscrollTop > 5)) {
-      if (widget.state.mode != CalendarMode.month) {
-        ref.read(calendarStateProvider.notifier).setMode(CalendarMode.month);
-      }
-    } else if (_overscrollBottom > 25 ||
-        (velocity < -120 && _overscrollBottom > 5)) {
-      if (widget.state.mode != CalendarMode.week) {
-        ref.read(calendarStateProvider.notifier).setMode(CalendarMode.week);
-      }
-    }
     _isDragging = false;
+
+    final currentOverscrollTop = _overscrollTop;
+    final currentOverscrollBottom = _overscrollBottom;
     _overscrollTop = 0;
     _overscrollBottom = 0;
+
+    final shouldExpandMonth =
+        currentOverscrollTop > _kMinTriggerOverscroll ||
+        (velocity > _kFlingVelocityThreshold &&
+            currentOverscrollTop > _kFlingMinOverscroll);
+    final shouldCollapseWeek =
+        currentOverscrollBottom > _kMinTriggerOverscroll ||
+        (velocity < -_kFlingVelocityThreshold &&
+            currentOverscrollBottom > _kFlingMinOverscroll);
+
+    if (shouldExpandMonth && widget.state.mode != CalendarMode.month) {
+      ref.read(calendarStateProvider.notifier).setMode(CalendarMode.month);
+    } else if (shouldCollapseWeek && widget.state.mode != CalendarMode.week) {
+      ref.read(calendarStateProvider.notifier).setMode(CalendarMode.week);
+    }
   }
 
   @override

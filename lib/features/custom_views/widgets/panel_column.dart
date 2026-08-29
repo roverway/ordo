@@ -485,7 +485,7 @@ class PanelColumn extends ConsumerWidget {
 
   void _showEditTitleDialog(BuildContext context, AppLocalizations l10n) {
     final controller = TextEditingController(text: panel.title);
-    showDialog(
+    showDialog<String>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
         shape: RoundedRectangleBorder(
@@ -501,6 +501,7 @@ class PanelColumn extends ConsumerWidget {
               borderRadius: BorderRadius.circular(AppTokens.radiusCard),
             ),
           ),
+          onSubmitted: (val) => Navigator.of(dialogCtx).pop(val),
         ),
         actions: [
           TextButton(
@@ -508,18 +509,20 @@ class PanelColumn extends ConsumerWidget {
             child: Text(l10n.cancel),
           ),
           FilledButton(
-            onPressed: () {
-              final newTitle = controller.text.trim();
-              if (newTitle.isNotEmpty) {
-                onUpdatePanel?.call(panel.copyWith(title: newTitle));
-              }
-              Navigator.of(dialogCtx).pop();
-            },
+            onPressed: () => Navigator.of(dialogCtx).pop(controller.text),
             child: Text(l10n.confirm),
           ),
         ],
       ),
-    );
+    ).then((result) {
+      controller.dispose();
+      if (result != null) {
+        final newTitle = result.trim();
+        if (newTitle.isNotEmpty && newTitle != panel.title) {
+          onUpdatePanel?.call(panel.copyWith(title: newTitle));
+        }
+      }
+    });
   }
 
   Widget _buildQuickAddButton(
