@@ -141,6 +141,53 @@ String formatAgendaDateHeader({
   }
 }
 
+/// 格式化日历议程列表周标题（如「8月24日 – 8月30日 · 本周」/「8月24日 – 8月30日」）。
+String formatAgendaWeekHeader({
+  required DateTime weekStart,
+  required DateTime weekEnd,
+  required String thisWeekLabel,
+  required bool isZh,
+}) {
+  final now = DateTime.now();
+  final isThisWeek = !now.isBefore(weekStart) && !now.isAfter(weekEnd);
+  String rangeStr;
+  if (isZh) {
+    if (weekStart.year != weekEnd.year) {
+      rangeStr =
+          '${intl.DateFormat('y年M月d日').format(weekStart)} – ${intl.DateFormat('y年M月d日').format(weekEnd)}';
+    } else if (weekStart.month != weekEnd.month) {
+      rangeStr =
+          '${intl.DateFormat('M月d日').format(weekStart)} – ${intl.DateFormat('M月d日').format(weekEnd)}';
+    } else {
+      rangeStr =
+          '${intl.DateFormat('M月d日').format(weekStart)} – ${intl.DateFormat('d日').format(weekEnd)}';
+    }
+  } else {
+    if (weekStart.year != weekEnd.year) {
+      rangeStr =
+          '${intl.DateFormat('MMM d, y', 'en').format(weekStart)} – ${intl.DateFormat('MMM d, y', 'en').format(weekEnd)}';
+    } else {
+      rangeStr =
+          '${intl.DateFormat('MMM d', 'en').format(weekStart)} – ${intl.DateFormat('MMM d', 'en').format(weekEnd)}';
+    }
+  }
+  return isThisWeek ? '$rangeStr · $thisWeekLabel' : rangeStr;
+}
+
+/// 格式化日历议程列表月标题（如「2026年8月 · 本月」/「2026年8月」）。
+String formatAgendaMonthHeader({
+  required DateTime selected,
+  required String thisMonthLabel,
+  required bool isZh,
+}) {
+  final now = DateTime.now();
+  final isThisMonth = selected.year == now.year && selected.month == now.month;
+  final monthStr = isZh
+      ? intl.DateFormat('y年M月').format(selected)
+      : intl.DateFormat('MMMM yyyy', 'en').format(selected);
+  return isThisMonth ? '$monthStr · $thisMonthLabel' : monthStr;
+}
+
 /// 格式化日历顶栏周期标题（月视图如「2026年8月」/「August 2026」；周视图如「8月10日 – 8月16日」/「Aug 10 – Aug 16, 2026」）。
 String formatCalendarHeader({
   required DateTime selectedDate,

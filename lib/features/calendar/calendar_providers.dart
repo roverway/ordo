@@ -7,19 +7,32 @@ import '../projects/project_providers.dart';
 /// 日历视图模式（FR-VIEW-02）：月视图 / 周视图。
 enum CalendarMode { month, week }
 
-/// 日历视图状态：当前选中的日期 + 视图模式。
+/// 日历任务列表显示范围：当日（选中日）/ 该周（选中日所在周）/ 该月（选中日所在月）。
+enum CalendarAgendaScope { day, week, month }
+
+/// 日历视图状态：当前选中的日期 + 视图模式 + 任务列表显示范围。
 ///
-/// [selectedDate] 为本地时间，决定显示的月份/周；进入页面默认今天、月视图。
+/// [selectedDate] 为本地时间，决定显示的月份/周；进入页面默认今天、月视图、当日任务。
 class CalendarState {
-  const CalendarState({required this.selectedDate, required this.mode});
+  const CalendarState({
+    required this.selectedDate,
+    required this.mode,
+    this.agendaScope = CalendarAgendaScope.day,
+  });
 
   final DateTime selectedDate;
   final CalendarMode mode;
+  final CalendarAgendaScope agendaScope;
 
-  CalendarState copyWith({DateTime? selectedDate, CalendarMode? mode}) {
+  CalendarState copyWith({
+    DateTime? selectedDate,
+    CalendarMode? mode,
+    CalendarAgendaScope? agendaScope,
+  }) {
     return CalendarState(
       selectedDate: selectedDate ?? this.selectedDate,
       mode: mode ?? this.mode,
+      agendaScope: agendaScope ?? this.agendaScope,
     );
   }
 }
@@ -31,12 +44,20 @@ class CalendarNotifier extends Notifier<CalendarState> {
     return CalendarState(
       selectedDate: DateTime.now(),
       mode: CalendarMode.month,
+      agendaScope: CalendarAgendaScope.day,
     );
   }
 
   /// 选中指定日期。
   void selectDate(DateTime date) {
     state = state.copyWith(selectedDate: date);
+  }
+
+  /// 设置任务列表显示范围（当日 / 该周 / 该月）。
+  void setAgendaScope(CalendarAgendaScope agendaScope) {
+    if (state.agendaScope != agendaScope) {
+      state = state.copyWith(agendaScope: agendaScope);
+    }
   }
 
   /// 设置视图模式（月 / 周）。
@@ -142,6 +163,67 @@ final calendarStateProvider = NotifierProvider<CalendarNotifier, CalendarState>(
     start: DateTime(monday.year, monday.month, monday.day),
     end: DateTime(sunday.year, sunday.month, sunday.day, 23, 59, 59, 999),
   );
+}
+
+/// 当前议程任务列表显示区间（本地时间，闭区间；起点为 DateOnly 00:00，
+/// 终点为末日 23:59:59.999）。
+({DateTime start, DateTime end}) calendarAgendaRangeFor(CalendarState state) {
+  final selected = state.selectedDate;
+  switch (state.agendaScope) {
+    case CalendarAgendaScope.day:
+      return (
+        start: DateTime(selected.year, selected.month, selected.day),
+        end: DateTime(
+          selected.year,
+          selected.month,
+          selected.day,
+          23,
+          59,
+          59,
+          999,
+        ),
+      );
+    case CalendarAgendaScope.week:
+      final monday = DateTime(
+        selected.year,
+        selected.month,
+        selected.day - (selected.weekday - DateTime.monday),
+      );
+      final sunday = DateTime(monday.year, monday.month, monday.day + 6);
+      return (
+        start: DateTime(monday.year, monday.month, monday.day),
+        end: DateTime(sunday.year, sunday.month, sunday.day, 23, 59, 59, 999),
+      );
+    case CalendarAgendaScope.month:
+      final first = DateTime(selected.year, selected.month, 1);
+      final last = DateTime(selected.year, selected.month + 1, 0);
+      return (
+        start: DateTime(first.year, first.month, first.day),
+        end: DateTime(last.year, last.month, last.day, 23, 59, 59, 999),
+      );
+  }
+}
+
+/// 根据日历状态和范围筛选并排序议程任务列表（纯函数）。
+///
+/// 匹配规则：以任务的开始到结束时间区间（含起始点）中任一天匹配到范围为准（[inTimeRange]）。
+/// 排序规则：优先按开始时间/截止时间（`startAt ?? endAt`）升序排列，相同按 `updatedAt` 降序。
+List<Task> tasksForAgendaScope({
+  required List<Task> allTasks,
+  required CalendarState state,
+}) {
+  final range = calendarAgendaRangeFor(state);
+  final matched = allTasks
+      .where((t) => inTimeRange(t, range.start, range.end))
+      .toList();
+  matched.sort((a, b) {
+    final aTime = a.startAt ?? a.endAt ?? 0;
+    final bTime = b.startAt ?? b.endAt ?? 0;
+    final timeCmp = aTime.compareTo(bTime);
+    if (timeCmp != 0) return timeCmp;
+    return b.updatedAt.compareTo(a.updatedAt);
+  });
+  return matched;
 }
 
 /// 由全部任务构建按天分桶（纯函数）。

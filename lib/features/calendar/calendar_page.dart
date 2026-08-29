@@ -24,14 +24,14 @@ import '../tasks/widgets/task_create_sheet.dart';
 import 'calendar_providers.dart';
 
 /// 顶部三点更多菜单的操作枚举。
-enum _CalendarMenuAction { today, toggleView, search }
+enum _CalendarMenuAction { toggleView, scopeDay, scopeWeek, scopeMonth, search }
 
 /// 现代高质感沉浸式日历视图（FR-VIEW-02）。
 ///
 /// 架构设计：
-/// 1. 顶栏融合：周期标题（月/周）置于 AppBar，点击弹出日期快捷面板；右上角操作收拢为三点菜单。
+/// 1. 顶栏融合：周期标题（月/周）置于 AppBar，点击弹出日期快捷面板；右上角设「回到今天」快捷按钮与三点操作菜单。
 /// 2. 日历视口（上部）：无边框沉浸式设计 + 统一矩阵格 + 项目色彩微标 + 左右滑动手势翻月/周 + 上下折叠手势。
-/// 3. 当日议程列表（下部）：实时联动展示选中日期的任务清单，支持勾选、进度环、优先级与点击编辑。
+/// 3. 当日/周/月议程列表（下部）：实时联动展示选定时间范围的任务清单，支持上下滑动手势穿透联动日历折叠/展开。
 /// 4. 快捷新建（FAB / 内联）：一键唤起创建表单，自动预填选中日期 09:00。
 /// 5. 宽屏适配：桌面/平板下自动启用左侧日历 + 右侧任务流水双栏分栏布局。
 /// 6. 全面国际化：纯正中文星期与议程星期展示，多语言无缝切换。
@@ -60,17 +60,37 @@ class CalendarPage extends ConsumerWidget {
         automaticallyImplyLeading: false,
         title: _buildAppBarTitle(context, ref, state),
         actions: [
-          // 更多操作三点菜单（回到今天、月/周视图切换、搜索）
+          // 回到今天快捷按钮（置于三点菜单左侧）
+          IconButton(
+            tooltip: l10n.goToToday,
+            icon: const Icon(Icons.today_outlined, size: 22),
+            onPressed: () {
+              ref.read(calendarStateProvider.notifier).goToToday();
+            },
+          ),
+          // 更多操作三点菜单（月/周视图切换、范围切换：当日/该周/该月、搜索）
           PopupMenuButton<_CalendarMenuAction>(
             tooltip: l10n.moreOptions,
             icon: const Icon(Icons.more_vert, size: 22),
             onSelected: (action) {
               switch (action) {
-                case _CalendarMenuAction.today:
-                  ref.read(calendarStateProvider.notifier).goToToday();
-                  break;
                 case _CalendarMenuAction.toggleView:
                   ref.read(calendarStateProvider.notifier).toggleView();
+                  break;
+                case _CalendarMenuAction.scopeDay:
+                  ref
+                      .read(calendarStateProvider.notifier)
+                      .setAgendaScope(CalendarAgendaScope.day);
+                  break;
+                case _CalendarMenuAction.scopeWeek:
+                  ref
+                      .read(calendarStateProvider.notifier)
+                      .setAgendaScope(CalendarAgendaScope.week);
+                  break;
+                case _CalendarMenuAction.scopeMonth:
+                  ref
+                      .read(calendarStateProvider.notifier)
+                      .setAgendaScope(CalendarAgendaScope.month);
                   break;
                 case _CalendarMenuAction.search:
                   context.push('/search');
@@ -78,11 +98,6 @@ class CalendarPage extends ConsumerWidget {
               }
             },
             itemBuilder: (context) => [
-              AppMenuItem(
-                value: _CalendarMenuAction.today,
-                icon: Icons.today_outlined,
-                label: l10n.goToToday,
-              ),
               AppMenuItem(
                 value: _CalendarMenuAction.toggleView,
                 icon: state.mode == CalendarMode.month
@@ -92,6 +107,29 @@ class CalendarPage extends ConsumerWidget {
                     ? l10n.switchToWeekView
                     : l10n.switchToMonthView,
               ),
+              const PopupMenuDivider(),
+              AppMenuItem(
+                value: _CalendarMenuAction.scopeDay,
+                icon: state.agendaScope == CalendarAgendaScope.day
+                    ? Icons.check
+                    : null,
+                label: l10n.calendarScopeDay,
+              ),
+              AppMenuItem(
+                value: _CalendarMenuAction.scopeWeek,
+                icon: state.agendaScope == CalendarAgendaScope.week
+                    ? Icons.check
+                    : null,
+                label: l10n.calendarScopeWeek,
+              ),
+              AppMenuItem(
+                value: _CalendarMenuAction.scopeMonth,
+                icon: state.agendaScope == CalendarAgendaScope.month
+                    ? Icons.check
+                    : null,
+                label: l10n.calendarScopeMonth,
+              ),
+              const PopupMenuDivider(),
               AppMenuItem(
                 value: _CalendarMenuAction.search,
                 icon: Icons.search,
@@ -152,11 +190,15 @@ class CalendarPage extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              formatted,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.2,
+            Flexible(
+              child: Text(
+                formatted,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
+                ),
               ),
             ),
             const SizedBox(width: 4),
@@ -200,7 +242,7 @@ class CalendarPage extends ConsumerWidget {
     return Column(
       children: [
         _CalendarViewport(buckets: buckets, state: state, isNarrow: true),
-        Expanded(child: _buildAgendaList(context, ref, buckets, state)),
+        Expanded(child: _CalendarAgendaList(state: state)),
       ],
     );
   }
@@ -231,142 +273,7 @@ class CalendarPage extends ConsumerWidget {
           thickness: 1,
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
         ),
-        Expanded(child: _buildAgendaList(context, ref, buckets, state)),
-      ],
-    );
-  }
-
-  // ── 当日议程与任务列表（下半部）───────────────────────────────────────
-
-  Widget _buildAgendaList(
-    BuildContext context,
-    WidgetRef ref,
-    Map<DateTime, List<Task>> buckets,
-    CalendarState state,
-  ) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final selected = state.selectedDate;
-    final tasks = tasksForDay(buckets, selected);
-    final allTasks = ref.watch(allActiveTasksProvider).value ?? const <Task>[];
-    final childrenIndex = indexChildrenByParent(allTasks);
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
-
-    final dateHeader = formatAgendaDateHeader(
-      selected: selected,
-      todayLabel: l10n.today,
-      isZh: isZh,
-    );
-    final now = DateTime.now();
-    final isToday =
-        selected.year == now.year &&
-        selected.month == now.month &&
-        selected.day == now.day;
-
-    final countText = tasks.isEmpty ? '' : l10n.tasksCount(tasks.length);
-
-    return CustomScrollView(
-      slivers: [
-        // 当日概览 Sticky / Header 栏
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppTokens.spaceMd,
-              AppTokens.spaceSm,
-              AppTokens.spaceMd,
-              AppTokens.spaceXs,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    dateHeader,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: isToday
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurface,
-                    ),
-                  ),
-                ),
-                if (countText.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppTokens.spaceXs,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(AppTokens.radiusChip),
-                    ),
-                    child: Text(
-                      countText,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: AppTokens.textMicroSize,
-                        fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                // 不设「新建任务」按钮：与底部 FAB 完全重复（同一
-                // _createTaskOnDay），新建入口统一走 FAB。
-              ],
-            ),
-          ),
-        ),
-        if (tasks.isEmpty)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppTokens.spaceXl),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.event_available_outlined,
-                      size: AppTokens.emptyIconSize,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.45,
-                      ),
-                    ),
-                    const SizedBox(height: AppTokens.spaceSm),
-                    Text(
-                      l10n.emptyCalendar,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    // 不设「添加任务」按钮：与底部 FAB 重复，新建入口统一走 FAB。
-                  ],
-                ),
-              ),
-            ),
-          )
-        else
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(
-              AppTokens.spaceMd,
-              0,
-              AppTokens.spaceMd,
-              88, // 留出 FAB 底部防遮挡安全边距
-            ),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final task = tasks[index];
-                return Padding(
-                  // 66 §6：议程行距对齐全局组内行距 spaceXs（此前 2 过挤）。
-                  padding: const EdgeInsets.only(bottom: AppTokens.spaceXs),
-                  child: CalendarTaskTile(
-                    task: task,
-                    children: childrenIndex[task.id] ?? const <Task>[],
-                    allTasks: allTasks,
-                    onTap: () => openTaskEdit(context, taskId: task.id),
-                  ),
-                );
-              }, childCount: tasks.length),
-            ),
-          ),
+        Expanded(child: _CalendarAgendaList(state: state)),
       ],
     );
   }
@@ -838,6 +745,239 @@ class _DayCell extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDone ? color.withValues(alpha: 0.35) : color,
         shape: BoxShape.circle,
+      ),
+    );
+  }
+}
+
+// ── 当日/周/月议程与任务列表（下半部）───────────────────────────────────────
+
+/// 日历任务议程列表组件。
+///
+/// 架构特性：
+/// 1. 支持根据 [CalendarState.agendaScope] 展示当日/该周/该月的任务集合；
+/// 2. 滑动手势穿透联动：列表内部优先滚动；当滑至顶部边界且继续下拉时触发展开为月视图；
+///    当滑至底部边界且继续上拉时触发收起为周视图。
+class _CalendarAgendaList extends ConsumerStatefulWidget {
+  const _CalendarAgendaList({required this.state});
+
+  final CalendarState state;
+
+  @override
+  ConsumerState<_CalendarAgendaList> createState() =>
+      _CalendarAgendaListState();
+}
+
+class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
+  double _overscrollTop = 0;
+  double _overscrollBottom = 0;
+  bool _isDragging = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final selected = widget.state.selectedDate;
+    final allTasks = ref.watch(allActiveTasksProvider).value ?? const <Task>[];
+    final tasks = tasksForAgendaScope(allTasks: allTasks, state: widget.state);
+    final childrenIndex = indexChildrenByParent(allTasks);
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+
+    final String dateHeader;
+    final bool isHighlighted;
+    final now = DateTime.now();
+
+    switch (widget.state.agendaScope) {
+      case CalendarAgendaScope.day:
+        dateHeader = formatAgendaDateHeader(
+          selected: selected,
+          todayLabel: l10n.today,
+          isZh: isZh,
+        );
+        isHighlighted =
+            selected.year == now.year &&
+            selected.month == now.month &&
+            selected.day == now.day;
+        break;
+      case CalendarAgendaScope.week:
+        final range = calendarAgendaRangeFor(widget.state);
+        dateHeader = formatAgendaWeekHeader(
+          weekStart: range.start,
+          weekEnd: range.end,
+          thisWeekLabel: l10n.thisWeek,
+          isZh: isZh,
+        );
+        isHighlighted = !now.isBefore(range.start) && !now.isAfter(range.end);
+        break;
+      case CalendarAgendaScope.month:
+        dateHeader = formatAgendaMonthHeader(
+          selected: selected,
+          thisMonthLabel: l10n.thisMonth,
+          isZh: isZh,
+        );
+        isHighlighted =
+            selected.year == now.year && selected.month == now.month;
+        break;
+    }
+
+    final countText = tasks.isEmpty ? '' : l10n.tasksCount(tasks.length);
+
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification is ScrollStartNotification) {
+          if (notification.dragDetails != null) {
+            _isDragging = true;
+            _overscrollTop = 0;
+            _overscrollBottom = 0;
+          }
+        } else if (notification is OverscrollNotification) {
+          if (notification.dragDetails != null) {
+            if (notification.overscroll < 0) {
+              _overscrollTop += -notification.overscroll;
+            } else if (notification.overscroll > 0) {
+              _overscrollBottom += notification.overscroll;
+            }
+          }
+        } else if (notification is ScrollUpdateNotification) {
+          if (notification.dragDetails != null) {
+            if (notification.metrics.pixels <
+                notification.metrics.minScrollExtent) {
+              _overscrollTop =
+                  notification.metrics.minScrollExtent -
+                  notification.metrics.pixels;
+            } else if (notification.metrics.pixels >
+                notification.metrics.maxScrollExtent) {
+              _overscrollBottom =
+                  notification.metrics.pixels -
+                  notification.metrics.maxScrollExtent;
+            }
+          }
+        } else if (notification is ScrollEndNotification) {
+          if (_isDragging) {
+            final velocity = notification.dragDetails?.primaryVelocity ?? 0;
+            if (_overscrollTop > 30 || (velocity > 150 && _overscrollTop > 5)) {
+              // 任务列表下拉到顶部继续下拉 -> 作用于日历：展开为月视图
+              ref
+                  .read(calendarStateProvider.notifier)
+                  .setMode(CalendarMode.month);
+            } else if (_overscrollBottom > 30 ||
+                (velocity < -150 && _overscrollBottom > 5)) {
+              // 任务列表上拉到底部继续上拉 -> 作用于日历：收起为周视图
+              ref
+                  .read(calendarStateProvider.notifier)
+                  .setMode(CalendarMode.week);
+            }
+            _isDragging = false;
+            _overscrollTop = 0;
+            _overscrollBottom = 0;
+          }
+        }
+        return false;
+      },
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        slivers: [
+          // 概览 Sticky / Header 栏
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppTokens.spaceMd,
+                AppTokens.spaceSm,
+                AppTokens.spaceMd,
+                AppTokens.spaceXs,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      dateHeader,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: isHighlighted
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                  if (countText.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTokens.spaceXs,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusChip,
+                        ),
+                      ),
+                      child: Text(
+                        countText,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: AppTokens.textMicroSize,
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          if (tasks.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppTokens.spaceXl),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.event_available_outlined,
+                        size: AppTokens.emptyIconSize,
+                        color: theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.45,
+                        ),
+                      ),
+                      const SizedBox(height: AppTokens.spaceSm),
+                      Text(
+                        l10n.emptyCalendar,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppTokens.spaceMd,
+                0,
+                AppTokens.spaceMd,
+                88, // 留出 FAB 底部防遮挡安全边距
+              ),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final task = tasks[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: AppTokens.spaceXs),
+                    child: CalendarTaskTile(
+                      task: task,
+                      children: childrenIndex[task.id] ?? const <Task>[],
+                      allTasks: allTasks,
+                      onTap: () => openTaskEdit(context, taskId: task.id),
+                    ),
+                  );
+                }, childCount: tasks.length),
+              ),
+            ),
+        ],
       ),
     );
   }

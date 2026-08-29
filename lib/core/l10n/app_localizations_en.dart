@@ -883,6 +883,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get switchToMonthView => 'Switch to Month View';
 
   @override
+  String get calendarScopeDay => 'Day';
+
+  @override
+  String get calendarScopeWeek => 'Week';
+
+  @override
+  String get calendarScopeMonth => 'Month';
+
+  @override
+  String get thisWeek => 'This week';
+
+  @override
+  String get thisMonth => 'This month';
+
+  @override
   String get selectDate => 'Select Date';
 
   @override

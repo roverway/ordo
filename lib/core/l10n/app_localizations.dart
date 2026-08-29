@@ -1748,6 +1748,36 @@ abstract class AppLocalizations {
   /// **'切换为月视图'**
   String get switchToMonthView;
 
+  /// No description provided for @calendarScopeDay.
+  ///
+  /// In zh, this message translates to:
+  /// **'当日'**
+  String get calendarScopeDay;
+
+  /// No description provided for @calendarScopeWeek.
+  ///
+  /// In zh, this message translates to:
+  /// **'该周'**
+  String get calendarScopeWeek;
+
+  /// No description provided for @calendarScopeMonth.
+  ///
+  /// In zh, this message translates to:
+  /// **'该月'**
+  String get calendarScopeMonth;
+
+  /// No description provided for @thisWeek.
+  ///
+  /// In zh, this message translates to:
+  /// **'本周'**
+  String get thisWeek;
+
+  /// No description provided for @thisMonth.
+  ///
+  /// In zh, this message translates to:
+  /// **'本月'**
+  String get thisMonth;
+
   /// No description provided for @selectDate.
   ///
   /// In zh, this message translates to:

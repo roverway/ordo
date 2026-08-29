@@ -866,6 +866,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get switchToMonthView => '切换为月视图';
 
   @override
+  String get calendarScopeDay => '当日';
+
+  @override
+  String get calendarScopeWeek => '该周';
+
+  @override
+  String get calendarScopeMonth => '该月';
+
+  @override
+  String get thisWeek => '本周';
+
+  @override
+  String get thisMonth => '本月';
+
+  @override
   String get selectDate => '选择日期';
 
   @override

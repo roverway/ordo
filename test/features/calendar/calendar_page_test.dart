@@ -77,6 +77,7 @@ Future<StreamController<Map<DateTime, List<Task>>>> _pump(
   WidgetTester tester, {
   required TodoRepository repo,
   required CalendarState state,
+  List<Task> tasks = const <Task>[],
 }) async {
   tester.view.physicalSize = const Size(400, 800);
   tester.view.devicePixelRatio = 1.0;
@@ -114,9 +115,7 @@ Future<StreamController<Map<DateTime, List<Task>>>> _pump(
         calendarBucketsProvider.overrideWith((ref) => bucketsController.stream),
         // 页面直接 watch 的 drift 流/查询也须覆盖，否则 fake_async 下残留
         // Timer（allActiveTasksProvider 是真实 drift watch 流）。
-        allActiveTasksProvider.overrideWith(
-          (ref) => Stream.value(const <Task>[]),
-        ),
+        allActiveTasksProvider.overrideWith((ref) => Stream.value(tasks)),
         taskTagsProvider.overrideWith(
           (ref, taskId) => Stream.value(const <Tag>[]),
         ),
@@ -196,6 +195,7 @@ void main() {
       tester,
       repo: repo,
       state: _fixedState(CalendarMode.month),
+      tasks: tasks,
     );
     controller.add(buckets);
     await tester.pumpAndSettle();
@@ -235,6 +235,7 @@ void main() {
       tester,
       repo: repo,
       state: _fixedState(CalendarMode.month),
+      tasks: tasks,
     );
     controller.add(
       buildCalendarBuckets(tasks, _fixedState(CalendarMode.month)),
@@ -302,7 +303,12 @@ void main() {
     expect(buckets[DateTime(2026, 8, 13)]?.map((t) => t.id), ['E']);
     expect(buckets[DateTime(2026, 8, 5)], isNull);
 
-    final controller = await _pump(tester, repo: repo, state: state);
+    final controller = await _pump(
+      tester,
+      repo: repo,
+      state: state,
+      tasks: tasks,
+    );
     controller.add(buckets);
     await tester.pumpAndSettle();
 
@@ -350,7 +356,25 @@ void main() {
     expect(find.text('2026年8月'), findsOneWidget);
   });
 
-  testWidgets('三点更多菜单：展开显示「回到今天」、「切换为周视图」、「搜索」并可交互', (tester) async {
+  testWidgets('AppBar 今日按钮：独立外置在三点菜单左侧，点击跳转今天', (tester) async {
+    final db = openTestDatabase();
+    final repo = TodoRepository(database: db);
+    final state = _fixedState(CalendarMode.month);
+
+    final controller = await _pump(tester, repo: repo, state: state);
+    controller.add(buildCalendarBuckets([], state));
+    await tester.pumpAndSettle();
+
+    // AppBar 右上角存在独立的「回到今天」按钮
+    expect(find.byIcon(Icons.today_outlined), findsOneWidget);
+    expect(find.byTooltip('回到今天'), findsOneWidget);
+
+    // 点击回到今天
+    await tester.tap(find.byIcon(Icons.today_outlined));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('三点更多菜单：展开显示切换周/月、当日/该周/该月范围选择、搜索并可交互', (tester) async {
     final db = openTestDatabase();
     final repo = TodoRepository(database: db);
     final state = _fixedState(CalendarMode.month);
@@ -363,8 +387,12 @@ void main() {
     await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
 
-    expect(find.text('回到今天'), findsOneWidget);
+    // 验证菜单项（今日已外置，菜单内无「回到今天」）
+    expect(find.text('回到今天'), findsNothing);
     expect(find.text('切换为周视图'), findsOneWidget);
+    expect(find.text('当日'), findsOneWidget);
+    expect(find.text('该周'), findsOneWidget);
+    expect(find.text('该月'), findsOneWidget);
     expect(find.text('搜索'), findsOneWidget);
 
     // 点击切换为周视图
@@ -372,6 +400,84 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('8月10日 – 8月16日'), findsOneWidget);
+  });
+
+  testWidgets('任务列表上下滑动溢出联动日历折叠与展开', (tester) async {
+    final db = openTestDatabase();
+    final repo = TodoRepository(database: db);
+    final state = _fixedState(CalendarMode.month);
+
+    final controller = await _pump(tester, repo: repo, state: state);
+    controller.add(buildCalendarBuckets([], state));
+    await tester.pumpAndSettle();
+
+    // 初始月视图
+    expect(find.text('2026年8月'), findsOneWidget);
+
+    // 在议程列表区域（空列表或滑到底部）向上滑动 -> 联动收起为周视图
+    await tester.drag(find.text('日历暂无安排'), const Offset(0, -100));
+    await tester.pumpAndSettle();
+    expect(find.text('8月10日 – 8月16日'), findsOneWidget);
+
+    // 在议程列表区域向下滑动 -> 联动展开为月视图
+    await tester.drag(find.text('日历暂无安排'), const Offset(0, 100));
+    await tester.pumpAndSettle();
+    expect(find.text('2026年8月'), findsOneWidget);
+  });
+
+  testWidgets('任务列表显示范围切换（当日 / 该周 / 该月）正确过滤任务与更新头部标题', (tester) async {
+    final db = openTestDatabase();
+    final repo = TodoRepository(database: db);
+
+    // 8/11 当日任务 T1；8/13 同周任务 T2；8/25 同月不同周任务 T3；9/5 下月任务 T4
+    final tasks = [
+      _task('T1', startAt: _ms(2026, 8, 11, 9), endAt: _ms(2026, 8, 11, 10)),
+      _task('T2', startAt: _ms(2026, 8, 13, 9), endAt: _ms(2026, 8, 13, 10)),
+      _task('T3', startAt: _ms(2026, 8, 25, 9), endAt: _ms(2026, 8, 25, 10)),
+      _task('T4', startAt: _ms(2026, 9, 5, 9), endAt: _ms(2026, 9, 5, 10)),
+    ];
+    final state = _fixedState(CalendarMode.month);
+
+    final controller = await _pump(
+      tester,
+      repo: repo,
+      state: state,
+      tasks: tasks,
+    );
+    controller.add(buildCalendarBuckets(tasks, state));
+    await tester.pumpAndSettle();
+
+    // 1. 默认范围：当日（8/11）
+    expect(find.text('8月11日 星期二'), findsOneWidget);
+    expect(find.text('T1'), findsOneWidget);
+    expect(find.text('T2'), findsNothing);
+    expect(find.text('T3'), findsNothing);
+    expect(find.text('T4'), findsNothing);
+
+    // 2. 切换到「该周」
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('该周'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('8月10日 – 16日'), findsOneWidget);
+    expect(find.text('T1'), findsOneWidget);
+    expect(find.text('T2'), findsOneWidget);
+    expect(find.text('T3'), findsNothing);
+    expect(find.text('T4'), findsNothing);
+
+    // 3. 切换到「该月」
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('该月'));
+    await tester.pumpAndSettle();
+
+    // 议程头部显示月份标题
+    expect(find.text('2026年8月'), findsWidgets);
+    expect(find.text('T1'), findsOneWidget);
+    expect(find.text('T2'), findsOneWidget);
+    expect(find.text('T3'), findsOneWidget);
+    expect(find.text('T4'), findsNothing);
   });
 
   testWidgets('日历打开新建任务弹窗 → 未输入标题点击遮罩可正常关闭', (tester) async {

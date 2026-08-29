@@ -282,6 +282,11 @@
   "goToToday": "回到今天",
   "switchToWeekView": "切换为周视图",
   "switchToMonthView": "切换为月视图",
+  "calendarScopeDay": "当日",
+  "calendarScopeWeek": "该周",
+  "calendarScopeMonth": "该月",
+  "thisWeek": "本周",
+  "thisMonth": "本月",
   "selectDate": "选择日期",
   "projectCount": "{count} 个项目",
   "@projectCount": {

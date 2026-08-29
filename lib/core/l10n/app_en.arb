@@ -282,6 +282,11 @@
   "goToToday": "Go to Today",
   "switchToWeekView": "Switch to Week View",
   "switchToMonthView": "Switch to Month View",
+  "calendarScopeDay": "Day",
+  "calendarScopeWeek": "Week",
+  "calendarScopeMonth": "Month",
+  "thisWeek": "This week",
+  "thisMonth": "This month",
   "selectDate": "Select Date",
   "projectCount": "{count} projects",
   "@projectCount": {
