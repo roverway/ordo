@@ -323,9 +323,18 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
   double _verticalDelta = 0;
 
   // 本次网格切换方向：1 = 下一周期（新网格自右滑入）、-1 = 上一周期（自左
-  // 滑入）、0 = 非水平翻页（月↔周折叠/点选柄，仅淡入）。手势触发点先行
-  // 写入，AnimatedSwitcher 的 transitionBuilder 在随之而来的重建中读取。
+  // 滑入）、0 = 非水平翻页（月↔周折叠/点选柄，柔和交叉淡入淡出）。
+  // 手势触发点先行写入，AnimatedSwitcher 的 transitionBuilder 在随之而来的重建中读取。
   int _slideDirection = 0;
+
+  @override
+  void didUpdateWidget(covariant _CalendarViewport oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.state.mode != widget.state.mode) {
+      // 视图模式切换（月↔周）时，确保重置为 0（走柔和垂直折叠/展开动画）
+      _slideDirection = 0;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -338,6 +347,17 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
     final days = widget.state.mode == CalendarMode.month
         ? calculateMonthGridDays(widget.state.selectedDate)
         : calculateWeekDays(widget.state.selectedDate);
+
+    // 垂直折叠/展开使用舒缓的 350ms (motionSlow) + easeInOutCubic 曲线，
+    // 与下方任务列表物理弹性回弹（BouncingScrollPhysics）节奏完美协调；
+    // 水平翻月/翻周保持轻快 250ms (motionNormal)。
+    final isVertical = _slideDirection == 0;
+    final duration = isVertical
+        ? motionDuration(context, AppTokens.motionSlow)
+        : motionDuration(context, AppTokens.motionNormal);
+    final curve = isVertical
+        ? (isReducedMotion(context) ? Curves.easeOut : Curves.easeInOutCubic)
+        : motionCurve(context);
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -389,17 +409,17 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
           // 日期格网：上下（月↔周）的高度过渡由外层 AnimatedSize 承担
           // （周视图即同结构矩阵的 1 行，与任务树/侧边栏同一范式）；左右
           // 翻页由内层 AnimatedSwitcher 做方向性推入 + 淡入淡出。滑动位移
-          // 为宽度分数（0.18），分辨率无关；reduced motion 经 motionNormal
+          // 为宽度分数（0.18），分辨率无关；reduced motion 经 motionDuration
           // 归零全部瞬时切换。
           AnimatedSize(
-            duration: motionNormal(context),
-            curve: motionCurve(context),
+            duration: duration,
+            curve: curve,
             alignment: Alignment.topCenter,
             clipBehavior: Clip.hardEdge,
             child: AnimatedSwitcher(
-              duration: motionNormal(context),
-              switchInCurve: motionCurve(context),
-              switchOutCurve: motionCurve(context).flipped,
+              duration: duration,
+              switchInCurve: curve,
+              switchOutCurve: curve.flipped,
               // Stack 尺寸只取**新网格**：退场旧网格以 Positioned 叠放（不参与
               // Stack 尺寸测定）。默认 layoutBuilder 的 Stack 尺寸取最大子项，
               // 月视图（6 行）退场期间高度迟迟不塌，AnimatedSize 收起被拖到
@@ -418,12 +438,11 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
               transitionBuilder: (child, animation) {
                 final dir = _slideDirection;
                 final isIncoming = child.key == ValueKey(days.first);
-                // 垂直切换（月↔周）：新网格**立即完整显示**（无淡入），仅旧
-                // 网格淡出，高度过渡交给外层 AnimatedSize——即时呈现无迟滞。
+                // 垂直切换（月↔周）：新旧网格采用柔和的双向平滑交叉淡入淡出（Cross-Fade），
+                // 配合外层 AnimatedSize 的 350ms easeInOutCubic 曲线，
+                // 与下方列表回弹节奏自然统一，彻底消除瞬间突变与闪烁感。
                 if (dir == 0) {
-                  return isIncoming
-                      ? child
-                      : FadeTransition(opacity: animation, child: child);
+                  return FadeTransition(opacity: animation, child: child);
                 }
                 final begin = isIncoming
                     ? Offset(0.18 * dir, 0)
@@ -833,15 +852,19 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
             final velocity = notification.dragDetails?.primaryVelocity ?? 0;
             if (_overscrollTop > 30 || (velocity > 150 && _overscrollTop > 5)) {
               // 任务列表下拉到顶部继续下拉 -> 作用于日历：展开为月视图
-              ref
-                  .read(calendarStateProvider.notifier)
-                  .setMode(CalendarMode.month);
+              if (widget.state.mode != CalendarMode.month) {
+                ref
+                    .read(calendarStateProvider.notifier)
+                    .setMode(CalendarMode.month);
+              }
             } else if (_overscrollBottom > 30 ||
                 (velocity < -150 && _overscrollBottom > 5)) {
               // 任务列表上拉到底部继续上拉 -> 作用于日历：收起为周视图
-              ref
-                  .read(calendarStateProvider.notifier)
-                  .setMode(CalendarMode.week);
+              if (widget.state.mode != CalendarMode.week) {
+                ref
+                    .read(calendarStateProvider.notifier)
+                    .setMode(CalendarMode.week);
+              }
             }
             _isDragging = false;
             _overscrollTop = 0;
