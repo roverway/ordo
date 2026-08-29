@@ -113,6 +113,7 @@ class TaskCreateSheet extends ConsumerStatefulWidget {
             bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
           ),
           child: SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
             child: TaskCreateSheet(
               projectId: projectId,
               parentId: parentId,
@@ -135,7 +136,6 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet> {
   final _editorController = TaskEditorController(mode: TaskEditorMode.create);
   bool _isSaving = false;
   bool _initialized = false;
-  bool _focusRequested = false;
 
   /// 自动保存完成后置 true，放行 PopScope 的 pop（canPop 由状态驱动）。
   bool _allowPop = false;
@@ -146,42 +146,6 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet> {
     // 首帧后初始化表单（Riverpod 禁止在 initState 中写 provider，
     // 与 task_edit_page._loadData 的 addPostFrameCallback 模式一致）。
     WidgetsBinding.instance.addPostFrameCallback((_) => _initForm());
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _setupAutoFocus();
-  }
-
-  /// 延迟聚焦：待入场转场动画（motionSlow 350ms）完全结束后再唤起软键盘，
-  /// 彻底消除软键盘异步弹起（viewInsets 突变）与整屏滑入动画重叠导致的「上跳」跳动。
-  void _setupAutoFocus() {
-    if (_focusRequested) return;
-    final modalRoute = ModalRoute.of(context);
-    if (modalRoute == null) {
-      _focusRequested = true;
-      _editorController.titleFocusNode.requestFocus();
-      return;
-    }
-
-    final animation = modalRoute.animation;
-    if (animation == null || animation.isCompleted) {
-      _focusRequested = true;
-      _editorController.titleFocusNode.requestFocus();
-    } else {
-      void listener(AnimationStatus status) {
-        if (status == AnimationStatus.completed) {
-          animation.removeStatusListener(listener);
-          if (mounted && !_focusRequested) {
-            _focusRequested = true;
-            _editorController.titleFocusNode.requestFocus();
-          }
-        }
-      }
-
-      animation.addStatusListener(listener);
-    }
   }
 
   /// 初始化表单：同步复位 + 解析项目（缺省收件箱，幂等 ensure，产品决策 #3）。
@@ -245,7 +209,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet> {
         ),
         child: TaskEditor(
           controller: _editorController,
-          autofocus: false,
+          autofocus: true,
           // 子任务区仅 1 级任务展示（新建子任务时隐藏）。
           showSubtasks: widget.parentId == null,
         ),

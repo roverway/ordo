@@ -136,8 +136,6 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
 
   bool get _isEditing => widget.taskId != null;
 
-  bool _focusRequested = false;
-
   @override
   void initState() {
     super.initState();
@@ -145,42 +143,6 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
       mode: _isEditing ? TaskEditorMode.edit : TaskEditorMode.create,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _setupAutoFocus();
-  }
-
-  /// 延迟聚焦：待页面入场转场动画完全结束后再唤起软键盘，
-  /// 避免页面滑入中途软键盘升起导致速度差冲突。
-  void _setupAutoFocus() {
-    if (_focusRequested) return;
-    final modalRoute = ModalRoute.of(context);
-    if (modalRoute == null) {
-      _focusRequested = true;
-      _editorController.titleFocusNode.requestFocus();
-      return;
-    }
-
-    final animation = modalRoute.animation;
-    if (animation == null || animation.isCompleted) {
-      _focusRequested = true;
-      _editorController.titleFocusNode.requestFocus();
-    } else {
-      void listener(AnimationStatus status) {
-        if (status == AnimationStatus.completed) {
-          animation.removeStatusListener(listener);
-          if (mounted && !_focusRequested) {
-            _focusRequested = true;
-            _editorController.titleFocusNode.requestFocus();
-          }
-        }
-      }
-
-      animation.addStatusListener(listener);
-    }
   }
 
   Future<void> _loadData() async {
@@ -311,7 +273,7 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
                 padding: const EdgeInsets.all(AppTokens.spaceMd),
                 child: TaskEditor(
                   controller: _editorController,
-                  autofocus: false,
+                  autofocus: !_isEditing,
                   showTopBar: false,
                   showToolbar: false,
                   // 编辑态：子任务区按自身深度（<3 展示，方案 B）；新建态维持「仅 1 级任务」。
@@ -324,12 +286,12 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
               ),
             ),
             // 底部工具栏常驻：作为 body 的一部分（body 高度已扣键盘 inset），
-            // 键盘弹出时随 body 整体平滑上移。
-            SafeArea(
-              top: false,
-              child: Material(
-                color: colorScheme.surface,
-                elevation: AppTokens.elevationCard,
+            // Material 铺满屏幕底沿（无缝承接系统手势条），SafeArea 置于内部提供边距。
+            Material(
+              color: colorScheme.surface,
+              elevation: AppTokens.elevationCard,
+              child: SafeArea(
+                top: false,
                 child: ListenableBuilder(
                   listenable: _editorController,
                   builder: (context, _) {

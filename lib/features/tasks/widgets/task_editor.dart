@@ -369,6 +369,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
       controller: widget.controller.titleController,
       focusNode: widget.controller.titleFocusNode,
       autofocus: widget.autofocus,
+      scrollPadding: EdgeInsets.zero,
       // 长标题自动换行（用户要求）：maxLines: null = 不限行数，随输入自动
       // 增高；键盘回车由平台改为换行（单行 next 动作失效，无 textInputAction）。
       maxLines: null,
