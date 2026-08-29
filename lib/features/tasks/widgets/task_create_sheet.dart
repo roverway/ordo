@@ -82,7 +82,7 @@ class TaskCreateSheet extends ConsumerStatefulWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      useSafeArea: true,
+      useSafeArea: false,
       sheetAnimationStyle: AnimationStyle(
         duration: motionSlow(context),
         reverseDuration: motionSlow(context),
@@ -100,9 +100,9 @@ class TaskCreateSheet extends ConsumerStatefulWidget {
       clipBehavior: Clip.antiAlias,
       builder: (sheetContext) {
         return KeyboardInsetBuilder(
-          builder: (context, effectiveInset, _, _) {
+          builder: (context, effectiveInset, bottomGap, _) {
             return Padding(
-              padding: EdgeInsets.only(bottom: effectiveInset),
+              padding: EdgeInsets.only(bottom: effectiveInset + bottomGap),
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
                 child: TaskCreateSheet(
@@ -198,7 +198,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet> {
           AppTokens.spaceMd,
           AppTokens.spaceSm,
           AppTokens.spaceMd,
-          AppTokens.spaceLg,
+          0,
         ),
         child: TaskEditor(
           controller: _editorController,
