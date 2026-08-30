@@ -7,6 +7,7 @@ import '../../core/db/repositories/todo_repository.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_breakpoints.dart';
+import '../../shared/widgets/adaptive_leading_navigation.dart';
 import '../../shared/widgets/app_drawer.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import '../../shared/widgets/empty_state.dart';
@@ -36,27 +37,7 @@ class TagsPage extends ConsumerWidget {
     return Scaffold(
       drawer: (narrow && !canPop) ? const AppDrawer() : null,
       appBar: AppBar(
-        leading: canPop
-            ? IconButton(
-                tooltip: l10n.cancel,
-                icon: const Icon(Icons.arrow_back, size: 22),
-                onPressed: () {
-                  if (onBack != null) {
-                    onBack!();
-                  } else {
-                    context.pop();
-                  }
-                },
-              )
-            : (narrow
-                  ? Builder(
-                      builder: (context) => IconButton(
-                        tooltip: l10n.openDrawer,
-                        icon: const Icon(Icons.menu, size: 22),
-                        onPressed: () => Scaffold.of(context).openDrawer(),
-                      ),
-                    )
-                  : null),
+        leading: AdaptiveLeadingNavigation(onBack: onBack),
         automaticallyImplyLeading: false,
         title: Text(l10n.navTags),
         actions: [

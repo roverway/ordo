@@ -17,12 +17,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/db/repositories/todo_repository.dart';
 import '../../core/l10n/app_localizations.dart';
-import '../../core/platform/keyboard_inset_bridge.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_breakpoints.dart';
 import '../../core/utils/tree.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import '../../shared/widgets/modal_side_sheet.dart';
+import '../../shared/widgets/window_insets_boundary.dart';
 import '../projects/project_providers.dart';
 import 'task_providers.dart';
 import 'widgets/task_editor.dart';
@@ -428,20 +428,7 @@ class _TaskEditContentArea extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 关键优化：使用细粒度 Aspect 读取尺寸与安全区，坚决不调用 MediaQuery.of(context)！
-    // 使得本组件在原生 WindowInsets（键盘高度）突变时完全不订阅 viewInsets，0 次 Rebuild。
-    final mediaQueryData = MediaQueryData(
-      size: MediaQuery.sizeOf(context),
-      padding: MediaQuery.paddingOf(context),
-      viewPadding: MediaQuery.viewPaddingOf(context),
-      viewInsets: EdgeInsets.zero,
-      devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
-      textScaler: MediaQuery.textScalerOf(context),
-      platformBrightness: MediaQuery.platformBrightnessOf(context),
-    );
-
-    return MediaQuery(
-      data: mediaQueryData,
+    return WindowInsetsBoundary(
       child: SingleChildScrollView(
         padding: const EdgeInsets.only(
           left: AppTokens.spaceMd,

@@ -37,9 +37,11 @@ class _SettingsSheetNavigatorState extends State<_SettingsSheetNavigator> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final isSubPage = _showingSync || _showingTags;
 
+    Widget child;
     if (_showingSync) {
-      return Scaffold(
+      child = Scaffold(
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
@@ -50,25 +52,36 @@ class _SettingsSheetNavigatorState extends State<_SettingsSheetNavigator> {
         ),
         body: const SyncSetupBody(),
       );
-    }
-
-    if (_showingTags) {
-      return TagsPage(onBack: () => setState(() => _showingTags = false));
-    }
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.settings),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          tooltip: l10n.cancel,
-          onPressed: widget.onClose,
+    } else if (_showingTags) {
+      child = TagsPage(onBack: () => setState(() => _showingTags = false));
+    } else {
+      child = Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.settings),
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            tooltip: l10n.cancel,
+            onPressed: widget.onClose,
+          ),
         ),
-      ),
-      body: SettingsBody(
-        onOpenSync: () => setState(() => _showingSync = true),
-        onOpenTags: () => setState(() => _showingTags = true),
-      ),
+        body: SettingsBody(
+          onOpenSync: () => setState(() => _showingSync = true),
+          onOpenTags: () => setState(() => _showingTags = true),
+        ),
+      );
+    }
+
+    return PopScope(
+      canPop: !isSubPage,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          setState(() {
+            _showingSync = false;
+            _showingTags = false;
+          });
+        }
+      },
+      child: child,
     );
   }
 }

@@ -10,6 +10,7 @@ import '../../core/utils/app_breakpoints.dart';
 import '../../core/utils/derived.dart';
 import '../../core/utils/tree.dart';
 import '../../core/utils/view_rules.dart';
+import '../../shared/widgets/adaptive_leading_navigation.dart';
 import '../../shared/widgets/app_drawer.dart';
 import '../../shared/widgets/app_menu_item.dart';
 import '../../shared/widgets/empty_state.dart';
@@ -53,22 +54,7 @@ class _TagsDetailPageState extends ConsumerState<TagsDetailPage> {
           return Scaffold(
             drawer: (narrow && !canPop) ? const AppDrawer() : null,
             appBar: AppBar(
-              leading: canPop
-                  ? IconButton(
-                      tooltip: l10n.cancel,
-                      icon: const Icon(Icons.arrow_back, size: 22),
-                      onPressed: () => context.pop(),
-                    )
-                  : (narrow
-                        ? Builder(
-                            builder: (context) => IconButton(
-                              tooltip: l10n.openDrawer,
-                              icon: const Icon(Icons.menu, size: 22),
-                              onPressed: () =>
-                                  Scaffold.of(context).openDrawer(),
-                            ),
-                          )
-                        : null),
+              leading: const AdaptiveLeadingNavigation(),
               automaticallyImplyLeading: false,
               title: Text(l10n.navTags),
               actions: [
@@ -88,21 +74,7 @@ class _TagsDetailPageState extends ConsumerState<TagsDetailPage> {
         return Scaffold(
           drawer: (narrow && !canPop) ? const AppDrawer() : null,
           appBar: AppBar(
-            leading: canPop
-                ? IconButton(
-                    tooltip: l10n.cancel,
-                    icon: const Icon(Icons.arrow_back, size: 22),
-                    onPressed: () => context.pop(),
-                  )
-                : (narrow
-                      ? Builder(
-                          builder: (context) => IconButton(
-                            tooltip: l10n.openDrawer,
-                            icon: const Icon(Icons.menu, size: 22),
-                            onPressed: () => Scaffold.of(context).openDrawer(),
-                          ),
-                        )
-                      : null),
+            leading: const AdaptiveLeadingNavigation(),
             automaticallyImplyLeading: false,
             title: Text(tag.name),
             actions: [
@@ -143,15 +115,7 @@ class _TagsDetailPageState extends ConsumerState<TagsDetailPage> {
       loading: () => Scaffold(
         drawer: narrow ? const AppDrawer() : null,
         appBar: AppBar(
-          leading: narrow
-              ? Builder(
-                  builder: (context) => IconButton(
-                    tooltip: l10n.openDrawer,
-                    icon: const Icon(Icons.menu, size: 22),
-                    onPressed: () => Scaffold.of(context).openDrawer(),
-                  ),
-                )
-              : null,
+          leading: const AdaptiveLeadingNavigation(),
           automaticallyImplyLeading: false,
           title: Text(l10n.navTags),
         ),
@@ -162,15 +126,7 @@ class _TagsDetailPageState extends ConsumerState<TagsDetailPage> {
         return Scaffold(
           drawer: narrow ? const AppDrawer() : null,
           appBar: AppBar(
-            leading: narrow
-                ? Builder(
-                    builder: (context) => IconButton(
-                      tooltip: l10n.openDrawer,
-                      icon: const Icon(Icons.menu, size: 22),
-                      onPressed: () => Scaffold.of(context).openDrawer(),
-                    ),
-                  )
-                : null,
+            leading: const AdaptiveLeadingNavigation(),
             automaticallyImplyLeading: false,
             title: Text(l10n.navTags),
           ),

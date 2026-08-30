@@ -7,11 +7,12 @@ import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/app_breakpoints.dart';
 import '../../../core/utils/custom_view_models.dart';
+import '../../../shared/widgets/adaptive_leading_navigation.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../../../shared/widgets/app_menu_item.dart';
-import '../../projects/project_providers.dart';
 import '../providers/custom_view_providers.dart';
 import '../widgets/panel_column.dart';
+import 'custom_view_action_handler.dart';
 import 'custom_view_editor_page.dart';
 
 /// 自定义视图主页面（支持多栏看板与多 Tab 响应式切换）。
@@ -26,11 +27,13 @@ class CustomViewPage extends ConsumerStatefulWidget {
 
 class _CustomViewPageState extends ConsumerState<CustomViewPage> {
   late final ScrollController _horizontalScrollController;
+  late final CustomViewActionHandler _actionHandler;
 
   @override
   void initState() {
     super.initState();
     _horizontalScrollController = ScrollController();
+    _actionHandler = CustomViewActionHandler(ref);
   }
 
   @override
@@ -44,167 +47,6 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
       context.push('/custom_view/${view.id}/edit');
     } else {
       showCustomViewEditorSideSheet(context, viewId: view.id);
-    }
-  }
-
-  void _onUpdatePanel(
-    CustomView view,
-    int index,
-    CustomViewPanelConfig updated,
-  ) {
-    final panels = List<CustomViewPanelConfig>.from(
-      decodePanelsJson(view.panelsJson),
-    );
-    panels[index] = updated;
-    ref.read(customViewOperationsProvider).updateView(view.id, panels: panels);
-  }
-
-  void _onDeletePanel(CustomView view, int index) {
-    final panels = List<CustomViewPanelConfig>.from(
-      decodePanelsJson(view.panelsJson),
-    );
-    panels.removeAt(index);
-    ref.read(customViewOperationsProvider).updateView(view.id, panels: panels);
-  }
-
-  Future<void> _handleTaskDrop({
-    required BuildContext context,
-    required CustomView view,
-    required Task task,
-    required CustomViewPanelConfig targetPanel,
-  }) async {
-    final l10n = AppLocalizations.of(context);
-    final repo = ref.read(todoRepositoryProvider);
-    final ops = ref.read(customViewOperationsProvider);
-
-    // 查找 sourcePanel
-    final panels = decodePanelsJson(view.panelsJson);
-    CustomViewPanelConfig? sourcePanel;
-    for (final p in panels) {
-      if (p.id != targetPanel.id) {
-        sourcePanel = p;
-        break;
-      }
-    }
-    sourcePanel ??= targetPanel;
-
-    // 检查是否有子任务（AGENTS.md 硬性约束：派生状态）
-    final children = await repo.tasks.getDirectChildren(
-      task.projectId,
-      task.id,
-    );
-    final hasSubtasks = children.isNotEmpty;
-
-    final result = await ops.handleTaskDroppedBetweenPanels(
-      task: task,
-      sourcePanel: sourcePanel,
-      targetPanel: targetPanel,
-      hasSubtasks: hasSubtasks,
-    );
-
-    if (!context.mounted) return;
-
-    if (result.actionType == PanelDropActionType.derivedStatusBlocked) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.message ?? l10n.parentTaskDerivedStatusNotice),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } else if (result.actionType == PanelDropActionType.requiresConfirmation) {
-      _showConfirmationDialog(context, task, targetPanel, result);
-    }
-  }
-
-  void _showConfirmationDialog(
-    BuildContext context,
-    Task task,
-    CustomViewPanelConfig targetPanel,
-    PanelDropResult result,
-  ) {
-    final l10n = AppLocalizations.of(context);
-    final repo = ref.read(todoRepositoryProvider);
-
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-        ),
-        title: Text(l10n.confirm),
-        content: Text(l10n.customViewMoveConfirmMessage(targetPanel.title)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: Text(l10n.cancel),
-          ),
-          if (result.targetStatus != null)
-            FilledButton.tonal(
-              onPressed: () async {
-                await repo.updateTask(task.id, status: result.targetStatus!);
-                if (dialogCtx.mounted) Navigator.of(dialogCtx).pop();
-              },
-              child: Text(
-                l10n.customViewModifyStatusTo(result.targetStatus!.name),
-              ),
-            ),
-          if (result.targetPriority != null)
-            FilledButton.tonal(
-              onPressed: () async {
-                await repo.updateTask(
-                  task.id,
-                  priority: result.targetPriority!,
-                );
-                if (dialogCtx.mounted) Navigator.of(dialogCtx).pop();
-              },
-              child: Text(
-                l10n.customViewModifyPriorityTo(result.targetPriority!.name),
-              ),
-            ),
-          if (result.targetProjectId != null)
-            FilledButton.tonal(
-              onPressed: () async {
-                await repo.moveTaskToProject(task.id, result.targetProjectId!);
-                if (dialogCtx.mounted) Navigator.of(dialogCtx).pop();
-              },
-              child: Text(l10n.customViewModifyProject),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _confirmDeleteView(BuildContext context, CustomView view) async {
-    final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-        ),
-        title: Text(l10n.deleteCustomView),
-        content: Text(l10n.deleteCustomViewConfirm(view.name)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-            onPressed: () => Navigator.of(dialogCtx).pop(true),
-            child: Text(l10n.delete),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && context.mounted) {
-      await ref.read(customViewOperationsProvider).deleteView(view.id);
-      if (context.mounted) {
-        context.go('/today');
-      }
     }
   }
 
@@ -222,7 +64,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
       PopupMenuButton<String>(
         onSelected: (val) {
           if (val == 'delete') {
-            _confirmDeleteView(context, view);
+            _actionHandler.confirmDeleteView(context, view);
           }
         },
         itemBuilder: (ctx) => [
@@ -252,15 +94,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
       loading: () => Scaffold(
         drawer: narrow ? const AppDrawer() : null,
         appBar: AppBar(
-          leading: narrow
-              ? Builder(
-                  builder: (context) => IconButton(
-                    tooltip: l10n.openDrawer,
-                    icon: const Icon(Icons.menu, size: 22),
-                    onPressed: () => Scaffold.of(context).openDrawer(),
-                  ),
-                )
-              : null,
+          leading: const AdaptiveLeadingNavigation(),
           automaticallyImplyLeading: false,
           title: Text(l10n.customViews),
         ),
@@ -269,15 +103,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
       error: (err, _) => Scaffold(
         drawer: narrow ? const AppDrawer() : null,
         appBar: AppBar(
-          leading: narrow
-              ? Builder(
-                  builder: (context) => IconButton(
-                    tooltip: l10n.openDrawer,
-                    icon: const Icon(Icons.menu, size: 22),
-                    onPressed: () => Scaffold.of(context).openDrawer(),
-                  ),
-                )
-              : null,
+          leading: const AdaptiveLeadingNavigation(),
           automaticallyImplyLeading: false,
           title: Text(l10n.customViews),
         ),
@@ -288,15 +114,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
           return Scaffold(
             drawer: narrow ? const AppDrawer() : null,
             appBar: AppBar(
-              leading: narrow
-                  ? Builder(
-                      builder: (context) => IconButton(
-                        tooltip: l10n.openDrawer,
-                        icon: const Icon(Icons.menu, size: 22),
-                        onPressed: () => Scaffold.of(context).openDrawer(),
-                      ),
-                    )
-                  : null,
+              leading: const AdaptiveLeadingNavigation(),
               automaticallyImplyLeading: false,
               title: Text(l10n.customViews),
             ),
@@ -381,14 +199,16 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
                     panel: panel,
                     isKanban: true,
                     onUpdatePanel: (updated) =>
-                        _onUpdatePanel(view, index, updated),
-                    onDeletePanel: () => _onDeletePanel(view, index),
-                    onTaskDropped: (task, targetPanel) => _handleTaskDrop(
-                      context: context,
-                      view: view,
-                      task: task,
-                      targetPanel: targetPanel,
-                    ),
+                        _actionHandler.updatePanel(view, index, updated),
+                    onDeletePanel: () =>
+                        _actionHandler.deletePanel(view, index),
+                    onTaskDropped: (task, targetPanel) =>
+                        _actionHandler.handleTaskDrop(
+                          context: context,
+                          view: view,
+                          task: task,
+                          targetPanel: targetPanel,
+                        ),
                   );
                 },
               ),
@@ -399,15 +219,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
           return Scaffold(
             drawer: narrow ? const AppDrawer() : null,
             appBar: AppBar(
-              leading: narrow
-                  ? Builder(
-                      builder: (context) => IconButton(
-                        tooltip: l10n.openDrawer,
-                        icon: const Icon(Icons.menu, size: 22),
-                        onPressed: () => Scaffold.of(context).openDrawer(),
-                      ),
-                    )
-                  : null,
+              leading: const AdaptiveLeadingNavigation(),
               automaticallyImplyLeading: false,
               title: _buildViewTitle(view),
               actions: actions,
@@ -416,14 +228,16 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
               key: ValueKey(panels.first.id),
               panel: panels.first,
               isKanban: false,
-              onUpdatePanel: (updated) => _onUpdatePanel(view, 0, updated),
-              onDeletePanel: () => _onDeletePanel(view, 0),
-              onTaskDropped: (task, targetPanel) => _handleTaskDrop(
-                context: context,
-                view: view,
-                task: task,
-                targetPanel: targetPanel,
-              ),
+              onUpdatePanel: (updated) =>
+                  _actionHandler.updatePanel(view, 0, updated),
+              onDeletePanel: () => _actionHandler.deletePanel(view, 0),
+              onTaskDropped: (task, targetPanel) =>
+                  _actionHandler.handleTaskDrop(
+                    context: context,
+                    view: view,
+                    task: task,
+                    targetPanel: targetPanel,
+                  ),
             ),
           );
         } else {
@@ -433,15 +247,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
             child: Scaffold(
               drawer: narrow ? const AppDrawer() : null,
               appBar: AppBar(
-                leading: narrow
-                    ? Builder(
-                        builder: (context) => IconButton(
-                          tooltip: l10n.openDrawer,
-                          icon: const Icon(Icons.menu, size: 22),
-                          onPressed: () => Scaffold.of(context).openDrawer(),
-                        ),
-                      )
-                    : null,
+                leading: const AdaptiveLeadingNavigation(),
                 automaticallyImplyLeading: false,
                 title: _buildViewTitle(view),
                 actions: actions,
@@ -462,14 +268,16 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
                     panel: panel,
                     isKanban: false,
                     onUpdatePanel: (updated) =>
-                        _onUpdatePanel(view, index, updated),
-                    onDeletePanel: () => _onDeletePanel(view, index),
-                    onTaskDropped: (task, targetPanel) => _handleTaskDrop(
-                      context: context,
-                      view: view,
-                      task: task,
-                      targetPanel: targetPanel,
-                    ),
+                        _actionHandler.updatePanel(view, index, updated),
+                    onDeletePanel: () =>
+                        _actionHandler.deletePanel(view, index),
+                    onTaskDropped: (task, targetPanel) =>
+                        _actionHandler.handleTaskDrop(
+                          context: context,
+                          view: view,
+                          task: task,
+                          targetPanel: targetPanel,
+                        ),
                   );
                 }).toList(),
               ),
@@ -480,15 +288,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
         return Scaffold(
           drawer: narrow ? const AppDrawer() : null,
           appBar: AppBar(
-            leading: narrow
-                ? Builder(
-                    builder: (context) => IconButton(
-                      tooltip: l10n.openDrawer,
-                      icon: const Icon(Icons.menu, size: 22),
-                      onPressed: () => Scaffold.of(context).openDrawer(),
-                    ),
-                  )
-                : null,
+            leading: const AdaptiveLeadingNavigation(),
             automaticallyImplyLeading: false,
             title: _buildViewTitle(view),
             actions: actions,
