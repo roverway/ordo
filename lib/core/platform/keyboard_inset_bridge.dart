@@ -38,8 +38,8 @@ class KeyboardInsetBridge {
 ///
 /// 核心特性：
 /// 1. 内部独立监听 [KeyboardInsetBridge]，不引发父页面或兄弟内容区的 Rebuild；
-/// 2. 采用 [Transform.translate] 配合 [RepaintBoundary]，位移仅更新 GPU 图层矩阵，
-///    完全规避父级 Stack / 任务编辑正文列表在键盘动画期间的 Relayout 与文本重排。
+/// 2. 工具栏自身位移通过 [Transform.translate] 独立更新矩阵，避免工具栏自身因位移发生 Relayout。
+///    （注意：此机制隔离工具栏自身的布局计算，兄弟节点及正文列表是否发生 Layout/Build 取决于正文组件树自身的结构与状态订阅设计）。
 class KeyboardAttachedToolbar extends StatelessWidget {
   const KeyboardAttachedToolbar({
     super.key,
@@ -71,8 +71,8 @@ class KeyboardAttachedToolbar extends StatelessWidget {
                     : mediaQueryInset)
               : mediaQueryInset;
           // 当键盘高度小于安全区高度时，位移为 0；超过安全区高度后按差值位移。
-          // 内部使用恒定的 viewPaddingBottom 留白，动画全程不修改 Padding，
-          // 实现子组件 0 Layout 耗时，纯 GPU 图层位移。
+          // 内部使用恒定的 viewPaddingBottom 留白，位移期间不修改自身 Padding，
+          // 避免工具栏自身发生 Relayout。
           final dy = (effectiveInset - viewPaddingBottom).clamp(
             0.0,
             double.infinity,

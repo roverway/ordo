@@ -265,22 +265,6 @@ class TaskEditor extends ConsumerStatefulWidget {
 }
 
 class _TaskEditorState extends ConsumerState<TaskEditor> {
-  @override
-  void initState() {
-    super.initState();
-    widget.controller.addListener(_onControllerChanged);
-  }
-
-  @override
-  void dispose() {
-    widget.controller.removeListener(_onControllerChanged);
-    super.dispose();
-  }
-
-  void _onControllerChanged() {
-    if (mounted) setState(() {});
-  }
-
   /// 外部同步：loadTask / resetForNew 完成后把表单值同步进本地控制器。
   void _syncControllers(TaskFormState formState) {
     if (widget.controller.titleController.text != formState.title) {
@@ -297,9 +281,9 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final formState = ref.watch(taskFormProvider);
+    final hasParent = ref.watch(
+      taskFormProvider.select((s) => s.parentId != null),
+    );
     ref.listen(taskFormProvider, (previous, next) => _syncControllers(next));
 
     return Column(
@@ -311,50 +295,19 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
           const SizedBox(height: AppTokens.spaceXs),
         ],
         // 父任务只读展示（parentId 非空，59 §5.3 按空间取舍保留信息行）。
-        if (formState.parentId != null) ...[
-          _ParentTaskRow(parentId: formState.parentId!),
+        if (hasParent) ...[
+          const _ParentTaskSection(),
           const SizedBox(height: AppTokens.spaceSm),
         ],
         // ① 任务标题：大号加粗（titleLarge）、无边框、自动聚焦。
         _buildTitleField(context, l10n),
         // ② 描述：默认内联展示（59 讨论定稿，替代 ⋯ 菜单开关）；备注仍由 ⋯ 菜单开关（D8）。
         const SizedBox(height: AppTokens.spaceSm),
-        _buildDescriptionNotes(context, l10n),
-        // ②.5 日期展示行（用户反馈：已设开始/截止日期在编辑器正文不可见，
-        // 仅工具栏弹层内可见）：form 驱动实时展示，纯展示无交互（工具栏
-        // 日期图标仍是唯一交互入口）；无已设日期不渲染。
-        if (formState.startAt != null || formState.endAt != null)
-          Padding(
-            padding: const EdgeInsets.only(top: AppTokens.spaceXs),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.calendar_today_outlined,
-                  size: 14,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: AppTokens.spaceXxs),
-                Expanded(
-                  child: Text(
-                    formatDateRange(formState.startAt, formState.endAt, l10n),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        // ②.6 已选标签 chips（用户要求）：form 驱动实时预览，纯展示无交互，
-        // 外观与任务行/扁平行标签 chip 一致；无已选标签不渲染。
-        // 顺序与任务列表行一致（日期在上、标签在底部）。
-        if (formState.selectedTagIds.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: AppTokens.spaceXs),
-            child: _buildSelectedTagChips(context, formState),
-          ),
+        _TaskDescriptionNotesSection(controller: widget.controller),
+        // ②.5 日期展示行：form 驱动实时展示，纯展示无交互
+        const _TaskDateDisplay(),
+        // ②.6 已选标签 chips：form 驱动实时预览，纯展示无交互
+        const _TaskSelectedTagChips(),
         // ③ 子任务列表（仅 1 级任务展示）。
         if (widget.showSubtasks)
           Column(
@@ -420,52 +373,6 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
     );
   }
 
-  // ── 描述（默认内联展示）/ 备注（⋯ 菜单开关，D8）──────────────────
-
-  Widget _buildDescriptionNotes(BuildContext context, AppLocalizations l10n) {
-    return Column(
-      children: [
-        TextField(
-          controller: widget.controller.descriptionController,
-          maxLines: 3,
-          scrollPadding: EdgeInsets.zero,
-          decoration: InputDecoration(labelText: l10n.taskDescription),
-          onChanged: (v) =>
-              ref.read(taskFormProvider.notifier).updateDescription(v),
-        ),
-        if (widget.controller.showNotes) ...[
-          const SizedBox(height: AppTokens.spaceSm),
-          TextField(
-            controller: widget.controller.notesController,
-            maxLines: 2,
-            scrollPadding: EdgeInsets.zero,
-            decoration: InputDecoration(labelText: l10n.taskNotes),
-            onChanged: (v) =>
-                ref.read(taskFormProvider.notifier).updateNotes(v),
-          ),
-        ],
-      ],
-    );
-  }
-
-  // ── 已选标签 chips（form 驱动实时预览，纯展示无交互）────────────
-
-  /// 已选标签 chips（用户要求）：顺序按 [TaskFormState.selectedTagIds] 保持，
-  /// 外观与任务行/扁平行标签 chip 完全一致（0.12 色底 + 色字 w500 +
-  /// [AppTokens.radiusChip]）；无交互（display-only）。
-  Widget _buildSelectedTagChips(BuildContext context, TaskFormState formState) {
-    final tags = ref.watch(tagsStreamProvider).value ?? const <Tag>[];
-    final selectedTags = [
-      for (final id in formState.selectedTagIds)
-        if (tags.any((t) => t.id == id)) tags.firstWhere((t) => t.id == id),
-    ];
-    return Wrap(
-      spacing: AppTokens.spaceXs,
-      runSpacing: AppTokens.spaceXs,
-      children: [for (final tag in selectedTags) TagChip(tag: tag)],
-    );
-  }
-
   // ── 子任务区（圆形复选框 + 拖拽排序 + 新增行）───────────────────
 
   Widget _buildSubtasks(BuildContext context, AppLocalizations l10n) {
@@ -512,6 +419,137 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
   }
 }
 
+/// 父任务行外层容器（细粒度订阅 parentId）。
+class _ParentTaskSection extends ConsumerWidget {
+  const _ParentTaskSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final parentId = ref.watch(taskFormProvider.select((s) => s.parentId));
+    if (parentId == null) return const SizedBox.shrink();
+    return _ParentTaskRow(parentId: parentId);
+  }
+}
+
+/// 描述与备注区（细粒度局部组件，输入描述/备注时不触发整树 build）。
+class _TaskDescriptionNotesSection extends StatelessWidget {
+  const _TaskDescriptionNotesSection({required this.controller});
+
+  final TaskEditorController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        return Column(
+          children: [
+            Consumer(
+              builder: (context, ref, _) {
+                return TextField(
+                  controller: controller.descriptionController,
+                  maxLines: 3,
+                  scrollPadding: EdgeInsets.zero,
+                  decoration: InputDecoration(labelText: l10n.taskDescription),
+                  onChanged: (v) =>
+                      ref.read(taskFormProvider.notifier).updateDescription(v),
+                );
+              },
+            ),
+            if (controller.showNotes) ...[
+              const SizedBox(height: AppTokens.spaceSm),
+              Consumer(
+                builder: (context, ref, _) {
+                  return TextField(
+                    controller: controller.notesController,
+                    maxLines: 2,
+                    scrollPadding: EdgeInsets.zero,
+                    decoration: InputDecoration(labelText: l10n.taskNotes),
+                    onChanged: (v) =>
+                        ref.read(taskFormProvider.notifier).updateNotes(v),
+                  );
+                },
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// 日期展示行（细粒度订阅 startAt / endAt）。
+class _TaskDateDisplay extends ConsumerWidget {
+  const _TaskDateDisplay();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hasDate = ref.watch(
+      taskFormProvider.select((s) => s.startAt != null || s.endAt != null),
+    );
+    if (!hasDate) return const SizedBox.shrink();
+
+    final startAt = ref.watch(taskFormProvider.select((s) => s.startAt));
+    final endAt = ref.watch(taskFormProvider.select((s) => s.endAt));
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppTokens.spaceXs),
+      child: Row(
+        children: [
+          Icon(
+            Icons.calendar_today_outlined,
+            size: 14,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: AppTokens.spaceXxs),
+          Expanded(
+            child: Text(
+              formatDateRange(startAt, endAt, l10n),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 已选标签 chips（细粒度订阅 selectedTagIds）。
+class _TaskSelectedTagChips extends ConsumerWidget {
+  const _TaskSelectedTagChips();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedTagIds = ref.watch(
+      taskFormProvider.select((s) => s.selectedTagIds),
+    );
+    if (selectedTagIds.isEmpty) return const SizedBox.shrink();
+
+    final tags = ref.watch(tagsStreamProvider).value ?? const <Tag>[];
+    final selectedTags = [
+      for (final id in selectedTagIds)
+        if (tags.any((t) => t.id == id)) tags.firstWhere((t) => t.id == id),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppTokens.spaceXs),
+      child: Wrap(
+        spacing: AppTokens.spaceXs,
+        runSpacing: AppTokens.spaceXs,
+        children: [for (final tag in selectedTags) TagChip(tag: tag)],
+      ),
+    );
+  }
+}
+
 /// 底部工具栏：[日期] [状态] [标签] [优先级] [附件占位禁用]（D5/D6/D7）。
 class TaskEditorToolbar extends ConsumerWidget {
   const TaskEditorToolbar({super.key, this.statusDisabled = false});
@@ -522,10 +560,14 @@ class TaskEditorToolbar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final formState = ref.watch(taskFormProvider);
-
-    final hasDate = formState.startAt != null || formState.endAt != null;
-    final hasTags = formState.selectedTagIds.isNotEmpty;
+    final hasDate = ref.watch(
+      taskFormProvider.select((s) => s.startAt != null || s.endAt != null),
+    );
+    final hasTags = ref.watch(
+      taskFormProvider.select((s) => s.selectedTagIds.isNotEmpty),
+    );
+    final status = ref.watch(taskFormProvider.select((s) => s.status));
+    final priority = ref.watch(taskFormProvider.select((s) => s.priority));
 
     return SizedBox(
       height: AppTokens.touchTarget,
@@ -541,10 +583,10 @@ class TaskEditorToolbar extends ConsumerWidget {
           _ToolbarAction(
             tooltip: statusDisabled
                 ? l10n.statusDerivedFromChildren
-                : _statusLabel(l10n, formState.status),
-            icon: _statusIcon(formState.status),
-            iconColor: _statusColor(formState.status),
-            active: formState.status != TaskStatus.todo,
+                : _statusLabel(l10n, status),
+            icon: _statusIcon(status),
+            iconColor: _statusColor(status),
+            active: status != TaskStatus.todo,
             enabled: !statusDisabled,
             onTap: statusDisabled ? null : () => _pickStatus(context, ref),
           ),
@@ -557,8 +599,8 @@ class TaskEditorToolbar extends ConsumerWidget {
           _ToolbarAction(
             tooltip: l10n.priority,
             icon: Icons.flag_outlined,
-            iconColor: priorityColor(formState.priority),
-            active: formState.priority != TaskPriority.none,
+            iconColor: priorityColor(priority),
+            active: priority != TaskPriority.none,
             onTap: () => _pickPriority(context, ref),
           ),
           // 附件占位（v1 数据模型无附件字段，D5）。
@@ -585,12 +627,10 @@ class TaskProjectSwitcher extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final formState = ref.watch(taskFormProvider);
+    final projectId = ref.watch(taskFormProvider.select((s) => s.projectId));
     final projects =
         ref.watch(projectsStreamProvider).value ?? const <Project>[];
-    final project = projects
-        .where((p) => p.id == formState.projectId)
-        .firstOrNull;
+    final project = projects.where((p) => p.id == projectId).firstOrNull;
 
     final content = Row(
       mainAxisSize: MainAxisSize.min,
@@ -644,7 +684,7 @@ class TaskProjectSwitcher extends ConsumerWidget {
 
   /// 「移动到」清单选择：搜索 + 列表（当前项对勾）+ 添加项目。
   Future<void> _pickProject(BuildContext context, WidgetRef ref) async {
-    final formState = ref.read(taskFormProvider);
+    final projectId = ref.read(taskFormProvider.select((s) => s.projectId));
     final result = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -657,9 +697,7 @@ class TaskProjectSwitcher extends ConsumerWidget {
       ),
       builder: (sheetContext) => KeyboardInsetBuilder(
         child: RepaintBoundary(
-          child: _ProjectPickerSheet(
-            currentProjectId: formState.projectId ?? '',
-          ),
+          child: _ProjectPickerSheet(currentProjectId: projectId ?? ''),
         ),
         builder: (context, effectiveInset, _, pickerChild) => Padding(
           padding: EdgeInsets.only(bottom: effectiveInset),
@@ -727,47 +765,52 @@ class _SubtaskList extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l10n.subtasks,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-        if (controller.subtaskRows.isNotEmpty)
-          ReorderableListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            buildDefaultDragHandles: false,
-            itemCount: controller.subtaskRows.length,
-            onReorder: controller.reorderSubtasks,
-            itemBuilder: (context, index) {
-              final row = controller.subtaskRows[index];
-              return _SubtaskRowTile(
-                key: ObjectKey(row.controller),
-                index: index,
-                row: row,
-                onRemove: () => onConfirmRemoveSubtask(row),
-                onSubmitted: onAddSubtaskAndFocus,
-                onChanged: controller.notifySubtasksChanged,
-              );
-            },
-          ),
-        TextButton.icon(
-          onPressed: onAddSubtaskAndFocus,
-          icon: const Icon(Icons.add, size: 18),
-          label: Text(l10n.addSubtask),
-        ),
-      ],
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n.subtasks,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            if (controller.subtaskRows.isNotEmpty)
+              ReorderableListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                buildDefaultDragHandles: false,
+                itemCount: controller.subtaskRows.length,
+                onReorder: controller.reorderSubtasks,
+                itemBuilder: (context, index) {
+                  final row = controller.subtaskRows[index];
+                  return _SubtaskRowTile(
+                    key: ObjectKey(row),
+                    index: index,
+                    row: row,
+                    onRemove: () => onConfirmRemoveSubtask(row),
+                    onSubmitted: onAddSubtaskAndFocus,
+                    onChanged: controller.notifySubtasksChanged,
+                  );
+                },
+              ),
+            TextButton.icon(
+              onPressed: onAddSubtaskAndFocus,
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(l10n.addSubtask),
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
 // ── 子任务行 ──────────────────────────────────────────────────────────
 
-class _SubtaskRowTile extends StatelessWidget {
+class _SubtaskRowTile extends StatefulWidget {
   const _SubtaskRowTile({
     super.key,
     required this.index,
@@ -784,68 +827,120 @@ class _SubtaskRowTile extends StatelessWidget {
   final VoidCallback onChanged;
 
   @override
+  State<_SubtaskRowTile> createState() => _SubtaskRowTileState();
+}
+
+class _SubtaskRowTileState extends State<_SubtaskRowTile> {
+  @override
+  void initState() {
+    super.initState();
+    widget.row.focusNode.addListener(_onFocusChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant _SubtaskRowTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.row.focusNode != widget.row.focusNode) {
+      oldWidget.row.focusNode.removeListener(_onFocusChanged);
+      widget.row.focusNode.addListener(_onFocusChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.row.focusNode.removeListener(_onFocusChanged);
+    super.dispose();
+  }
+
+  void _onFocusChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return RepaintBoundary(
-      child: SizedBox(
-        height: AppTokens.touchTarget,
-        child: Row(
-          children: [
-            // 圆形复选框（装饰：展示任务状态，新建行默认未完成）。
-            SizedBox(
-              width: AppTokens.touchTarget,
-              height: AppTokens.touchTarget,
-              child: Checkbox(
-                value: row.status == TaskStatus.done,
-                onChanged: null,
-              ),
+    final theme = Theme.of(context);
+    final isFocused = widget.row.focusNode.hasFocus;
+
+    return SizedBox(
+      height: AppTokens.touchTarget,
+      child: Row(
+        children: [
+          // 圆形复选框（装饰：展示任务状态，新建行默认未完成）。
+          SizedBox(
+            width: AppTokens.touchTarget,
+            height: AppTokens.touchTarget,
+            child: Checkbox(
+              value: widget.row.status == TaskStatus.done,
+              onChanged: null,
             ),
-            Expanded(
-              child: TextField(
-                controller: row.controller,
-                // 行内持有焦点（用户要求：新增行后自动聚焦，行移除/控制器
-                // dispose 时释放）。
-                focusNode: row.focusNode,
-                scrollPadding: EdgeInsets.zero,
-                decoration: InputDecoration(
-                  hintText: l10n.subtaskHint,
-                  border: InputBorder.none,
-                  filled: false,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
-                onSubmitted: (_) => onSubmitted(),
-                onChanged: (_) => onChanged(),
-              ),
-            ),
-            // 拖拽排序把手（无障碍：语义标签 + 扩大按压区，NFR-06）。
-            Semantics(
-              button: true,
-              label: l10n.dragReorder,
-              child: ReorderableDragStartListener(
-                index: index,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppTokens.spaceSm,
-                    vertical: AppTokens.spaceXxs,
+          ),
+          Expanded(
+            child: (widget.row.isNew || isFocused)
+                ? TextField(
+                    controller: widget.row.controller,
+                    focusNode: widget.row.focusNode,
+                    scrollPadding: EdgeInsets.zero,
+                    decoration: InputDecoration(
+                      hintText: l10n.subtaskHint,
+                      border: InputBorder.none,
+                      filled: false,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    onSubmitted: (_) => widget.onSubmitted(),
+                    onChanged: (_) => widget.onChanged(),
+                  )
+                : GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      widget.row.focusNode.requestFocus();
+                    },
+                    child: Container(
+                      alignment: Alignment.centerLeft,
+                      height: double.infinity,
+                      child: Text(
+                        widget.row.controller.text.isEmpty
+                            ? l10n.subtaskHint
+                            : widget.row.controller.text,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: widget.row.controller.text.isEmpty
+                            ? theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.6),
+                              )
+                            : theme.textTheme.bodyMedium,
+                      ),
+                    ),
                   ),
-                  child: const Icon(Icons.drag_handle, size: 18),
+          ),
+          // 拖拽排序把手（无障碍：语义标签 + 扩大按压区，NFR-06）。
+          Semantics(
+            button: true,
+            label: l10n.dragReorder,
+            child: ReorderableDragStartListener(
+              index: widget.index,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: AppTokens.spaceSm,
+                  vertical: AppTokens.spaceXxs,
                 ),
+                child: Icon(Icons.drag_handle, size: 18),
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.close, size: 18),
-              visualDensity: VisualDensity.compact,
-              // 触控目标 ≥48dp（NFR-06），与行菜单按钮一致。
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(
-                minWidth: AppTokens.touchTarget,
-                minHeight: AppTokens.touchTarget,
-              ),
-              onPressed: onRemove,
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, size: 18),
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(
+              minWidth: AppTokens.touchTarget,
+              minHeight: AppTokens.touchTarget,
             ),
-          ],
-        ),
+            onPressed: widget.onRemove,
+          ),
+        ],
       ),
     );
   }
