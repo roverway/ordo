@@ -100,9 +100,10 @@ class TaskCreateSheet extends ConsumerStatefulWidget {
       clipBehavior: Clip.antiAlias,
       builder: (sheetContext) {
         return KeyboardInsetBuilder(
-          builder: (context, effectiveInset, bottomGap, _) {
-            return Padding(
-              padding: EdgeInsets.only(bottom: effectiveInset + bottomGap),
+          child: RepaintBoundary(
+            child: MediaQuery.removeViewInsets(
+              removeBottom: true,
+              context: sheetContext,
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
                 child: TaskCreateSheet(
@@ -114,6 +115,12 @@ class TaskCreateSheet extends ConsumerStatefulWidget {
                   initialTagIds: initialTagIds,
                 ),
               ),
+            ),
+          ),
+          builder: (context, effectiveInset, bottomGap, sheetChild) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: effectiveInset + bottomGap),
+              child: sheetChild!,
             );
           },
         );

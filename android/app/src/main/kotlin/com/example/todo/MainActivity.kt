@@ -47,16 +47,21 @@ class MainActivity : FlutterActivity() {
                     insets: WindowInsets,
                     runningAnimations: MutableList<WindowInsetsAnimation>
                 ): WindowInsets {
-                    // 每一帧都会回调，跟真实键盘视觉进度完全同步。
-                    val imeBottom = insets.getInsets(WindowInsets.Type.ime()).bottom
-                    eventSink?.success(imeBottom.toDouble())
+                    // 仅当包含 IME 动画时才分发逐帧高度，跟真实键盘视觉进度完全同步。
+                    val hasImeAnim = runningAnimations.any { (it.typeMask and WindowInsets.Type.ime()) != 0 }
+                    if (hasImeAnim) {
+                        val imeBottom = insets.getInsets(WindowInsets.Type.ime()).bottom
+                        eventSink?.success(imeBottom.toDouble())
+                    }
                     return insets
                 }
 
                 override fun onEnd(animation: WindowInsetsAnimation) {
                     super.onEnd(animation)
-                    val imeBottom = window.decorView.rootWindowInsets?.getInsets(WindowInsets.Type.ime())?.bottom ?: 0
-                    eventSink?.success(imeBottom.toDouble())
+                    if ((animation.typeMask and WindowInsets.Type.ime()) != 0) {
+                        val imeBottom = window.decorView.rootWindowInsets?.getInsets(WindowInsets.Type.ime())?.bottom ?: 0
+                        eventSink?.success(imeBottom.toDouble())
+                    }
                 }
             }
         )

@@ -14,6 +14,7 @@ class KeyboardInsetBridge {
           .receiveBroadcastStream()
           .listen((event) {
             if (event is num) {
+              hasReceivedEvents = true;
               imeHeightPx.value = event.toDouble();
             }
           }, onError: (_) {});
@@ -21,6 +22,9 @@ class KeyboardInsetBridge {
   }
 
   static final KeyboardInsetBridge instance = KeyboardInsetBridge._();
+
+  /// 是否已收到来自原生 WindowInsetsAnimation 的逐帧事件
+  bool hasReceivedEvents = false;
 
   /// 原生物理像素高度；需要在使用处除以 devicePixelRatio 转成逻辑像素。
   final ValueNotifier<double> imeHeightPx = ValueNotifier<double>(0.0);
@@ -61,12 +65,15 @@ class KeyboardInsetBuilder extends StatelessWidget {
 
     return ValueListenableBuilder<double>(
       valueListenable: KeyboardInsetBridge.instance.imeHeightPx,
+      child: child,
       builder: (context, imeHeightPx, child) {
         final nativeInset = imeHeightPx / devicePixelRatio;
+        // 在 Android 上原生通道激活时完全信赖 nativeInset，避免退场时与滞后的 mediaQueryInset 混用产生跳帧；
+        // 若尚未收到原生事件（或非 Android 平台），则回退到 mediaQueryInset。
         final effectiveInset = isAndroid
-            ? (nativeInset > 0.0
+            ? (KeyboardInsetBridge.instance.hasReceivedEvents
                   ? nativeInset
-                  : (mediaQueryInset > 0.5 ? mediaQueryInset : 0.0))
+                  : mediaQueryInset)
             : mediaQueryInset;
         final bottomGap = (viewPaddingBottom - effectiveInset).clamp(
           0.0,
@@ -74,7 +81,6 @@ class KeyboardInsetBuilder extends StatelessWidget {
         );
         return builder(context, effectiveInset, bottomGap, child);
       },
-      child: child,
     );
   }
 }

@@ -268,47 +268,60 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
           ],
         ),
         body: KeyboardInsetBuilder(
-          builder: (context, effectiveInset, bottomGap, _) {
+          child: RepaintBoundary(
+            child: MediaQuery.removeViewInsets(
+              removeBottom: true,
+              context: context,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(
+                  left: AppTokens.spaceMd,
+                  right: AppTokens.spaceMd,
+                  top: AppTokens.spaceMd,
+                  bottom: AppTokens.toolbarHeight + AppTokens.spaceXl + 320,
+                ),
+                child: TaskEditor(
+                  controller: _editorController,
+                  autofocus: !_isEditing,
+                  showTopBar: false,
+                  showToolbar: false,
+                  // 编辑态：子任务区按自身深度（<3 展示，方案 B）；新建态维持「仅 1 级任务」。
+                  showSubtasks: _isEditing
+                      ? _showSubtasks
+                      : formState.parentId == null,
+                  hasExistingChildren: _hasChildren,
+                  onDeleteRequested: _isEditing ? _confirmDeleteTask : null,
+                ),
+              ),
+            ),
+          ),
+          builder: (context, effectiveInset, bottomGap, editorChild) {
             return Stack(
               children: [
-                // 正文区：留出工具栏高度及键盘高度空间，确保键盘弹出时正文不被遮挡且可滚动到底部。
+                // 正文区：定高填满内容区（固定留出工具栏高度，避免键盘逐帧动画导致整棵子任务树反复重排布局）。
                 Positioned.fill(
-                  bottom: effectiveInset + AppTokens.toolbarHeight,
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(AppTokens.spaceMd),
-                    child: TaskEditor(
-                      controller: _editorController,
-                      autofocus: !_isEditing,
-                      showTopBar: false,
-                      showToolbar: false,
-                      // 编辑态：子任务区按自身深度（<3 展示，方案 B）；新建态维持「仅 1 级任务」。
-                      showSubtasks: _isEditing
-                          ? _showSubtasks
-                          : formState.parentId == null,
-                      hasExistingChildren: _hasChildren,
-                      onDeleteRequested: _isEditing ? _confirmDeleteTask : null,
-                    ),
-                  ),
+                  bottom: AppTokens.toolbarHeight,
+                  child: editorChild!,
                 ),
                 Positioned(
                   left: 0,
                   right: 0,
                   bottom: effectiveInset,
-                  child: Material(
-                    color: colorScheme.surface,
-                    elevation: AppTokens.elevationCard,
-                    child: Padding(
-                      padding: EdgeInsets.only(bottom: bottomGap),
-                      child: ListenableBuilder(
-                        listenable: _editorController,
-                        builder: (context, _) {
-                          return TaskEditorToolbar(
-                            // 已有子任务或待保存的新建子任务行 → 状态由子任务派生，禁用。
-                            statusDisabled:
-                                _hasChildren ||
-                                _editorController.hasPendingNewSubtasks,
-                          );
-                        },
+                  child: RepaintBoundary(
+                    child: Material(
+                      color: colorScheme.surface,
+                      elevation: AppTokens.elevationCard,
+                      child: Padding(
+                        padding: EdgeInsets.only(bottom: bottomGap),
+                        child: ValueListenableBuilder<bool>(
+                          valueListenable:
+                              _editorController.hasPendingNewSubtasksNotifier,
+                          builder: (context, hasPending, _) {
+                            return TaskEditorToolbar(
+                              // 已有子任务或待保存的新建子任务行 → 状态由子任务派生，禁用。
+                              statusDisabled: _hasChildren || hasPending,
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ),

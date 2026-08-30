@@ -82,7 +82,9 @@ class SubtaskRow {
 /// - 表单字段：编辑器内部经 taskFormProvider 双向桥接，容器无需直接访问；
 /// - 子任务：容器通过 [subtaskRows] / [removedSubtaskIds] 在保存时统一落库。
 class TaskEditorController extends ChangeNotifier {
-  TaskEditorController({required this.mode});
+  TaskEditorController({required this.mode}) {
+    hasPendingNewSubtasksNotifier = ValueNotifier<bool>(hasPendingNewSubtasks);
+  }
 
   final TaskEditorMode mode;
 
@@ -107,6 +109,17 @@ class TaskEditorController extends ChangeNotifier {
   List<String?> _originalOrder = const [];
   Map<String, String> _originalTitles = const {};
 
+  /// 状态派生禁用的轻量通知源（D7）：仅当「是否存在待保存新子任务」的布尔值
+  /// 发生变化时通知监听者（如工具栏状态按钮），避免每敲一个字都全量重建整棵子任务树。
+  late final ValueNotifier<bool> hasPendingNewSubtasksNotifier;
+
+  void _updatePendingNewSubtasks() {
+    final newValue = hasPendingNewSubtasks;
+    if (hasPendingNewSubtasksNotifier.value != newValue) {
+      hasPendingNewSubtasksNotifier.value = newValue;
+    }
+  }
+
   /// 用已存在的子任务初始化（编辑模式加载完成后调用；创建模式无需调用）。
   void initializeSubtasks(List<Task> existing) {
     for (final row in subtaskRows) {
@@ -118,6 +131,7 @@ class TaskEditorController extends ChangeNotifier {
     removedSubtaskIds.clear();
     _originalOrder = subtaskRows.map((r) => r.id).toList();
     _originalTitles = {for (final t in existing) t.id: t.title};
+    _updatePendingNewSubtasks();
     notifyListeners();
   }
 
@@ -157,6 +171,7 @@ class TaskEditorController extends ChangeNotifier {
       for (final row in subtaskRows)
         if (row.id != null) row.id!: row.controller.text.trim(),
     };
+    _updatePendingNewSubtasks();
     notifyListeners();
   }
 
@@ -167,6 +182,7 @@ class TaskEditorController extends ChangeNotifier {
 
   void addSubtask() {
     subtaskRows.add(SubtaskRow.newRow());
+    _updatePendingNewSubtasks();
     notifyListeners();
   }
 
@@ -175,6 +191,7 @@ class TaskEditorController extends ChangeNotifier {
     if (row.id != null) removedSubtaskIds.add(row.id!);
     subtaskRows.remove(row);
     row.dispose();
+    _updatePendingNewSubtasks();
     notifyListeners();
   }
 
@@ -182,11 +199,15 @@ class TaskEditorController extends ChangeNotifier {
     if (newIndex > oldIndex) newIndex -= 1;
     final row = subtaskRows.removeAt(oldIndex);
     subtaskRows.insert(newIndex, row);
+    _updatePendingNewSubtasks();
     notifyListeners();
   }
 
   /// 子任务输入变化通知（状态派生禁用实时依据，D7）。
-  void notifySubtasksChanged() => notifyListeners();
+  /// 仅更新 [hasPendingNewSubtasksNotifier]，不触发全局 [notifyListeners]。
+  void notifySubtasksChanged() {
+    _updatePendingNewSubtasks();
+  }
 
   @override
   void dispose() {
@@ -197,6 +218,7 @@ class TaskEditorController extends ChangeNotifier {
     for (final row in subtaskRows) {
       row.dispose();
     }
+    hasPendingNewSubtasksNotifier.dispose();
     super.dispose();
   }
 }
@@ -272,10 +294,6 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
     }
   }
 
-  /// 状态禁用：已有子任务或待保存的新建子任务行（状态由子任务派生，AGENTS.md §3-2）。
-  bool get _statusDisabled =>
-      widget.hasExistingChildren || widget.controller.hasPendingNewSubtasks;
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -349,7 +367,14 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
         // 底部工具栏（常驻，替代原选项行，D5）。
         if (widget.showToolbar) ...[
           const SizedBox(height: AppTokens.spaceXs),
-          TaskEditorToolbar(statusDisabled: _statusDisabled),
+          ValueListenableBuilder<bool>(
+            valueListenable: widget.controller.hasPendingNewSubtasksNotifier,
+            builder: (context, hasPending, _) {
+              return TaskEditorToolbar(
+                statusDisabled: widget.hasExistingChildren || hasPending,
+              );
+            },
+          ),
         ],
       ],
     );
@@ -664,11 +689,14 @@ class TaskProjectSwitcher extends ConsumerWidget {
         ),
       ),
       builder: (sheetContext) => KeyboardInsetBuilder(
-        builder: (context, effectiveInset, _, _) => Padding(
-          padding: EdgeInsets.only(bottom: effectiveInset),
+        child: RepaintBoundary(
           child: _ProjectPickerSheet(
             currentProjectId: formState.projectId ?? '',
           ),
+        ),
+        builder: (context, effectiveInset, _, pickerChild) => Padding(
+          padding: EdgeInsets.only(bottom: effectiveInset),
+          child: pickerChild!,
         ),
       ),
     );
@@ -734,62 +762,64 @@ class _SubtaskRowTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Row(
-      children: [
-        // 圆形复选框（装饰：展示任务状态，新建行默认未完成）。
-        SizedBox(
-          width: AppTokens.touchTarget,
-          height: AppTokens.touchTarget,
-          child: Checkbox(
-            value: row.status == TaskStatus.done,
-            onChanged: null,
-          ),
-        ),
-        Expanded(
-          child: TextField(
-            controller: row.controller,
-            // 行内持有焦点（用户要求：新增行后自动聚焦，行移除/控制器
-            // dispose 时释放）。
-            focusNode: row.focusNode,
-            scrollPadding: EdgeInsets.zero,
-            decoration: InputDecoration(
-              hintText: l10n.subtaskHint,
-              border: InputBorder.none,
-              filled: false,
-              isDense: true,
-              contentPadding: EdgeInsets.zero,
+    return RepaintBoundary(
+      child: Row(
+        children: [
+          // 圆形复选框（装饰：展示任务状态，新建行默认未完成）。
+          SizedBox(
+            width: AppTokens.touchTarget,
+            height: AppTokens.touchTarget,
+            child: Checkbox(
+              value: row.status == TaskStatus.done,
+              onChanged: null,
             ),
-            onSubmitted: (_) => onSubmitted(),
-            onChanged: (_) => onChanged(),
           ),
-        ),
-        // 拖拽排序把手（无障碍：语义标签 + 扩大按压区，NFR-06）。
-        Semantics(
-          button: true,
-          label: l10n.dragReorder,
-          child: ReorderableDragStartListener(
-            index: index,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTokens.spaceSm,
-                vertical: AppTokens.spaceXxs,
+          Expanded(
+            child: TextField(
+              controller: row.controller,
+              // 行内持有焦点（用户要求：新增行后自动聚焦，行移除/控制器
+              // dispose 时释放）。
+              focusNode: row.focusNode,
+              scrollPadding: EdgeInsets.zero,
+              decoration: InputDecoration(
+                hintText: l10n.subtaskHint,
+                border: InputBorder.none,
+                filled: false,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
               ),
-              child: const Icon(Icons.drag_handle, size: 18),
+              onSubmitted: (_) => onSubmitted(),
+              onChanged: (_) => onChanged(),
             ),
           ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.close, size: 18),
-          visualDensity: VisualDensity.compact,
-          // 触控目标 ≥48dp（NFR-06），与行菜单按钮一致。
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(
-            minWidth: AppTokens.touchTarget,
-            minHeight: AppTokens.touchTarget,
+          // 拖拽排序把手（无障碍：语义标签 + 扩大按压区，NFR-06）。
+          Semantics(
+            button: true,
+            label: l10n.dragReorder,
+            child: ReorderableDragStartListener(
+              index: index,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTokens.spaceSm,
+                  vertical: AppTokens.spaceXxs,
+                ),
+                child: const Icon(Icons.drag_handle, size: 18),
+              ),
+            ),
           ),
-          onPressed: onRemove,
-        ),
-      ],
+          IconButton(
+            icon: const Icon(Icons.close, size: 18),
+            visualDensity: VisualDensity.compact,
+            // 触控目标 ≥48dp（NFR-06），与行菜单按钮一致。
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(
+              minWidth: AppTokens.touchTarget,
+              minHeight: AppTokens.touchTarget,
+            ),
+            onPressed: onRemove,
+          ),
+        ],
+      ),
     );
   }
 }

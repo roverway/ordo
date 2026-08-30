@@ -11,7 +11,6 @@ import '../../../shared/widgets/app_drawer.dart';
 import '../../../shared/widgets/app_menu_item.dart';
 import '../../projects/project_providers.dart';
 import '../providers/custom_view_providers.dart';
-import '../widgets/icon_picker_dialog.dart';
 import '../widgets/panel_column.dart';
 import 'custom_view_editor_page.dart';
 
@@ -488,33 +487,13 @@ class CustomViewPage extends ConsumerWidget {
   }
 
   Widget _buildViewTitle(CustomView view) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: Color(view.color).withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(AppTokens.radiusChip),
-          ),
-          child: Icon(
-            getCustomViewIcon(view.icon),
-            color: Color(view.color),
-            size: 20,
-          ),
-        ),
-        const SizedBox(width: AppTokens.spaceSm),
-        Flexible(
-          child: Text(
-            view.name,
-            style: const TextStyle(
-              fontWeight: AppTokens.textHeadingWeight,
-              letterSpacing: 0.2,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
+    return Text(
+      view.name,
+      style: const TextStyle(
+        fontWeight: AppTokens.textHeadingWeight,
+        letterSpacing: 0.2,
+      ),
+      overflow: TextOverflow.ellipsis,
     );
   }
 }
