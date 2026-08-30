@@ -389,7 +389,8 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
 
     final rows = _editorController.subtaskRows;
     final items = [
-      for (final row in rows) (id: row.id, title: row.controller.text.trim()),
+      for (final row in rows)
+        (id: row.id, title: row.controller.text.trim(), status: row.status),
     ];
 
     try {

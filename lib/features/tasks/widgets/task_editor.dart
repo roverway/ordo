@@ -61,8 +61,8 @@ class SubtaskRow {
   /// 已存在子任务的 id；null = 新建行。
   final String? id;
 
-  /// 现有子任务状态（仅用于装饰性复选框展示；新建行恒为 todo）。
-  final TaskStatus status;
+  /// 现有子任务状态（新建行默认为 todo）。
+  TaskStatus status;
 
   final TextEditingController controller;
 
@@ -108,6 +108,7 @@ class TaskEditorController extends ChangeNotifier {
   // 编辑模式初始快照（用于判定子任务是否有改动）。
   List<String?> _originalOrder = const [];
   Map<String, String> _originalTitles = const {};
+  Map<String, TaskStatus> _originalStatuses = const {};
 
   /// 状态派生禁用的轻量通知源（D7）：仅当「是否存在待保存新子任务」的布尔值
   /// 发生变化时通知监听者（如工具栏状态按钮），避免每敲一个字都全量重建整棵子任务树。
@@ -131,11 +132,12 @@ class TaskEditorController extends ChangeNotifier {
     removedSubtaskIds.clear();
     _originalOrder = subtaskRows.map((r) => r.id).toList();
     _originalTitles = {for (final t in existing) t.id: t.title};
+    _originalStatuses = {for (final t in existing) t.id: t.status};
     _updatePendingNewSubtasks();
     notifyListeners();
   }
 
-  /// 编辑模式：子任务相对初始快照是否有改动（新增/删除/改标题/排序）。
+  /// 编辑模式：子任务相对初始快照是否有改动（新增/删除/改标题/改状态/排序）。
   bool get hasSubtaskChanges {
     if (removedSubtaskIds.isNotEmpty) return true;
     final currentIds = subtaskRows.map((r) => r.id).toList();
@@ -144,7 +146,8 @@ class TaskEditorController extends ChangeNotifier {
       final title = row.controller.text.trim();
       if (row.isNew) {
         if (title.isNotEmpty) return true;
-      } else if (title != _originalTitles[row.id]) {
+      } else if (title != _originalTitles[row.id] ||
+          row.status != _originalStatuses[row.id]) {
         return true;
       }
     }
@@ -162,7 +165,7 @@ class TaskEditorController extends ChangeNotifier {
         row.controller.text.trim(),
   ];
 
-  /// 保存成功后重设子任务快照：清空删除标记并重拍原始顺序/标题，
+  /// 保存成功后重设子任务快照：清空删除标记并重拍原始顺序/标题/状态，
   /// 使 [hasSubtaskChanges] 归 false（保存后离开不再误弹「未保存」提示，59 评审 Bug 1）。
   void markSubtasksSaved() {
     removedSubtaskIds.clear();
@@ -171,6 +174,19 @@ class TaskEditorController extends ChangeNotifier {
       for (final row in subtaskRows)
         if (row.id != null) row.id!: row.controller.text.trim(),
     };
+    _originalStatuses = {
+      for (final row in subtaskRows)
+        if (row.id != null) row.id!: row.status,
+    };
+    _updatePendingNewSubtasks();
+    notifyListeners();
+  }
+
+  /// 切换子任务完成状态。
+  void toggleSubtaskStatus(SubtaskRow row) {
+    row.status = row.status == TaskStatus.done
+        ? TaskStatus.todo
+        : TaskStatus.done;
     _updatePendingNewSubtasks();
     notifyListeners();
   }
@@ -793,6 +809,7 @@ class _SubtaskList extends StatelessWidget {
                     onRemove: () => onConfirmRemoveSubtask(row),
                     onSubmitted: onAddSubtaskAndFocus,
                     onChanged: controller.notifySubtasksChanged,
+                    onToggleStatus: () => controller.toggleSubtaskStatus(row),
                   );
                 },
               ),
@@ -818,6 +835,7 @@ class _SubtaskRowTile extends StatefulWidget {
     required this.onRemove,
     required this.onSubmitted,
     required this.onChanged,
+    required this.onToggleStatus,
   });
 
   final int index;
@@ -825,15 +843,19 @@ class _SubtaskRowTile extends StatefulWidget {
   final VoidCallback onRemove;
   final VoidCallback onSubmitted;
   final VoidCallback onChanged;
+  final VoidCallback onToggleStatus;
 
   @override
   State<_SubtaskRowTile> createState() => _SubtaskRowTileState();
 }
 
 class _SubtaskRowTileState extends State<_SubtaskRowTile> {
+  bool _isEditing = false;
+
   @override
   void initState() {
     super.initState();
+    _isEditing = widget.row.isNew;
     widget.row.focusNode.addListener(_onFocusChanged);
   }
 
@@ -853,33 +875,46 @@ class _SubtaskRowTileState extends State<_SubtaskRowTile> {
   }
 
   void _onFocusChanged() {
+    if (!widget.row.focusNode.hasFocus && _isEditing) {
+      _isEditing = false;
+    }
     if (mounted) setState(() {});
+  }
+
+  void _startEditing() {
+    setState(() {
+      _isEditing = true;
+    });
+    widget.row.focusNode.requestFocus();
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final isFocused = widget.row.focusNode.hasFocus;
+    final isEditing =
+        widget.row.isNew || _isEditing || widget.row.focusNode.hasFocus;
+    final isDone = widget.row.status == TaskStatus.done;
 
     return SizedBox(
       height: AppTokens.touchTarget,
       child: Row(
         children: [
-          // 圆形复选框（装饰：展示任务状态，新建行默认未完成）。
+          // 复选框：支持点击切换子任务完成状态。
           SizedBox(
             width: AppTokens.touchTarget,
             height: AppTokens.touchTarget,
             child: Checkbox(
-              value: widget.row.status == TaskStatus.done,
-              onChanged: null,
+              value: isDone,
+              onChanged: (_) => widget.onToggleStatus(),
             ),
           ),
           Expanded(
-            child: (widget.row.isNew || isFocused)
+            child: isEditing
                 ? TextField(
                     controller: widget.row.controller,
                     focusNode: widget.row.focusNode,
+                    autofocus: true,
                     scrollPadding: EdgeInsets.zero,
                     decoration: InputDecoration(
                       hintText: l10n.subtaskHint,
@@ -893,9 +928,7 @@ class _SubtaskRowTileState extends State<_SubtaskRowTile> {
                   )
                 : GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      widget.row.focusNode.requestFocus();
-                    },
+                    onTap: _startEditing,
                     child: Container(
                       alignment: Alignment.centerLeft,
                       height: double.infinity,
@@ -910,7 +943,14 @@ class _SubtaskRowTileState extends State<_SubtaskRowTile> {
                                 color: theme.colorScheme.onSurfaceVariant
                                     .withValues(alpha: 0.6),
                               )
-                            : theme.textTheme.bodyMedium,
+                            : theme.textTheme.bodyMedium?.copyWith(
+                                decoration: isDone
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                                color: isDone
+                                    ? theme.colorScheme.onSurfaceVariant
+                                    : null,
+                              ),
                       ),
                     ),
                   ),

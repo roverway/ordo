@@ -880,4 +880,185 @@ void main() {
       expect(notifier.state.startAt, isNull);
     });
   });
+
+  // ────────────────────────────────────────
+  // 14. 子任务按需编辑与状态切换交互
+  // ────────────────────────────────────────
+  group('子任务按需编辑与状态切换交互', () {
+    testWidgets('点击已有子任务文本激活输入框并修改标题保存落库', (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      final cache = AppSettingsCache();
+      final db = openTestDatabase();
+      final repo = TodoRepository(database: db);
+      await db
+          .into(db.projects)
+          .insertOnConflictUpdate(
+            ProjectsCompanion.insert(
+              id: 'p1',
+              name: '测试项目',
+              color: 0xFF3482FF,
+              sortOrder: 0,
+              createdAt: 0,
+              updatedAt: 0,
+            ),
+          );
+      final parent = await repo.createTask(projectId: 'p1', title: '父任务');
+      final sub = await repo.createTask(
+        projectId: 'p1',
+        parentId: parent.id,
+        title: '初始子任务',
+      );
+
+      final router = GoRouter(
+        initialLocation: '/task/${parent.id}',
+        routes: [
+          GoRoute(
+            path: '/task/:id',
+            builder: (_, state) =>
+                TaskEditPage(taskId: state.pathParameters['id']),
+          ),
+          GoRoute(path: '/today', builder: (_, _) => const Scaffold()),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appSettingsCacheProvider.overrideWithValue(cache),
+            todoRepositoryProvider.overrideWithValue(repo),
+            projectsStreamProvider.overrideWithValue(
+              AsyncData([
+                Project(
+                  id: 'p1',
+                  name: '测试项目',
+                  color: 0xFF3482FF,
+                  description: '',
+                  sortOrder: 0,
+                  createdAt: 0,
+                  updatedAt: 0,
+                  deleted: 0,
+                ),
+              ]),
+            ),
+            tagsStreamProvider.overrideWithValue(const AsyncData([])),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            locale: const Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 初始渲染：已有子任务为非编辑态 Text
+      expect(find.text('初始子任务'), findsOneWidget);
+
+      // 点击子任务文本区域 → 激活为 TextField
+      await tester.tap(find.text('初始子任务'));
+      await tester.pumpAndSettle();
+
+      // 输入新标题
+      await tester.enterText(find.byType(TextField).last, '已修改的子任务');
+      await tester.pumpAndSettle();
+
+      // 点击保存
+      await tester.tap(find.text('保存'));
+      await tester.pumpAndSettle();
+
+      // 校验 DB 中子任务标题已更新
+      final reloaded = await repo.tasks.getActiveById(sub.id);
+      expect(reloaded!.title, '已修改的子任务');
+    });
+
+    testWidgets('点击子任务复选框切换完成状态并保存落库', (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      final cache = AppSettingsCache();
+      final db = openTestDatabase();
+      final repo = TodoRepository(database: db);
+      await db
+          .into(db.projects)
+          .insertOnConflictUpdate(
+            ProjectsCompanion.insert(
+              id: 'p1',
+              name: '测试项目',
+              color: 0xFF3482FF,
+              sortOrder: 0,
+              createdAt: 0,
+              updatedAt: 0,
+            ),
+          );
+      final parent = await repo.createTask(projectId: 'p1', title: '父任务');
+      final sub = await repo.createTask(
+        projectId: 'p1',
+        parentId: parent.id,
+        title: '待完成子任务',
+        status: TaskStatus.todo,
+      );
+
+      final router = GoRouter(
+        initialLocation: '/task/${parent.id}',
+        routes: [
+          GoRoute(
+            path: '/task/:id',
+            builder: (_, state) =>
+                TaskEditPage(taskId: state.pathParameters['id']),
+          ),
+          GoRoute(path: '/today', builder: (_, _) => const Scaffold()),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appSettingsCacheProvider.overrideWithValue(cache),
+            todoRepositoryProvider.overrideWithValue(repo),
+            projectsStreamProvider.overrideWithValue(
+              AsyncData([
+                Project(
+                  id: 'p1',
+                  name: '测试项目',
+                  color: 0xFF3482FF,
+                  description: '',
+                  sortOrder: 0,
+                  createdAt: 0,
+                  updatedAt: 0,
+                  deleted: 0,
+                ),
+              ]),
+            ),
+            tagsStreamProvider.overrideWithValue(const AsyncData([])),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            locale: const Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 找到子任务行的 Checkbox 并点击切换为完成
+      final checkboxFinder = find.byType(Checkbox);
+      expect(checkboxFinder, findsOneWidget);
+      await tester.tap(checkboxFinder);
+      await tester.pumpAndSettle();
+
+      // 点击保存
+      await tester.tap(find.text('保存'));
+      await tester.pumpAndSettle();
+
+      // 校验 DB 中子任务状态已更新为 done
+      final reloaded = await repo.tasks.getActiveById(sub.id);
+      expect(reloaded!.status, TaskStatus.done);
+    });
+  });
 }

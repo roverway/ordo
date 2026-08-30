@@ -271,12 +271,16 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet> {
     final parentId = formState.id;
     if (parentId == null) return;
     try {
-      for (final title in _editorController.newSubtaskTitles) {
-        await repo.createTask(
-          projectId: formState.projectId,
-          parentId: parentId,
-          title: title,
-        );
+      for (final row in _editorController.subtaskRows) {
+        final title = row.controller.text.trim();
+        if (row.isNew && title.isNotEmpty) {
+          await repo.createTask(
+            projectId: formState.projectId,
+            parentId: parentId,
+            title: title,
+            status: row.status,
+          );
+        }
       }
     } on RepositoryException catch (e) {
       // 父任务已保存，子任务失败仅提示（与编辑页兜底行为一致）。

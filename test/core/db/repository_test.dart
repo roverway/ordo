@@ -837,9 +837,9 @@ void main() {
         parentId: parent.id,
         deleteSubtaskIds: [sub1.id],
         items: [
-          (id: null, title: 'NewFirst'),
-          (id: sub2.id, title: 'Sub2Renamed'),
-          (id: null, title: '  '), // 空标题忽略
+          (id: null, title: 'NewFirst', status: TaskStatus.todo),
+          (id: sub2.id, title: 'Sub2Renamed', status: TaskStatus.done),
+          (id: null, title: '  ', status: null), // 空标题忽略
         ],
       );
 
@@ -859,11 +859,13 @@ void main() {
 
       // 验证顺序与数据
       expect(children[0].title, 'NewFirst');
+      expect(children[0].status, TaskStatus.todo);
       expect(children[0].sortOrder, 0);
       expect(children[0].parentId, parent.id);
 
       expect(children[1].id, sub2.id);
       expect(children[1].title, 'Sub2Renamed');
+      expect(children[1].status, TaskStatus.done);
       expect(children[1].sortOrder, 1);
     });
 
@@ -885,7 +887,7 @@ void main() {
         () => repo.syncSubtasks(
           parentId: l3.id,
           deleteSubtaskIds: [],
-          items: [(id: null, title: 'L4_Invalid')],
+          items: [(id: null, title: 'L4_Invalid', status: null)],
         ),
         throwsA(isA<RepositoryException>()),
       );

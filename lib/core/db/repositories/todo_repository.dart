@@ -799,7 +799,7 @@ class TodoRepository {
   Future<void> syncSubtasks({
     required String parentId,
     required List<String> deleteSubtaskIds,
-    required List<({String? id, String title})> items,
+    required List<({String? id, String title, TaskStatus? status})> items,
   }) async {
     await database.transaction(() async {
       final parent = await tasks.getActiveById(parentId);
@@ -854,7 +854,7 @@ class TodoRepository {
             projectId: parent.projectId,
             parentId: Value(parentId),
             title: title,
-            status: TaskStatus.todo,
+            status: item.status ?? TaskStatus.todo,
             sortOrder: order,
             createdAt: now,
             updatedAt: now,
@@ -867,6 +867,9 @@ class TodoRepository {
             final companion = TasksCompanion(
               title: title != existingTask.title
                   ? Value(title)
+                  : const Value.absent(),
+              status: item.status != null && item.status != existingTask.status
+                  ? Value(item.status!)
                   : const Value.absent(),
               sortOrder: Value(order),
               updatedAt: Value(now),
