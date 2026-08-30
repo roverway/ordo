@@ -36,7 +36,7 @@ Future<T?> showModalSideSheet<T>({
           child: Material(
             elevation: 16,
             color: theme.scaffoldBackgroundColor,
-            child: child,
+            child: ScaffoldMessenger(child: child),
           ),
         ),
       );

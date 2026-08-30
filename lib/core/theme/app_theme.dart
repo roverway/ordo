@@ -187,26 +187,45 @@ abstract final class AppTheme {
           ),
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
-              return isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard;
+              return isDark
+                  ? colorScheme.primary.withValues(alpha: 0.22)
+                  : colorScheme.primary.withValues(alpha: 0.12);
             }
-            return Colors.transparent;
+            return isDark
+                ? AppTokens.surfaceSunkenDark.withValues(alpha: 0.3)
+                : AppTokens.surfaceSunkenLight.withValues(alpha: 0.5);
           }),
           foregroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
-              return colorScheme.onSurface;
+              return colorScheme.primary;
             }
             return colorScheme.onSurfaceVariant;
           }),
-          elevation: WidgetStateProperty.resolveWith((states) {
+          iconColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
-              return 1.0;
+              return colorScheme.primary;
             }
-            return 0.0;
+            return colorScheme.onSurfaceVariant;
           }),
-          shadowColor: WidgetStatePropertyAll(
-            isDark ? Colors.black54 : const Color(0x14000000),
-          ),
+          textStyle: WidgetStateProperty.resolveWith((states) {
+            final isSelected = states.contains(WidgetState.selected);
+            return TextStyle(
+              fontFamily: _defaultFontFamily,
+              fontFamilyFallback: _fontFamilyFallback,
+              fontSize: AppTokens.textFootnoteSize,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+            );
+          }),
+          elevation: const WidgetStatePropertyAll(0.0),
           side: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return BorderSide(
+                color: colorScheme.primary.withValues(
+                  alpha: isDark ? 0.35 : 0.25,
+                ),
+                width: 1,
+              );
+            }
             return BorderSide(
               color: isDark
                   ? AppTokens.borderSubtleDark

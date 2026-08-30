@@ -356,6 +356,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                     ),
                     const Spacer(),
                     SegmentedButton<String>(
+                      showSelectedIcon: false,
                       segments: [
                         ButtonSegment(
                           value: 'kanban',
