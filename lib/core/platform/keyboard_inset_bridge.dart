@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 
 /// 从原生 WindowInsetsAnimation 逐帧回调拿到的真实键盘高度（px，物理像素）。
 /// 仅 Android API 30+ 有数据；其余平台/版本回退到 0，由调用方 fallback 到 MediaQuery。
@@ -32,6 +32,64 @@ class KeyboardInsetBridge {
   StreamSubscription<dynamic>? _sub;
 
   void dispose() => _sub?.cancel();
+}
+
+/// 独立钉底、跟随软键盘平滑升降的工具栏容器。
+///
+/// 核心特性：
+/// 1. 内部独立监听 [KeyboardInsetBridge]，不引发父页面或兄弟内容区的 Rebuild；
+/// 2. 采用 [Transform.translate] 配合 [RepaintBoundary]，位移仅更新 GPU 图层矩阵，
+///    完全规避父级 Stack / 任务编辑正文列表在键盘动画期间的 Relayout 与文本重排。
+class KeyboardAttachedToolbar extends StatelessWidget {
+  const KeyboardAttachedToolbar({
+    super.key,
+    required this.child,
+    this.backgroundColor,
+    this.elevation,
+  });
+
+  final Widget child;
+  final Color? backgroundColor;
+  final double? elevation;
+
+  @override
+  Widget build(BuildContext context) {
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+    final viewPaddingBottom = MediaQuery.viewPaddingOf(context).bottom;
+    final mediaQueryInset = MediaQuery.viewInsetsOf(context).bottom;
+    final isAndroid = !kIsWeb && Platform.isAndroid;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return RepaintBoundary(
+      child: ValueListenableBuilder<double>(
+        valueListenable: KeyboardInsetBridge.instance.imeHeightPx,
+        builder: (context, imeHeightPx, _) {
+          final nativeInset = imeHeightPx / devicePixelRatio;
+          final effectiveInset = isAndroid
+              ? (KeyboardInsetBridge.instance.hasReceivedEvents
+                    ? nativeInset
+                    : mediaQueryInset)
+              : mediaQueryInset;
+          final bottomGap = (viewPaddingBottom - effectiveInset).clamp(
+            0.0,
+            double.infinity,
+          );
+
+          return Transform.translate(
+            offset: Offset(0, -effectiveInset),
+            child: Material(
+              color: backgroundColor ?? colorScheme.surface,
+              elevation: elevation ?? 0.0,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: bottomGap),
+                child: child,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
 
 /// 监听键盘高度并在变化时重新构建的通用构建器组件。

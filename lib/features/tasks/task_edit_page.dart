@@ -214,7 +214,7 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
-    final formState = ref.watch(taskFormProvider);
+    final parentId = ref.watch(taskFormProvider.select((s) => s.parentId));
     final isWide = AppBreakpoints.isWide(context);
 
     return PopScope(
@@ -239,7 +239,7 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
         }
       },
       child: Scaffold(
-        // 由 Stack + KeyboardInsetBridge 逐帧绝对定位工具栏及滚动区，
+        // 由 Stack + KeyboardAttachedToolbar 逐帧 GPU 平移工具栏，
         // 禁用 Scaffold 自带阶跃式 resize，避免双重偏移或跳跃。
         resizeToAvoidBottomInset: false,
         // AppBar：返回 + 项目名（新建态带下拉箭头可切换，编辑态只读）+ 保存 + ⋯ 菜单。
@@ -267,68 +267,59 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
             ),
           ],
         ),
-        body: KeyboardInsetBuilder(
-          child: RepaintBoundary(
-            child: MediaQuery.removeViewInsets(
-              removeBottom: true,
-              context: context,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.only(
-                  left: AppTokens.spaceMd,
-                  right: AppTokens.spaceMd,
-                  top: AppTokens.spaceMd,
-                  bottom: AppTokens.toolbarHeight + AppTokens.spaceXl + 320,
-                ),
-                child: TaskEditor(
-                  controller: _editorController,
-                  autofocus: !_isEditing,
-                  showTopBar: false,
-                  showToolbar: false,
-                  // 编辑态：子任务区按自身深度（<3 展示，方案 B）；新建态维持「仅 1 级任务」。
-                  showSubtasks: _isEditing
-                      ? _showSubtasks
-                      : formState.parentId == null,
-                  hasExistingChildren: _hasChildren,
-                  onDeleteRequested: _isEditing ? _confirmDeleteTask : null,
-                ),
-              ),
-            ),
-          ),
-          builder: (context, effectiveInset, bottomGap, editorChild) {
-            return Stack(
-              children: [
-                // 正文区：定高填满内容区（固定留出工具栏高度，避免键盘逐帧动画导致整棵子任务树反复重排布局）。
-                Positioned.fill(
-                  bottom: AppTokens.toolbarHeight,
-                  child: editorChild!,
-                ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: effectiveInset,
-                  child: RepaintBoundary(
-                    child: Material(
-                      color: colorScheme.surface,
-                      elevation: AppTokens.elevationCard,
-                      child: Padding(
-                        padding: EdgeInsets.only(bottom: bottomGap),
-                        child: ValueListenableBuilder<bool>(
-                          valueListenable:
-                              _editorController.hasPendingNewSubtasksNotifier,
-                          builder: (context, hasPending, _) {
-                            return TaskEditorToolbar(
-                              // 已有子任务或待保存的新建子任务行 → 状态由子任务派生，禁用。
-                              statusDisabled: _hasChildren || hasPending,
-                            );
-                          },
-                        ),
-                      ),
+        body: Stack(
+          children: [
+            // 正文区：定高填满内容区（固定留出工具栏高度，并用 removeViewInsets 彻底隔离键盘突变与重排）。
+            Positioned.fill(
+              bottom: AppTokens.toolbarHeight,
+              child: RepaintBoundary(
+                child: MediaQuery.removeViewInsets(
+                  removeBottom: true,
+                  context: context,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(
+                      left: AppTokens.spaceMd,
+                      right: AppTokens.spaceMd,
+                      top: AppTokens.spaceMd,
+                      bottom: AppTokens.toolbarHeight + AppTokens.spaceXl + 320,
+                    ),
+                    child: TaskEditor(
+                      controller: _editorController,
+                      autofocus: !_isEditing,
+                      showTopBar: false,
+                      showToolbar: false,
+                      // 编辑态：子任务区按自身深度（<3 展示，方案 B）；新建态维持「仅 1 级任务」。
+                      showSubtasks: _isEditing
+                          ? _showSubtasks
+                          : parentId == null,
+                      hasExistingChildren: _hasChildren,
+                      onDeleteRequested: _isEditing ? _confirmDeleteTask : null,
                     ),
                   ),
                 ),
-              ],
-            );
-          },
+              ),
+            ),
+            // 独立工具栏：静态钉底，采用 GPU 矩阵平移（Transform.translate）逐帧跟随键盘升降，
+            // 不参与父级 Layout，完全免疫多子任务文本排版开销。
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: KeyboardAttachedToolbar(
+                elevation: AppTokens.elevationCard,
+                child: ValueListenableBuilder<bool>(
+                  valueListenable:
+                      _editorController.hasPendingNewSubtasksNotifier,
+                  builder: (context, hasPending, _) {
+                    return TaskEditorToolbar(
+                      // 已有子任务或待保存的新建子任务行 → 状态由子任务派生，禁用。
+                      statusDisabled: _hasChildren || hasPending,
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
