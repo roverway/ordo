@@ -22,26 +22,41 @@ import 'tag_providers.dart';
 /// 行尾菜单提供「编辑 / 删除」（bottom sheet 风格，参照 task_row）；
 /// FAB 新建标签，空态展示 [EmptyState]。
 class TagsPage extends ConsumerWidget {
-  const TagsPage({super.key});
+  const TagsPage({super.key, this.onBack});
+
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final canPop = context.canPop() || onBack != null;
     final narrow = AppBreakpoints.isNarrow(context);
     final tagsAsync = ref.watch(tagsStreamProvider);
 
     return Scaffold(
-      drawer: narrow ? const AppDrawer() : null,
+      drawer: (narrow && !canPop) ? const AppDrawer() : null,
       appBar: AppBar(
-        leading: narrow
-            ? Builder(
-                builder: (context) => IconButton(
-                  tooltip: l10n.openDrawer,
-                  icon: const Icon(Icons.menu, size: 22),
-                  onPressed: () => Scaffold.of(context).openDrawer(),
-                ),
+        leading: canPop
+            ? IconButton(
+                tooltip: l10n.cancel,
+                icon: const Icon(Icons.arrow_back, size: 22),
+                onPressed: () {
+                  if (onBack != null) {
+                    onBack!();
+                  } else {
+                    context.pop();
+                  }
+                },
               )
-            : null,
+            : (narrow
+                  ? Builder(
+                      builder: (context) => IconButton(
+                        tooltip: l10n.openDrawer,
+                        icon: const Icon(Icons.menu, size: 22),
+                        onPressed: () => Scaffold.of(context).openDrawer(),
+                      ),
+                    )
+                  : null),
         automaticallyImplyLeading: false,
         title: Text(l10n.navTags),
         actions: [

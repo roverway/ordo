@@ -48,19 +48,27 @@ class _TagsDetailPageState extends ConsumerState<TagsDetailPage> {
     return tagsAsync.when(
       data: (tags) {
         final tag = tags.where((t) => t.id == widget.tagId).firstOrNull;
+        final canPop = context.canPop();
         if (tag == null) {
           return Scaffold(
-            drawer: narrow ? const AppDrawer() : null,
+            drawer: (narrow && !canPop) ? const AppDrawer() : null,
             appBar: AppBar(
-              leading: narrow
-                  ? Builder(
-                      builder: (context) => IconButton(
-                        tooltip: l10n.openDrawer,
-                        icon: const Icon(Icons.menu, size: 22),
-                        onPressed: () => Scaffold.of(context).openDrawer(),
-                      ),
+              leading: canPop
+                  ? IconButton(
+                      tooltip: l10n.cancel,
+                      icon: const Icon(Icons.arrow_back, size: 22),
+                      onPressed: () => context.pop(),
                     )
-                  : null,
+                  : (narrow
+                        ? Builder(
+                            builder: (context) => IconButton(
+                              tooltip: l10n.openDrawer,
+                              icon: const Icon(Icons.menu, size: 22),
+                              onPressed: () =>
+                                  Scaffold.of(context).openDrawer(),
+                            ),
+                          )
+                        : null),
               automaticallyImplyLeading: false,
               title: Text(l10n.navTags),
               actions: [
@@ -78,17 +86,23 @@ class _TagsDetailPageState extends ConsumerState<TagsDetailPage> {
           );
         }
         return Scaffold(
-          drawer: narrow ? const AppDrawer() : null,
+          drawer: (narrow && !canPop) ? const AppDrawer() : null,
           appBar: AppBar(
-            leading: narrow
-                ? Builder(
-                    builder: (context) => IconButton(
-                      tooltip: l10n.openDrawer,
-                      icon: const Icon(Icons.menu, size: 22),
-                      onPressed: () => Scaffold.of(context).openDrawer(),
-                    ),
+            leading: canPop
+                ? IconButton(
+                    tooltip: l10n.cancel,
+                    icon: const Icon(Icons.arrow_back, size: 22),
+                    onPressed: () => context.pop(),
                   )
-                : null,
+                : (narrow
+                      ? Builder(
+                          builder: (context) => IconButton(
+                            tooltip: l10n.openDrawer,
+                            icon: const Icon(Icons.menu, size: 22),
+                            onPressed: () => Scaffold.of(context).openDrawer(),
+                          ),
+                        )
+                      : null),
             automaticallyImplyLeading: false,
             title: Text(tag.name),
             actions: [

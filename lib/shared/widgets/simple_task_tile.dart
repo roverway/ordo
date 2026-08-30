@@ -375,6 +375,7 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                       // 不随描述/日期/标签行撑高的内容块偏移。
                       if (widget.hasChildren &&
                           widget.progressValue != null) ...[
+                        const SizedBox(width: AppTokens.spaceSm),
                         SizedBox(
                           height: AppTokens.checkboxTapTargetSize,
                           child: Center(

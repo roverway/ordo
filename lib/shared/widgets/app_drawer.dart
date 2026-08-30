@@ -214,12 +214,6 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
             selectedIcon: Icons.calendar_today,
             label: l10n.navCalendar,
           ),
-          (
-            path: '/tags',
-            icon: Icons.label_outline,
-            selectedIcon: Icons.label,
-            label: l10n.navTags,
-          ),
         ];
 
     return SafeArea(

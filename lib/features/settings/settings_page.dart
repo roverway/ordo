@@ -10,6 +10,7 @@ import '../../core/utils/dates.dart';
 import '../../shared/widgets/app_logo.dart';
 import '../../shared/widgets/desktop_hover_container.dart';
 import '../sync_setup/sync_setup_providers.dart';
+import '../tags/tag_providers.dart';
 import 'settings_providers.dart';
 
 /// App version (keep in sync with pubspec.yaml version, not translatable).
@@ -27,16 +28,24 @@ class SettingsPage extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settings)),
-      body: SettingsBody(onOpenSync: () => context.push('/settings/sync')),
+      body: SettingsBody(
+        onOpenSync: () => context.push('/settings/sync'),
+        onOpenTags: () => context.push('/tags'),
+      ),
     );
   }
 }
 
 /// 设置列表主内容（支持独立页面及宽屏模态侧边抽屉内嵌复用）。
 class SettingsBody extends ConsumerWidget {
-  const SettingsBody({super.key, required this.onOpenSync});
+  const SettingsBody({
+    super.key,
+    required this.onOpenSync,
+    required this.onOpenTags,
+  });
 
   final VoidCallback onOpenSync;
+  final VoidCallback onOpenTags;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -47,6 +56,7 @@ class SettingsBody extends ConsumerWidget {
     // 供入口小图标/副标题展示；配置读取失败时回退灰色云朵，不影响设置页其余功能。
     final syncState = ref.watch(syncStateProvider);
     final syncConfigAsync = ref.watch(syncConfigProvider);
+    final tagsAsync = ref.watch(tagsStreamProvider);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -111,6 +121,32 @@ class SettingsBody extends ConsumerWidget {
                       .setLocale(selection.first),
                 ),
               ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppTokens.spaceXl),
+        _SectionHeader(title: l10n.taskTags),
+        _SettingsCard(
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.label_outline),
+              title: Text(l10n.taskTags, style: theme.textTheme.bodyLarge),
+              subtitle: tagsAsync.hasValue
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: AppTokens.spaceXxs),
+                      child: Text(
+                        (tagsAsync.value?.isEmpty ?? true)
+                            ? l10n.emptyTags
+                            : '${tagsAsync.value!.length}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    )
+                  : null,
+              trailing: const Icon(Icons.chevron_right),
+              onTap: onOpenTags,
             ),
           ],
         ),

@@ -119,6 +119,21 @@ final GoRouter appRouter = GoRouter(
         ),
       ],
     ),
+    GoRoute(
+      path: '/tags',
+      pageBuilder: (context, state) =>
+          _slideFadePage(context, state, const TagsPage()),
+      routes: [
+        GoRoute(
+          path: ':id',
+          pageBuilder: (context, state) => _slideFadePage(
+            context,
+            state,
+            TagsDetailPage(tagId: state.pathParameters['id']!),
+          ),
+        ),
+      ],
+    ),
     // ── 主导航 ShellRoute ──
     ShellRoute(
       builder: (context, state, child) => AppShell(child: child),
@@ -151,17 +166,6 @@ final GoRouter appRouter = GoRouter(
             child: TaskListPage(
               scope: ProjectTaskScope(state.pathParameters['id']!),
             ),
-          ),
-        ),
-        GoRoute(
-          path: '/tags',
-          pageBuilder: (context, state) =>
-              const NoTransitionPage(child: TagsPage()),
-        ),
-        GoRoute(
-          path: '/tags/:id',
-          pageBuilder: (context, state) => NoTransitionPage(
-            child: TagsDetailPage(tagId: state.pathParameters['id']!),
           ),
         ),
         GoRoute(

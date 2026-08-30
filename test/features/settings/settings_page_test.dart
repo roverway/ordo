@@ -11,6 +11,7 @@ import 'package:todo/features/settings/settings_providers.dart';
 import 'package:todo/features/settings/widgets/settings_side_sheet.dart';
 import 'package:todo/features/sync_setup/sync_setup_page.dart';
 import 'package:todo/features/sync_setup/sync_setup_providers.dart';
+import 'package:todo/features/tags/tag_providers.dart';
 
 import '../../helpers/db_test_setup.dart';
 
@@ -46,6 +47,7 @@ void main() {
           todoRepositoryProvider.overrideWithValue(repo),
           secureStoreProvider.overrideWithValue(secureStore),
           appSettingsCacheProvider.overrideWithValue(AppSettingsCache()),
+          tagsStreamProvider.overrideWithValue(const AsyncData([])),
         ],
         child: MaterialApp(
           theme: AppTheme.build(Brightness.light),
@@ -105,13 +107,16 @@ void main() {
         overrides: [
           todoRepositoryProvider.overrideWithValue(repo),
           appSettingsCacheProvider.overrideWithValue(cache),
+          tagsStreamProvider.overrideWithValue(const AsyncData([])),
         ],
         child: MaterialApp(
           theme: AppTheme.build(Brightness.light),
           locale: const Locale('zh'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(body: SettingsBody(onOpenSync: () {})),
+          home: Scaffold(
+            body: SettingsBody(onOpenSync: () {}, onOpenTags: () {}),
+          ),
         ),
       ),
     );
@@ -123,5 +128,44 @@ void main() {
 
     final langSegmented = find.byType(SegmentedButton<Locale>);
     expect(langSegmented, findsOneWidget);
+  });
+
+  testWidgets('设置页包含标签管理入口并可点击触发跳转', (tester) async {
+    final db = AppDatabase.forTesting();
+    addTearDown(db.close);
+    final repo = TodoRepository(database: db);
+    final cache = AppSettingsCache();
+    bool tagsOpened = false;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          todoRepositoryProvider.overrideWithValue(repo),
+          appSettingsCacheProvider.overrideWithValue(cache),
+          tagsStreamProvider.overrideWithValue(const AsyncData([])),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.build(Brightness.light),
+          locale: const Locale('zh'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SettingsBody(
+              onOpenSync: () {},
+              onOpenTags: () => tagsOpened = true,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tagEntryFinder = find.widgetWithText(ListTile, '标签');
+    expect(tagEntryFinder, findsOneWidget);
+
+    await tester.tap(tagEntryFinder);
+    await tester.pumpAndSettle();
+
+    expect(tagsOpened, isTrue);
   });
 }

@@ -277,9 +277,9 @@ void main() {
       // 宽屏无汉堡（侧边栏已常驻），无模态抽屉
       expect(find.byIcon(Icons.menu), findsNothing);
       expect(find.byType(Drawer), findsNothing);
-      // 侧边栏包含系统组目的地（今日/收件箱/日历/标签）与任务分组标题
+      // 侧边栏包含系统组目的地（今日/收件箱/日历）与任务分组标题
       expect(find.text('任务分组'), findsOneWidget);
-      for (final label in ['收件箱', '今日', '日历', '标签']) {
+      for (final label in ['收件箱', '今日', '日历']) {
         expect(
           find.descendant(
             of: find.byType(AppSidebar),

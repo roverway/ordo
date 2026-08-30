@@ -4,6 +4,7 @@ import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../shared/widgets/modal_side_sheet.dart';
 import '../../sync_setup/sync_setup_page.dart';
+import '../../tags/tags_page.dart';
 import '../settings_page.dart';
 
 /// 宽屏（≥600dp）弹出右侧透明模态设置面板（Side Sheet）。
@@ -31,6 +32,7 @@ class _SettingsSheetNavigator extends StatefulWidget {
 
 class _SettingsSheetNavigatorState extends State<_SettingsSheetNavigator> {
   bool _showingSync = false;
+  bool _showingTags = false;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +52,10 @@ class _SettingsSheetNavigatorState extends State<_SettingsSheetNavigator> {
       );
     }
 
+    if (_showingTags) {
+      return TagsPage(onBack: () => setState(() => _showingTags = false));
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.settings),
@@ -59,7 +65,10 @@ class _SettingsSheetNavigatorState extends State<_SettingsSheetNavigator> {
           onPressed: widget.onClose,
         ),
       ),
-      body: SettingsBody(onOpenSync: () => setState(() => _showingSync = true)),
+      body: SettingsBody(
+        onOpenSync: () => setState(() => _showingSync = true),
+        onOpenTags: () => setState(() => _showingTags = true),
+      ),
     );
   }
 }

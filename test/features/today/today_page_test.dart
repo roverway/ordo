@@ -31,6 +31,7 @@ import 'package:todo/features/tasks/task_list_page.dart';
 import 'package:todo/features/today/today_providers.dart';
 import 'package:todo/shared/widgets/empty_state.dart';
 import 'package:todo/shared/widgets/simple_task_tile.dart';
+import 'package:todo/shared/widgets/task_progress_ring.dart';
 import '../../helpers/db_test_setup.dart';
 
 /// 本地「今天」零点（与 provider 的 todayStart 口径一致）。
@@ -540,5 +541,44 @@ void main() {
           .first,
     );
     expect(checkboxScale.scale.value, 1.0);
+  });
+
+  testWidgets('逾期且含子任务的任务：已逾期徽标与进度圆环之间有合理间距', (tester) async {
+    final yest = _yesterday();
+    final startAt = DateTime(
+      yest.year,
+      yest.month,
+      yest.day,
+      9,
+    ).millisecondsSinceEpoch;
+    final endAt = DateTime(
+      yest.year,
+      yest.month,
+      yest.day,
+      18,
+    ).millisecondsSinceEpoch;
+
+    await _pumpToday(
+      tester,
+      tasks: [
+        _task('parent', title: '逾期父任务', startAt: startAt, endAt: endAt),
+        _task('child1', parentId: 'parent', title: '子任务1'),
+      ],
+    );
+
+    // 验证在 SimpleTaskTile 内同时存在「已逾期」徽标和 TaskProgressRing
+    final overdueFinder = find.descendant(
+      of: find.byType(SimpleTaskTile),
+      matching: find.text('已逾期'),
+    );
+    final progressFinder = find.byType(TaskProgressRing);
+    expect(overdueFinder, findsOneWidget);
+    expect(progressFinder, findsOneWidget);
+
+    final overdueTopRight = tester.getTopRight(overdueFinder);
+    final progressTopLeft = tester.getTopLeft(progressFinder);
+
+    // 进度环在已逾期徽标右侧，且两者横向距离大于等于 12dp (AppTokens.spaceSm)
+    expect(progressTopLeft.dx - overdueTopRight.dx, greaterThanOrEqualTo(12.0));
   });
 }
