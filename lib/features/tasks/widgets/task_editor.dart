@@ -30,6 +30,7 @@ import '../../../core/platform/keyboard_inset_bridge.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/priority_color.dart';
 import '../../../core/utils/dates.dart';
+import '../../../core/utils/motion.dart';
 import '../../../shared/widgets/app_menu_item.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/tag_chip.dart';
@@ -901,7 +902,7 @@ class _SubtaskRowTileState extends State<_SubtaskRowTile> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 复选框：支持点击切换子任务完成状态。
+          // 复选框：支持点击切换子任务完成状态（保持全不透明）。
           SizedBox(
             width: AppTokens.touchTarget,
             height: AppTokens.touchTarget,
@@ -910,75 +911,109 @@ class _SubtaskRowTileState extends State<_SubtaskRowTile> {
               onChanged: (_) => widget.onToggleStatus(),
             ),
           ),
+          // 内容区：已完成子任务变灰并降低透明度（与任务浏览列表一致）。
           Expanded(
-            child: isEditing
-                ? TextField(
-                    controller: widget.row.controller,
-                    focusNode: widget.row.focusNode,
-                    autofocus: true,
-                    maxLines: null,
-                    scrollPadding: EdgeInsets.zero,
-                    decoration: InputDecoration(
-                      hintText: l10n.subtaskHint,
-                      border: InputBorder.none,
-                      filled: false,
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        vertical: 14.0,
-                      ),
-                    ),
-                    onSubmitted: (_) => widget.onSubmitted(),
-                    onChanged: (_) => widget.onChanged(),
-                  )
-                : GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: _startEditing,
-                    child: Container(
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.symmetric(vertical: 14.0),
-                      child: Text(
-                        widget.row.controller.text.isEmpty
-                            ? l10n.subtaskHint
-                            : widget.row.controller.text,
-                        style: widget.row.controller.text.isEmpty
-                            ? theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant
-                                    .withValues(alpha: 0.6),
-                              )
-                            : theme.textTheme.bodyMedium?.copyWith(
-                                decoration: isDone
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                                color: isDone
-                                    ? theme.colorScheme.onSurfaceVariant
-                                    : null,
+            child: AnimatedOpacity(
+              opacity: isDone ? AppTokens.doneContentOpacity : 1.0,
+              duration: motionFast(context),
+              curve: motionCurve(context),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: isEditing
+                        ? TextField(
+                            controller: widget.row.controller,
+                            focusNode: widget.row.focusNode,
+                            autofocus: true,
+                            maxLines: null,
+                            scrollPadding: EdgeInsets.zero,
+                            style: isDone
+                                ? theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  )
+                                : theme.textTheme.bodyMedium,
+                            decoration: InputDecoration(
+                              hintText: l10n.subtaskHint,
+                              border: InputBorder.none,
+                              filled: false,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 14.0,
                               ),
+                            ),
+                            onSubmitted: (_) => widget.onSubmitted(),
+                            onChanged: (_) => widget.onChanged(),
+                          )
+                        : GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: _startEditing,
+                            child: Container(
+                              alignment: Alignment.centerLeft,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 14.0,
+                              ),
+                              child: Text(
+                                widget.row.controller.text.isEmpty
+                                    ? l10n.subtaskHint
+                                    : widget.row.controller.text,
+                                style: widget.row.controller.text.isEmpty
+                                    ? theme.textTheme.bodyMedium?.copyWith(
+                                        color: theme
+                                            .colorScheme
+                                            .onSurfaceVariant
+                                            .withValues(alpha: 0.6),
+                                      )
+                                    : theme.textTheme.bodyMedium?.copyWith(
+                                        decoration: isDone
+                                            ? TextDecoration.lineThrough
+                                            : null,
+                                        color: isDone
+                                            ? theme.colorScheme.onSurfaceVariant
+                                            : null,
+                                      ),
+                              ),
+                            ),
+                          ),
+                  ),
+                  // 拖拽排序把手（无障碍：语义标签 + 扩大按压区，NFR-06）。
+                  Semantics(
+                    button: true,
+                    label: l10n.dragReorder,
+                    child: ReorderableDragStartListener(
+                      index: widget.index,
+                      child: SizedBox(
+                        width: AppTokens.touchTarget,
+                        height: AppTokens.touchTarget,
+                        child: Center(
+                          child: Icon(
+                            Icons.drag_handle,
+                            size: 18,
+                            color: isDone
+                                ? theme.colorScheme.onSurfaceVariant
+                                : null,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-          ),
-          // 拖拽排序把手（无障碍：语义标签 + 扩大按压区，NFR-06）。
-          Semantics(
-            button: true,
-            label: l10n.dragReorder,
-            child: ReorderableDragStartListener(
-              index: widget.index,
-              child: const SizedBox(
-                width: AppTokens.touchTarget,
-                height: AppTokens.touchTarget,
-                child: Center(child: Icon(Icons.drag_handle, size: 18)),
+                  IconButton(
+                    icon: Icon(
+                      Icons.close,
+                      size: 18,
+                      color: isDone ? theme.colorScheme.onSurfaceVariant : null,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: AppTokens.touchTarget,
+                      minHeight: AppTokens.touchTarget,
+                    ),
+                    onPressed: widget.onRemove,
+                  ),
+                ],
               ),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.close, size: 18),
-            visualDensity: VisualDensity.compact,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(
-              minWidth: AppTokens.touchTarget,
-              minHeight: AppTokens.touchTarget,
-            ),
-            onPressed: widget.onRemove,
           ),
         ],
       ),

@@ -13,6 +13,7 @@ import 'package:todo/core/db/database.dart';
 import 'package:todo/core/db/tables.dart';
 import 'package:todo/core/db/repositories/todo_repository.dart';
 import 'package:todo/core/l10n/app_localizations.dart';
+import 'package:todo/core/theme/app_tokens.dart';
 import 'package:todo/features/projects/project_providers.dart';
 import 'package:todo/features/settings/settings_providers.dart';
 import 'package:todo/features/tags/tag_providers.dart';
@@ -1139,6 +1140,90 @@ void main() {
       final textSize = tester.getSize(textFinder);
       // 文本高度大于单行高度（单行 ~20dp，换行后至少 > 30dp）
       expect(textSize.height, greaterThan(30.0));
+    });
+
+    testWidgets('已完成子任务文本变灰并应用降低视觉强度透明度', (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      final cache = AppSettingsCache();
+      final db = openTestDatabase();
+      final repo = TodoRepository(database: db);
+      await db
+          .into(db.projects)
+          .insertOnConflictUpdate(
+            ProjectsCompanion.insert(
+              id: 'p1',
+              name: '测试项目',
+              color: 0xFF3482FF,
+              sortOrder: 0,
+              createdAt: 0,
+              updatedAt: 0,
+            ),
+          );
+      final parent = await repo.createTask(projectId: 'p1', title: '父任务');
+      await repo.createTask(
+        projectId: 'p1',
+        parentId: parent.id,
+        title: '已完成的子任务',
+        status: TaskStatus.done,
+      );
+
+      final router = GoRouter(
+        initialLocation: '/task/${parent.id}',
+        routes: [
+          GoRoute(
+            path: '/task/:id',
+            builder: (_, state) =>
+                TaskEditPage(taskId: state.pathParameters['id']),
+          ),
+          GoRoute(path: '/today', builder: (_, _) => const Scaffold()),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appSettingsCacheProvider.overrideWithValue(cache),
+            todoRepositoryProvider.overrideWithValue(repo),
+            projectsStreamProvider.overrideWithValue(
+              AsyncData([
+                Project(
+                  id: 'p1',
+                  name: '测试项目',
+                  color: 0xFF3482FF,
+                  description: '',
+                  sortOrder: 0,
+                  createdAt: 0,
+                  updatedAt: 0,
+                  deleted: 0,
+                ),
+              ]),
+            ),
+            tagsStreamProvider.overrideWithValue(const AsyncData([])),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            locale: const Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 验证存在 AnimatedOpacity 且 opacity 为 doneContentOpacity (0.55)
+      final opacityWidgets = tester.widgetList<AnimatedOpacity>(
+        find.byType(AnimatedOpacity),
+      );
+      expect(
+        opacityWidgets.any((w) => w.opacity == AppTokens.doneContentOpacity),
+        isTrue,
+      );
+
+      final textWidget = tester.widget<Text>(find.text('已完成的子任务'));
+      expect(textWidget.style?.decoration, TextDecoration.lineThrough);
     });
   });
 }
