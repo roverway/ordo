@@ -269,33 +269,16 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
         ),
         body: Stack(
           children: [
-            // 正文区：定高填满内容区（固定留出工具栏高度，并用 removeViewInsets 彻底隔离键盘突变与重排）。
+            // 正文区：定高填满内容区（固定留出工具栏高度，并通过独立组件隔离 MediaQuery 与重绘）。
             Positioned.fill(
               bottom: AppTokens.toolbarHeight,
               child: RepaintBoundary(
-                child: MediaQuery.removeViewInsets(
-                  removeBottom: true,
-                  context: context,
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.only(
-                      left: AppTokens.spaceMd,
-                      right: AppTokens.spaceMd,
-                      top: AppTokens.spaceMd,
-                      bottom: AppTokens.toolbarHeight + AppTokens.spaceXl + 320,
-                    ),
-                    child: TaskEditor(
-                      controller: _editorController,
-                      autofocus: !_isEditing,
-                      showTopBar: false,
-                      showToolbar: false,
-                      // 编辑态：子任务区按自身深度（<3 展示，方案 B）；新建态维持「仅 1 级任务」。
-                      showSubtasks: _isEditing
-                          ? _showSubtasks
-                          : parentId == null,
-                      hasExistingChildren: _hasChildren,
-                      onDeleteRequested: _isEditing ? _confirmDeleteTask : null,
-                    ),
-                  ),
+                child: _TaskEditContentArea(
+                  controller: _editorController,
+                  isEditing: _isEditing,
+                  showSubtasks: _isEditing ? _showSubtasks : parentId == null,
+                  hasChildren: _hasChildren,
+                  onDeleteRequested: _isEditing ? _confirmDeleteTask : null,
                 ),
               ),
             ),
@@ -423,5 +406,47 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
         context,
       ).showSnackBar(SnackBar(content: Text(e.message)));
     }
+  }
+}
+
+/// 任务编辑正文滚动区（独立组件隔离，彻底隔绝 Window Insets 脏标记引发的父级与子任务树全量重排）。
+class _TaskEditContentArea extends StatelessWidget {
+  const _TaskEditContentArea({
+    required this.controller,
+    required this.isEditing,
+    required this.showSubtasks,
+    required this.hasChildren,
+    required this.onDeleteRequested,
+  });
+
+  final TaskEditorController controller;
+  final bool isEditing;
+  final bool showSubtasks;
+  final bool hasChildren;
+  final VoidCallback? onDeleteRequested;
+
+  @override
+  Widget build(BuildContext context) {
+    return MediaQuery.removeViewInsets(
+      removeBottom: true,
+      context: context,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.only(
+          left: AppTokens.spaceMd,
+          right: AppTokens.spaceMd,
+          top: AppTokens.spaceMd,
+          bottom: AppTokens.toolbarHeight + AppTokens.spaceXl + 320,
+        ),
+        child: TaskEditor(
+          controller: controller,
+          autofocus: !isEditing,
+          showTopBar: false,
+          showToolbar: false,
+          showSubtasks: showSubtasks,
+          hasExistingChildren: hasChildren,
+          onDeleteRequested: onDeleteRequested,
+        ),
+      ),
+    );
   }
 }

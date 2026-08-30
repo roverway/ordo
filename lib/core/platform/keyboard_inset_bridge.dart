@@ -70,18 +70,21 @@ class KeyboardAttachedToolbar extends StatelessWidget {
                     ? nativeInset
                     : mediaQueryInset)
               : mediaQueryInset;
-          final bottomGap = (viewPaddingBottom - effectiveInset).clamp(
+          // 当键盘高度小于安全区高度时，位移为 0；超过安全区高度后按差值位移。
+          // 内部使用恒定的 viewPaddingBottom 留白，动画全程不修改 Padding，
+          // 实现子组件 0 Layout 耗时，纯 GPU 图层位移。
+          final dy = (effectiveInset - viewPaddingBottom).clamp(
             0.0,
             double.infinity,
           );
 
           return Transform.translate(
-            offset: Offset(0, -effectiveInset),
+            offset: Offset(0, -dy),
             child: Material(
               color: backgroundColor ?? colorScheme.surface,
               elevation: elevation ?? 0.0,
               child: Padding(
-                padding: EdgeInsets.only(bottom: bottomGap),
+                padding: EdgeInsets.only(bottom: viewPaddingBottom),
                 child: child,
               ),
             ),
