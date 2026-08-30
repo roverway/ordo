@@ -469,43 +469,10 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
   // ── 子任务区（圆形复选框 + 拖拽排序 + 新增行）───────────────────
 
   Widget _buildSubtasks(BuildContext context, AppLocalizations l10n) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l10n.subtasks,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-        if (widget.controller.subtaskRows.isNotEmpty)
-          ReorderableListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            buildDefaultDragHandles: false,
-            itemCount: widget.controller.subtaskRows.length,
-            onReorder: widget.controller.reorderSubtasks,
-            itemBuilder: (context, index) {
-              final row = widget.controller.subtaskRows[index];
-              return _SubtaskRowTile(
-                key: ObjectKey(row.controller),
-                index: index,
-                row: row,
-                onRemove: () => _confirmRemoveSubtask(row),
-                onSubmitted: _addSubtaskAndFocus,
-                // 输入即通知（状态派生禁用实时依据，D7）。
-                onChanged: widget.controller.notifySubtasksChanged,
-              );
-            },
-          ),
-        TextButton.icon(
-          onPressed: _addSubtaskAndFocus,
-          icon: const Icon(Icons.add, size: 18),
-          label: Text(l10n.addSubtask),
-        ),
-      ],
+    return _SubtaskList(
+      controller: widget.controller,
+      onAddSubtaskAndFocus: _addSubtaskAndFocus,
+      onConfirmRemoveSubtask: _confirmRemoveSubtask,
     );
   }
 
@@ -741,6 +708,63 @@ class TaskEditorMenuButton extends StatelessWidget {
   }
 }
 
+// ── 子任务区 ──────────────────────────────────────────────────────────
+
+class _SubtaskList extends StatelessWidget {
+  const _SubtaskList({
+    required this.controller,
+    required this.onAddSubtaskAndFocus,
+    required this.onConfirmRemoveSubtask,
+  });
+
+  final TaskEditorController controller;
+  final VoidCallback onAddSubtaskAndFocus;
+  final void Function(SubtaskRow) onConfirmRemoveSubtask;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.subtasks,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        if (controller.subtaskRows.isNotEmpty)
+          ReorderableListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            buildDefaultDragHandles: false,
+            itemCount: controller.subtaskRows.length,
+            onReorder: controller.reorderSubtasks,
+            itemBuilder: (context, index) {
+              final row = controller.subtaskRows[index];
+              return _SubtaskRowTile(
+                key: ObjectKey(row.controller),
+                index: index,
+                row: row,
+                onRemove: () => onConfirmRemoveSubtask(row),
+                onSubmitted: onAddSubtaskAndFocus,
+                onChanged: controller.notifySubtasksChanged,
+              );
+            },
+          ),
+        TextButton.icon(
+          onPressed: onAddSubtaskAndFocus,
+          icon: const Icon(Icons.add, size: 18),
+          label: Text(l10n.addSubtask),
+        ),
+      ],
+    );
+  }
+}
+
 // ── 子任务行 ──────────────────────────────────────────────────────────
 
 class _SubtaskRowTile extends StatelessWidget {
@@ -763,62 +787,65 @@ class _SubtaskRowTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return RepaintBoundary(
-      child: Row(
-        children: [
-          // 圆形复选框（装饰：展示任务状态，新建行默认未完成）。
-          SizedBox(
-            width: AppTokens.touchTarget,
-            height: AppTokens.touchTarget,
-            child: Checkbox(
-              value: row.status == TaskStatus.done,
-              onChanged: null,
-            ),
-          ),
-          Expanded(
-            child: TextField(
-              controller: row.controller,
-              // 行内持有焦点（用户要求：新增行后自动聚焦，行移除/控制器
-              // dispose 时释放）。
-              focusNode: row.focusNode,
-              scrollPadding: EdgeInsets.zero,
-              decoration: InputDecoration(
-                hintText: l10n.subtaskHint,
-                border: InputBorder.none,
-                filled: false,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
+      child: SizedBox(
+        height: AppTokens.touchTarget,
+        child: Row(
+          children: [
+            // 圆形复选框（装饰：展示任务状态，新建行默认未完成）。
+            SizedBox(
+              width: AppTokens.touchTarget,
+              height: AppTokens.touchTarget,
+              child: Checkbox(
+                value: row.status == TaskStatus.done,
+                onChanged: null,
               ),
-              onSubmitted: (_) => onSubmitted(),
-              onChanged: (_) => onChanged(),
             ),
-          ),
-          // 拖拽排序把手（无障碍：语义标签 + 扩大按压区，NFR-06）。
-          Semantics(
-            button: true,
-            label: l10n.dragReorder,
-            child: ReorderableDragStartListener(
-              index: index,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTokens.spaceSm,
-                  vertical: AppTokens.spaceXxs,
+            Expanded(
+              child: TextField(
+                controller: row.controller,
+                // 行内持有焦点（用户要求：新增行后自动聚焦，行移除/控制器
+                // dispose 时释放）。
+                focusNode: row.focusNode,
+                scrollPadding: EdgeInsets.zero,
+                decoration: InputDecoration(
+                  hintText: l10n.subtaskHint,
+                  border: InputBorder.none,
+                  filled: false,
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
                 ),
-                child: const Icon(Icons.drag_handle, size: 18),
+                onSubmitted: (_) => onSubmitted(),
+                onChanged: (_) => onChanged(),
               ),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.close, size: 18),
-            visualDensity: VisualDensity.compact,
-            // 触控目标 ≥48dp（NFR-06），与行菜单按钮一致。
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(
-              minWidth: AppTokens.touchTarget,
-              minHeight: AppTokens.touchTarget,
+            // 拖拽排序把手（无障碍：语义标签 + 扩大按压区，NFR-06）。
+            Semantics(
+              button: true,
+              label: l10n.dragReorder,
+              child: ReorderableDragStartListener(
+                index: index,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTokens.spaceSm,
+                    vertical: AppTokens.spaceXxs,
+                  ),
+                  child: const Icon(Icons.drag_handle, size: 18),
+                ),
+              ),
             ),
-            onPressed: onRemove,
-          ),
-        ],
+            IconButton(
+              icon: const Icon(Icons.close, size: 18),
+              visualDensity: VisualDensity.compact,
+              // 触控目标 ≥48dp（NFR-06），与行菜单按钮一致。
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(
+                minWidth: AppTokens.touchTarget,
+                minHeight: AppTokens.touchTarget,
+              ),
+              onPressed: onRemove,
+            ),
+          ],
+        ),
       ),
     );
   }
