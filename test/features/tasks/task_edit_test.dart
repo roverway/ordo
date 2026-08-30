@@ -1060,5 +1060,85 @@ void main() {
       final reloaded = await repo.tasks.getActiveById(sub.id);
       expect(reloaded!.status, TaskStatus.done);
     });
+
+    testWidgets('长子任务标题自动换行渲染且高度自适应扩展', (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      final cache = AppSettingsCache();
+      final db = openTestDatabase();
+      final repo = TodoRepository(database: db);
+      await db
+          .into(db.projects)
+          .insertOnConflictUpdate(
+            ProjectsCompanion.insert(
+              id: 'p1',
+              name: '测试项目',
+              color: 0xFF3482FF,
+              sortOrder: 0,
+              createdAt: 0,
+              updatedAt: 0,
+            ),
+          );
+      final parent = await repo.createTask(projectId: 'p1', title: '父任务');
+      const longTitle =
+          '这是一个非常非常非常非常长的一段子任务标题文字，用于测试子任务在编辑页面是否能够自动换行显示，而不是被单行截断省略。';
+      await repo.createTask(
+        projectId: 'p1',
+        parentId: parent.id,
+        title: longTitle,
+      );
+
+      final router = GoRouter(
+        initialLocation: '/task/${parent.id}',
+        routes: [
+          GoRoute(
+            path: '/task/:id',
+            builder: (_, state) =>
+                TaskEditPage(taskId: state.pathParameters['id']),
+          ),
+          GoRoute(path: '/today', builder: (_, _) => const Scaffold()),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appSettingsCacheProvider.overrideWithValue(cache),
+            todoRepositoryProvider.overrideWithValue(repo),
+            projectsStreamProvider.overrideWithValue(
+              AsyncData([
+                Project(
+                  id: 'p1',
+                  name: '测试项目',
+                  color: 0xFF3482FF,
+                  description: '',
+                  sortOrder: 0,
+                  createdAt: 0,
+                  updatedAt: 0,
+                  deleted: 0,
+                ),
+              ]),
+            ),
+            tagsStreamProvider.overrideWithValue(const AsyncData([])),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            locale: const Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final textFinder = find.text(longTitle);
+      expect(textFinder, findsOneWidget);
+
+      final textSize = tester.getSize(textFinder);
+      // 文本高度大于单行高度（单行 ~20dp，换行后至少 > 30dp）
+      expect(textSize.height, greaterThan(30.0));
+    });
   });
 }

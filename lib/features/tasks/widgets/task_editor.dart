@@ -896,9 +896,10 @@ class _SubtaskRowTileState extends State<_SubtaskRowTile> {
         widget.row.isNew || _isEditing || widget.row.focusNode.hasFocus;
     final isDone = widget.row.status == TaskStatus.done;
 
-    return SizedBox(
-      height: AppTokens.touchTarget,
+    return Container(
+      constraints: const BoxConstraints(minHeight: AppTokens.touchTarget),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 复选框：支持点击切换子任务完成状态。
           SizedBox(
@@ -915,13 +916,16 @@ class _SubtaskRowTileState extends State<_SubtaskRowTile> {
                     controller: widget.row.controller,
                     focusNode: widget.row.focusNode,
                     autofocus: true,
+                    maxLines: null,
                     scrollPadding: EdgeInsets.zero,
                     decoration: InputDecoration(
                       hintText: l10n.subtaskHint,
                       border: InputBorder.none,
                       filled: false,
                       isDense: true,
-                      contentPadding: EdgeInsets.zero,
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 14.0,
+                      ),
                     ),
                     onSubmitted: (_) => widget.onSubmitted(),
                     onChanged: (_) => widget.onChanged(),
@@ -931,13 +935,11 @@ class _SubtaskRowTileState extends State<_SubtaskRowTile> {
                     onTap: _startEditing,
                     child: Container(
                       alignment: Alignment.centerLeft,
-                      height: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 14.0),
                       child: Text(
                         widget.row.controller.text.isEmpty
                             ? l10n.subtaskHint
                             : widget.row.controller.text,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                         style: widget.row.controller.text.isEmpty
                             ? theme.textTheme.bodyMedium?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant
@@ -961,12 +963,10 @@ class _SubtaskRowTileState extends State<_SubtaskRowTile> {
             label: l10n.dragReorder,
             child: ReorderableDragStartListener(
               index: widget.index,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: AppTokens.spaceSm,
-                  vertical: AppTokens.spaceXxs,
-                ),
-                child: Icon(Icons.drag_handle, size: 18),
+              child: const SizedBox(
+                width: AppTokens.touchTarget,
+                height: AppTokens.touchTarget,
+                child: Center(child: Icon(Icons.drag_handle, size: 18)),
               ),
             ),
           ),
