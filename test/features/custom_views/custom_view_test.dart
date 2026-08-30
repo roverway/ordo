@@ -605,5 +605,102 @@ void main() {
         expect(find.text('单一视图'), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'CustomViewPage in kanban/wide mode wraps horizontal ListView with Scrollbar',
+      (tester) async {
+        tester.view.physicalSize = const Size(1200, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.reset);
+
+        final panel1 = CustomViewPanelConfig(
+          id: 'p1',
+          title: '待办',
+          filter: const FilterCriteria(statuses: [TaskStatus.todo]),
+        );
+        final panel2 = CustomViewPanelConfig(
+          id: 'p2',
+          title: '进行中',
+          filter: const FilterCriteria(statuses: [TaskStatus.inProgress]),
+        );
+
+        final view = CustomView(
+          id: 'v_kanban',
+          name: '看板视图',
+          icon: 'view_kanban_outlined',
+          color: 0xFF4A6CF7,
+          layoutMode: 'kanban',
+          panelsJson: encodePanelsJson([panel1, panel2]),
+          sortOrder: 0,
+          createdAt: 0,
+          updatedAt: 0,
+          deleted: 0,
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              todoRepositoryProvider.overrideWithValue(repo),
+              customViewDetailProvider.overrideWith(
+                (ref, id) => Stream.value(view),
+              ),
+              allActiveTasksStreamProvider.overrideWithValue(
+                const AsyncData([]),
+              ),
+              panelTasksProvider(panel1).overrideWithValue(
+                const AsyncData(PanelTasksResult(tasks: [], totalCount: 0)),
+              ),
+              panelTasksProvider(panel2).overrideWithValue(
+                const AsyncData(PanelTasksResult(tasks: [], totalCount: 0)),
+              ),
+              allProjectsMapProvider.overrideWithValue(const AsyncData({})),
+            ],
+            child: const MaterialApp(
+              locale: Locale('zh'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: CustomViewPage(viewId: 'v_kanban'),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        // Scrollbar and ListView are present with horizontal scroll
+        expect(find.byType(Scrollbar), findsOneWidget);
+        final listViewFinder = find.byType(ListView);
+        expect(listViewFinder, findsOneWidget);
+        final listView = tester.widget<ListView>(listViewFinder);
+        expect(listView.scrollDirection, Axis.horizontal);
+      },
+    );
+
+    testWidgets(
+      'CustomViewEditorPage panel list uses leading ReorderableDragStartListener and buildDefaultDragHandles false',
+      (tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [todoRepositoryProvider.overrideWithValue(repo)],
+            child: const MaterialApp(
+              locale: Locale('zh'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: CustomViewEditorPage(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final reorderableListViewFinder = find.byType(ReorderableListView);
+        expect(reorderableListViewFinder, findsOneWidget);
+        final reorderableList = tester.widget<ReorderableListView>(
+          reorderableListViewFinder,
+        );
+        expect(reorderableList.buildDefaultDragHandles, isFalse);
+
+        // Leading drag handle is wrapped with ReorderableDragStartListener
+        expect(find.byType(ReorderableDragStartListener), findsWidgets);
+        expect(find.byIcon(Icons.delete_outline), findsWidgets);
+      },
+    );
   });
 }

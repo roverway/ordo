@@ -493,6 +493,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
           ReorderableListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
+            buildDefaultDragHandles: false,
             itemCount: _panels.length,
             onReorder: (oldIndex, newIndex) {
               setState(() {
@@ -526,10 +527,22 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                     horizontal: AppTokens.spaceSm,
                     vertical: 4,
                   ),
-                  leading: Icon(
-                    Icons.drag_indicator,
-                    color: theme.colorScheme.onSurfaceVariant.withValues(
-                      alpha: 0.5,
+                  leading: ReorderableDragStartListener(
+                    index: index,
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.grab,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppTokens.spaceXs,
+                          vertical: AppTokens.spaceXs,
+                        ),
+                        child: Icon(
+                          Icons.drag_indicator,
+                          color: theme.colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.5,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                   title: Text(

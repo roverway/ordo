@@ -15,10 +15,29 @@ import '../widgets/panel_column.dart';
 import 'custom_view_editor_page.dart';
 
 /// 自定义视图主页面（支持多栏看板与多 Tab 响应式切换）。
-class CustomViewPage extends ConsumerWidget {
+class CustomViewPage extends ConsumerStatefulWidget {
   const CustomViewPage({super.key, required this.viewId});
 
   final String viewId;
+
+  @override
+  ConsumerState<CustomViewPage> createState() => _CustomViewPageState();
+}
+
+class _CustomViewPageState extends ConsumerState<CustomViewPage> {
+  late final ScrollController _horizontalScrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _horizontalScrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _horizontalScrollController.dispose();
+    super.dispose();
+  }
 
   void _openEditView(BuildContext context, CustomView view) {
     if (AppBreakpoints.isNarrow(context)) {
@@ -29,7 +48,6 @@ class CustomViewPage extends ConsumerWidget {
   }
 
   void _onUpdatePanel(
-    WidgetRef ref,
     CustomView view,
     int index,
     CustomViewPanelConfig updated,
@@ -41,7 +59,7 @@ class CustomViewPage extends ConsumerWidget {
     ref.read(customViewOperationsProvider).updateView(view.id, panels: panels);
   }
 
-  void _onDeletePanel(WidgetRef ref, CustomView view, int index) {
+  void _onDeletePanel(CustomView view, int index) {
     final panels = List<CustomViewPanelConfig>.from(
       decodePanelsJson(view.panelsJson),
     );
@@ -51,7 +69,6 @@ class CustomViewPage extends ConsumerWidget {
 
   Future<void> _handleTaskDrop({
     required BuildContext context,
-    required WidgetRef ref,
     required CustomView view,
     required Task task,
     required CustomViewPanelConfig targetPanel,
@@ -95,13 +112,12 @@ class CustomViewPage extends ConsumerWidget {
         ),
       );
     } else if (result.actionType == PanelDropActionType.requiresConfirmation) {
-      _showConfirmationDialog(context, ref, task, targetPanel, result);
+      _showConfirmationDialog(context, task, targetPanel, result);
     }
   }
 
   void _showConfirmationDialog(
     BuildContext context,
-    WidgetRef ref,
     Task task,
     CustomViewPanelConfig targetPanel,
     PanelDropResult result,
@@ -158,11 +174,7 @@ class CustomViewPage extends ConsumerWidget {
     );
   }
 
-  Future<void> _confirmDeleteView(
-    BuildContext context,
-    WidgetRef ref,
-    CustomView view,
-  ) async {
+  Future<void> _confirmDeleteView(BuildContext context, CustomView view) async {
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
@@ -198,7 +210,6 @@ class CustomViewPage extends ConsumerWidget {
 
   List<Widget> _buildActions(
     BuildContext context,
-    WidgetRef ref,
     AppLocalizations l10n,
     CustomView view,
   ) {
@@ -211,7 +222,7 @@ class CustomViewPage extends ConsumerWidget {
       PopupMenuButton<String>(
         onSelected: (val) {
           if (val == 'delete') {
-            _confirmDeleteView(context, ref, view);
+            _confirmDeleteView(context, view);
           }
         },
         itemBuilder: (ctx) => [
@@ -227,13 +238,13 @@ class CustomViewPage extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final isWide = AppBreakpoints.isWide(context);
 
-    final viewAsync = ref.watch(customViewDetailProvider(viewId));
+    final viewAsync = ref.watch(customViewDetailProvider(widget.viewId));
 
     final narrow = AppBreakpoints.isNarrow(context);
 
@@ -294,7 +305,7 @@ class CustomViewPage extends ConsumerWidget {
         }
 
         final panels = decodePanelsJson(view.panelsJson);
-        final actions = _buildActions(context, ref, l10n, view);
+        final actions = _buildActions(context, l10n, view);
 
         Widget bodyContent;
 
@@ -350,33 +361,37 @@ class CustomViewPage extends ConsumerWidget {
             ),
           );
         } else if (isWide || view.layoutMode == 'kanban') {
-          // 宽屏模式（≥600dp）或指定 kanban 布局时：横向多列看板
+          // 宽屏模式（≥600dp）或指定 kanban 布局时：横向多列看板，内容超出时展示水平滚动条
           bodyContent = Padding(
             padding: const EdgeInsets.symmetric(
               vertical: AppTokens.spaceXs,
               horizontal: AppTokens.spaceSm,
             ),
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: panels.length,
-              itemBuilder: (context, index) {
-                final panel = panels[index];
-                return PanelColumn(
-                  key: ValueKey(panel.id),
-                  panel: panel,
-                  isKanban: true,
-                  onUpdatePanel: (updated) =>
-                      _onUpdatePanel(ref, view, index, updated),
-                  onDeletePanel: () => _onDeletePanel(ref, view, index),
-                  onTaskDropped: (task, targetPanel) => _handleTaskDrop(
-                    context: context,
-                    ref: ref,
-                    view: view,
-                    task: task,
-                    targetPanel: targetPanel,
-                  ),
-                );
-              },
+            child: Scrollbar(
+              controller: _horizontalScrollController,
+              thumbVisibility: true,
+              child: ListView.builder(
+                controller: _horizontalScrollController,
+                scrollDirection: Axis.horizontal,
+                itemCount: panels.length,
+                itemBuilder: (context, index) {
+                  final panel = panels[index];
+                  return PanelColumn(
+                    key: ValueKey(panel.id),
+                    panel: panel,
+                    isKanban: true,
+                    onUpdatePanel: (updated) =>
+                        _onUpdatePanel(view, index, updated),
+                    onDeletePanel: () => _onDeletePanel(view, index),
+                    onTaskDropped: (task, targetPanel) => _handleTaskDrop(
+                      context: context,
+                      view: view,
+                      task: task,
+                      targetPanel: targetPanel,
+                    ),
+                  );
+                },
+              ),
             ),
           );
         } else if (panels.length == 1) {
@@ -401,11 +416,10 @@ class CustomViewPage extends ConsumerWidget {
               key: ValueKey(panels.first.id),
               panel: panels.first,
               isKanban: false,
-              onUpdatePanel: (updated) => _onUpdatePanel(ref, view, 0, updated),
-              onDeletePanel: () => _onDeletePanel(ref, view, 0),
+              onUpdatePanel: (updated) => _onUpdatePanel(view, 0, updated),
+              onDeletePanel: () => _onDeletePanel(view, 0),
               onTaskDropped: (task, targetPanel) => _handleTaskDrop(
                 context: context,
-                ref: ref,
                 view: view,
                 task: task,
                 targetPanel: targetPanel,
@@ -448,11 +462,10 @@ class CustomViewPage extends ConsumerWidget {
                     panel: panel,
                     isKanban: false,
                     onUpdatePanel: (updated) =>
-                        _onUpdatePanel(ref, view, index, updated),
-                    onDeletePanel: () => _onDeletePanel(ref, view, index),
+                        _onUpdatePanel(view, index, updated),
+                    onDeletePanel: () => _onDeletePanel(view, index),
                     onTaskDropped: (task, targetPanel) => _handleTaskDrop(
                       context: context,
-                      ref: ref,
                       view: view,
                       task: task,
                       targetPanel: targetPanel,
