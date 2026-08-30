@@ -58,6 +58,13 @@ Future<TodoRepository?> pumpApp(
     customViewsStreamProvider.overrideWithValue(
       const AsyncData(<CustomView>[]),
     ),
+    todayViewProvider.overrideWithValue(
+      const AsyncData(TodayViewData(today: [], overdue: [])),
+    ),
+    tagsStreamProvider.overrideWithValue(const AsyncData(<Tag>[])),
+    calendarBucketsProvider.overrideWithValue(
+      const AsyncData(<DateTime, List<Task>>{}),
+    ),
     // 立即 emit 指定任务列表（Stream.empty 永不 emit，会让任务树停在 loading）。
     projectTasksProvider.overrideWith(
       (ref, projectId) => Stream<List<Task>>.value(projectTasks ?? const []),
@@ -99,13 +106,8 @@ Future<TodoRepository?> pumpApp(
             ),
           );
     }
-    overrides.add(todoRepositoryProvider.overrideWithValue(repo));
-    // 视图 provider 一律覆盖，避免真实 drift 流残留 Timer
-    //（widget 测试只关心导航壳与项目 CRUD，不依赖真实视图计算）。
     overrides.addAll([
-      todayViewProvider.overrideWithValue(
-        const AsyncData(TodayViewData(overdue: [], today: [])),
-      ),
+      todoRepositoryProvider.overrideWithValue(repo),
       inboxProjectProvider.overrideWithValue(
         AsyncData(
           Project(
@@ -137,15 +139,6 @@ Future<TodoRepository?> pumpApp(
       inboxProjectProvider.overrideWithValue(AsyncData(dummyProject)),
       // 无真实 DB：文件夹展开状态不落库，静态空状态（默认全部展开）。
       folderExpandProvider.overrideWith(_TestFolderExpandNotifier.new),
-      // M3 视图 provider：无真实 DB 时给空数据。否则落到真实仓库的流
-      // 在测试里不结束（loading 转圈），pumpAndSettle 超时。
-      todayViewProvider.overrideWithValue(
-        const AsyncData(TodayViewData(overdue: [], today: [])),
-      ),
-      tagsStreamProvider.overrideWithValue(const AsyncData(<Tag>[])),
-      calendarBucketsProvider.overrideWithValue(
-        const AsyncData(<DateTime, List<Task>>{}),
-      ),
     ]);
   }
 

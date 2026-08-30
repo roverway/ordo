@@ -28,6 +28,23 @@ abstract final class AppTokens {
   /// 与 todo_repository.dart 的 inboxProjectColor 保持一致（DB 实际写入值）。
   static const Color colorInbox = Color(0xFF6C5CE7);
 
+  // ── Signature System Nav Colors（系统导航特征色）──
+
+  /// Today signature accent — warm sun gold / amber.
+  static const Color colorNavToday = Color(0xFFF59E0B);
+
+  /// Inbox signature accent — classic iris indigo.
+  static const Color colorNavInbox = Color(0xFF4F46E5);
+
+  /// Calendar signature accent — vibrant coral / rose red.
+  static const Color colorNavCalendar = Color(0xFFE11D48);
+
+  /// Tags signature accent — vivid fuchsia violet.
+  static const Color colorNavTags = Color(0xFF8B5CF6);
+
+  /// Custom views signature accent — ocean sky / teal.
+  static const Color colorNavCustomView = Color(0xFF0284C7);
+
   /// Page surface (light) — pure crisp cool off-white.
   /// (docs/66-ui-visual-polish-proposal.md)
   static const Color surfacePageLight = Color(0xFFF8F9FA);
@@ -418,6 +435,17 @@ abstract final class AppTokens {
   /// 错误态紧凑图标尺寸（列表行内联错误，如抽屉项目组）。
   static const double errorIconSizeCompact = 20;
 
+  // ── Project Container & Capsule Tokens ──
+
+  /// Project card squircle badge container dimension (36dp).
+  static const double projectBadgeSize = 36;
+
+  /// Project card squircle badge border radius (10dp).
+  static const double projectBadgeRadius = 10;
+
+  /// Project capsule badge border radius (6dp).
+  static const double projectCapsuleRadius = 6;
+
   // ── Preset Colors (project palette) ──
 
   /// Refined palette for project colors (Tailwind/Radix inspired).
@@ -431,4 +459,26 @@ abstract final class AppTokens {
     Color(0xFFDB2777), // pink
     Color(0xFF6B7280), // slate
   ];
+
+  // ── Theme Palettes (App Theme Presets) ──
+
+  /// 8 款经过明度与对比度校准的精选现代调色盘预设。
+  static const List<ThemePalettePreset> themePalettes = [
+    ThemePalettePreset(id: 'classic', color: Color(0xFF4F46E5)), // 经典靛蓝
+    ThemePalettePreset(id: 'ocean', color: Color(0xFF0284C7)), // 晴空碧蓝
+    ThemePalettePreset(id: 'pine', color: Color(0xFF059669)), // 翡翠森林
+    ThemePalettePreset(id: 'amber', color: Color(0xFFD97706)), // 暖阳落日
+    ThemePalettePreset(id: 'rose', color: Color(0xFFE11D48)), // 典雅冷红
+    ThemePalettePreset(id: 'lavender', color: Color(0xFF7C3AED)), // 薰衣草紫
+    ThemePalettePreset(id: 'pink', color: Color(0xFFDB2777)), // 甜桃莓粉
+    ThemePalettePreset(id: 'slate', color: Color(0xFF475569)), // 暗岩曜石
+  ];
+}
+
+/// 主题调色盘预设模型。
+class ThemePalettePreset {
+  const ThemePalettePreset({required this.id, required this.color});
+
+  final String id;
+  final Color color;
 }

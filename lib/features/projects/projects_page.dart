@@ -65,6 +65,7 @@ class ProjectsPage extends ConsumerWidget {
           if (folders.isEmpty && ungrouped.isEmpty) {
             return EmptyState(
               icon: Icons.folder_outlined,
+              accentColor: AppTokens.colorNavInbox,
               message: l10n.emptyProjects,
               action: FilledButton.icon(
                 onPressed: () => _showNewProjectDialog(context, ref),

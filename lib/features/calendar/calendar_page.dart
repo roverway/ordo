@@ -15,6 +15,7 @@ import '../../core/utils/tree.dart';
 import '../../core/utils/view_rules.dart' as view_rules;
 import '../../shared/widgets/app_drawer.dart';
 import '../../shared/widgets/app_menu_item.dart';
+import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/loading_view.dart';
 import '../../shared/widgets/simple_task_tile.dart';
@@ -975,29 +976,10 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
           if (tasks.isEmpty)
             SliverFillRemaining(
               hasScrollBody: false,
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppTokens.spaceXl),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.event_available_outlined,
-                        size: AppTokens.emptyIconSize,
-                        color: theme.colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.45,
-                        ),
-                      ),
-                      const SizedBox(height: AppTokens.spaceSm),
-                      Text(
-                        l10n.emptyCalendar,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              child: EmptyState(
+                icon: Icons.event_available_outlined,
+                accentColor: AppTokens.colorNavCalendar,
+                message: l10n.emptyCalendar,
               ),
             )
           else
@@ -1057,6 +1039,11 @@ class CalendarTaskTile extends ConsumerWidget {
     final todayStart = DateTime(now.year, now.month, now.day);
     final isOverdue = view_rules.isOverdue(task, effective, todayStart);
     final tags = ref.watch(taskTagsProvider(task.id)).value ?? const <Tag>[];
+    final project = ref
+        .watch(projectsStreamProvider)
+        .value
+        ?.where((p) => p.id == task.projectId)
+        .firstOrNull;
 
     return SimpleTaskTile(
       task: task,
@@ -1064,6 +1051,8 @@ class CalendarTaskTile extends ConsumerWidget {
       isDone: effective == TaskStatus.done,
       isOverdue: isOverdue,
       tags: tags,
+      projectName: project?.name,
+      projectColor: project?.color,
       progressValue: hasChildren ? taskProgress(task, allTasks) : null,
       onTap: onTap,
       onToggleDone: hasChildren

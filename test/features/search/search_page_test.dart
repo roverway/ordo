@@ -127,6 +127,7 @@ Future<void> _pumpSearch(
   required TodoRepository repo,
   List<Task> tasks = const [],
   List<Tag> tags = const [],
+  List<Project> projects = const [],
 }) async {
   tester.view.physicalSize = const Size(900, 800);
   tester.view.devicePixelRatio = 1.0;
@@ -157,6 +158,7 @@ Future<void> _pumpSearch(
         todoRepositoryProvider.overrideWithValue(repo),
         allActiveTasksProvider.overrideWith((ref) => Stream.value(sorted)),
         tagsStreamProvider.overrideWith((ref) => Stream.value(tags)),
+        projectsStreamProvider.overrideWith((ref) => Stream.value(projects)),
       ],
       child: MaterialApp.router(
         routerConfig: router,

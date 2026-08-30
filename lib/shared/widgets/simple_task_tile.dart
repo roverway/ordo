@@ -42,6 +42,8 @@ class SimpleTaskTile extends StatefulWidget {
     required this.isDone,
     this.isOverdue = false,
     this.tags = const [],
+    this.projectName,
+    this.projectColor,
     this.progressValue,
     this.onTap,
     this.onToggleDone,
@@ -52,6 +54,8 @@ class SimpleTaskTile extends StatefulWidget {
   final bool isDone;
   final bool isOverdue;
   final List<Tag> tags;
+  final String? projectName;
+  final int? projectColor;
 
   /// 有子任务任务的派生完成度（0.0–1.0），无子任务传 null。
   final double? progressValue;
@@ -284,7 +288,9 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                         Icon(
                                           Icons.calendar_today_outlined,
                                           size: 11,
-                                          color: colorScheme.onSurfaceVariant,
+                                          color: widget.isOverdue
+                                              ? AppTokens.colorOverdue
+                                              : colorScheme.onSurfaceVariant,
                                         ),
                                         const SizedBox(
                                           width: AppTokens.spaceXxs,
@@ -294,8 +300,13 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                             timeText,
                                             style: theme.textTheme.bodySmall
                                                 ?.copyWith(
-                                                  color: colorScheme
-                                                      .onSurfaceVariant,
+                                                  color: widget.isOverdue
+                                                      ? AppTokens.colorOverdue
+                                                      : colorScheme
+                                                            .onSurfaceVariant,
+                                                  fontWeight: widget.isOverdue
+                                                      ? FontWeight.w500
+                                                      : FontWeight.w400,
                                                 ),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
@@ -318,10 +329,11 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                       ],
                                     ),
                                   ),
-                                // 标签 chips（61 §4.4）：底部独立行（≤2 + +N）。
-                                // 底部对称留白（用户要求）：bottom = top = spaceXxs，
-                                // 与行内元信息行间距节奏一致（行/卡片底部不再贴边）。
-                                if (widget.tags.isNotEmpty)
+                                // 项目归属胶囊 + 标签 chips（底部独立行）。
+                                // 底部对称留白：bottom = top = spaceXxs。
+                                if ((widget.projectName != null &&
+                                        widget.projectName!.isNotEmpty) ||
+                                    widget.tags.isNotEmpty)
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
                                       vertical: AppTokens.spaceXxs,
@@ -332,6 +344,28 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
+                                              if (widget.projectName != null &&
+                                                  widget
+                                                      .projectName!
+                                                      .isNotEmpty) ...[
+                                                Flexible(
+                                                  child: Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          right: AppTokens
+                                                              .spaceXxs,
+                                                        ),
+                                                    child: _ProjectCapsule(
+                                                      name: widget.projectName!,
+                                                      color: Color(
+                                                        widget.projectColor ??
+                                                            AppTokens.seedColor
+                                                                .toARGB32(),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
                                               ...widget.tags
                                                   .take(2)
                                                   .map(
@@ -393,6 +427,54 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 紧凑项目归属胶囊微标签。
+class _ProjectCapsule extends StatelessWidget {
+  const _ProjectCapsule({required this.name, required this.color});
+
+  final String name;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTokens.spaceXs,
+        vertical: 2,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppTokens.projectCapsuleRadius),
+        border: Border.all(color: color.withValues(alpha: 0.22), width: 0.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 5,
+            height: 5,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 4),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 110),
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: AppTokens.textMicroSize,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

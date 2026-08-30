@@ -57,6 +57,33 @@ class AppLocalizationsZh extends AppLocalizations {
   String get themeModeDark => '深色';
 
   @override
+  String get themeColor => '主题色彩';
+
+  @override
+  String get themeColorClassic => '经典靛蓝';
+
+  @override
+  String get themeColorOcean => '晴空碧蓝';
+
+  @override
+  String get themeColorPine => '翡翠森林';
+
+  @override
+  String get themeColorAmber => '暖阳落日';
+
+  @override
+  String get themeColorRose => '典雅冷红';
+
+  @override
+  String get themeColorLavender => '薰衣草紫';
+
+  @override
+  String get themeColorPink => '甜桃莓粉';
+
+  @override
+  String get themeColorSlate => '暗岩曜石';
+
+  @override
   String get language => '语言';
 
   @override

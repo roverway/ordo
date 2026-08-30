@@ -21,6 +21,7 @@ class TodoApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
+    final seedColor = ref.watch(themeSeedColorProvider);
 
     final appTitle = locale.languageCode == 'en'
         ? AppLocalizationsEn().appTitle
@@ -30,8 +31,8 @@ class TodoApp extends ConsumerWidget {
       child: MaterialApp.router(
         title: appTitle,
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.build(Brightness.light),
-        darkTheme: AppTheme.build(Brightness.dark),
+        theme: AppTheme.build(Brightness.light, seedColor: seedColor),
+        darkTheme: AppTheme.build(Brightness.dark, seedColor: seedColor),
         themeMode: themeMode,
         locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,

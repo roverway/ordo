@@ -161,12 +161,20 @@ class _TagsDetailPageState extends ConsumerState<TagsDetailPage> {
       status: _filterStatus,
     );
 
+    final projects =
+        ref.watch(projectsStreamProvider).value ?? const <Project>[];
+    final projectsMap = {for (final p in projects) p.id: p};
+
     return Column(
       children: [
         _buildFilterBar(context, l10n),
+        const SizedBox(height: AppTokens.spaceXs),
         Expanded(
           child: filtered.isEmpty
-              ? EmptyState(icon: Icons.label_outline, message: l10n.emptyTags)
+              ? EmptyState(
+                  icon: Icons.filter_list_off,
+                  message: l10n.emptySearch,
+                )
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppTokens.spaceMd,
@@ -179,10 +187,13 @@ class _TagsDetailPageState extends ConsumerState<TagsDetailPage> {
                     final effective = children.isEmpty
                         ? task.status
                         : derivedStatus(task, children);
+                    final project = projectsMap[task.projectId];
                     return SimpleTaskTile(
                       task: task,
                       hasChildren: children.isNotEmpty,
                       isDone: effective == TaskStatus.done,
+                      projectName: project?.name,
+                      projectColor: project?.color,
                       progressValue: taskProgress(task, allTasks),
                       onTap: () => openTaskEdit(context, taskId: task.id),
                       // 有子任务的任务状态由子任务派生，不给切换回调

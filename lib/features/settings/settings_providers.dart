@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/db/daos/settings_dao.dart';
+import '../../core/theme/app_tokens.dart';
 
 /// 设备本地偏好缓存：settings 表在内存的同步镜像（docs/64-local-preferences.md §3.1）。
 ///
@@ -110,6 +111,46 @@ class LocaleNotifier extends Notifier<Locale> {
       await cache.set(localePrefKey, locale.languageCode);
     } catch (e) {
       debugPrint('setLocale 持久化失败：${e.runtimeType}');
+    }
+  }
+}
+
+/// 主题种子色持久化 key（settings 表）。
+const String themeSeedColorPrefKey = 'theme_seed_color';
+
+/// 主题种子色 Notifier：读取/持久化/即时生效。
+final themeSeedColorProvider = NotifierProvider<ThemeSeedColorNotifier, Color>(
+  ThemeSeedColorNotifier.new,
+);
+
+class ThemeSeedColorNotifier extends Notifier<Color> {
+  /// 默认种子色。
+  static const Color defaultSeedColor = AppTokens.seedColor;
+
+  @override
+  Color build() {
+    final hexString = ref
+        .watch(appSettingsCacheProvider)
+        .get(themeSeedColorPrefKey);
+    if (hexString == null) return defaultSeedColor;
+    try {
+      final value = int.tryParse(hexString, radix: 16);
+      if (value != null) return Color(value);
+    } catch (_) {}
+    return defaultSeedColor;
+  }
+
+  /// 切换主题种子色并持久化（写内存缓存 + 穿透 settings 表）。
+  Future<void> setSeedColor(Color color) async {
+    final cache = ref.read(appSettingsCacheProvider);
+    state = color;
+    try {
+      await cache.set(
+        themeSeedColorPrefKey,
+        color.toARGB32().toRadixString(16),
+      );
+    } catch (e) {
+      debugPrint('setSeedColor 持久化失败：${e.runtimeType}');
     }
   }
 }

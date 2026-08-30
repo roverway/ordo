@@ -98,6 +98,8 @@ class SettingsBody extends ConsumerWidget {
               ),
             ),
             const Divider(),
+            const _ThemeColorPicker(),
+            const Divider(),
             ListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(l10n.language, style: theme.textTheme.bodyLarge),
@@ -383,6 +385,100 @@ class _BrandMeaningItem extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 主题色彩选择器：8 款精选调色盘圆形色块与即时切换。
+class _ThemeColorPicker extends ConsumerWidget {
+  const _ThemeColorPicker();
+
+  String _paletteName(String id, AppLocalizations l10n) {
+    return switch (id) {
+      'classic' => l10n.themeColorClassic,
+      'ocean' => l10n.themeColorOcean,
+      'pine' => l10n.themeColorPine,
+      'amber' => l10n.themeColorAmber,
+      'rose' => l10n.themeColorRose,
+      'lavender' => l10n.themeColorLavender,
+      'pink' => l10n.themeColorPink,
+      'slate' => l10n.themeColorSlate,
+      _ => id,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final currentSeed = ref.watch(themeSeedColorProvider);
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(l10n.themeColor, style: theme.textTheme.bodyLarge),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: AppTokens.spaceSm),
+        child: Wrap(
+          spacing: AppTokens.spaceSm,
+          runSpacing: AppTokens.spaceSm,
+          children: AppTokens.themePalettes.map((palette) {
+            final isSelected =
+                palette.color.toARGB32() == currentSeed.toARGB32();
+            final name = _paletteName(palette.id, l10n);
+
+            return Tooltip(
+              message: name,
+              child: Material(
+                color: Colors.transparent,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () => ref
+                      .read(themeSeedColorProvider.notifier)
+                      .setSeedColor(palette.color),
+                  child: AnimatedContainer(
+                    duration: AppTokens.motionFast,
+                    curve: AppTokens.motionSpring,
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: palette.color,
+                      shape: BoxShape.circle,
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: palette.color.withValues(alpha: 0.45),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : null,
+                      border: Border.all(
+                        color: isSelected
+                            ? (isDark ? Colors.white : Colors.black87)
+                            : (isDark
+                                  ? AppTokens.borderSubtleDark
+                                  : AppTokens.borderSubtleLight),
+                        width: isSelected ? 2.5 : 1,
+                      ),
+                    ),
+                    child: isSelected
+                        ? const Center(
+                            child: Icon(
+                              Icons.check,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                          )
+                        : null,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
     );
   }
 }

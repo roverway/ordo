@@ -194,6 +194,60 @@ abstract class AppLocalizations {
   /// **'深色'**
   String get themeModeDark;
 
+  /// No description provided for @themeColor.
+  ///
+  /// In zh, this message translates to:
+  /// **'主题色彩'**
+  String get themeColor;
+
+  /// No description provided for @themeColorClassic.
+  ///
+  /// In zh, this message translates to:
+  /// **'经典靛蓝'**
+  String get themeColorClassic;
+
+  /// No description provided for @themeColorOcean.
+  ///
+  /// In zh, this message translates to:
+  /// **'晴空碧蓝'**
+  String get themeColorOcean;
+
+  /// No description provided for @themeColorPine.
+  ///
+  /// In zh, this message translates to:
+  /// **'翡翠森林'**
+  String get themeColorPine;
+
+  /// No description provided for @themeColorAmber.
+  ///
+  /// In zh, this message translates to:
+  /// **'暖阳落日'**
+  String get themeColorAmber;
+
+  /// No description provided for @themeColorRose.
+  ///
+  /// In zh, this message translates to:
+  /// **'典雅冷红'**
+  String get themeColorRose;
+
+  /// No description provided for @themeColorLavender.
+  ///
+  /// In zh, this message translates to:
+  /// **'薰衣草紫'**
+  String get themeColorLavender;
+
+  /// No description provided for @themeColorPink.
+  ///
+  /// In zh, this message translates to:
+  /// **'甜桃莓粉'**
+  String get themeColorPink;
+
+  /// No description provided for @themeColorSlate.
+  ///
+  /// In zh, this message translates to:
+  /// **'暗岩曜石'**
+  String get themeColorSlate;
+
   /// No description provided for @language.
   ///
   /// In zh, this message translates to:

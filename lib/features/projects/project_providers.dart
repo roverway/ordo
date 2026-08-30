@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/db/database.dart';
 import '../../core/db/repositories/todo_repository.dart';
 
-export '../../core/db/repositories/todo_repository.dart' show TodoRepository;
+export '../../core/db/repositories/todo_repository.dart'
+    show TodoRepository, inboxProjectId;
 
 /// 全局 Repository Provider（M2 复用 M1 已实现的数据层）。
 ///

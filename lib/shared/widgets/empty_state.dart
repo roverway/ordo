@@ -13,15 +13,19 @@ class EmptyState extends StatelessWidget {
     super.key,
     required this.icon,
     required this.message,
+    this.accentColor,
     this.description,
     this.action,
   });
 
-  /// Icon displayed inside the soft primary-tinted backdrop circle.
+  /// Icon displayed inside the soft tinted backdrop circle.
   final IconData icon;
 
   /// Primary message text (from ARB).
   final String message;
+
+  /// Optional accent color for the backdrop and icon (defaults to primary).
+  final Color? accentColor;
 
   /// Optional secondary description line (from ARB).
   final String? description;
@@ -32,6 +36,9 @@ class EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final color = accentColor ?? theme.colorScheme.primary;
+    final isDark = theme.brightness == Brightness.dark;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppTokens.spaceXl),
@@ -43,17 +50,17 @@ class EmptyState extends StatelessWidget {
               height: AppTokens.emptyBackdropSize,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: theme.colorScheme.primary.withValues(
-                  alpha: AppTokens.alphaTintSoft,
+                color: color.withValues(
+                  alpha: isDark ? 0.16 : AppTokens.alphaTintSoft,
                 ),
               ),
               child: Icon(
                 icon,
                 size: AppTokens.emptyBackdropIconSize,
-                color: theme.colorScheme.primary,
+                color: color,
               ),
             ),
-            SizedBox(height: AppTokens.spaceLg),
+            const SizedBox(height: AppTokens.spaceLg),
             Text(
               message,
               style: theme.textTheme.bodyLarge?.copyWith(
@@ -63,7 +70,7 @@ class EmptyState extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             if (description != null) ...[
-              SizedBox(height: AppTokens.spaceXxs),
+              const SizedBox(height: AppTokens.spaceXxs),
               Text(
                 description!,
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -74,7 +81,7 @@ class EmptyState extends StatelessWidget {
               ),
             ],
             if (action != null) ...[
-              SizedBox(height: AppTokens.spaceLg),
+              const SizedBox(height: AppTokens.spaceLg),
               action!,
             ],
           ],

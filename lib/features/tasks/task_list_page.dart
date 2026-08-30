@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/db/database.dart';
-import '../../core/db/repositories/todo_repository.dart';
 import '../../core/db/tables.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
@@ -291,7 +290,8 @@ class _TodayBody extends ConsumerWidget {
       data: (view) {
         if (view.isEmpty) {
           return EmptyState(
-            icon: Icons.today_outlined,
+            icon: Icons.wb_sunny_outlined,
+            accentColor: AppTokens.colorNavToday,
             message: l10n.emptyToday,
           );
         }
@@ -351,6 +351,8 @@ class _TodayBody extends ConsumerWidget {
       isDone: view.effectiveStatus == TaskStatus.done,
       isOverdue: view.isOverdue,
       tags: view.tags,
+      projectName: view.projectName,
+      projectColor: view.projectColor,
       progressValue: view.progressValue,
       onTap: () => openTaskEdit(context, taskId: task.id),
       onToggleDone: view.hasChildren

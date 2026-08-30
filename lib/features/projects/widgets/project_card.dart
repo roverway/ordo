@@ -30,6 +30,7 @@ class _ProjectCardState extends ConsumerState<ProjectCard> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final projectColor = Color(widget.project.color);
 
     final summary = ref.watch(projectSummaryProvider(widget.project.id));
@@ -58,16 +59,31 @@ class _ProjectCardState extends ConsumerState<ProjectCard> {
             padding: const EdgeInsets.all(AppTokens.spaceMd),
             child: Row(
               children: [
-                // Color indicator — soft dot.
+                // 彩色 Squircle 容器图标徽标
                 Container(
-                  width: 10,
-                  height: 10,
+                  width: AppTokens.projectBadgeSize,
+                  height: AppTokens.projectBadgeSize,
                   decoration: BoxDecoration(
-                    color: projectColor,
-                    shape: BoxShape.circle,
+                    color: projectColor.withValues(alpha: isDark ? 0.18 : 0.12),
+                    borderRadius: BorderRadius.circular(
+                      AppTokens.projectBadgeRadius,
+                    ),
+                    border: Border.all(
+                      color: projectColor.withValues(
+                        alpha: isDark ? 0.35 : 0.22,
+                      ),
+                      width: 1,
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.folder_outlined,
+                      size: 20,
+                      color: projectColor,
+                    ),
                   ),
                 ),
-                const SizedBox(width: AppTokens.spaceSm),
+                const SizedBox(width: AppTokens.spaceMd),
                 // Name + metadata.
                 Expanded(
                   child: Column(
@@ -96,9 +112,9 @@ class _ProjectCardState extends ConsumerState<ProjectCard> {
                           ),
                           child: LinearProgressIndicator(
                             value: projectProgress,
-                            minHeight: 3,
-                            backgroundColor:
-                                colorScheme.surfaceContainerHighest,
+                            minHeight: 4,
+                            backgroundColor: colorScheme.surfaceContainerHighest
+                                .withValues(alpha: 0.5),
                             valueColor: AlwaysStoppedAnimation<Color>(
                               projectProgress >= 1.0
                                   ? AppTokens.colorDone
@@ -115,18 +131,25 @@ class _ProjectCardState extends ConsumerState<ProjectCard> {
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppTokens.spaceXs,
-                      vertical: AppTokens.spaceXxs,
+                      vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer.withValues(
-                        alpha: 0.4,
+                      color: projectColor.withValues(
+                        alpha: isDark ? 0.18 : 0.10,
                       ),
                       borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                      border: Border.all(
+                        color: projectColor.withValues(
+                          alpha: isDark ? 0.30 : 0.20,
+                        ),
+                        width: 0.5,
+                      ),
                     ),
                     child: Text(
-                      '$totalCount',
+                      uncompleted > 0 ? '$uncompleted' : '$totalCount',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
+                        color: projectColor,
+                        fontSize: AppTokens.textMicroSize,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

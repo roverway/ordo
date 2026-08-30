@@ -18,6 +18,11 @@
 | 令牌 | 值 | 说明 |
 |---|---|---|
 | `seedColor` | `#4F46E5` | 默认种子色（Electric Indigo / Iris 质感升级） |
+| `colorNavToday` | `#F59E0B` | 今日特征金橙色（Sun/Morning） |
+| `colorNavInbox` | `#4F46E5` | 收件箱特征经典靛蓝（Iris/Primary） |
+| `colorNavCalendar` | `#E11D48` | 日历特征珊瑚红（Agenda/Rose） |
+| `colorNavTags` | `#8B5CF6` | 标签特征洋紫（Lavender/Tag） |
+| `colorNavCustomView` | `#0284C7` | 自定义视图默认海蓝（Ocean/Filter） |
 | `colorDone` | 翡翠绿 `#059669` | 已完成 |
 | `colorInProgress` | 靛蓝 `#4F46E5` | 进行中（与 seedColor 一致） |
 | `colorCancelled` | 灰 `#9CA3AF` | 已取消 |
@@ -29,10 +34,23 @@
 | `surfaceSunken` | 浅 `#EFF1F4` / 深 `#12141A` | 凹陷面：比页面底沉一档的内嵌区域（看板列井、输入井，66 §3） |
 | `alphaTintFaint / Soft / Strong` | 0.06 / 0.10 / 0.16 | 语义罩染强度三档（配 primary/onSurface，收编 ad-hoc alpha，66 §3） |
 
+### 2.1.1 八款精选主题色盘（Theme Palettes）
+
+设置中支持切换 8 种高质感主题主色（`themePalettes` 预设），自适应 Material 3 种子生成光影层次：
+
+1. **经典靛蓝 (Classic Indigo)**: `#4F46E5` —— 现代深邃、克制利落。
+2. **深海湛蓝 (Ocean Blue)**: `#0284C7` —— 宽广宁静、沉着专注。
+3. **松针苍翠 (Pine Emerald)**: `#059669` —— 清新自然、生机勃勃。
+4. **晨曦金橙 (Amber Sunrise)**: `#D97706` —— 温暖明快、充满能量。
+5. **冷调洋红 (Rose Carmine)**: `#E11D48` —— 热烈醒目、精致夺目。
+6. **薰衣草紫 (Lavender Violet)**: `#7C3AED` —— 优雅灵动、高级浪漫。
+7. **落樱柔粉 (Blossom Pink)**: `#DB2777` —— 柔和明亮、轻盈细腻。
+8. **静谧板岩 (Slate Blue)**: `#475569` —— 极简冷静、商务纯粹。
+
 > 注：seedColor/语义色均以 `lib/core/theme/app_tokens.dart` 为准（改代码必改文档）。
 
 - 明/暗两套由 `ColorScheme.fromSeed(seedColor)` 生成，语义色（done/inProgress/cancelled/overdue）在明暗下均保持可辨识。
-- **Monet 动态色**：Android 12+ 从系统壁纸取色；Windows/低版本 Android 回退 `seedColor` 主题（Oracle 评审 H-低）。
+- 用户可在「设置 → 外观设置 → 主题主色」中即时切换并持久化至 `SettingsDao`。
 
 ### 2.2 圆角（Modern Refined 风格）
 

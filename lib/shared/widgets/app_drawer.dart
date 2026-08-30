@@ -195,24 +195,35 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
 
     // 系统组目的地（顺序即展示顺序，55-ui-redesign §3.1）。
     final systemItems =
-        <({String path, IconData icon, IconData selectedIcon, String label})>[
+        <
+          ({
+            String path,
+            IconData icon,
+            IconData selectedIcon,
+            String label,
+            Color accentColor,
+          })
+        >[
           (
             path: '/today',
             icon: Icons.today_outlined,
             selectedIcon: Icons.today,
             label: l10n.navToday,
+            accentColor: AppTokens.colorNavToday,
           ),
           (
             path: '/inbox',
             icon: Icons.inbox_outlined,
             selectedIcon: Icons.inbox,
             label: l10n.navInbox,
+            accentColor: AppTokens.colorNavInbox,
           ),
           (
             path: '/calendar',
             icon: Icons.calendar_today_outlined,
             selectedIcon: Icons.calendar_today,
             label: l10n.navCalendar,
+            accentColor: AppTokens.colorNavCalendar,
           ),
         ];
 
@@ -253,12 +264,11 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
                     leading: Icon(
                       path == item.path ? item.selectedIcon : item.icon,
                       size: 18,
-                      color: path == item.path
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurfaceVariant,
+                      color: item.accentColor,
                     ),
                     title: item.label,
                     selected: path == item.path,
+                    accentColor: item.accentColor,
                     onTap: () => _go(context, item.path),
                   ),
                 const Padding(
@@ -405,6 +415,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
               ),
               title: view.name,
               selected: isSelected,
+              accentColor: Color(view.color),
               onTap: () => _go(context, '/custom_view/${view.id}'),
             );
           }),
@@ -914,8 +925,12 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
         ),
       ),
       title: project.name,
-      trailing: _ProjectUncompletedBadge(projectId: project.id),
+      trailing: _ProjectUncompletedBadge(
+        projectId: project.id,
+        accentColor: Color(project.color),
+      ),
       selected: path == '/projects/${project.id}',
+      accentColor: Color(project.color),
       onTap: () => _go(context, '/projects/${project.id}'),
       indent: indent,
       rowSpacing: rowSpacing,
@@ -1119,6 +1134,7 @@ class _DrawerTile extends StatelessWidget {
     required this.title,
     required this.selected,
     required this.onTap,
+    this.accentColor,
     this.trailing,
     this.indent = 0,
     this.rowSpacing = 2.0,
@@ -1129,6 +1145,7 @@ class _DrawerTile extends StatelessWidget {
   final String title;
   final bool selected;
   final VoidCallback onTap;
+  final Color? accentColor;
   final Widget? trailing;
 
   /// 额外左缩进（文件夹下项目行）。
@@ -1147,9 +1164,10 @@ class _DrawerTile extends StatelessWidget {
     final textTheme = theme.textTheme;
     final isDark = theme.brightness == Brightness.dark;
 
+    final effectiveAccent = accentColor ?? colorScheme.primary;
     final selectedBg = isDark
-        ? colorScheme.primary.withValues(alpha: 0.16)
-        : colorScheme.primary.withValues(alpha: 0.10);
+        ? effectiveAccent.withValues(alpha: 0.18)
+        : effectiveAccent.withValues(alpha: 0.12);
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -1179,9 +1197,7 @@ class _DrawerTile extends StatelessWidget {
                     title,
                     style: textTheme.bodyMedium?.copyWith(
                       fontSize: AppTokens.textFootnoteSize,
-                      color: selected
-                          ? colorScheme.primary
-                          : colorScheme.onSurface,
+                      color: selected ? effectiveAccent : colorScheme.onSurface,
                       fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                     ),
                     maxLines: 1,
@@ -1203,26 +1219,30 @@ class _DrawerTile extends StatelessWidget {
 
 /// 项目未完成任务数独立轻量微型徽章（阻断侧边栏重绘传播）。
 class _ProjectUncompletedBadge extends ConsumerWidget {
-  const _ProjectUncompletedBadge({required this.projectId});
+  const _ProjectUncompletedBadge({required this.projectId, this.accentColor});
 
   final String projectId;
+  final Color? accentColor;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final count = ref.watch(projectSummaryProvider(projectId)).uncompletedCount;
+
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final color = accentColor ?? theme.colorScheme.primary;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       decoration: BoxDecoration(
         color: isDark
-            ? Colors.white.withValues(alpha: 0.08)
-            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            ? color.withValues(alpha: 0.18)
+            : color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(AppTokens.radiusChip),
         border: Border.all(
           color: isDark
-              ? AppTokens.borderSubtleDark
-              : AppTokens.borderSubtleLight,
+              ? color.withValues(alpha: 0.35)
+              : color.withValues(alpha: 0.25),
           width: 0.5,
         ),
       ),
@@ -1230,8 +1250,8 @@ class _ProjectUncompletedBadge extends ConsumerWidget {
         '$count',
         style: theme.textTheme.labelSmall?.copyWith(
           fontSize: AppTokens.textMicroSize,
-          fontWeight: FontWeight.w500,
-          color: theme.colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+          color: color,
         ),
       ),
     );
@@ -1252,19 +1272,22 @@ class _FolderUncompletedBadge extends ConsumerWidget {
     for (final p in projects) {
       sum += ref.watch(projectSummaryProvider(p.id)).uncompletedCount;
     }
+
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    const color = AppTokens.colorPriorityMedium;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       decoration: BoxDecoration(
         color: isDark
-            ? Colors.white.withValues(alpha: 0.08)
-            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            ? color.withValues(alpha: 0.18)
+            : color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(AppTokens.radiusChip),
         border: Border.all(
           color: isDark
-              ? AppTokens.borderSubtleDark
-              : AppTokens.borderSubtleLight,
+              ? color.withValues(alpha: 0.35)
+              : color.withValues(alpha: 0.25),
           width: 0.5,
         ),
       ),
@@ -1272,8 +1295,8 @@ class _FolderUncompletedBadge extends ConsumerWidget {
         '$sum',
         style: theme.textTheme.labelSmall?.copyWith(
           fontSize: AppTokens.textMicroSize,
-          fontWeight: FontWeight.w500,
-          color: theme.colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+          color: color,
         ),
       ),
     );

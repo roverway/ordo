@@ -35,13 +35,13 @@ abstract final class AppTheme {
     'sans-serif',
   ];
 
-  /// Build theme for a given brightness.
+  /// Build theme for a given brightness and optional seed color.
   ///
   /// App layer calls this twice (brightness light + dark) and passes both
   /// to MaterialApp.router's `theme` / `darkTheme` along with `themeMode`.
-  static ThemeData build(Brightness brightness) {
+  static ThemeData build(Brightness brightness, {Color? seedColor}) {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: AppTokens.seedColor,
+      seedColor: seedColor ?? AppTokens.seedColor,
       brightness: brightness,
     );
     final isDark = brightness == Brightness.dark;

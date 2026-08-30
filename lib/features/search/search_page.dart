@@ -133,6 +133,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
     final childrenIndex = indexChildrenByParent(allTasks);
     final effectiveStatuses = computeEffectiveStatuses(allTasks);
+    final projects =
+        ref.watch(projectsStreamProvider).value ?? const <Project>[];
+    final projectsMap = {for (final p in projects) p.id: p};
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(
@@ -146,10 +149,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             (childrenIndex[task.id] ?? const <Task>[]).isNotEmpty;
         final isDone =
             (effectiveStatuses[task.id] ?? task.status) == TaskStatus.done;
+        final project = projectsMap[task.projectId];
         return SimpleTaskTile(
           task: task,
           hasChildren: hasChildren,
           isDone: isDone,
+          projectName: project?.name,
+          projectColor: project?.color,
           progressValue: taskProgress(task, allTasks),
           onTap: () => openTaskEdit(context, taskId: task.id),
           onToggleDone: hasChildren

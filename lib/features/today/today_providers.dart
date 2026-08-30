@@ -17,6 +17,8 @@ class TodayTaskView {
     required this.hasChildren,
     required this.effectiveStatus,
     required this.isOverdue,
+    this.projectName,
+    this.projectColor,
     this.progressValue,
   });
 
@@ -35,6 +37,12 @@ class TodayTaskView {
   /// 是否逾期（view_rules.isOverdue 判定结果，§9.3）。
   final bool isOverdue;
 
+  /// 所属项目名称（跨项目列表展示用）。
+  final String? projectName;
+
+  /// 所属项目颜色值（ARGB 32位整数）。
+  final int? projectColor;
+
   /// 有子任务任务的派生完成度（0.0–1.0，进度环用）；无子任务为 null。
   final double? progressValue;
 }
@@ -50,6 +58,11 @@ class TodayViewData {
   final List<TodayTaskView> today;
 
   bool get isEmpty => overdue.isEmpty && today.isEmpty;
+
+  /// 待完成任务总数（逾期 + 今天中未完成项）。
+  int get uncompletedCount =>
+      overdue.where((v) => v.effectiveStatus != TaskStatus.done).length +
+      today.where((v) => v.effectiveStatus != TaskStatus.done).length;
 }
 
 /// 由任务列表计算今日视图展示模型（纯函数 + IO，可单测）。
@@ -61,9 +74,15 @@ Future<TodayViewData> buildTodayView({
   required List<Task> tasks,
   required DateTime now,
   required Future<List<Tag>> Function(String taskId) tagsForTask,
+  Future<List<Project>> Function()? getAllProjects,
 }) async {
   final todayStart = DateTime(now.year, now.month, now.day);
   final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+
+  final projects = getAllProjects != null
+      ? await getAllProjects()
+      : const <Project>[];
+  final projectsMap = {for (final p in projects) p.id: p};
 
   // 父任务集合：stream 内 parentId 出现过的 id（hasChildren 判定）。
   final parentIds = <String>{
@@ -84,6 +103,8 @@ Future<TodayViewData> buildTodayView({
     if (!matches && !isOverdue) continue;
 
     final tags = await tagsForTask(task.id);
+    final project = projectsMap[task.projectId];
+
     views.add(
       TodayTaskView(
         task: task,
@@ -91,6 +112,8 @@ Future<TodayViewData> buildTodayView({
         hasChildren: parentIds.contains(task.id),
         effectiveStatus: effectiveStatus,
         isOverdue: isOverdue,
+        projectName: project?.name,
+        projectColor: project?.color,
         // 进度环（滴答式）：有子任务任务按整棵子树统计完成度。
         progressValue: parentIds.contains(task.id)
             ? taskProgress(task, tasks)
@@ -132,6 +155,7 @@ final todayViewProvider = StreamProvider<TodayViewData>((ref) async* {
       tasks: tasks,
       now: DateTime.now(),
       tagsForTask: repo.tags.tagsForTask,
+      getAllProjects: repo.projects.getAll,
     ),
   );
 });

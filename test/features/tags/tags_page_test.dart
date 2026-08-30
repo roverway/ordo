@@ -60,6 +60,7 @@ Future<StreamController<List<Tag>>> _pump(
   required String initialLocation,
   required TodoRepository repo,
   List<Tag> tags = const [],
+  List<Project> projects = const [],
   Map<String, List<Task>> tagTasks = const {},
   List<Task> allActiveTasks = const [],
 }) async {
@@ -94,6 +95,7 @@ Future<StreamController<List<Tag>>> _pump(
         appSettingsCacheProvider.overrideWithValue(cache),
         todoRepositoryProvider.overrideWithValue(repo),
         tagsStreamProvider.overrideWith((ref) => tagsController.stream),
+        projectsStreamProvider.overrideWith((ref) => Stream.value(projects)),
         tagTasksProvider.overrideWith(
           (ref, tagId) => Stream.value(tagTasks[tagId] ?? const <Task>[]),
         ),

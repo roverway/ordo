@@ -53,6 +53,7 @@ class TagsPage extends ConsumerWidget {
           if (tags.isEmpty) {
             return EmptyState(
               icon: Icons.label_outline,
+              accentColor: AppTokens.colorNavTags,
               message: l10n.emptyTags,
               action: FilledButton.icon(
                 onPressed: () => _showNewTagDialog(context, ref),
