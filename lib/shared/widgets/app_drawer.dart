@@ -5,7 +5,10 @@ import 'package:go_router/go_router.dart';
 import '../../core/db/database.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/utils/dates.dart';
 import '../../core/utils/motion.dart';
+import '../../core/sync/sync_config.dart';
+import '../../core/sync/sync_engine.dart';
 import '../../features/custom_views/presentation/custom_view_editor_page.dart';
 import '../../features/custom_views/providers/custom_view_providers.dart';
 import '../../features/custom_views/widgets/icon_picker_dialog.dart';
@@ -13,12 +16,14 @@ import '../../features/projects/project_providers.dart';
 import '../../features/projects/widgets/folder_name_dialog.dart';
 import '../../features/projects/widgets/project_form_dialog.dart';
 import '../../features/settings/widgets/settings_side_sheet.dart';
+import '../../features/sync_setup/sync_setup_providers.dart';
 import '../../features/tasks/task_providers.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import 'app_logo.dart';
 import 'app_menu_item.dart';
 import 'error_view.dart';
 import 'loading_view.dart';
+
 
 /// 移动端侧边栏抽屉（55-ui-redesign-proposal.md §3.1，D1，批 2-A；
 /// 62-folder-nav.md §6.1 批 3 文件夹化）。
@@ -233,27 +238,26 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
         children: [
           // ── 顶部品牌区 ──
           Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppTokens.spaceMd,
-              AppTokens.spaceSm,
-              AppTokens.spaceMd,
-              AppTokens.spaceXs,
+            padding: const EdgeInsets.only(
+              left: 24.0,
+              top: 32.0,
+              bottom: 20.0,
             ),
             child: Row(
               children: [
-                const AppLogo(size: 24),
-                const SizedBox(width: AppTokens.spaceSm),
+                const AppLogo(size: 36, borderRadius: 10),
+                const SizedBox(width: 12),
                 Text(
                   l10n.appTitle,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 24,
                     letterSpacing: 0.3,
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1, thickness: 0.8),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: AppTokens.spaceXxs),
@@ -286,71 +290,117 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
               ],
             ),
           ),
-          const Divider(height: 1, thickness: 0.8),
-          // ── 底部：「新建项目」+ 设置 ──
+          const Divider(height: 1, thickness: 0.6),
+          // ── 底部：「新建文件夹」+「新建项目」+ 设置 ──
           Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTokens.spaceXs,
-              vertical: AppTokens.spaceXs,
-            ),
-            child: Row(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  child: _bottomAction(
-                    context,
-                    icon: Icons.add,
-                    label: l10n.newProject,
-                    onTap: () => _showNewProjectDialog(context, ref),
+                _DrawerTile(
+                  leading: Icon(
+                    Icons.create_new_folder_outlined,
+                    size: 18,
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
+                  title: l10n.newFolder,
+                  selected: false,
+                  onTap: () => _showNewFolderDialog(context, ref),
                 ),
-                // 设置入口
-                IconButton(
-                  tooltip: l10n.settings,
-                  icon: const Icon(Icons.settings_outlined, size: 20),
-                  onPressed: () => _openSettings(context),
+                _DrawerTile(
+                  leading: Icon(
+                    Icons.add,
+                    size: 18,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  title: l10n.newProject,
+                  selected: false,
+                  onTap: () => _showNewProjectDialog(context, ref),
+                ),
+                _DrawerTile(
+                  leading: Icon(
+                    Icons.settings_outlined,
+                    size: 18,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  title: l10n.settings,
+                  selected: false,
+                  onTap: () => _openSettings(context),
                 ),
               ],
             ),
           ),
+          // ── 同步状态栏 ──
+          _buildSyncStatusBar(context),
         ],
       ),
     );
   }
 
-  /// 底部并排入口（图标 + 文字）。
-  Widget _bottomAction(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildSyncStatusBar(BuildContext context) {
+    final syncConfigAsync = ref.watch(syncConfigProvider);
+    final syncState = ref.watch(syncStateProvider);
     final theme = Theme.of(context);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppTokens.radiusList),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 16, color: theme.colorScheme.primary),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+    final colorScheme = theme.colorScheme;
+
+    final isSyncEnabled = syncConfigAsync.value?.enabled ?? false;
+    if (!isSyncEnabled) return const SizedBox.shrink();
+
+    Widget statusIcon;
+    String statusText;
+    Color textColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.7);
+
+    switch (syncState.status) {
+      case SyncStateStatus.syncing:
+        statusIcon = SizedBox.square(
+          dimension: 12,
+          child: CircularProgressIndicator(
+            strokeWidth: 1.5,
+            color: colorScheme.primary,
           ),
-        ),
+        );
+        statusText = '同步中...';
+        break;
+      case SyncStateStatus.error:
+        statusIcon = Icon(Icons.error_outline, color: colorScheme.error, size: 12);
+        statusText = '同步失败';
+        textColor = colorScheme.error;
+        break;
+      case SyncStateStatus.success:
+      case SyncStateStatus.idle:
+        statusIcon = const Icon(Icons.check, color: Colors.green, size: 12);
+        final lastSynced = syncState.lastSyncedAt;
+        if (lastSynced != null) {
+          final diff = DateTime.now().millisecondsSinceEpoch - lastSynced;
+          if (diff < 60000) {
+            statusText = '刚刚同步';
+          } else if (diff < 3600000) {
+            statusText = '${diff ~/ 60000}分钟前同步';
+          } else {
+            statusText = '${formatDateTime(lastSynced)}同步';
+          }
+        } else {
+          statusText = '未同步';
+        }
+        break;
+    }
+
+    final protocol = syncConfigAsync.value?.type == RemoteType.s3 ? 'S3' : 'WebDAV';
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 24.0, bottom: 16.0, top: 4.0),
+      child: Row(
+        children: [
+          statusIcon,
+          const SizedBox(width: 6),
+          Text(
+            '$protocol · $statusText',
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontSize: 11,
+              color: textColor,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -510,9 +560,18 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
             grouping.folders.isNotEmpty || grouping.ungrouped.isNotEmpty;
         if (showUngrouped) {
           children.add(_buildUngroupedHeader(context, l10n, grouping));
-          for (final project in grouping.ungrouped) {
+          for (var i = 0; i < grouping.ungrouped.length; i++) {
+            final project = grouping.ungrouped[i];
             children.add(
-              _buildProjectRow(context, l10n, project, grouping, indent: 0),
+              _buildProjectRow(
+                context,
+                l10n,
+                project,
+                grouping,
+                indent: 0,
+                isLastInTree: i == grouping.ungrouped.length - 1,
+                isNested: true,
+              ),
             );
           }
         }
@@ -567,30 +626,28 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     );
   }
 
-  /// 文件夹展开后的现代轻量缩进项目区（用户反馈：渐变引导线未对齐，移除，
-  /// 回归纯缩进；62-folder-nav.md §6.1 的 des-2 连线方案正式废弃）。
+  /// 文件夹展开后的现代轻量缩进项目区。
   Widget _buildFolderTree(
     BuildContext context,
     AppLocalizations l10n,
     ProjectGrouping grouping,
     List<Project> projects,
   ) {
-    return Padding(
-      padding: const EdgeInsets.only(left: AppTokens.folderTreeIndent),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (var i = 0; i < projects.length; i++)
-            _buildProjectRow(
-              context,
-              l10n,
-              projects[i],
-              grouping,
-              indent: 0,
-              rowSpacing: AppTokens.folderTreeRowSpacing.toDouble(),
-            ),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < projects.length; i++)
+          _buildProjectRow(
+            context,
+            l10n,
+            projects[i],
+            grouping,
+            indent: 0,
+            rowSpacing: AppTokens.folderTreeRowSpacing.toDouble(),
+            isLastInTree: i == projects.length - 1,
+            isNested: true,
+          ),
+      ],
     );
   }
 
@@ -803,6 +860,8 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     ProjectGrouping grouping, {
     required double indent,
     double rowSpacing = AppTokens.drawerRowSpacing,
+    bool isLastInTree = false,
+    bool isNested = false,
   }) {
     final projectKey = '$_projectDragPrefix${project.id}';
     final isDragTarget = _dragTargetKey == projectKey;
@@ -834,6 +893,8 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
           indent: indent,
           rowSpacing: rowSpacing,
           isDragging: true,
+          isLastInTree: isLastInTree,
+          isNested: isNested,
         ),
       ),
       child: DragTarget<String>(
@@ -891,6 +952,8 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
             isDragTarget: isDragTarget,
             isInvalidDragTarget: isInvalid,
             isDragging: isDragging,
+            isLastInTree: isLastInTree,
+            isNested: isNested,
           );
         },
       ),
@@ -907,23 +970,30 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     bool isDragTarget = false,
     bool isInvalidDragTarget = false,
     bool isDragging = false,
+    bool isLastInTree = false,
+    bool isNested = false,
   }) {
     final path = GoRouterState.of(context).uri.path;
     return _DrawerTile(
-      leading: Container(
-        width: 8,
-        height: 8,
-        decoration: BoxDecoration(
-          color: Color(project.color),
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Color(project.color).withValues(alpha: 0.35),
-              blurRadius: 3,
+      leading: isNested
+          ? NestedProjectLeading(
+              isLast: isLastInTree,
+              color: Color(project.color),
+            )
+          : Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: Color(project.color),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(project.color).withValues(alpha: 0.35),
+                    blurRadius: 3,
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
       title: project.name,
       trailing: _ProjectUncompletedBadge(
         projectId: project.id,
@@ -1164,10 +1234,9 @@ class _DrawerTile extends StatelessWidget {
     final textTheme = theme.textTheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    final effectiveAccent = accentColor ?? colorScheme.primary;
     final selectedBg = isDark
-        ? effectiveAccent.withValues(alpha: 0.18)
-        : effectiveAccent.withValues(alpha: 0.12);
+        ? theme.colorScheme.surfaceContainerHighest
+        : Colors.grey[100];
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -1179,9 +1248,9 @@ class _DrawerTile extends StatelessWidget {
       child: Material(
         color:
             dragHighlightColor ?? (selected ? selectedBg : Colors.transparent),
-        borderRadius: BorderRadius.circular(AppTokens.radiusList),
+        borderRadius: BorderRadius.circular(10),
         child: InkWell(
-          borderRadius: BorderRadius.circular(AppTokens.radiusList),
+          borderRadius: BorderRadius.circular(10),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(
@@ -1197,8 +1266,8 @@ class _DrawerTile extends StatelessWidget {
                     title,
                     style: textTheme.bodyMedium?.copyWith(
                       fontSize: AppTokens.textFootnoteSize,
-                      color: selected ? effectiveAccent : colorScheme.onSurface,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                      color: colorScheme.onSurface,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1229,30 +1298,11 @@ class _ProjectUncompletedBadge extends ConsumerWidget {
     final count = ref.watch(projectSummaryProvider(projectId)).uncompletedCount;
 
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final color = accentColor ?? theme.colorScheme.primary;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-      decoration: BoxDecoration(
-        color: isDark
-            ? color.withValues(alpha: 0.18)
-            : color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(AppTokens.radiusChip),
-        border: Border.all(
-          color: isDark
-              ? color.withValues(alpha: 0.35)
-              : color.withValues(alpha: 0.25),
-          width: 0.5,
-        ),
-      ),
-      child: Text(
-        '$count',
-        style: theme.textTheme.labelSmall?.copyWith(
-          fontSize: AppTokens.textMicroSize,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
+    return Text(
+      '$count',
+      style: theme.textTheme.labelMedium?.copyWith(
+        fontSize: 12,
+        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
       ),
     );
   }
@@ -1274,31 +1324,88 @@ class _FolderUncompletedBadge extends ConsumerWidget {
     }
 
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    const color = AppTokens.colorPriorityMedium;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-      decoration: BoxDecoration(
-        color: isDark
-            ? color.withValues(alpha: 0.18)
-            : color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(AppTokens.radiusChip),
-        border: Border.all(
-          color: isDark
-              ? color.withValues(alpha: 0.35)
-              : color.withValues(alpha: 0.25),
-          width: 0.5,
-        ),
+    return Text(
+      '$sum',
+      style: theme.textTheme.labelMedium?.copyWith(
+        fontSize: 12,
+        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
       ),
-      child: Text(
-        '$sum',
-        style: theme.textTheme.labelSmall?.copyWith(
-          fontSize: AppTokens.textMicroSize,
-          fontWeight: FontWeight.w600,
-          color: color,
+    );
+  }
+}
+
+class NestedProjectLeading extends StatelessWidget {
+  const NestedProjectLeading({
+    super.key,
+    required this.isLast,
+    required this.color,
+  });
+
+  final bool isLast;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 30,
+      height: 36,
+      child: CustomPaint(
+        painter: _NestedProjectLeadingPainter(
+          isLast: isLast,
+          bulletColor: color,
+          lineColor: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white24
+              : Colors.black12,
         ),
       ),
     );
+  }
+}
+
+class _NestedProjectLeadingPainter extends CustomPainter {
+  _NestedProjectLeadingPainter({
+    required this.isLast,
+    required this.bulletColor,
+    required this.lineColor,
+  });
+
+  final bool isLast;
+  final Color bulletColor;
+  final Color lineColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final linePaint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+
+    final bulletPaint = Paint()
+      ..color = bulletColor
+      ..style = PaintingStyle.fill;
+
+    final double startX = 9.0;
+    final double endX = 22.0;
+    final double centerY = size.height / 2;
+
+    // Draw vertical line
+    if (isLast) {
+      canvas.drawLine(Offset(startX, 0), Offset(startX, centerY), linePaint);
+    } else {
+      canvas.drawLine(Offset(startX, 0), Offset(startX, size.height), linePaint);
+    }
+
+    // Draw horizontal line branch
+    canvas.drawLine(Offset(startX, centerY), Offset(endX, centerY), linePaint);
+
+    // Draw bullet dot (circle)
+    canvas.drawCircle(Offset(endX, centerY), 4.0, bulletPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _NestedProjectLeadingPainter oldDelegate) {
+    return oldDelegate.isLast != isLast ||
+        oldDelegate.bulletColor != bulletColor ||
+        oldDelegate.lineColor != lineColor;
   }
 }

@@ -346,5 +346,7 @@
   "projectsOverview": "Overview",
   "@projectsOverview": {
     "description": "Task groups menu: open projects overview page"
-  }
+  },
+  "autoSaveOnClose": "Auto-save on close",
+  "taskDetails": "Task Details"
 }

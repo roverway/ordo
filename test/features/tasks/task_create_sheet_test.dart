@@ -267,14 +267,12 @@ void main() {
     final repo = await _repo('p1');
     await _openSheet(tester, repo: repo);
 
-    // 优先级入口改为底部工具栏旗帜图标。
-    await tester.tap(find.byIcon(Icons.flag_outlined));
-    await tester.pumpAndSettle();
+    // 优先级直接在界面上展示，直接点击「高」。
     await tester.tap(find.text('高'));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField).first, '重要任务');
-    await tester.tapAt(const Offset(10, 10));
+    await tester.tap(find.text('保存'));
     await tester.pumpAndSettle();
 
     final all = await repo.tasks.getAllByProject('p1');

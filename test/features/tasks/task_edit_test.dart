@@ -893,6 +893,7 @@ void main() {
 
       final cache = AppSettingsCache();
       final db = openTestDatabase();
+      addTearDown(db.close);
       final repo = TodoRepository(database: db);
       await db
           .into(db.projects)
@@ -983,6 +984,7 @@ void main() {
 
       final cache = AppSettingsCache();
       final db = openTestDatabase();
+      addTearDown(db.close);
       final repo = TodoRepository(database: db);
       await db
           .into(db.projects)
@@ -1069,6 +1071,7 @@ void main() {
 
       final cache = AppSettingsCache();
       final db = openTestDatabase();
+      addTearDown(db.close);
       final repo = TodoRepository(database: db);
       await db
           .into(db.projects)
@@ -1149,6 +1152,7 @@ void main() {
 
       final cache = AppSettingsCache();
       final db = openTestDatabase();
+      addTearDown(db.close);
       final repo = TodoRepository(database: db);
       await db
           .into(db.projects)

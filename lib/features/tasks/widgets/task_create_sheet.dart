@@ -12,13 +12,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/db/database.dart';
 import '../../../core/db/repositories/todo_repository.dart';
 import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/platform/keyboard_inset_bridge.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../core/theme/priority_color.dart';
+import '../../../core/utils/dates.dart';
 import '../../../core/utils/motion.dart';
+import '../../../shared/widgets/confirm_dialog.dart';
 import '../../projects/project_providers.dart';
+import '../../tags/tag_providers.dart';
+import 'priority_picker.dart';
 import '../task_providers.dart';
 import 'task_editor.dart';
 
@@ -140,6 +146,9 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet> {
   /// 自动保存完成后置 true，放行 PopScope 的 pop（canPop 由状态驱动）。
   bool _allowPop = false;
 
+  /// 是否在关闭弹窗时自动保存
+  bool _autoSaveOnClose = true;
+
   @override
   void initState() {
     super.initState();
@@ -193,47 +202,459 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    final startAt = ref.watch(taskFormProvider.select((s) => s.startAt));
+    final endAt = ref.watch(taskFormProvider.select((s) => s.endAt));
+    final priority = ref.watch(taskFormProvider.select((s) => s.priority));
+    final selectedTagIds = ref.watch(taskFormProvider.select((s) => s.selectedTagIds));
+
+    final tags = ref.watch(tagsStreamProvider).value ?? const <Tag>[];
+    final selectedTags = [
+      for (final id in selectedTagIds)
+        if (tags.any((t) => t.id == id)) tags.firstWhere((t) => t.id == id),
+    ];
+
+    ref.listen(taskFormProvider, (previous, next) {
+      if (_editorController.titleController.text != next.title) {
+        _editorController.titleController.text = next.title;
+      }
+      if (_editorController.descriptionController.text != next.description) {
+        _editorController.descriptionController.text = next.description;
+      }
+    });
+
     return PopScope(
-      // 拦截系统返回/遮罩点击 → 自动保存后关闭；校验失败则留在弹窗。
-      // 保存成功后通过 _allowPop 放行（否则 Navigator.pop 会被自身拦截，弹窗无法关闭）。
       canPop: _allowPop,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _saveAndClose();
       },
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppTokens.spaceMd,
-          AppTokens.spaceSm,
-          AppTokens.spaceMd,
-          0,
-        ),
-        child: TaskEditor(
-          controller: _editorController,
-          autofocus: true,
-          // 子任务区仅 1 级任务展示（新建子任务时隐藏）。
-          showSubtasks: widget.parentId == null,
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── 顶部 Header 栏：关闭、项目选择器、保存 ──
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () {
+                    _saveAndClose();
+                  },
+                ),
+                const Expanded(
+                  child: Center(
+                    child: TaskProjectSwitcher(interactive: true),
+                  ),
+                ),
+                TextButton(
+                  onPressed: _saveAndCloseExplicit,
+                  child: Text(
+                    l10n.save,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 1, thickness: 0.5),
+            const SizedBox(height: 12),
+
+            // ── 任务标题输入框 ──
+            TextField(
+              controller: _editorController.titleController,
+              focusNode: _editorController.titleFocusNode,
+              autofocus: true,
+              maxLines: null,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              decoration: InputDecoration(
+                hintText: l10n.taskTitle,
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+              ),
+              onChanged: (v) => ref.read(taskFormProvider.notifier).updateTitle(v),
+            ),
+
+            // ── 任务描述输入框 ──
+            TextField(
+              controller: _editorController.descriptionController,
+              maxLines: 3,
+              style: theme.textTheme.bodyMedium,
+              decoration: InputDecoration(
+                hintText: l10n.taskDescription,
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 4),
+              ),
+              onChanged: (v) => ref.read(taskFormProvider.notifier).updateDescription(v),
+            ),
+            const SizedBox(height: 16),
+
+            // ── 开始时间 & 结束时间胶囊按钮行 ──
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTimePill(
+                    isStart: true,
+                    label: startAt != null
+                        ? formatDueDate(startAt, l10n)
+                        : l10n.taskStartTime,
+                    icon: Icons.calendar_today_outlined,
+                    hasValue: startAt != null,
+                    onTap: () => showTaskDatePicker(context, ref),
+                    onClear: () => ref.read(taskFormProvider.notifier).updateStartAt(null),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildTimePill(
+                    isStart: false,
+                    label: endAt != null
+                        ? formatDueDate(endAt, l10n)
+                        : l10n.taskEndTime,
+                    icon: Icons.flag_outlined,
+                    hasValue: endAt != null,
+                    onTap: () => showTaskDatePicker(context, ref),
+                    onClear: () => ref.read(taskFormProvider.notifier).updateEndAt(null),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // ── 优先级 ──
+            Row(
+              children: [
+                Text(
+                  l10n.priority,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      for (final p in TaskPriority.values)
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                            child: _buildPrioritySegment(p, priority, l10n),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // ── 标签 ──
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  l10n.taskTags,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      for (final tag in selectedTags)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Color(tag.color).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(100),
+                            border: Border.all(
+                              color: Color(tag.color).withValues(alpha: 0.3),
+                              width: 0.5,
+                            ),
+                          ),
+                          child: Text(
+                            tag.name,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Color(tag.color),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      GestureDetector(
+                        onTap: () => showTaskTagPicker(context, ref),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: colorScheme.primary,
+                              width: 1.0,
+                            ),
+                            borderRadius: BorderRadius.circular(100),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.label_outline, size: 14, color: colorScheme.primary),
+                              const SizedBox(width: 4),
+                              Text(
+                                l10n.taskTags,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            // ── 子任务 ──
+            if (widget.parentId == null) ...[
+              const SizedBox(height: 16),
+              SubtaskList(
+                controller: _editorController,
+                onAddSubtaskAndFocus: () {
+                  _editorController.addSubtask();
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (!mounted) return;
+                    final rows = _editorController.subtaskRows;
+                    if (rows.isNotEmpty) rows.last.focusNode.requestFocus();
+                  });
+                },
+                onConfirmRemoveSubtask: (row) async {
+                  if (row.isNew) {
+                    _editorController.removeSubtask(row);
+                    return;
+                  }
+                  final l10n = AppLocalizations.of(context);
+                  final theme = Theme.of(context);
+                  final title = row.controller.text.trim().isEmpty
+                      ? l10n.subtasks
+                      : row.controller.text.trim();
+                  final confirmed = await showConfirmDialog(
+                    context: context,
+                    title: l10n.deleteTask,
+                    message: '${l10n.deleteTaskConfirm(title)}\n${l10n.deleteTaskWarning}',
+                    confirmLabel: l10n.delete,
+                    confirmColor: theme.colorScheme.error,
+                  );
+                  if (confirmed && mounted) {
+                    _editorController.removeSubtask(row);
+                  }
+                },
+              ),
+            ],
+
+            const SizedBox(height: 16),
+            const Divider(height: 1, thickness: 0.5),
+            const SizedBox(height: 8),
+
+            // ── 关闭时自动保存 ──
+            Row(
+              children: [
+                Text(
+                  l10n.autoSaveOnClose,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const Spacer(),
+                Switch(
+                  value: _autoSaveOnClose,
+                  onChanged: (val) {
+                    setState(() {
+                      _autoSaveOnClose = val;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // ── 自动保存 ─────────────────────────────────────────────────────
+  Widget _buildTimePill({
+    required bool isStart,
+    required String label,
+    required IconData icon,
+    required bool hasValue,
+    required VoidCallback onTap,
+    required VoidCallback onClear,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: hasValue
+              ? colorScheme.primary.withValues(alpha: 0.1)
+              : (theme.brightness == Brightness.dark ? Colors.white10 : Colors.grey[100]),
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(
+            color: hasValue
+                ? colorScheme.primary.withValues(alpha: 0.3)
+                : Colors.transparent,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: hasValue ? colorScheme.primary : colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: hasValue ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                  fontWeight: hasValue ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+            if (hasValue) ...[
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: () {
+                  onClear();
+                },
+                child: Icon(
+                  Icons.close,
+                  size: 14,
+                  color: colorScheme.primary,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 
-  /// 关闭时自动保存（复用 taskFormProvider.save）。
-  ///
-  /// - 内容全空（标题/描述/备注/时间/优先级/标签/子任务均无）→ 直接关闭不落库；
-  /// - 有内容但标题为空 → SnackBar 提示（与编辑页校验一致），留在弹窗；
-  /// - 保存成功后批量创建子任务，再关闭。
+  Widget _buildPrioritySegment(TaskPriority p, TaskPriority current, AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isSelected = p == current;
+    final color = priorityColor(p);
+
+    return GestureDetector(
+      onTap: () {
+        ref.read(taskFormProvider.notifier).updatePriority(p);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? color.withValues(alpha: 0.15)
+              : (theme.brightness == Brightness.dark ? Colors.white10 : Colors.grey[100]),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? color : Colors.transparent,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              priorityLabel(l10n, p),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: isSelected ? color : colorScheme.onSurface,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── 自动保存 / 手动保存 ──
+
+  Future<void> _saveAndCloseExplicit() async {
+    if (_isSaving) return;
+    final l10n = AppLocalizations.of(context);
+    final notifier = ref.read(taskFormProvider.notifier);
+    final formState = ref.read(taskFormProvider);
+
+    if (formState.title.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.titleRequired)),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    final errorKey = await notifier.save();
+    if (!mounted) return;
+    if (errorKey != null) {
+      final message = switch (errorKey) {
+        'title_required' => l10n.titleRequired,
+        'end_time_before_start' => l10n.endTimeBeforeStart,
+        _ => errorKey,
+      };
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+      setState(() => _isSaving = false);
+      return;
+    }
+
+    await _createSubtasks();
+    if (mounted) {
+      setState(() => _allowPop = true);
+      Navigator.of(context).pop();
+    }
+  }
+
   Future<void> _saveAndClose() async {
     if (_isSaving) return;
     final l10n = AppLocalizations.of(context);
-    // 首帧后初始化尚未完成时，先完成初始化再校验/保存（幂等）。
     await _initForm();
     if (!mounted) return;
     final notifier = ref.read(taskFormProvider.notifier);
     final formState = ref.read(taskFormProvider);
 
-    if (formState.title.trim().isEmpty) {
+    if (!_autoSaveOnClose || formState.title.trim().isEmpty) {
       if (mounted) {
         setState(() => _allowPop = true);
         Navigator.of(context).pop();
@@ -250,9 +671,9 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet> {
         'end_time_before_start' => l10n.endTimeBeforeStart,
         _ => errorKey,
       };
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
       setState(() => _isSaving = false);
       return;
     }
@@ -283,7 +704,6 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet> {
         }
       }
     } on RepositoryException catch (e) {
-      // 父任务已保存，子任务失败仅提示（与编辑页兜底行为一致）。
       if (mounted) {
         ScaffoldMessenger.of(
           context,

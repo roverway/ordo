@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:intl/intl.dart' as intl;
+
 import '../../core/db/database.dart';
 import '../../core/db/tables.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_breakpoints.dart';
+import '../../core/utils/dates.dart';
 import '../../core/utils/motion.dart';
 import '../../shared/widgets/app_drawer.dart';
 import '../../shared/widgets/app_menu_item.dart';
@@ -277,25 +280,26 @@ class TaskListPage extends ConsumerWidget {
   }
 }
 
+enum _TodayFilter { all, active, completed }
+
 /// 今日作用域 body（从 today_page.dart 抽取，行为不变）。
-class _TodayBody extends ConsumerWidget {
+class _TodayBody extends ConsumerStatefulWidget {
   const _TodayBody();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
+  ConsumerState<_TodayBody> createState() => _TodayBodyState();
+}
+
+class _TodayBodyState extends ConsumerState<_TodayBody> {
+  _TodayFilter _selectedFilter = _TodayFilter.all;
+
+  @override
+  Widget build(BuildContext context) {
     final viewAsync = ref.watch(todayViewProvider);
 
     return viewAsync.when(
       data: (view) {
-        if (view.isEmpty) {
-          return EmptyState(
-            icon: Icons.wb_sunny_outlined,
-            accentColor: AppTokens.colorNavToday,
-            message: l10n.emptyToday,
-          );
-        }
-        return _buildList(context, ref, view);
+        return _buildContent(context, view);
       },
       loading: () => const LoadingView(),
       error: (e, st) {
@@ -305,37 +309,295 @@ class _TodayBody extends ConsumerWidget {
     );
   }
 
-  Widget _buildList(BuildContext context, WidgetRef ref, TodayViewData view) {
+  Widget _buildContent(BuildContext context, TodayViewData view) {
     final l10n = AppLocalizations.of(context);
-    final repo = ref.read(todoRepositoryProvider);
-    final todayHeaderColor = Theme.of(context).colorScheme.onSurfaceVariant;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
-    // B 批：列表行逐项错落入场（仅首次 build 播放；长列表自动平铺）。
+    // 1. Calculate counts
+    final totalCount = view.overdue.length + view.today.length;
+    final completedCount = (view.overdue + view.today)
+        .where((v) => v.effectiveStatus == TaskStatus.done)
+        .length;
+    final activeCount = totalCount - completedCount;
+
+    // 2. Date Formatting
+    final now = DateTime.now();
+    final isZh = l10n.localeName.startsWith('zh');
+    final dateStr = isZh
+        ? intl.DateFormat('M月d日').format(now)
+        : intl.DateFormat('MMM d').format(now);
+    final weekdayStr = isZh
+        ? zhWeekdays[now.weekday - 1]
+        : intl.DateFormat('EEEE', l10n.localeName).format(now);
+
+    // 3. Filter views based on selection
+    final List<TodayTaskView> filteredOverdue;
+    final List<TodayTaskView> filteredToday;
+
+    switch (_selectedFilter) {
+      case _TodayFilter.active:
+        filteredOverdue = view.overdue
+            .where((v) => v.effectiveStatus != TaskStatus.done)
+            .toList();
+        filteredToday = view.today
+            .where((v) => v.effectiveStatus != TaskStatus.done)
+            .toList();
+        break;
+      case _TodayFilter.completed:
+        filteredOverdue = view.overdue
+            .where((v) => v.effectiveStatus == TaskStatus.done)
+            .toList();
+        filteredToday = view.today
+            .where((v) => v.effectiveStatus == TaskStatus.done)
+            .toList();
+        break;
+      case _TodayFilter.all:
+        filteredOverdue = view.overdue;
+        filteredToday = view.today;
+        break;
+    }
+
+    final repo = ref.read(todoRepositoryProvider);
+    final todayHeaderColor = theme.colorScheme.onSurfaceVariant;
+
+    final progressVal = totalCount == 0 ? 0.0 : completedCount / totalCount;
+
     var tileIndex = 0;
-    return ListView(
-      // 卡片行（SimpleTaskTile）不内置水平 margin，由列表提供页面留白。
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTokens.spaceMd,
-        vertical: AppTokens.spaceSm,
-      ),
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (view.overdue.isNotEmpty) ...[
-          _SectionHeader(title: l10n.overdue, color: AppTokens.colorOverdue),
-          for (final v in view.overdue)
-            StaggeredFadeSlide(
-              index: tileIndex++,
-              child: _buildTile(context, repo, v),
-            ),
-        ],
-        if (view.today.isNotEmpty) ...[
-          _SectionHeader(title: l10n.today, color: todayHeaderColor),
-          for (final v in view.today)
-            StaggeredFadeSlide(
-              index: tileIndex++,
-              child: _buildTile(context, repo, v),
-            ),
-        ],
+        // Header card/section
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          dateStr,
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w800,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          weekdayStr,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    // Subtitle: 逾期 2 · 已完成 1/8
+                    Row(
+                      children: [
+                        Text(
+                          '${l10n.overdue} ',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 13,
+                          ),
+                        ),
+                        Text(
+                          '${view.overdue.length}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppTokens.colorOverdue,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        Text(
+                          '  ·  已完成 $completedCount/$totalCount',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Circular progress ring showing progress
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: 56,
+                    height: 56,
+                    child: CircularProgressIndicator(
+                      value: progressVal,
+                      strokeWidth: 3.5,
+                      backgroundColor: theme.brightness == Brightness.dark
+                          ? Colors.white10
+                          : Colors.grey[100],
+                      valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                    ),
+                  ),
+                  Text(
+                    '$completedCount/$totalCount',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        // Filter Chips Row
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          child: Row(
+            children: [
+              _buildFilterChip(
+                label: '全部',
+                count: totalCount,
+                filter: _TodayFilter.all,
+              ),
+              const SizedBox(width: 8),
+              _buildFilterChip(
+                label: '进行中',
+                count: activeCount,
+                filter: _TodayFilter.active,
+              ),
+              const SizedBox(width: 8),
+              _buildFilterChip(
+                label: '已完成',
+                count: completedCount,
+                filter: _TodayFilter.completed,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        // The list of tasks
+        Expanded(
+          child: filteredOverdue.isEmpty && filteredToday.isEmpty
+              ? Center(
+                  child: EmptyState(
+                    icon: Icons.wb_sunny_outlined,
+                    accentColor: AppTokens.colorNavToday,
+                    message: l10n.emptyToday,
+                  ),
+                )
+              : ListView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 8,
+                  ),
+                  children: [
+                    if (filteredOverdue.isNotEmpty) ...[
+                      _SectionHeader(
+                        title: l10n.overdue,
+                        color: AppTokens.colorOverdue,
+                        count: filteredOverdue.length,
+                      ),
+                      for (final v in filteredOverdue)
+                        StaggeredFadeSlide(
+                          key: ValueKey('overdue-${v.task.id}'),
+                          index: tileIndex++,
+                          child: _buildTile(context, repo, v),
+                        ),
+                    ],
+                    if (filteredToday.isNotEmpty) ...[
+                      _SectionHeader(
+                        title: l10n.today,
+                        color: todayHeaderColor,
+                        count: filteredToday.length,
+                      ),
+                      for (final v in filteredToday)
+                        StaggeredFadeSlide(
+                          key: ValueKey('today-${v.task.id}'),
+                          index: tileIndex++,
+                          child: _buildTile(context, repo, v),
+                        ),
+                    ],
+                  ],
+                ),
+        ),
       ],
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required int count,
+    required _TodayFilter filter,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isSelected = _selectedFilter == filter;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedFilter = filter;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (theme.brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(
+            color: isSelected
+                ? (theme.brightness == Brightness.dark
+                    ? Colors.white
+                    : Colors.black)
+                : (theme.brightness == Brightness.dark
+                    ? Colors.white24
+                    : Colors.black12),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: isSelected
+                    ? (theme.brightness == Brightness.dark
+                        ? Colors.black
+                        : Colors.white)
+                    : colorScheme.onSurfaceVariant,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '$count',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: isSelected
+                    ? (theme.brightness == Brightness.dark
+                        ? Colors.black
+                        : Colors.white)
+                    : colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -358,11 +620,11 @@ class _TodayBody extends ConsumerWidget {
       onToggleDone: view.hasChildren
           ? null
           : (_) => repo.updateTask(
-              task.id,
-              status: view.effectiveStatus == TaskStatus.done
-                  ? TaskStatus.todo
-                  : TaskStatus.done,
-            ),
+                task.id,
+                status: view.effectiveStatus == TaskStatus.done
+                    ? TaskStatus.todo
+                    : TaskStatus.done,
+              ),
     );
   }
 }
@@ -402,10 +664,11 @@ class _ProjectBody extends ConsumerWidget {
 
 /// 分组标题：逾期组红色（[AppTokens.colorOverdue]），今天组弱色。
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.color});
+  const _SectionHeader({required this.title, required this.color, this.count});
 
   final String title;
   final Color color;
+  final int? count;
 
   @override
   Widget build(BuildContext context) {
@@ -417,12 +680,25 @@ class _SectionHeader extends StatelessWidget {
         AppTokens.spaceMd,
         AppTokens.spaceXs,
       ),
-      child: Text(
-        title,
-        style: theme.textTheme.titleSmall?.copyWith(
-          color: color,
-          fontWeight: AppTokens.textTitleWeight,
-        ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: color,
+              fontWeight: AppTokens.textTitleWeight,
+            ),
+          ),
+          if (count != null)
+            Text(
+              '$count',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+        ],
       ),
     );
   }

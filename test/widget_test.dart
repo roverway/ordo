@@ -1060,7 +1060,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('新建文件夹'));
+    await tester.tap(find.text('新建文件夹').last);
     await tester.pumpAndSettle();
     expect(find.byType(Dialog), findsOneWidget);
 

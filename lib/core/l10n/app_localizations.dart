@@ -1879,6 +1879,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'总览'**
   String get projectsOverview;
+
+  /// No description provided for @autoSaveOnClose.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭时自动保存'**
+  String get autoSaveOnClose;
+
+  /// No description provided for @taskDetails.
+  ///
+  /// In zh, this message translates to:
+  /// **'任务详情'**
+  String get taskDetails;
 }
 
 class _AppLocalizationsDelegate

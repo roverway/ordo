@@ -346,5 +346,7 @@
   "projectsOverview": "总览",
   "@projectsOverview": {
     "description": "任务分组三点菜单：打开项目总览页"
-  }
+  },
+  "autoSaveOnClose": "关闭时自动保存",
+  "taskDetails": "任务详情"
 }

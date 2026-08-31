@@ -20,6 +20,7 @@ import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_breakpoints.dart';
 import '../../core/utils/tree.dart';
+import '../../shared/widgets/app_menu_item.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import '../../shared/widgets/modal_side_sheet.dart';
 import '../../shared/widgets/window_insets_boundary.dart';
@@ -210,10 +211,38 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
     }
   }
 
+  Future<bool> _autoSave() async {
+    if (_isSaving) return true;
+    final notifier = ref.read(taskFormProvider.notifier);
+    if (notifier.hasChanges || _editorController.hasSubtaskChanges) {
+      _isSaving = true;
+      try {
+        final errorKey = await notifier.save();
+        if (errorKey != null) {
+          if (!mounted) return false;
+          final l10n = AppLocalizations.of(context);
+          final message = switch (errorKey) {
+            'title_required' => l10n.titleRequired,
+            'end_time_before_start' => l10n.endTimeBeforeStart,
+            _ => errorKey,
+          };
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message)),
+          );
+          return false;
+        }
+        await _syncSubtasks();
+        _editorController.markSubtasksSaved();
+      } finally {
+        _isSaving = false;
+      }
+    }
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
     final parentId = ref.watch(taskFormProvider.select((s) => s.parentId));
     final isWide = AppBreakpoints.isWide(context);
 
@@ -221,57 +250,69 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        final notifier = ref.read(taskFormProvider.notifier);
-        if (notifier.hasChanges || _editorController.hasSubtaskChanges) {
-          final discard = await showConfirmDialog(
-            context: context,
-            title: l10n.unsavedChanges,
-            message: l10n.unsavedChangesConfirm,
-            confirmLabel: l10n.discard,
-            confirmColor: colorScheme.error,
-          );
-          if (discard && context.mounted) {
-            ref.read(taskFormProvider.notifier).reset();
-            _doPop();
-          }
-        } else {
+        final ok = await _autoSave();
+        if (ok && context.mounted) {
           _doPop();
         }
       },
       child: Scaffold(
-        // 由 Stack + KeyboardAttachedToolbar 逐帧 GPU 平移工具栏，
-        // 禁用 Scaffold 自带阶跃式 resize，避免双重偏移或跳跃。
         resizeToAvoidBottomInset: false,
-        // AppBar：返回 + 项目名（新建态带下拉箭头可切换，编辑态只读）+ 保存 + ⋯ 菜单。
         appBar: AppBar(
           leading: IconButton(
             icon: Icon(isWide ? Icons.close : Icons.arrow_back),
             tooltip: isWide
                 ? l10n.cancel
                 : MaterialLocalizations.of(context).backButtonTooltip,
-            onPressed: () => Navigator.of(context).maybePop(),
+            onPressed: () async {
+              final ok = await _autoSave();
+              if (ok && context.mounted) {
+                _doPop();
+              }
+            },
           ),
           titleSpacing: AppTokens.spaceXs,
-          // 编辑已有任务：项目切换不落库（跨项目移动未实现），仅展示项目名；
-          // 新建态保留切换入口（59 讨论定稿，消除误导）。
-          title: TaskProjectSwitcher(interactive: !_isEditing),
+          title: _isEditing
+              ? Text(
+                  l10n.taskDetails,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                )
+              : TaskProjectSwitcher(interactive: !_isEditing),
           actions: [
             TextButton.icon(
               onPressed: _save,
               icon: const Icon(Icons.check, size: 18),
               label: Text(l10n.save),
             ),
-            TaskEditorMenuButton(
-              controller: _editorController,
-              onDeleteRequested: _isEditing ? _confirmDeleteTask : null,
+            PopupMenuButton<String>(
+              icon: Icon(
+                _isEditing ? Icons.more_horiz : Icons.more_vert,
+                size: 20,
+              ),
+              tooltip: l10n.rowActions,
+              onSelected: (value) {
+                if (value == 'delete' && _isEditing) {
+                  _confirmDeleteTask();
+                } else if (value == 'notes') {
+                  _editorController.toggleNotes();
+                }
+              },
+              itemBuilder: (context) => [
+                if (!_isEditing)
+                  AppMenuItem(value: 'notes', label: l10n.taskNotes),
+                if (_isEditing)
+                  AppMenuItem(
+                    value: 'delete',
+                    label: l10n.delete,
+                    destructive: true,
+                  ),
+              ],
             ),
           ],
         ),
         body: Stack(
           children: [
-            // 正文区：定高填满内容区（固定留出工具栏高度，并通过独立组件隔离 MediaQuery 与重绘）。
             Positioned.fill(
-              bottom: AppTokens.toolbarHeight,
+              bottom: _isEditing ? 0 : AppTokens.toolbarHeight,
               child: RepaintBoundary(
                 child: _TaskEditContentArea(
                   controller: _editorController,
@@ -279,11 +320,10 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
                   showSubtasks: _isEditing ? _showSubtasks : parentId == null,
                   hasChildren: _hasChildren,
                   onDeleteRequested: _isEditing ? _confirmDeleteTask : null,
+                  isDetailsPage: _isEditing,
                 ),
               ),
             ),
-            // 独立工具栏：静态钉底，采用 GPU 矩阵平移（Transform.translate）逐帧跟随键盘升降，
-            // 不参与父级 Layout，完全免疫多子任务文本排版开销。
             Positioned(
               left: 0,
               right: 0,
@@ -295,7 +335,6 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
                       _editorController.hasPendingNewSubtasksNotifier,
                   builder: (context, hasPending, _) {
                     return TaskEditorToolbar(
-                      // 已有子任务或待保存的新建子任务行 → 状态由子任务派生，禁用。
                       statusDisabled: _hasChildren || hasPending,
                     );
                   },
@@ -418,6 +457,7 @@ class _TaskEditContentArea extends StatelessWidget {
     required this.showSubtasks,
     required this.hasChildren,
     required this.onDeleteRequested,
+    this.isDetailsPage = false,
   });
 
   final TaskEditorController controller;
@@ -425,6 +465,7 @@ class _TaskEditContentArea extends StatelessWidget {
   final bool showSubtasks;
   final bool hasChildren;
   final VoidCallback? onDeleteRequested;
+  final bool isDetailsPage;
 
   @override
   Widget build(BuildContext context) {
@@ -444,6 +485,7 @@ class _TaskEditContentArea extends StatelessWidget {
           showSubtasks: showSubtasks,
           hasExistingChildren: hasChildren,
           onDeleteRequested: onDeleteRequested,
+          isDetailsPage: isDetailsPage,
         ),
       ),
     );

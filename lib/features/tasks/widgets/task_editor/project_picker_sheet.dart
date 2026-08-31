@@ -71,38 +71,38 @@ class TaskProjectSwitcher extends ConsumerWidget {
 
     return InkWell(
       borderRadius: BorderRadius.circular(AppTokens.radiusButton),
-      onTap: () => _pickProject(context, ref),
+      onTap: () => showTaskProjectPicker(context, ref),
       child: Padding(padding: padding, child: content),
     );
   }
+}
 
-  /// 「移动到」清单选择：搜索 + 列表（当前项对勾）+ 添加项目。
-  Future<void> _pickProject(BuildContext context, WidgetRef ref) async {
-    final projectId = ref.read(taskFormProvider.select((s) => s.projectId));
-    final result = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppTokens.radiusDialog),
-        ),
+/// 「移动到」清单选择：搜索 + 列表（当前项对勾）+ 添加项目。
+Future<void> showTaskProjectPicker(BuildContext context, WidgetRef ref) async {
+  final projectId = ref.read(taskFormProvider.select((s) => s.projectId));
+  final result = await showModalBottomSheet<String>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(AppTokens.radiusDialog),
       ),
-      builder: (sheetContext) => KeyboardInsetBuilder(
-        child: RepaintBoundary(
-          child: ProjectPickerSheet(currentProjectId: projectId ?? ''),
-        ),
-        builder: (context, effectiveInset, _, pickerChild) => Padding(
-          padding: EdgeInsets.only(bottom: effectiveInset),
-          child: pickerChild!,
-        ),
+    ),
+    builder: (sheetContext) => KeyboardInsetBuilder(
+      child: RepaintBoundary(
+        child: ProjectPickerSheet(currentProjectId: projectId ?? ''),
       ),
-    );
-    if (result != null && context.mounted) {
-      // 父任务不能跨项目：切换项目时清空 parentId（新建态切换；编辑态无此入口）。
-      ref.read(taskFormProvider.notifier).setProjectAndParent(result, null);
-    }
+      builder: (context, effectiveInset, _, pickerChild) => Padding(
+        padding: EdgeInsets.only(bottom: effectiveInset),
+        child: pickerChild!,
+      ),
+    ),
+  );
+  if (result != null && context.mounted) {
+    // 父任务不能跨项目：切换项目时清空 parentId（新建态切换；编辑态无此入口）。
+    ref.read(taskFormProvider.notifier).setProjectAndParent(result, null);
   }
 }
 

@@ -957,4 +957,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get projectsOverview => 'Overview';
+
+  @override
+  String get autoSaveOnClose => 'Auto-save on close';
+
+  @override
+  String get taskDetails => 'Task Details';
 }

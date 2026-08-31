@@ -940,4 +940,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get projectsOverview => '总览';
+
+  @override
+  String get autoSaveOnClose => '关闭时自动保存';
+
+  @override
+  String get taskDetails => '任务详情';
 }

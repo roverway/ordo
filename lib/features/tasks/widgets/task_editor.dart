@@ -15,15 +15,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:intl/intl.dart' as intl;
+
 import '../../../core/db/database.dart';
+import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../core/theme/priority_color.dart';
+import '../../../core/utils/dates.dart';
 import '../../../shared/widgets/app_menu_item.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../projects/project_providers.dart';
+import '../../tags/tag_providers.dart';
 import '../task_providers.dart';
+import 'priority_picker.dart';
 import 'task_editor/project_picker_sheet.dart';
 import 'task_editor/subtask_list.dart';
+import 'task_editor/tag_picker_sheet.dart';
+import 'task_editor/task_date_picker_dialogs.dart';
 import 'task_editor/task_editor_controller.dart';
 import 'task_editor/task_editor_toolbar.dart';
 
@@ -48,6 +57,7 @@ class TaskEditor extends ConsumerStatefulWidget {
     this.hasExistingChildren = false,
     this.autofocus = true,
     this.onDeleteRequested,
+    this.isDetailsPage = false,
   });
 
   /// 编辑器共享控制器（容器持有并负责 dispose）。
@@ -74,6 +84,9 @@ class TaskEditor extends ConsumerStatefulWidget {
   /// 编辑态 ⋯ 菜单「删除」回调（容器执行确认 + 级联删除，D4）。
   final VoidCallback? onDeleteRequested;
 
+  /// 是否是任务详情编辑页面模式（以显示详细元数据行和底部的删除任务/已同步信息）
+  final bool isDetailsPage;
+
   @override
   ConsumerState<TaskEditor> createState() => _TaskEditorState();
 }
@@ -95,10 +108,232 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final hasParent = ref.watch(
       taskFormProvider.select((s) => s.parentId != null),
     );
     ref.listen(taskFormProvider, (previous, next) => _syncControllers(next));
+
+    final projectId = ref.watch(taskFormProvider.select((s) => s.projectId));
+    final projects = ref.watch(projectsStreamProvider).value ?? const <Project>[];
+    final project = projects.where((p) => p.id == projectId).firstOrNull;
+
+    if (widget.isDetailsPage) {
+      final startAt = ref.watch(taskFormProvider.select((s) => s.startAt));
+      final endAt = ref.watch(taskFormProvider.select((s) => s.endAt));
+      final priority = ref.watch(taskFormProvider.select((s) => s.priority));
+      final selectedTagIds = ref.watch(taskFormProvider.select((s) => s.selectedTagIds));
+      final tags = ref.watch(tagsStreamProvider).value ?? const <Tag>[];
+      final selectedTags = [
+        for (final id in selectedTagIds)
+          if (tags.any((t) => t.id == id)) tags.firstWhere((t) => t.id == id),
+      ];
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Top project capsule chip
+          if (project != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Color(project.color).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: Color(project.color),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      project.name,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Color(project.color),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          
+          // Title Input Field
+          _buildTitleField(context, l10n),
+          const SizedBox(height: 12),
+          
+          // Description Input Field
+          TaskDescriptionNotesSection(controller: widget.controller),
+          const SizedBox(height: 16),
+          
+          const Divider(height: 1, thickness: 0.5),
+          const SizedBox(height: 8),
+          
+          // Details rows
+          _DetailsRow(
+            icon: Icons.calendar_today_outlined,
+            label: '日期',
+            value: Text(
+              startAt != null || endAt != null ? formatDateRange(startAt, endAt, l10n) : '未设置',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: startAt != null || endAt != null
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
+              ),
+            ),
+            onTap: () => showTaskDatePicker(context, ref),
+          ),
+          
+          _DetailsRow(
+            icon: Icons.flag_outlined,
+            label: '优先级',
+            value: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (priority != TaskPriority.none)
+                  Icon(Icons.flag, size: 16, color: priorityColor(priority)),
+                if (priority != TaskPriority.none)
+                  const SizedBox(width: 4),
+                Text(
+                  priorityLabel(l10n, priority),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: priority != TaskPriority.none
+                        ? priorityColor(priority)
+                        : colorScheme.onSurfaceVariant,
+                    fontWeight: priority != TaskPriority.none ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+            onTap: () => showTaskPriorityPicker(context, ref),
+          ),
+          
+          _DetailsRow(
+            icon: Icons.folder_outlined,
+            label: '项目',
+            value: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (project != null)
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: Color(project.color),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                if (project != null)
+                  const SizedBox(width: 6),
+                Text(
+                  project?.name ?? '无',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+            onTap: () => showTaskProjectPicker(context, ref),
+          ),
+          
+          _DetailsRow(
+            icon: Icons.label_outline,
+            label: '标签',
+            value: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (selectedTags.isEmpty)
+                  Text(
+                    '无',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  )
+                else
+                  Wrap(
+                    spacing: 4,
+                    children: [
+                      for (final tag in selectedTags)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Color(tag.color).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: Color(tag.color).withValues(alpha: 0.3),
+                              width: 0.5,
+                            ),
+                          ),
+                          child: Text(
+                            tag.name,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Color(tag.color),
+                              fontSize: 11,
+                            ),
+                          ),
+                        )
+                    ],
+                  )
+              ],
+            ),
+            onTap: () => showTaskTagPicker(context, ref),
+          ),
+          
+          const SizedBox(height: 8),
+          const Divider(height: 1, thickness: 0.5),
+          const SizedBox(height: 16),
+          
+          // Subtasks
+          if (widget.showSubtasks) ...[
+            Text(
+              '子任务',
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildSubtasks(context, l10n),
+            const SizedBox(height: 24),
+          ],
+          
+          // Delete button & Sync metadata centered at the bottom of the scroll view
+          if (widget.onDeleteRequested != null) ...[
+            Center(
+              child: TextButton(
+                onPressed: widget.onDeleteRequested,
+                child: Text(
+                  '删除任务',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: colorScheme.error,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+          
+          if (ref.watch(taskFormProvider.select((s) => s.id)) != null)
+            Center(
+              child: TaskMetadataFooter(
+                taskId: ref.read(taskFormProvider).id!,
+              ),
+            ),
+        ],
+      );
+    }
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -316,6 +551,86 @@ class _ParentTaskRow extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _DetailsRow extends StatelessWidget {
+  const _DetailsRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Widget value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: colorScheme.onSurfaceVariant),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: colorScheme.onSurface,
+              ),
+            ),
+            const Spacer(),
+            value,
+            const SizedBox(width: 4),
+            Icon(
+              Icons.chevron_right,
+              size: 16,
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class TaskMetadataFooter extends ConsumerWidget {
+  const TaskMetadataFooter({super.key, required this.taskId});
+
+  final String taskId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tasks = ref.watch(allActiveTasksProvider).value ?? const <Task>[];
+    final task = tasks.where((t) => t.id == taskId).firstOrNull;
+    if (task == null) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
+
+    final date = DateTime.fromMillisecondsSinceEpoch(task.createdAt, isUtc: true).toLocal();
+    final isZh = l10n.localeName.startsWith('zh');
+    final formattedDate = isZh
+        ? intl.DateFormat('M月d日').format(date)
+        : intl.DateFormat('MMM d').format(date);
+
+    return Text(
+      '创建于 $formattedDate · 已同步',
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+        fontSize: 12,
+      ),
     );
   }
 }
