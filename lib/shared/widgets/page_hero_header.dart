@@ -89,8 +89,34 @@ class PageHeroHeader extends StatelessWidget {
       ],
     );
 
+    Widget headerTextColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        titleRow,
+        if (subtitleWidget != null) ...[
+          const SizedBox(height: 6),
+          subtitleWidget!,
+        ] else if (subtitle != null && subtitle!.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            subtitle!,
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontFeatures: AppTokens.fontTabular,
+              fontSize: 12.5,
+              color: colorScheme.onSurfaceVariant,
+              letterSpacing: 0.2,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ],
+    );
+
     if (onTitleTap != null) {
-      titleRow = InkWell(
+      headerTextColumn = InkWell(
         onTap: onTitleTap,
         borderRadius: BorderRadius.circular(AppTokens.radiusButton),
         splashColor: colorScheme.onSurface.withValues(
@@ -101,7 +127,7 @@ class PageHeroHeader extends StatelessWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          child: titleRow,
+          child: headerTextColumn,
         ),
       );
     }
@@ -114,30 +140,9 @@ class PageHeroHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                titleRow,
-                if (subtitleWidget != null) ...[
-                  const SizedBox(height: 6),
-                  subtitleWidget!,
-                ] else if (subtitle != null && subtitle!.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    subtitle!,
-                    style: TextStyle(
-                      fontFamily: 'monospace',
-                      fontFeatures: AppTokens.fontTabular,
-                      fontSize: 12.5,
-                      color: colorScheme.onSurfaceVariant,
-                      letterSpacing: 0.2,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ],
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: headerTextColumn,
             ),
           ),
           if (trailing != null) ...[

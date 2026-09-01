@@ -360,6 +360,29 @@ void main() {
     },
   );
 
+  testWidgets(
+    'Narrow mode: clicking hero title opens ScopeSwitcherSheet smoothly',
+    (tester) async {
+      await pumpApp(tester, const Size(400, 800));
+
+      // 点击大标题
+      await tester.tap(find.byType(PageHeroHeader));
+      await tester.pumpAndSettle();
+
+      // 底部弹层已显示
+      expect(find.byType(ScopeSwitcherSheet), findsOneWidget);
+      expect(find.text('切换清单'), findsOneWidget);
+      expect(find.text('今日'), findsOneWidget);
+      expect(find.text('收件箱'), findsOneWidget);
+
+      // 点击关闭按钮 → 弹层正常关闭
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ScopeSwitcherSheet), findsNothing);
+    },
+  );
+
   testWidgets('Wide (≥600dp) smoke: AppSidebar persistent sidebar', (
     tester,
   ) async {

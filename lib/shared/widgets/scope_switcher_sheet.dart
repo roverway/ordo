@@ -17,18 +17,35 @@ import '../../features/tasks/task_providers.dart';
 import '../../features/today/today_providers.dart';
 
 /// 呼出清单/作用域切换底部弹层。
-Future<void> showScopeSwitcherSheet(BuildContext context) {
+Future<void> showScopeSwitcherSheet(
+  BuildContext context, {
+  String? currentRoute,
+}) {
+  final route = currentRoute ?? _resolveCurrentRoute(context);
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (ctx) => const ScopeSwitcherSheet(),
+    builder: (ctx) => ScopeSwitcherSheet(currentRoute: route),
   );
+}
+
+String _resolveCurrentRoute(BuildContext context) {
+  try {
+    return GoRouter.maybeOf(
+          context,
+        )?.routerDelegate.currentConfiguration.uri.path ??
+        '';
+  } catch (_) {
+    return '';
+  }
 }
 
 /// 现代极简风格的清单/视图切换底部弹层（对齐原型设计中的切换弹层 `sheet`）。
 class ScopeSwitcherSheet extends ConsumerStatefulWidget {
-  const ScopeSwitcherSheet({super.key});
+  const ScopeSwitcherSheet({super.key, this.currentRoute});
+
+  final String? currentRoute;
 
   @override
   ConsumerState<ScopeSwitcherSheet> createState() => _ScopeSwitcherSheetState();
@@ -42,7 +59,7 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context);
-    final currentRoute = GoRouterState.of(context).uri.path;
+    final currentRoute = widget.currentRoute ?? _resolveCurrentRoute(context);
 
     final todayViewAsync = ref.watch(todayViewProvider);
     final inboxProjectAsync = ref.watch(inboxProjectProvider);
@@ -198,8 +215,9 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                               _buildSectionHeader(l10n.customViews),
                               TextButton.icon(
                                 onPressed: () {
+                                  final router = GoRouter.of(context);
                                   Navigator.of(context).maybePop();
-                                  context.push('/custom_view/new');
+                                  router.push('/custom_view/new');
                                 },
                                 icon: const Icon(Icons.add, size: 14),
                                 label: Text(
@@ -352,8 +370,9 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                       color: colorScheme.onSurfaceVariant,
                     ),
                     onPressed: () {
+                      final router = GoRouter.of(context);
                       Navigator.of(context).maybePop();
-                      context.push('/settings');
+                      router.push('/settings');
                     },
                   ),
                   IconButton(
