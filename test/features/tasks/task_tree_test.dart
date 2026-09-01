@@ -21,6 +21,7 @@ import 'package:todo/features/settings/settings_providers.dart';
 import 'package:todo/features/tasks/task_providers.dart';
 import 'package:todo/features/tasks/widgets/task_row.dart';
 import 'package:todo/features/tasks/widgets/task_tree.dart';
+import 'package:todo/shared/widgets/modern_checkbox.dart';
 import '../../helpers/db_test_setup.dart';
 
 Task _task(
@@ -470,26 +471,26 @@ void main() {
 
   group('扁平行视觉（61-task-list-redesign.md §4）', () {
     /// 定位某任务行内嵌的 Checkbox widget。
-    Checkbox boxOf(WidgetTester tester, String title) =>
-        tester.widget<Checkbox>(
+    ModernCheckbox boxOf(WidgetTester tester, String title) =>
+        tester.widget<ModernCheckbox>(
           find.descendant(
             of: find.ancestor(
               of: find.text(title),
               matching: find.byType(TaskRow),
             ),
-            matching: find.byType(Checkbox),
+            matching: find.byType(ModernCheckbox),
           ),
         );
 
-    testWidgets('勾选框为圆形，未完成为主题克制中性色边框', (tester) async {
+    testWidgets('勾选框为圆形/圆角，未完成为主题克制中性色边框', (tester) async {
       await _pumpTree(tester, [
         _task('r', title: 'Root'),
         _task('c', parentId: 'r', title: 'Child', sortOrder: 1),
       ]);
       final rootBox = boxOf(tester, 'Root');
       final childBox = boxOf(tester, 'Child');
-      expect(rootBox.shape, isA<CircleBorder>());
-      expect(childBox.shape, isA<CircleBorder>());
+      expect(rootBox.borderRadius, 6.0);
+      expect(childBox.borderRadius, 6.0);
     });
 
     testWidgets('行尾无拖拽把手（用户打磨要求：恢复整行拖拽，把手已删除）', (tester) async {
@@ -532,11 +533,10 @@ void main() {
 
     testWidgets('勾选框触控区 ≥44（NFR-06 取舍下限，用户打磨要求 4）', (tester) async {
       await _pumpTree(tester, [_task('a', title: 'A')]);
-      final box = tester.widget<Checkbox>(find.byType(Checkbox).first);
-      final size = tester.getSize(find.byType(Checkbox).first);
-      expect(box.shape, isA<CircleBorder>());
-      expect(size.width, greaterThanOrEqualTo(44));
-      expect(size.height, greaterThanOrEqualTo(44));
+      final box = tester.widget<ModernCheckbox>(
+        find.byType(ModernCheckbox).first,
+      );
+      expect(box.tapTargetSize, greaterThanOrEqualTo(44));
     });
 
     testWidgets('行尾显示子任务数 + 展开箭头，无子任务不显示', (tester) async {

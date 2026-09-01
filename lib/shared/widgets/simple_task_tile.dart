@@ -7,6 +7,7 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/utils/dates.dart';
 import 'animated_strikethrough.dart';
 import 'checkbox_bounce.dart';
+import 'modern_checkbox.dart';
 import 'task_progress_ring.dart';
 
 /// 扁平行任务行（今日/日历/标签/搜索视图共用，61-task-list-redesign.md §6 阶段 3）。
@@ -134,59 +135,24 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 方形复选框（22x22，圆角 6px，使用 Checkbox 组件）
-                      SizedBox(
-                        width: AppTokens.checkboxTapTargetSize,
-                        height: AppTokens.checkboxTapTargetSize,
-                        child: CheckboxBounce(
-                          isDone: widget.isDone,
-                          child: widget.hasChildren
-                              ? Tooltip(
-                                  message: l10n.statusDerivedFromChildren,
-                                  child: Checkbox(
-                                    value: widget.isDone,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    side: BorderSide(
-                                      color: widget.isDone
-                                          ? colorScheme.onSurface
-                                          : (isDark
-                                                ? Colors.white.withValues(
-                                                    alpha: 0.34,
-                                                  )
-                                                : colorScheme.onSurface
-                                                      .withValues(alpha: 0.34)),
-                                      width: 1.5,
-                                    ),
-                                    activeColor: colorScheme.onSurface,
-                                    checkColor: colorScheme.surface,
-                                    onChanged: null,
-                                  ),
-                                )
-                              : Checkbox(
-                                  value: widget.isDone,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  side: BorderSide(
-                                    color: widget.isDone
-                                        ? colorScheme.onSurface
-                                        : (isDark
-                                              ? Colors.white.withValues(
-                                                  alpha: 0.34,
-                                                )
-                                              : colorScheme.onSurface
-                                                    .withValues(alpha: 0.34)),
-                                    width: 1.5,
-                                  ),
-                                  activeColor: colorScheme.onSurface,
-                                  checkColor: colorScheme.surface,
-                                  onChanged: widget.onToggleDone,
+                      // 现代极简复选框（22x22，圆角 6px）
+                      CheckboxBounce(
+                        isDone: widget.isDone,
+                        child: widget.hasChildren
+                            ? Tooltip(
+                                message: l10n.statusDerivedFromChildren,
+                                child: ModernCheckbox(
+                                  checked: widget.isDone,
+                                  onChanged: null,
                                 ),
-                        ),
+                              )
+                            : ModernCheckbox(
+                                checked: widget.isDone,
+                                onChanged: (val) =>
+                                    widget.onToggleDone?.call(val),
+                              ),
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 6),
 
                       // 标题 + 属性元数据
                       Expanded(

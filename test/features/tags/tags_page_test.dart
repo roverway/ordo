@@ -30,6 +30,7 @@ import 'package:todo/features/settings/settings_providers.dart';
 import 'package:todo/features/tags/tag_providers.dart';
 import 'package:todo/features/tags/tags_detail_page.dart';
 import 'package:todo/features/tags/tags_page.dart';
+import 'package:todo/shared/widgets/modern_checkbox.dart';
 import 'package:todo/shared/widgets/simple_task_tile.dart';
 import '../../helpers/db_test_setup.dart';
 
@@ -471,16 +472,16 @@ void main() {
       expect(find.text('父任务'), findsOneWidget);
       expect(find.text('子任务'), findsNothing);
 
-      // 父任务有子任务 → 勾选禁用（Checkbox onChanged == null）。
-      final checkbox = tester.widget<Checkbox>(
+      // 父任务有子任务 → 勾选禁用（ModernCheckbox onChanged == null）。
+      final checkbox = tester.widget<ModernCheckbox>(
         find.descendant(
           of: find.byType(SimpleTaskTile),
-          matching: find.byType(Checkbox),
+          matching: find.byType(ModernCheckbox),
         ),
       );
       expect(checkbox.onChanged, isNull);
-      // 子任务全 done → 父任务按派生状态显示为已完成（isDone=true）。
-      expect(checkbox.value, isTrue);
+      // 子任务全 done → 父任务按派生状态显示为已完成（checked=true）。
+      expect(checkbox.checked, isTrue);
     });
   });
 }

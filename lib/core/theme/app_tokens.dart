@@ -45,6 +45,9 @@ abstract final class AppTokens {
   /// Custom views signature accent — ocean sky / teal.
   static const Color colorNavCustomView = Color(0xFF0284C7);
 
+  /// Overview signature accent — emerald green.
+  static const Color colorNavOverview = Color(0xFF10B981);
+
   /// Page surface (light) — pure crisp cool off-white.
   /// (docs/66-ui-visual-polish-proposal.md)
   static const Color surfacePageLight = Color(0xFFF8F9FA);
@@ -146,6 +149,12 @@ abstract final class AppTokens {
   // 七档字阶（docs/66-ui-visual-polish-proposal.md §2）：
   // display / heading / title / body / footnote / caption / micro。
   // 新增 display、footnote、micro 三档收编此前散落的私有字号（10.5–13.5）。
+
+  /// Page hero large title: 31 / w700（原型 Things 式大标题头部：今日/收集箱/日历/概览/自定义视图）.
+  static const double textHeroSize = 31;
+  static const FontWeight textHeroWeight = FontWeight.w700;
+  static const double textHeroLetterSpacing = -0.775; // -0.025em * 31
+  static const double textHeroHeight = 1.1;
 
   /// Page hero large title: 28 / w700（今日页大标题等 Things 式头部）。
   static const double textDisplaySize = 28;
@@ -264,7 +273,13 @@ abstract final class AppTokens {
   /// FAB elevation.
   static const double elevationFab = 4;
 
-  // ── Progress Ring（仅令牌，批 2 使用 UI）──
+  // ── Progress Ring ──
+
+  /// Hero large progress ring size (62x62 in home/overview/tasklist headers).
+  static const double progressRingHeroSize = 62;
+
+  /// Hero large progress ring stroke width (3px).
+  static const double progressRingHeroWidth = 3;
 
   /// Circular progress ring diameter for parent tasks
   /// （用户打磨要求 1：24 → 18，行尾更轻量）。
@@ -275,6 +290,9 @@ abstract final class AppTokens {
 
   /// 进度百分比字号（用户打磨要求 1：bodySmall 12 → 10，整体小一号）。
   static const double progressPercentSize = 10;
+
+  /// 优先级左侧装饰条宽度 (3px)
+  static const double priorityStripeWidth = 3;
 
   // ── Drawer（仅令牌，批 2 使用 UI）──
 

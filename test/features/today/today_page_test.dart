@@ -30,6 +30,7 @@ import 'package:todo/features/tasks/widgets/task_create_sheet.dart';
 import 'package:todo/features/tasks/task_list_page.dart';
 import 'package:todo/features/today/today_providers.dart';
 import 'package:todo/shared/widgets/empty_state.dart';
+import 'package:todo/shared/widgets/modern_checkbox.dart';
 import 'package:todo/shared/widgets/simple_task_tile.dart';
 import 'package:todo/shared/widgets/task_progress_ring.dart';
 import '../../helpers/db_test_setup.dart';
@@ -214,12 +215,17 @@ Future<TodoRepository> _pumpToday(
   return repo;
 }
 
-/// 定位某任务所在 SimpleTaskTile 行内嵌的 Checkbox。
+/// 定位某任务所在 SimpleTaskTile 行内嵌的 Checkbox / ModernCheckbox。
 Finder _checkboxOf(WidgetTester tester, String title) {
   final tile = find.ancestor(
     of: find.text(title),
     matching: find.byType(SimpleTaskTile),
   );
+  final modern = find.descendant(
+    of: tile,
+    matching: find.byType(ModernCheckbox),
+  );
+  if (modern.evaluate().isNotEmpty) return modern;
   return find.descendant(of: tile, matching: find.byType(Checkbox));
 }
 

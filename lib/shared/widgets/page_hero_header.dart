@@ -2,95 +2,150 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_tokens.dart';
 
-/// 页面静态大标题头部（docs/66-ui-visual-polish-proposal.md §5）。
+/// 净化式 Hero 大标题头部（对齐原型设计：大标题 + ∨ 切换箭头 + 副标题 + 右侧插槽如进度环/操作按钮）。
 ///
-/// 「工具感 → 产品感」的核心杠杆：display 级大标题 + 可选副标题 +
-/// 完成概览（本地化文案 + 4dp 细进度条）。
-/// 与日历页「AppBar 内嵌周期选择器」并存：日历是工具型导航，本组件
-/// 用于情感型概览页（今日 / 项目列表），滚动不折叠。
+/// 见于 `home.html` / `tasklist.html` / `calendar.html` / `overview.html` / `settings.html` / `customview.html`。
 class PageHeroHeader extends StatelessWidget {
   const PageHeroHeader({
     super.key,
     required this.title,
     this.subtitle,
-    this.progress,
-    this.progressLabel,
-    this.progressColor = AppTokens.colorDone,
+    this.subtitleWidget,
+    this.trailing,
+    this.onTitleTap,
+    this.isExpanded = false,
+    this.showDropdownChevron = true,
+    this.leading,
+    this.padding,
   });
 
-  /// 大标题文字。
+  /// 大标题文字（如 "8月31日", "收集箱", "日历", "概览", "发布看板", "设置"）。
   final String title;
 
-  /// 可选副标题。
+  /// 副标题纯文字。
   final String? subtitle;
 
-  /// 完成进度（0.0–1.0）；null 时隐藏概览行。
-  final double? progress;
+  /// 副标题自定义组件（支持富文本/高亮/逾期标红等）。
+  final Widget? subtitleWidget;
 
-  /// 完成概览文案（ARB，如「2/5 已完成」）。
-  final String? progressLabel;
+  /// 右侧组件（如 [HeroProgressRing] 或操作图标行）。
+  final Widget? trailing;
 
-  /// 进度条填充色；缺省完成绿 [AppTokens.colorDone]。
-  final Color progressColor;
+  /// 点击标题触发的回调（在移动端唤起 Scope Switcher 底部弹层）。
+  final VoidCallback? onTitleTap;
+
+  /// 是否处于展开状态（驱动 ∨ 箭头旋转 180 度）。
+  final bool isExpanded;
+
+  /// 是否在大标题右侧显示 ∨ 下拉箭头。
+  final bool showDropdownChevron;
+
+  /// 标题左侧组件（如返回箭头）。
+  final Widget? leading;
+
+  /// 自定义内边距。
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final showProgress =
-        progress != null && progressLabel != null && progressLabel!.isNotEmpty;
+    final colorScheme = theme.colorScheme;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    Widget titleRow = Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(
-          title,
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontSize: AppTokens.textDisplaySize,
-            fontWeight: AppTokens.textDisplayWeight,
-            letterSpacing: AppTokens.textDisplayLetterSpacing,
-            height: AppTokens.textDisplayHeight,
-            color: theme.colorScheme.onSurface,
+        if (leading != null) ...[
+          leading!,
+          const SizedBox(width: AppTokens.spaceXs),
+        ],
+        Flexible(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: AppTokens.textHeroSize,
+              fontWeight: AppTokens.textHeroWeight,
+              letterSpacing: AppTokens.textHeroLetterSpacing,
+              height: AppTokens.textHeroHeight,
+              color: colorScheme.onSurface,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        if (subtitle != null && subtitle!.isNotEmpty) ...[
-          SizedBox(height: AppTokens.spaceXxs),
-          Text(
-            subtitle!,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontSize: AppTokens.textFootnoteSize,
-              color: theme.colorScheme.onSurfaceVariant,
+        if (showDropdownChevron && onTitleTap != null) ...[
+          const SizedBox(width: 6),
+          AnimatedRotation(
+            turns: isExpanded ? 0.5 : 0.0,
+            duration: AppTokens.motionFast,
+            curve: Curves.easeOutCubic,
+            child: Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 22,
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
         ],
-        if (showProgress) ...[
-          SizedBox(height: AppTokens.spaceMd),
-          Row(
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppTokens.spaceXxs / 2),
-                  child: LinearProgressIndicator(
-                    value: progress!.clamp(0.0, 1.0),
-                    minHeight: 4,
-                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                    valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-                  ),
-                ),
-              ),
-              SizedBox(width: AppTokens.spaceSm),
-              Text(
-                progressLabel!,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  fontSize: AppTokens.textMicroSize,
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
-                  fontFeatures: AppTokens.fontTabular,
-                ),
-              ),
-            ],
-          ),
-        ],
       ],
+    );
+
+    if (onTitleTap != null) {
+      titleRow = InkWell(
+        onTap: onTitleTap,
+        borderRadius: BorderRadius.circular(AppTokens.radiusButton),
+        splashColor: colorScheme.onSurface.withValues(
+          alpha: AppTokens.alphaTintFaint,
+        ),
+        highlightColor: colorScheme.onSurface.withValues(
+          alpha: AppTokens.alphaTintFaint,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: titleRow,
+        ),
+      );
+    }
+
+    return Padding(
+      padding:
+          padding ??
+          const EdgeInsets.only(left: 20, right: 20, top: 12, bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                titleRow,
+                if (subtitleWidget != null) ...[
+                  const SizedBox(height: 6),
+                  subtitleWidget!,
+                ] else if (subtitle != null && subtitle!.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle!,
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontFeatures: AppTokens.fontTabular,
+                      fontSize: 12.5,
+                      color: colorScheme.onSurfaceVariant,
+                      letterSpacing: 0.2,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (trailing != null) ...[
+            const SizedBox(width: AppTokens.spaceMd),
+            trailing!,
+          ],
+        ],
+      ),
     );
   }
 }

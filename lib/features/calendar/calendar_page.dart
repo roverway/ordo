@@ -13,7 +13,8 @@ import '../../core/utils/derived.dart';
 import '../../core/utils/motion.dart';
 import '../../core/utils/tree.dart';
 import '../../core/utils/view_rules.dart' as view_rules;
-import '../../shared/widgets/app_drawer.dart';
+import '../../shared/widgets/page_hero_header.dart';
+import '../../shared/widgets/scope_switcher_sheet.dart';
 import '../../shared/widgets/app_menu_item.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
@@ -47,135 +48,9 @@ class CalendarPage extends ConsumerWidget {
     final state = ref.watch(calendarStateProvider);
     final bucketsAsync = ref.watch(calendarBucketsProvider);
 
-    return Scaffold(
-      drawer: isNarrow ? const AppDrawer() : null,
-      appBar: AppBar(
-        leading: isNarrow
-            ? Builder(
-                builder: (context) => IconButton(
-                  tooltip: l10n.openDrawer,
-                  icon: const Icon(Icons.menu, size: 22),
-                  onPressed: () => Scaffold.of(context).openDrawer(),
-                ),
-              )
-            : null,
-        automaticallyImplyLeading: false,
-        title: _buildAppBarTitle(context, ref, state),
-        actions: [
-          // 回到今天快捷按钮（置于三点菜单左侧）
-          IconButton(
-            tooltip: l10n.goToToday,
-            icon: const Icon(Icons.today_outlined, size: 22),
-            onPressed: () {
-              ref.read(calendarStateProvider.notifier).goToToday();
-            },
-          ),
-          // 更多操作三点菜单（月/周视图切换、范围切换：当日/该周/该月、搜索）
-          PopupMenuButton<_CalendarMenuAction>(
-            tooltip: l10n.moreOptions,
-            icon: const Icon(Icons.more_vert, size: 22),
-            onSelected: (action) {
-              switch (action) {
-                case _CalendarMenuAction.toggleView:
-                  ref.read(calendarStateProvider.notifier).toggleView();
-                  break;
-                case _CalendarMenuAction.scopeDay:
-                  ref
-                      .read(calendarStateProvider.notifier)
-                      .setAgendaScope(CalendarAgendaScope.day);
-                  break;
-                case _CalendarMenuAction.scopeWeek:
-                  ref
-                      .read(calendarStateProvider.notifier)
-                      .setAgendaScope(CalendarAgendaScope.week);
-                  break;
-                case _CalendarMenuAction.scopeMonth:
-                  ref
-                      .read(calendarStateProvider.notifier)
-                      .setAgendaScope(CalendarAgendaScope.month);
-                  break;
-                case _CalendarMenuAction.search:
-                  context.push('/search');
-                  break;
-              }
-            },
-            itemBuilder: (context) => [
-              AppMenuItem(
-                value: _CalendarMenuAction.toggleView,
-                icon: state.mode == CalendarMode.month
-                    ? Icons.calendar_view_week_outlined
-                    : Icons.calendar_view_month_outlined,
-                label: state.mode == CalendarMode.month
-                    ? l10n.switchToWeekView
-                    : l10n.switchToMonthView,
-              ),
-              const PopupMenuDivider(),
-              AppMenuItem(
-                value: _CalendarMenuAction.scopeDay,
-                icon: state.agendaScope == CalendarAgendaScope.day
-                    ? Icons.check
-                    : null,
-                label: l10n.calendarScopeDay,
-              ),
-              AppMenuItem(
-                value: _CalendarMenuAction.scopeWeek,
-                icon: state.agendaScope == CalendarAgendaScope.week
-                    ? Icons.check
-                    : null,
-                label: l10n.calendarScopeWeek,
-              ),
-              AppMenuItem(
-                value: _CalendarMenuAction.scopeMonth,
-                icon: state.agendaScope == CalendarAgendaScope.month
-                    ? Icons.check
-                    : null,
-                label: l10n.calendarScopeMonth,
-              ),
-              const PopupMenuDivider(),
-              AppMenuItem(
-                value: _CalendarMenuAction.search,
-                icon: Icons.search,
-                label: l10n.search,
-              ),
-            ],
-          ),
-          const SizedBox(width: AppTokens.spaceXs),
-        ],
-      ),
-      body: bucketsAsync.when(
-        skipLoadingOnRefresh: true,
-        skipLoadingOnReload: true,
-        data: (buckets) => isNarrow
-            ? _buildNarrowLayout(context, ref, buckets, state)
-            : _buildWideLayout(context, ref, buckets, state),
-        loading: () => const LoadingView(),
-        error: (e, st) {
-          logAsyncError(e, st);
-          return ErrorView(
-            onRetry: () => ref.invalidate(calendarBucketsProvider),
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        tooltip: l10n.newTask,
-        onPressed: () => _createTaskOnDay(context, ref, state.selectedDate),
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  // ── AppBar 标题组件（支持点击弹出日期选择面板）───────────────────────────
-
-  Widget _buildAppBarTitle(
-    BuildContext context,
-    WidgetRef ref,
-    CalendarState state,
-  ) {
-    final theme = Theme.of(context);
     final range = calendarRangeFor(state);
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
-
-    final formatted = formatCalendarHeader(
+    final formattedPeriod = formatCalendarHeader(
       selectedDate: state.selectedDate,
       isMonthMode: state.mode == CalendarMode.month,
       weekStart: range.start,
@@ -183,36 +58,142 @@ class CalendarPage extends ConsumerWidget {
       isZh: isZh,
     );
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(AppTokens.radiusChip),
-      onTap: () => _pickDate(context, ref, state.selectedDate),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppTokens.spaceXs,
-          vertical: AppTokens.spaceXxs,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
           children: [
-            Flexible(
-              child: Text(
-                formatted,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.2,
+            PageHeroHeader(
+              title: l10n.navCalendar,
+              onTitleTap: isNarrow
+                  ? () => showScopeSwitcherSheet(context)
+                  : null,
+              subtitleWidget: GestureDetector(
+                onTap: () => _pickDate(context, ref, state.selectedDate),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      formattedPeriod,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    Icon(
+                      Icons.keyboard_arrow_down,
+                      size: 14,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ],
                 ),
               ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: l10n.goToToday,
+                    icon: const Icon(Icons.today_outlined, size: 22),
+                    onPressed: () {
+                      ref.read(calendarStateProvider.notifier).goToToday();
+                    },
+                  ),
+                  PopupMenuButton<_CalendarMenuAction>(
+                    tooltip: l10n.moreOptions,
+                    icon: const Icon(Icons.more_vert, size: 22),
+                    onSelected: (action) {
+                      switch (action) {
+                        case _CalendarMenuAction.toggleView:
+                          ref.read(calendarStateProvider.notifier).toggleView();
+                          break;
+                        case _CalendarMenuAction.scopeDay:
+                          ref
+                              .read(calendarStateProvider.notifier)
+                              .setAgendaScope(CalendarAgendaScope.day);
+                          break;
+                        case _CalendarMenuAction.scopeWeek:
+                          ref
+                              .read(calendarStateProvider.notifier)
+                              .setAgendaScope(CalendarAgendaScope.week);
+                          break;
+                        case _CalendarMenuAction.scopeMonth:
+                          ref
+                              .read(calendarStateProvider.notifier)
+                              .setAgendaScope(CalendarAgendaScope.month);
+                          break;
+                        case _CalendarMenuAction.search:
+                          context.push('/search');
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      AppMenuItem(
+                        value: _CalendarMenuAction.toggleView,
+                        icon: state.mode == CalendarMode.month
+                            ? Icons.calendar_view_week_outlined
+                            : Icons.calendar_view_month_outlined,
+                        label: state.mode == CalendarMode.month
+                            ? l10n.switchToWeekView
+                            : l10n.switchToMonthView,
+                      ),
+                      const PopupMenuDivider(),
+                      AppMenuItem(
+                        value: _CalendarMenuAction.scopeDay,
+                        icon: state.agendaScope == CalendarAgendaScope.day
+                            ? Icons.check
+                            : null,
+                        label: l10n.calendarScopeDay,
+                      ),
+                      AppMenuItem(
+                        value: _CalendarMenuAction.scopeWeek,
+                        icon: state.agendaScope == CalendarAgendaScope.week
+                            ? Icons.check
+                            : null,
+                        label: l10n.calendarScopeWeek,
+                      ),
+                      AppMenuItem(
+                        value: _CalendarMenuAction.scopeMonth,
+                        icon: state.agendaScope == CalendarAgendaScope.month
+                            ? Icons.check
+                            : null,
+                        label: l10n.calendarScopeMonth,
+                      ),
+                      const PopupMenuDivider(),
+                      AppMenuItem(
+                        value: _CalendarMenuAction.search,
+                        icon: Icons.search,
+                        label: l10n.search,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.keyboard_arrow_down,
-              size: 18,
-              color: theme.colorScheme.onSurfaceVariant,
+            const Divider(height: 1, indent: 20, endIndent: 20),
+            Expanded(
+              child: bucketsAsync.when(
+                skipLoadingOnRefresh: true,
+                skipLoadingOnReload: true,
+                data: (buckets) => isNarrow
+                    ? _buildNarrowLayout(context, ref, buckets, state)
+                    : _buildWideLayout(context, ref, buckets, state),
+                loading: () => const LoadingView(),
+                error: (e, st) {
+                  logAsyncError(e, st);
+                  return ErrorView(
+                    onRetry: () => ref.invalidate(calendarBucketsProvider),
+                  );
+                },
+              ),
             ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        tooltip: l10n.newTask,
+        onPressed: () => _createTaskOnDay(context, ref, state.selectedDate),
+        child: const Icon(Icons.add),
       ),
     );
   }

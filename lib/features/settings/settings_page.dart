@@ -13,24 +13,41 @@ import '../sync_setup/sync_setup_providers.dart';
 import '../tags/tag_providers.dart';
 import 'settings_providers.dart';
 
+import '../../shared/widgets/page_hero_header.dart';
+import '../../shared/widgets/scope_switcher_sheet.dart';
+import '../../core/utils/app_breakpoints.dart';
+
 /// App version (keep in sync with pubspec.yaml version, not translatable).
 const String appVersion = '1.0.0';
 
 /// Settings page: Appearance (theme/language) + About.
-///
-/// Theme mode (system/light/dark) and language (zh/en) switch instantly
-/// and persist via the Drift settings table (docs/64-local-preferences.md).
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final narrow = AppBreakpoints.isNarrow(context);
+
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.settings)),
-      body: SettingsBody(
-        onOpenSync: () => context.push('/settings/sync'),
-        onOpenTags: () => context.push('/tags'),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            PageHeroHeader(
+              title: l10n.settings,
+              subtitle: '偏好与同步',
+              onTitleTap: narrow ? () => showScopeSwitcherSheet(context) : null,
+            ),
+            const Divider(height: 1, indent: 20, endIndent: 20),
+            Expanded(
+              child: SettingsBody(
+                onOpenSync: () => context.push('/settings/sync'),
+                onOpenTags: () => context.push('/tags'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

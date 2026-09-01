@@ -6,161 +6,219 @@ import '../../core/db/database.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_breakpoints.dart';
-import '../../shared/widgets/app_drawer.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
+import '../../shared/widgets/hero_progress_ring.dart';
 import '../../shared/widgets/loading_view.dart';
 import '../../shared/widgets/page_hero_header.dart';
+import '../../shared/widgets/scope_switcher_sheet.dart';
 import '../../shared/widgets/staggered_fade_slide.dart';
+import '../tasks/task_providers.dart';
 import 'project_providers.dart';
 import 'widgets/project_card.dart';
 import 'widgets/project_form_dialog.dart';
 
-/// 项目列表页（50-ui-ux.md §5.3；62-folder-nav.md §6.4 批 3 分组展示）。
-///
-/// 按文件夹分组展示：文件夹分组头（图标 + 名称）+ 项目卡片 + 未分组区
-/// （D5：宽屏与抽屉分组一致，**不做拖拽**，仅展示分组）。
-/// 新建项目入口 + 删除项目（级联确认框）。
+/// 项目概览页（对齐原型 overview.html：概览 Hero + 周进度条 + 文件夹分组项目卡片）。
 class ProjectsPage extends ConsumerWidget {
   const ProjectsPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final narrow = AppBreakpoints.isNarrow(context);
+
     final groupingAsync = ref.watch(projectsByFolderProvider);
-    final showFab = groupingAsync.maybeWhen(
-      data: (g) => g.folders.isNotEmpty || g.ungrouped.isNotEmpty,
-      orElse: () => false,
-    );
+    final projectsAsync = ref.watch(projectsStreamProvider);
 
     return Scaffold(
-      drawer: narrow ? const AppDrawer() : null,
-      appBar: AppBar(
-        leading: narrow
-            ? Builder(
-                builder: (context) => IconButton(
-                  tooltip: l10n.openDrawer,
-                  icon: const Icon(Icons.menu, size: 22),
-                  onPressed: () => Scaffold.of(context).openDrawer(),
+      body: SafeArea(
+        bottom: false,
+        child: groupingAsync.when(
+          data: (grouping) {
+            final folders = grouping.folders;
+            final ungrouped = grouping.ungrouped;
+            final allProjects =
+                projectsAsync.value
+                    ?.where((p) => p.id != inboxProjectId)
+                    .toList() ??
+                [];
+
+            if (folders.isEmpty && ungrouped.isEmpty) {
+              return EmptyState(
+                icon: Icons.folder_outlined,
+                accentColor: colorScheme.primary,
+                message: l10n.emptyProjects,
+                action: FilledButton.icon(
+                  onPressed: () => _showNewProjectDialog(context, ref),
+                  icon: const Icon(Icons.add),
+                  label: Text(l10n.newProject),
                 ),
-              )
-            : null,
-        automaticallyImplyLeading: false,
-        title: Text(l10n.navProjects),
-        actions: [
-          IconButton(
-            tooltip: l10n.search,
-            icon: const Icon(Icons.search, size: 22),
-            onPressed: () => context.push('/search'),
-          ),
-        ],
-      ),
-      body: groupingAsync.when(
-        data: (grouping) {
-          // 与抽屉项目区一致：内置收件箱由系统组 /inbox 承载，不列入项目列表
-          //（Bug 3）。无文件夹且无项目时显示「暂无项目」空态。
-          final folders = grouping.folders;
-          final ungrouped = grouping.ungrouped;
-          if (folders.isEmpty && ungrouped.isEmpty) {
-            return EmptyState(
-              icon: Icons.folder_outlined,
-              accentColor: AppTokens.colorNavInbox,
-              message: l10n.emptyProjects,
-              action: FilledButton.icon(
-                onPressed: () => _showNewProjectDialog(context, ref),
-                icon: const Icon(Icons.add),
-                label: Text(l10n.newProject),
-              ),
-            );
-          }
-          // 大标题头部：项目数 + 文件夹数概览（66 §5，与今日页同语言）。
-          final totalCount = folders.fold<int>(
-            0,
-            (sum, f) => sum + (grouping.folderProjects[f.id]?.length ?? 0),
-          );
-          final header = Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppTokens.spaceMd,
-              AppTokens.spaceSm,
-              AppTokens.spaceMd,
-              0,
-            ),
-            child: PageHeroHeader(
-              title: l10n.navProjects,
-              subtitle: [
-                l10n.projectCount(totalCount + ungrouped.length),
-                if (folders.isNotEmpty) l10n.folderCount(folders.length),
-              ].join(' · '),
-            ),
-          );
-          // B 批：卡片逐项错落入场（仅首次 build；分组头不参与，作为锚点
-          // 即时呈现）。
-          var cardIndex = 0;
-          return Column(
-            children: [
-              header,
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppTokens.spaceMd,
-                    vertical: AppTokens.spaceXs,
+              );
+            }
+
+            // 统计待办与完成情况
+            var totalTasks = 0;
+            var totalCompleted = 0;
+            for (final p in allProjects) {
+              final summary = ref.watch(projectSummaryProvider(p.id));
+              totalTasks += summary.totalCount;
+              totalCompleted += (summary.totalCount - summary.uncompletedCount);
+            }
+
+            final totalProjectsCount = allProjects.length;
+            final totalPendingTasks = totalTasks - totalCompleted;
+
+            var cardIndex = 0;
+
+            return CustomScrollView(
+              slivers: [
+                // Hero 顶栏
+                SliverToBoxAdapter(
+                  child: PageHeroHeader(
+                    title: '概览',
+                    onTitleTap: narrow
+                        ? () => showScopeSwitcherSheet(context)
+                        : null,
+                    subtitle:
+                        '共 $totalProjectsCount 个项目 · $totalPendingTasks 项待办',
+                    trailing: HeroProgressRing(
+                      completed: totalCompleted,
+                      total: totalTasks > 0 ? totalTasks : 1,
+                      customCenterText: totalTasks > 0
+                          ? '$totalCompleted/$totalTasks'
+                          : '0/0',
+                    ),
                   ),
-                  children: [
-                    for (final folder in folders) ...[
-                      _ProjectSectionHeader(
-                        icon: Icons.folder_outlined,
-                        title: folder.name,
-                      ),
-                      for (final project
-                          in grouping.folderProjects[folder.id] ??
-                              const <Project>[])
-                        StaggeredFadeSlide(
-                          index: cardIndex++,
-                          child: ProjectCard(
-                            project: project,
-                            onTap: () =>
-                                context.push('/projects/${project.id}'),
-                          ),
-                        ),
-                    ],
-                    // 未分组区（无文件夹时同样展示，保持分组结构一致）。
-                    if (ungrouped.isNotEmpty) ...[
-                      _ProjectSectionHeader(
-                        icon: Icons.folder_off_outlined,
-                        title: l10n.ungrouped,
-                      ),
-                      for (final project in ungrouped)
-                        StaggeredFadeSlide(
-                          index: cardIndex++,
-                          child: ProjectCard(
-                            project: project,
-                            onTap: () =>
-                                context.push('/projects/${project.id}'),
-                          ),
-                        ),
-                    ],
-                  ],
                 ),
-              ),
-            ],
-          );
-        },
-        loading: () => const LoadingView(),
-        error: (e, st) {
-          logAsyncError(e, st);
-          return ErrorView(
-            onRetry: () => ref.invalidate(projectsByFolderProvider),
-          );
-        },
+
+                // 周完成条 (Week progress bar)
+                if (totalTasks > 0)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 8,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '本周进度',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              Text(
+                                '$totalCompleted/$totalTasks 项 (${(totalCompleted / totalTasks * 100).round()}%)',
+                                style: TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontFeatures: AppTokens.fontTabular,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(3),
+                            child: LinearProgressIndicator(
+                              value: totalCompleted / totalTasks,
+                              minHeight: 6,
+                              backgroundColor: isDark
+                                  ? Colors.white.withValues(alpha: 0.08)
+                                  : Colors.black.withValues(alpha: 0.06),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                totalCompleted == totalTasks
+                                    ? AppTokens.colorDone
+                                    : colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                // 分组项目列表
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      for (final folder in folders) ...[
+                        _FolderSectionHeader(
+                          title: folder.name,
+                          count:
+                              grouping.folderProjects[folder.id]?.length ?? 0,
+                        ),
+                        for (final project
+                            in grouping.folderProjects[folder.id] ??
+                                const <Project>[])
+                          StaggeredFadeSlide(
+                            index: cardIndex++,
+                            child: ProjectCard(
+                              project: project,
+                              onTap: () =>
+                                  context.push('/projects/${project.id}'),
+                            ),
+                          ),
+                      ],
+                      if (ungrouped.isNotEmpty) ...[
+                        _FolderSectionHeader(
+                          title: '未分组',
+                          count: ungrouped.length,
+                        ),
+                        for (final project in ungrouped)
+                          StaggeredFadeSlide(
+                            index: cardIndex++,
+                            child: ProjectCard(
+                              project: project,
+                              onTap: () =>
+                                  context.push('/projects/${project.id}'),
+                            ),
+                          ),
+                      ],
+                    ]),
+                  ),
+                ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              ],
+            );
+          },
+          loading: () => const LoadingView(),
+          error: (e, st) {
+            logAsyncError(e, st);
+            return ErrorView(
+              onRetry: () => ref.invalidate(projectsByFolderProvider),
+            );
+          },
+        ),
       ),
-      floatingActionButton: showFab
-          ? FloatingActionButton(
-              onPressed: () => _showNewProjectDialog(context, ref),
-              tooltip: l10n.newProject,
-              child: const Icon(Icons.add),
-            )
-          : null,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showNewProjectDialog(context, ref),
+        tooltip: l10n.newProject,
+        backgroundColor: isDark ? Colors.white : Colors.black,
+        foregroundColor: isDark ? Colors.black : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+        icon: const Icon(Icons.add_rounded, size: 20),
+        label: Text(
+          l10n.newProject,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5),
+        ),
+      ),
     );
   }
 
@@ -180,37 +238,39 @@ class ProjectsPage extends ConsumerWidget {
   }
 }
 
-/// 项目分组小标题（62-folder-nav.md §6.4：图标 + 名称）。
-class _ProjectSectionHeader extends StatelessWidget {
-  const _ProjectSectionHeader({required this.icon, required this.title});
+/// 概览页文件夹分组头
+class _FolderSectionHeader extends StatelessWidget {
+  const _FolderSectionHeader({required this.title, required this.count});
 
-  final IconData icon;
   final String title;
+  final int count;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppTokens.spaceXxs,
-        AppTokens.spaceSm,
-        AppTokens.spaceXxs,
-        AppTokens.spaceXs,
-      ),
+      padding: const EdgeInsets.fromLTRB(4, 20, 4, 10),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(
-            icon,
-            size: AppTokens.folderHeaderIconSize,
-            color: colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(width: AppTokens.spaceXs),
           Text(
-            title,
-            style: theme.textTheme.labelLarge?.copyWith(
+            title.toUpperCase(),
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.4,
               color: colorScheme.onSurfaceVariant,
-              fontWeight: AppTokens.textTitleWeight,
+            ),
+          ),
+          Text(
+            '$count',
+            style: TextStyle(
+              fontFamily: 'monospace',
+              fontFeatures: AppTokens.fontTabular,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
         ],
