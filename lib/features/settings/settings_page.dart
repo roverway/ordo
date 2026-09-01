@@ -149,17 +149,36 @@ class SettingsBody extends ConsumerWidget {
           children: [
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.label_outline),
-              title: Text(l10n.taskTags, style: theme.textTheme.bodyLarge),
+              leading: Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.label_outline,
+                  size: 18,
+                  color: Color(0xFF8B5CF6),
+                ),
+              ),
+              title: Text(
+                l10n.taskTags,
+                style: const TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
               subtitle: tagsAsync.hasValue
                   ? Padding(
-                      padding: const EdgeInsets.only(top: AppTokens.spaceXxs),
+                      padding: const EdgeInsets.only(top: 2),
                       child: Text(
                         (tagsAsync.value?.isEmpty ?? true)
                             ? l10n.emptyTags
-                            : '${tagsAsync.value!.length}',
+                            : '管理任务标签 · 当前 ${tagsAsync.value!.length} 个',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
+                          fontSize: 12,
                         ),
                       ),
                     )
@@ -175,13 +194,33 @@ class SettingsBody extends ConsumerWidget {
           children: [
             ListTile(
               contentPadding: EdgeInsets.zero,
-              title: Text(l10n.syncSettings, style: theme.textTheme.bodyLarge),
+              leading: Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D9488).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.cloud_outlined,
+                  size: 18,
+                  color: Color(0xFF0D9488),
+                ),
+              ),
+              title: Text(
+                l10n.syncSettings,
+                style: const TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
               subtitle: Padding(
-                padding: const EdgeInsets.only(top: AppTokens.spaceSm),
+                padding: const EdgeInsets.only(top: 2),
                 child: Text(
                   _syncStatusSubtitle(l10n, syncConfigAsync),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
+                    fontSize: 12,
                   ),
                 ),
               ),
@@ -198,11 +237,47 @@ class SettingsBody extends ConsumerWidget {
                   const Icon(Icons.chevron_right),
                 ],
               ),
-              // 用 push 而非 go：go('/settings/sync') 会把整个导航栈替换为
-              // [settings, sync]，丢掉了进入设置前的任务页（/today 等），
-              // 导致从设置页无法返回 —— 用户实测 bug。push 保留完整栈
-              // [任务页, settings, sync]，返回箭头一路可用。
               onTap: onOpenSync,
+            ),
+            const Divider(),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.sync,
+                  size: 18,
+                  color: Color(0xFF10B981),
+                ),
+              ),
+              title: const Text(
+                '自动同步',
+                style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w500),
+              ),
+              subtitle: const Text(
+                '数据变更或启动时自动同步',
+                style: TextStyle(fontSize: 12),
+              ),
+              trailing: Switch(
+                value:
+                    syncConfigAsync.value?.autoOnStart == true ||
+                    syncConfigAsync.value?.autoOnEdit == true,
+                onChanged: (val) async {
+                  final config = syncConfigAsync.value;
+                  if (config != null) {
+                    await saveSyncConfig(
+                      ref,
+                      config.copyWith(autoOnStart: val, autoOnEdit: val),
+                    );
+                    ref.invalidate(syncConfigProvider);
+                  }
+                },
+              ),
             ),
           ],
         ),

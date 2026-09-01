@@ -18,6 +18,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
 
 import '../../../core/db/database.dart';
+import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/priority_color.dart';
@@ -136,55 +137,30 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
       final borderColor = isDark
           ? AppTokens.borderSubtleDark
           : AppTokens.borderSubtleLight;
+      final timeText = formatTaskTimeDisplay(startAt, endAt, l10n);
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 顶部所属项目指示
-          if (project != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      color: Color(project.color),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    project.name,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          // 标题输入框 (23px 加粗)
+          // 标题输入框 (31px 加粗，复刻 editor.html 原型)
           TextField(
             controller: widget.controller.titleController,
             focusNode: widget.controller.titleFocusNode,
             autofocus: widget.autofocus,
             maxLines: null,
             style: theme.textTheme.headlineSmall?.copyWith(
-              fontSize: 23,
+              fontSize: 31,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.5,
+              height: 1.25,
               color: colorScheme.onSurface,
             ),
             decoration: InputDecoration(
-              hintText: l10n.taskTitle,
+              hintText: '准备做什么？',
               hintStyle: TextStyle(
                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                 fontWeight: FontWeight.w700,
+                fontSize: 31,
               ),
               border: InputBorder.none,
               isDense: true,
@@ -193,22 +169,106 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
             onChanged: (v) =>
                 ref.read(taskFormProvider.notifier).updateTitle(v),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
 
-          // 描述/备注输入框
+          // 标题下方元信息行 (hero-sub: 项目圆点+名称 · 时间 · 优先级)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                // 所属项目
+                if (project != null)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          color: Color(project.color),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        project.name,
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                // 时间
+                if (timeText.isNotEmpty && timeText != '未设置')
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.access_time,
+                        size: 13,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        timeText,
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 12.5,
+                          fontFeatures: AppTokens.fontTabular,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                // 优先级
+                if (priority != TaskPriority.none)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: priorityColor(priority),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        priorityLabel(l10n, priority),
+                        style: TextStyle(
+                          color: priorityColor(priority),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+
+          // 描述/备注输入框 (15px)
           TextField(
             controller: widget.controller.descriptionController,
             maxLines: null,
             minLines: 2,
             style: theme.textTheme.bodyMedium?.copyWith(
-              fontSize: 14.5,
-              height: 1.65,
+              fontSize: 15,
+              height: 1.6,
               color: colorScheme.onSurface,
             ),
             decoration: InputDecoration(
-              hintText: '添加描述…',
+              hintText: '添加描述或要点…',
               hintStyle: TextStyle(
                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.45),
+                fontSize: 15,
               ),
               border: InputBorder.none,
               isDense: true,
@@ -401,15 +461,23 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
           // 底部：同步信息与删除任务
           Divider(height: 1, color: borderColor),
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.symmetric(vertical: 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 if (ref.watch(taskFormProvider.select((s) => s.id)) != null)
                   TaskMetadataFooter(taskId: ref.read(taskFormProvider).id!),
                 if (widget.onDeleteRequested != null)
                   TextButton.icon(
                     onPressed: widget.onDeleteRequested,
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                    ),
                     icon: Icon(
                       Icons.delete_outline,
                       size: 16,

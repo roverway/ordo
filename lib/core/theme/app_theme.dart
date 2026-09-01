@@ -16,22 +16,25 @@ abstract final class AppTheme {
   /// - Android: null（自动匹配系统 Roboto + Noto Sans）
   static String? get _defaultFontFamily {
     return switch (defaultTargetPlatform) {
-      TargetPlatform.windows => 'Microsoft YaHei UI',
+      TargetPlatform.windows => 'Segoe UI',
       TargetPlatform.macOS || TargetPlatform.iOS => 'PingFang SC',
-      TargetPlatform.linux => 'Noto Sans CJK SC',
+      TargetPlatform.linux => 'Noto Sans SC',
+      TargetPlatform.android => 'Noto Sans SC',
       _ => null,
     };
   }
 
-  /// 全平台字体回退链，彻底解决中英文/数字混排时字体回退割裂与粗细不一问题。
+  /// 全平台字体回退链，匹配设计原型字体系统（PingFang SC / HarmonyOS Sans SC / MiSans / Noto Sans SC / Segoe UI / Microsoft YaHei）。
   static const List<String> _fontFamilyFallback = [
+    'PingFang SC',
+    'HarmonyOS Sans SC',
+    'MiSans',
+    'Noto Sans SC',
+    'Noto Sans CJK SC',
+    'Segoe UI',
     'Microsoft YaHei UI',
     'Microsoft YaHei',
-    'PingFang SC',
-    'Noto Sans CJK SC',
-    'Noto Sans SC',
     'WenQuanYi Micro Hei',
-    'Segoe UI',
     'sans-serif',
   ];
 

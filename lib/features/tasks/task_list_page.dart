@@ -339,31 +339,34 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
               countColor: AppTokens.colorOverdue,
             ),
           ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              final v = overdueList[index];
-              return StaggeredFadeSlide(
-                index: tileIndex++,
-                child: SimpleTaskTile(
-                  task: v.task,
-                  hasChildren: v.hasChildren,
-                  isDone: v.effectiveStatus == TaskStatus.done,
-                  isOverdue: true,
-                  tags: v.tags,
-                  projectName: v.projectName,
-                  projectColor: v.projectColor,
-                  progressValue: v.progressValue,
-                  subtaskProgressText: v.subtaskProgressText,
-                  onTap: () => context.push('/task/${v.task.id}'),
-                  onToggleDone: (done) {
-                    final newStatus = (done ?? false)
-                        ? TaskStatus.done
-                        : TaskStatus.todo;
-                    repo.updateTask(v.task.id, status: newStatus);
-                  },
-                ),
-              );
-            }, childCount: overdueList.length),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final v = overdueList[index];
+                return StaggeredFadeSlide(
+                  index: tileIndex++,
+                  child: SimpleTaskTile(
+                    task: v.task,
+                    hasChildren: v.hasChildren,
+                    isDone: v.effectiveStatus == TaskStatus.done,
+                    isOverdue: true,
+                    tags: v.tags,
+                    projectName: v.projectName,
+                    projectColor: v.projectColor,
+                    progressValue: v.progressValue,
+                    subtaskProgressText: v.subtaskProgressText,
+                    onTap: () => context.push('/task/${v.task.id}'),
+                    onToggleDone: (done) {
+                      final newStatus = (done ?? false)
+                          ? TaskStatus.done
+                          : TaskStatus.todo;
+                      repo.updateTask(v.task.id, status: newStatus);
+                    },
+                  ),
+                );
+              }, childCount: overdueList.length),
+            ),
           ),
         ],
 
@@ -375,31 +378,34 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
               count: todayList.length,
             ),
           ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              final v = todayList[index];
-              return StaggeredFadeSlide(
-                index: tileIndex++,
-                child: SimpleTaskTile(
-                  task: v.task,
-                  hasChildren: v.hasChildren,
-                  isDone: v.effectiveStatus == TaskStatus.done,
-                  isOverdue: false,
-                  tags: v.tags,
-                  projectName: v.projectName,
-                  projectColor: v.projectColor,
-                  progressValue: v.progressValue,
-                  subtaskProgressText: v.subtaskProgressText,
-                  onTap: () => context.push('/task/${v.task.id}'),
-                  onToggleDone: (done) {
-                    final newStatus = (done ?? false)
-                        ? TaskStatus.done
-                        : TaskStatus.todo;
-                    repo.updateTask(v.task.id, status: newStatus);
-                  },
-                ),
-              );
-            }, childCount: todayList.length),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final v = todayList[index];
+                return StaggeredFadeSlide(
+                  index: tileIndex++,
+                  child: SimpleTaskTile(
+                    task: v.task,
+                    hasChildren: v.hasChildren,
+                    isDone: v.effectiveStatus == TaskStatus.done,
+                    isOverdue: false,
+                    tags: v.tags,
+                    projectName: v.projectName,
+                    projectColor: v.projectColor,
+                    progressValue: v.progressValue,
+                    subtaskProgressText: v.subtaskProgressText,
+                    onTap: () => context.push('/task/${v.task.id}'),
+                    onToggleDone: (done) {
+                      final newStatus = (done ?? false)
+                          ? TaskStatus.done
+                          : TaskStatus.todo;
+                      repo.updateTask(v.task.id, status: newStatus);
+                    },
+                  ),
+                );
+              }, childCount: todayList.length),
+            ),
           ),
         ],
 
@@ -495,21 +501,85 @@ class _ProjectOrInboxBody extends ConsumerWidget {
         final title = isInbox
             ? l10n.inbox
             : (project?.name ?? l10n.navProjects);
-        final desc = project?.description;
+
+        final tasks =
+            ref.watch(projectTasksProvider(projectId)).value ?? const <Task>[];
+        final totalCount = tasks.length;
+        final doneCount = tasks
+            .where((t) => t.status == TaskStatus.done)
+            .length;
+        final rootCount = tasks.where((t) => t.parentId == null).length;
+        final theme = Theme.of(context);
+        final colorScheme = theme.colorScheme;
 
         return Column(
           children: [
             PageHeroHeader(
               title: title,
-              subtitle: desc,
+              subtitleWidget: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: title,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    TextSpan(
+                      text: ' · 共 ',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    TextSpan(
+                      text: '$rootCount',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    TextSpan(
+                      text: ' 项 · 已完成 ',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    TextSpan(
+                      text: '$doneCount',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    TextSpan(
+                      text: '/$totalCount',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
               onTitleTap: isNarrow
                   ? () => showScopeSwitcherSheet(context)
                   : null,
-              trailing: isInbox
-                  ? null
-                  : (project != null
-                        ? _buildProjectMoreMenu(context, ref, project)
-                        : null),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  HeroProgressRing(completed: doneCount, total: totalCount),
+                  if (!isInbox && project != null)
+                    _buildProjectMoreMenu(context, ref, project),
+                ],
+              ),
             ),
             const Divider(height: 1, indent: 20, endIndent: 20),
             Expanded(child: TaskTree(projectId: projectId)),

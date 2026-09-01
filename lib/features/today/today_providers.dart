@@ -67,13 +67,21 @@ class TodayViewData {
   int get uncompletedCount =>
       overdue.where((v) => v.effectiveStatus != TaskStatus.done).length +
       today.where((v) => v.effectiveStatus != TaskStatus.done).length;
+
+  /// 已完成任务总数
+  int get completedCount =>
+      overdue.where((v) => v.effectiveStatus == TaskStatus.done).length +
+      today.where((v) => v.effectiveStatus == TaskStatus.done).length;
+
+  /// 总任务数
+  int get totalCount => overdue.length + today.length;
 }
 
 /// 由任务列表计算今日视图展示模型（纯函数 + IO，可单测）。
 ///
-/// - 入选规则：`matchesToday` 命中 **或** 逾期（§9.1 / §9.3）——逾期任务进入
-///   逾期组展示（FR-VIEW-01 AC：过期未完成任务以「逾期」样式标红）。
-/// - 无时间任务（startAt/endAt 均 null）既不匹配今日也不逾期 → 不入选。
+/// - 入选规则：`matchesToday` 命中 **或** 逾期（§9.1 / §9.3）**或** 今天内完成的任务
+///   （已完成任务在今天视图中正常显示并在进度环/计数项中计数）。
+/// - 无时间任务（startAt/endAt 均 null 且非今天完成）不入选。
 Future<TodayViewData> buildTodayView({
   required List<Task> tasks,
   required DateTime now,
@@ -82,6 +90,8 @@ Future<TodayViewData> buildTodayView({
 }) async {
   final todayStart = DateTime(now.year, now.month, now.day);
   final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+  final todayStartMs = todayStart.millisecondsSinceEpoch;
+  final todayEndMs = todayEnd.millisecondsSinceEpoch;
 
   final projects = getAllProjects != null
       ? await getAllProjects()
@@ -104,7 +114,12 @@ Future<TodayViewData> buildTodayView({
     final matches = view_rules.matchesToday(task, todayStart, todayEnd);
     // 注意传 effectiveStatus（不是 task.status），有子任务的任务按派生状态判逾期。
     final isOverdue = view_rules.isOverdue(task, effectiveStatus, todayStart);
-    if (!matches && !isOverdue) continue;
+    final completedToday =
+        effectiveStatus == TaskStatus.done &&
+        task.updatedAt >= todayStartMs &&
+        task.updatedAt <= todayEndMs;
+
+    if (!matches && !isOverdue && !completedToday) continue;
 
     final tags = await tagsForTask(task.id);
     final project = projectsMap[task.projectId];

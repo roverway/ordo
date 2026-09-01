@@ -129,88 +129,57 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
 
                 Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
+                    horizontal: 4,
                     vertical: 12,
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 现代极简复选框（22x22，圆角 6px）
-                      CheckboxBounce(
-                        isDone: widget.isDone,
-                        child: widget.hasChildren
-                            ? Tooltip(
-                                message: l10n.statusDerivedFromChildren,
-                                child: ModernCheckbox(
+                      // 现代极简复选框（22x22，圆角 6px），与首行标题顶对齐
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2.0),
+                        child: CheckboxBounce(
+                          isDone: widget.isDone,
+                          child: widget.hasChildren
+                              ? Tooltip(
+                                  message: l10n.statusDerivedFromChildren,
+                                  child: ModernCheckbox(
+                                    checked: widget.isDone,
+                                    onChanged: null,
+                                  ),
+                                )
+                              : ModernCheckbox(
                                   checked: widget.isDone,
-                                  onChanged: null,
+                                  onChanged: (val) =>
+                                      widget.onToggleDone?.call(val),
                                 ),
-                              )
-                            : ModernCheckbox(
-                                checked: widget.isDone,
-                                onChanged: (val) =>
-                                    widget.onToggleDone?.call(val),
-                              ),
+                        ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 10),
 
                       // 标题 + 属性元数据
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.only(top: 8),
+                          padding: const EdgeInsets.only(top: 1.0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // 任务标题 + 逾期徽标
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: AnimatedStrikethrough(
-                                      text: widget.task.title,
-                                      isDone: widget.isDone,
-                                      style: theme.textTheme.bodyLarge
-                                          ?.copyWith(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: widget.isDone
-                                                ? colorScheme.onSurfaceVariant
-                                                      .withValues(alpha: 0.6)
-                                                : colorScheme.onSurface,
-                                          ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  if (widget.isOverdue)
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                        left: AppTokens.spaceXxs,
-                                      ),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: AppTokens.spaceXs,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: AppTokens.colorOverdue
-                                              .withValues(alpha: 0.12),
-                                          borderRadius: BorderRadius.circular(
-                                            AppTokens.radiusChip,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          l10n.overdue,
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                color: AppTokens.colorOverdue,
-                                                fontSize:
-                                                    AppTokens.textMicroSize,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                        ),
-                                      ),
-                                    ),
-                                ],
+                              // 任务标题
+                              AnimatedStrikethrough(
+                                text: widget.task.title,
+                                isDone: widget.isDone,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  fontSize: 15.5,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.35,
+                                  color: widget.isDone
+                                      ? colorScheme.onSurfaceVariant.withValues(
+                                          alpha: 0.6,
+                                        )
+                                      : colorScheme.onSurface,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
 
                               // 描述或元数据行（项目圆点 + 时间 + 标签）
@@ -346,7 +315,7 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
 
                       // 右侧尾部：进度环 / 子任务数 (如 "2/5") + Chevron 箭头
                       Padding(
-                        padding: const EdgeInsets.only(top: 8, left: 6),
+                        padding: const EdgeInsets.only(top: 2, left: 6),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [

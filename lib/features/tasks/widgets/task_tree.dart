@@ -217,6 +217,7 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
   /// 现代一体化卡片容器：1 级任务及其全部后代任务（2 级、3 级）包裹在同一个
   /// 精致白卡容器（surfaceCard + radiusCard + cardShadowLight）内，
   /// 告别生硬折线，采用纯净字阶与阶梯缩进表达层级。
+  /// 一级任务行：扁平行 + 展开时的树状连线子任务区（与 tasklist.html 保持一致）。
   Widget _buildCard(
     BuildContext context,
     TreeNode rootNode,
@@ -228,24 +229,15 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final borderColor = isDark
+        ? AppTokens.borderSubtleDark
+        : AppTokens.borderSubtleLight;
     final children = childrenOf[rootNode.task.id] ?? const <TreeNode>[];
 
     return Container(
-      margin: const EdgeInsets.only(bottom: AppTokens.spaceSm),
       decoration: BoxDecoration(
-        color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
-        borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-        boxShadow: isDark
-            ? AppTokens.cardShadowDarkList
-            : AppTokens.cardShadowLight,
-        border: Border.all(
-          color: isDark
-              ? AppTokens.borderSubtleDark
-              : AppTokens.borderSubtleLight,
-          width: 0.5,
-        ),
+        border: Border(bottom: BorderSide(color: borderColor, width: 1)),
       ),
-      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -266,18 +258,23 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
             clipBehavior: Clip.hardEdge,
             child: rootNode.isExpanded && children.isNotEmpty
                 ? Padding(
-                    padding: const EdgeInsets.only(
-                      top: AppTokens.spaceXxs / 2,
-                      bottom: AppTokens.spaceXs,
-                    ),
-                    child: _buildChildrenSection(
-                      context,
-                      children,
-                      childrenOf,
-                      repo,
-                      expandState,
-                      childrenIndexAll: childrenIndexAll,
-                      byIdAll: byIdAll,
+                    padding: const EdgeInsets.only(left: 26, top: 2, bottom: 8),
+                    child: Container(
+                      padding: const EdgeInsets.only(left: 8),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          left: BorderSide(color: borderColor, width: 1),
+                        ),
+                      ),
+                      child: _buildChildrenSection(
+                        context,
+                        children,
+                        childrenOf,
+                        repo,
+                        expandState,
+                        childrenIndexAll: childrenIndexAll,
+                        byIdAll: byIdAll,
+                      ),
                     ),
                   )
                 : const SizedBox(width: double.infinity),
@@ -287,11 +284,7 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     );
   }
 
-  /// 卡片展开区：紧凑子任务行（无生硬折线，行间靠间距与 3 级自然梯度缩进区分），
-  /// 有子任务的子行递归缩进展开（至 3 级）。
-  ///
-  /// 子行不自带逐项动画：高度过渡由卡片级（[_buildCard]）那一个
-  /// [AnimatedSize] 统一承担，子行随容器自上而下揭示。
+  /// 展开区：紧凑子任务行，有子任务的子行递归缩进展开（至 3 级）。
   Widget _buildChildrenSection(
     BuildContext context,
     List<TreeNode> children,

@@ -81,17 +81,23 @@ class _SubtaskRowTileState extends State<SubtaskRowTile> {
         _mode == SubtaskTileDisplayMode.editing || widget.row.isNew;
 
     return Container(
-      constraints: const BoxConstraints(minHeight: AppTokens.touchTarget),
+      constraints: const BoxConstraints(minHeight: 40),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 复选框：方形圆角（22x22，圆角 6px）
-          SizedBox(
-            width: AppTokens.touchTarget,
-            height: AppTokens.touchTarget,
-            child: Center(
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0, right: 10.0),
+            child: SizedBox(
+              width: 22,
+              height: 22,
               child: Checkbox(
                 value: isDone,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: const VisualDensity(
+                  horizontal: -4,
+                  vertical: -4,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
                 ),
@@ -134,7 +140,7 @@ class _SubtaskRowTileState extends State<SubtaskRowTile> {
                               filled: false,
                               isDense: true,
                               contentPadding: const EdgeInsets.symmetric(
-                                vertical: 14.0,
+                                vertical: 8.0,
                               ),
                             ),
                             onSubmitted: (_) => widget.onSubmitted(),
@@ -146,7 +152,7 @@ class _SubtaskRowTileState extends State<SubtaskRowTile> {
                             child: Container(
                               alignment: Alignment.centerLeft,
                               padding: const EdgeInsets.symmetric(
-                                vertical: 14.0,
+                                vertical: 8.0,
                               ),
                               child: Text(
                                 widget.row.controller.text.isEmpty

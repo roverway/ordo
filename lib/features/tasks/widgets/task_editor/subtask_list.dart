@@ -89,17 +89,14 @@ class SubtaskList extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 onTap: onAddSubtaskAndFocus,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 8,
-                    horizontal: 4,
-                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Row(
                     children: [
                       Container(
-                        width: 20,
-                        height: 20,
+                        width: 22,
+                        height: 22,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(5),
+                          borderRadius: BorderRadius.circular(6),
                           border: Border.all(
                             color: colorScheme.onSurfaceVariant.withValues(
                               alpha: 0.4,
@@ -109,7 +106,7 @@ class SubtaskList extends StatelessWidget {
                         ),
                         child: Icon(
                           Icons.add,
-                          size: 13,
+                          size: 14,
                           color: colorScheme.onSurfaceVariant.withValues(
                             alpha: 0.7,
                           ),

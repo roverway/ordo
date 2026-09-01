@@ -203,62 +203,67 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                   const SizedBox(height: 12),
 
                   // 2. 自定义视图
-                  customViewsAsync.maybeWhen(
-                    data: (views) {
-                      if (views.isEmpty) return const SizedBox.shrink();
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              _buildSectionHeader(l10n.customViews),
-                              TextButton.icon(
-                                onPressed: () {
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionHeaderWithAdd(
+                        title: l10n.customViews,
+                        tooltip: l10n.newCustomView,
+                        onAdd: () {
+                          final router = GoRouter.of(context);
+                          Navigator.of(context).maybePop();
+                          router.push('/custom_view/new');
+                        },
+                      ),
+                      customViewsAsync.maybeWhen(
+                        data: (views) => Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (final cv in views)
+                              _buildScopeTile(
+                                icon: getCustomViewIcon(cv.icon),
+                                iconColor: Color(cv.color),
+                                title: cv.name,
+                                isSelected:
+                                    currentRoute == '/custom_view/${cv.id}',
+                                onTap: () {
                                   final router = GoRouter.of(context);
                                   Navigator.of(context).maybePop();
-                                  router.push('/custom_view/new');
+                                  router.go('/custom_view/${cv.id}');
                                 },
-                                icon: const Icon(Icons.add, size: 14),
-                                label: Text(
-                                  l10n.newCustomView,
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                  ),
-                                  visualDensity: VisualDensity.compact,
-                                ),
                               ),
-                            ],
-                          ),
-                          for (final cv in views)
-                            _buildScopeTile(
-                              icon: getCustomViewIcon(cv.icon),
-                              iconColor: Color(cv.color),
-                              title: cv.name,
-                              isSelected:
-                                  currentRoute == '/custom_view/${cv.id}',
-                              onTap: () {
-                                final router = GoRouter.of(context);
-                                Navigator.of(context).maybePop();
-                                router.go('/custom_view/${cv.id}');
-                              },
-                            ),
-                          const SizedBox(height: 12),
-                        ],
-                      );
-                    },
-                    orElse: () => const SizedBox.shrink(),
+                          ],
+                        ),
+                        orElse: () => const SizedBox.shrink(),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                   ),
 
-                  // 3. 项目与文件夹分组
-                  _buildSectionHeader('项目'),
+                  // 3. 项目与文件夹分组（清单）
+                  _buildSectionHeaderWithAdd(
+                    title: '清单',
+                    tooltip: '新建文件夹',
+                    onAdd: () async {
+                      Navigator.of(context).maybePop();
+                      final name = await showFolderNameDialog(context: context);
+                      if (name != null &&
+                          name.trim().isNotEmpty &&
+                          context.mounted) {
+                        await ref
+                            .read(todoRepositoryProvider)
+                            .createFolder(name: name.trim());
+                      }
+                    },
+                  ),
                   groupingAsync.maybeWhen(
                     data: (grouping) {
                       final folders = grouping.folders;
                       final ungrouped = grouping.ungrouped;
+                      final isDark = theme.brightness == Brightness.dark;
+                      final borderColor = isDark
+                          ? AppTokens.borderSubtleDark
+                          : AppTokens.borderSubtleLight;
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -280,20 +285,41 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                               },
                             ),
                             if (!_collapsedFolders.contains(folder.id))
-                              for (final p
-                                  in grouping.folderProjects[folder.id] ??
-                                      const <Project>[])
-                                _buildProjectTile(
-                                  project: p,
-                                  isIndented: true,
-                                  isSelected:
-                                      currentRoute == '/projects/${p.id}',
-                                  onTap: () {
-                                    final router = GoRouter.of(context);
-                                    Navigator.of(context).maybePop();
-                                    router.go('/projects/${p.id}');
-                                  },
+                              Container(
+                                margin: const EdgeInsets.only(
+                                  left: 20,
+                                  top: 1,
+                                  bottom: 4,
                                 ),
+                                padding: const EdgeInsets.only(left: 6),
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    left: BorderSide(
+                                      color: borderColor,
+                                      width: 1,
+                                    ),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    for (final p
+                                        in grouping.folderProjects[folder.id] ??
+                                            const <Project>[])
+                                      _buildProjectTile(
+                                        project: p,
+                                        isIndented: false,
+                                        isSelected:
+                                            currentRoute == '/projects/${p.id}',
+                                        onTap: () {
+                                          final router = GoRouter.of(context);
+                                          Navigator.of(context).maybePop();
+                                          router.go('/projects/${p.id}');
+                                        },
+                                      ),
+                                  ],
+                                ),
+                              ),
                           ],
                           if (ungrouped.isNotEmpty) ...[
                             if (folders.isNotEmpty)
@@ -408,14 +434,45 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 4),
       child: Text(
-        title.toUpperCase(),
+        title,
         style: TextStyle(
-          fontFamily: 'monospace',
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: FontWeight.w600,
-          letterSpacing: 1.4,
           color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeaderWithAdd({
+    required String title,
+    required String tooltip,
+    required VoidCallback onAdd,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 8, 4, 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+            ),
+          ),
+          SizedBox.square(
+            dimension: 24,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              tooltip: tooltip,
+              icon: const Icon(Icons.add, size: 16),
+              onPressed: onAdd,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -468,8 +525,11 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
             color: isSelected ? colorScheme.primary : colorScheme.onSurface,
           ),
         ),
-        trailing: badgeCount != null && badgeCount > 0
-            ? Container(
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (badgeCount != null && badgeCount > 0)
+              Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
                   color: (badgeColor ?? colorScheme.primary).withValues(
@@ -486,8 +546,14 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                     color: badgeColor ?? colorScheme.primary,
                   ),
                 ),
-              )
-            : null,
+              ),
+            if (isSelected)
+              Padding(
+                padding: const EdgeInsets.only(left: 6),
+                child: Icon(Icons.check, size: 16, color: colorScheme.primary),
+              ),
+          ],
+        ),
         onTap: onTap,
       ),
     );
@@ -559,8 +625,8 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
         dense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
         leading: Container(
-          width: 10,
-          height: 10,
+          width: 8,
+          height: 8,
           margin: const EdgeInsets.only(left: 6),
           decoration: BoxDecoration(
             color: projectColor,
@@ -575,16 +641,25 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
             color: isSelected ? colorScheme.primary : colorScheme.onSurface,
           ),
         ),
-        trailing: uncompleted > 0
-            ? Text(
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (uncompleted > 0)
+              Text(
                 '$uncompleted',
                 style: TextStyle(
                   fontSize: 12,
                   fontFeatures: AppTokens.fontTabular,
                   color: colorScheme.onSurfaceVariant,
                 ),
-              )
-            : null,
+              ),
+            if (isSelected)
+              Padding(
+                padding: const EdgeInsets.only(left: 6),
+                child: Icon(Icons.check, size: 16, color: colorScheme.primary),
+              ),
+          ],
+        ),
         onTap: onTap,
       ),
     );

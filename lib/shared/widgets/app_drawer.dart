@@ -627,28 +627,41 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     );
   }
 
-  /// 文件夹展开后的现代轻量缩进项目区。
+  /// 文件夹展开后的现代轻量缩进项目区（带树状竖线）。
   Widget _buildFolderTree(
     BuildContext context,
     AppLocalizations l10n,
     ProjectGrouping grouping,
     List<Project> projects,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var i = 0; i < projects.length; i++)
-          _buildProjectRow(
-            context,
-            l10n,
-            projects[i],
-            grouping,
-            indent: 0,
-            rowSpacing: AppTokens.folderTreeRowSpacing.toDouble(),
-            isLastInTree: i == projects.length - 1,
-            isNested: true,
-          ),
-      ],
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final borderColor = isDark
+        ? AppTokens.borderSubtleDark
+        : AppTokens.borderSubtleLight;
+
+    return Container(
+      margin: const EdgeInsets.only(left: 20, top: 1, bottom: 4),
+      padding: const EdgeInsets.only(left: 6),
+      decoration: BoxDecoration(
+        border: Border(left: BorderSide(color: borderColor, width: 1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < projects.length; i++)
+            _buildProjectRow(
+              context,
+              l10n,
+              projects[i],
+              grouping,
+              indent: 0,
+              rowSpacing: AppTokens.folderTreeRowSpacing.toDouble(),
+              isLastInTree: i == projects.length - 1,
+              isNested: true,
+            ),
+        ],
+      ),
     );
   }
 

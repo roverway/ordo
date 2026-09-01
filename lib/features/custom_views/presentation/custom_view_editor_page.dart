@@ -8,7 +8,6 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/custom_view_models.dart';
 import '../../../core/utils/uuid.dart';
 import '../../../shared/widgets/modal_side_sheet.dart';
-import '../../projects/widgets/project_color_picker_sheet.dart';
 import '../providers/custom_view_providers.dart';
 import '../widgets/filter_criteria_sheet.dart';
 import '../widgets/icon_picker_dialog.dart';
@@ -233,7 +232,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 名称、图标与颜色选择
+                // 名称与图标选择
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -251,8 +250,8 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                       },
                       borderRadius: BorderRadius.circular(14),
                       child: Container(
-                        width: 50,
-                        height: 50,
+                        width: 52,
+                        height: 52,
                         decoration: BoxDecoration(
                           color: Color(_color).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(14),
@@ -268,47 +267,16 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: AppTokens.spaceSm),
-
-                    // 颜色选择器圆点
-                    InkWell(
-                      onTap: () async {
-                        final selectedColor = await showProjectColorPicker(
-                          context: context,
-                          current: Color(_color),
-                        );
-                        if (selectedColor != null) {
-                          setState(() => _color = selectedColor.toARGB32());
-                        }
-                      },
-                      borderRadius: BorderRadius.circular(AppTokens.radiusChip),
-                      child: Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: Color(_color),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isDark ? Colors.grey[800]! : Colors.white,
-                            width: 2.5,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Color(_color).withValues(alpha: 0.4),
-                              blurRadius: 6,
-                              offset: const Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppTokens.spaceSm),
+                    const SizedBox(width: AppTokens.spaceMd),
 
                     // 视图名称输入框
                     Expanded(
                       child: TextField(
                         controller: _nameController,
-                        style: const TextStyle(fontWeight: FontWeight.w500),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
                         decoration: InputDecoration(
                           labelText: l10n.viewName,
                           hintText: l10n.viewNameHint,
@@ -341,6 +309,50 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                         ),
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // 预设主题色圆点排
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 8,
+                  children: [
+                    for (final preset in const [
+                      0xFF4A6CF7,
+                      0xFF10B981,
+                      0xFF8B5CF6,
+                      0xFF06B6D4,
+                      0xFFF59E0B,
+                      0xFFEF4444,
+                      0xFFEC4899,
+                      0xFF64748B,
+                    ])
+                      InkWell(
+                        onTap: () => setState(() => _color = preset),
+                        customBorder: const CircleBorder(),
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: Color(preset),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: _color == preset
+                                  ? (isDark ? Colors.white : Colors.black87)
+                                  : Colors.transparent,
+                              width: 2,
+                            ),
+                          ),
+                          child: _color == preset
+                              ? const Icon(
+                                  Icons.check,
+                                  size: 15,
+                                  color: Colors.white,
+                                )
+                              : null,
+                        ),
+                      ),
                   ],
                 ),
                 const SizedBox(height: AppTokens.spaceMd),
