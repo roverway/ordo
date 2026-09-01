@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/db/tables.dart';
 import '../../../../core/l10n/app_localizations.dart';
+import '../../../../core/theme/app_tokens.dart';
 import 'subtask_row_tile.dart';
 import 'task_editor_controller.dart';
 
@@ -28,15 +30,39 @@ class SubtaskList extends StatelessWidget {
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
+        final totalCount = controller.subtaskRows.length;
+        final doneCount = controller.subtaskRows
+            .where((r) => r.status == TaskStatus.done)
+            .length;
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              l10n.subtasks,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  l10n.subtasks,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.2,
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                  ),
+                ),
+                if (totalCount > 0)
+                  Text(
+                    '$doneCount/$totalCount',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurfaceVariant,
+                      fontFeatures: AppTokens.fontTabular,
+                    ),
+                  ),
+              ],
             ),
+            const SizedBox(height: 6),
             if (controller.subtaskRows.isNotEmpty)
               ReorderableListView.builder(
                 shrinkWrap: true,
@@ -57,10 +83,52 @@ class SubtaskList extends StatelessWidget {
                   );
                 },
               ),
-            TextButton.icon(
-              onPressed: onAddSubtaskAndFocus,
-              icon: const Icon(Icons.add, size: 18),
-              label: Text(l10n.addSubtask),
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: onAddSubtaskAndFocus,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 4,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(5),
+                          border: Border.all(
+                            color: colorScheme.onSurfaceVariant.withValues(
+                              alpha: 0.4,
+                            ),
+                            width: 1.2,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.add,
+                          size: 13,
+                          color: colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.7,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        l10n.addSubtask,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.6,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ],
         );

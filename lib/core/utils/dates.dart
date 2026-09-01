@@ -66,6 +66,52 @@ String formatDateRange(int? startAt, int? endAt, AppLocalizations l10n) {
   return '${formatDueDate(startAt, l10n)} – ${formatDueDate(endAt, l10n)}';
 }
 
+/// 格式化任务行中的时间/日期展示（支持「10:00」、「昨天 18:00」、「8月31日 14:00」等）。
+String formatTaskTimeDisplay(int? startAt, int? endAt, AppLocalizations l10n) {
+  final targetMs = endAt ?? startAt;
+  if (targetMs == null) return '';
+  final dt = DateTime.fromMillisecondsSinceEpoch(
+    targetMs,
+    isUtc: true,
+  ).toLocal();
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final yesterday = today.subtract(const Duration(days: 1));
+  final tomorrow = today.add(const Duration(days: 1));
+  final targetDay = DateTime(dt.year, dt.month, dt.day);
+
+  final hasTime = (dt.hour != 0 || dt.minute != 0);
+  final timeStr = hasTime
+      ? '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}'
+      : '';
+
+  final isZh = l10n.localeName.startsWith('zh');
+
+  if (targetDay == today) {
+    return timeStr.isNotEmpty ? timeStr : (isZh ? '今天' : 'Today');
+  }
+  if (targetDay == yesterday) {
+    return timeStr.isNotEmpty
+        ? (isZh ? '昨天 $timeStr' : 'Yesterday $timeStr')
+        : (isZh ? '昨天' : 'Yesterday');
+  }
+  if (targetDay == tomorrow) {
+    return timeStr.isNotEmpty
+        ? (isZh ? '明天 $timeStr' : 'Tomorrow $timeStr')
+        : (isZh ? '明天' : 'Tomorrow');
+  }
+
+  final datePart = isZh
+      ? (targetDay.year == now.year
+            ? intl.DateFormat('M月d日').format(dt)
+            : intl.DateFormat('y年M月d日').format(dt))
+      : (targetDay.year == now.year
+            ? intl.DateFormat('MMM d', l10n.localeName).format(dt)
+            : intl.DateFormat('MMM d, y', l10n.localeName).format(dt));
+
+  return timeStr.isNotEmpty ? '$datePart $timeStr' : datePart;
+}
+
 /// 「距开始 X 天」相对时间文案（61-task-list-redesign.md §4.4）。
 ///
 /// [startAt] 在**后天及以后**（≥2 天）返回本地化文案（如「距开始 12 天」）。

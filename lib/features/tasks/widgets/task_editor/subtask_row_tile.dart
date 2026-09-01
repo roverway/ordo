@@ -85,13 +85,26 @@ class _SubtaskRowTileState extends State<SubtaskRowTile> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 复选框：支持点击切换子任务完成状态（保持全不透明）。
+          // 复选框：方形圆角（22x22，圆角 6px）
           SizedBox(
             width: AppTokens.touchTarget,
             height: AppTokens.touchTarget,
-            child: Checkbox(
-              value: isDone,
-              onChanged: (_) => widget.onToggleStatus(),
+            child: Center(
+              child: Checkbox(
+                value: isDone,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                side: BorderSide(
+                  color: isDone
+                      ? theme.colorScheme.onSurface
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.34),
+                  width: 1.5,
+                ),
+                activeColor: theme.colorScheme.onSurface,
+                checkColor: theme.colorScheme.surface,
+                onChanged: (_) => widget.onToggleStatus(),
+              ),
             ),
           ),
           // 内容区：已完成子任务变灰并降低透明度（与任务浏览列表一致）。

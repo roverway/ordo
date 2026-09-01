@@ -226,9 +226,9 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
             'end_time_before_start' => l10n.endTimeBeforeStart,
             _ => errorKey,
           };
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(message)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(message)));
           return false;
         }
         await _syncSubtasks();
@@ -271,12 +271,7 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
             },
           ),
           titleSpacing: AppTokens.spaceXs,
-          title: _isEditing
-              ? Text(
-                  l10n.taskDetails,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                )
-              : TaskProjectSwitcher(interactive: !_isEditing),
+          title: TaskProjectSwitcher(interactive: !_isEditing),
           actions: [
             TextButton.icon(
               onPressed: _save,

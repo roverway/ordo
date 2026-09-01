@@ -66,6 +66,7 @@ class TaskFormState {
     this.notes = '',
     this.startAt,
     this.endAt,
+    this.createdAt = 0,
     this.status = TaskStatus.todo,
     this.priority = TaskPriority.none,
     this.existingTagIds = const [],
@@ -82,6 +83,7 @@ class TaskFormState {
   final String notes;
   final int? startAt;
   final int? endAt;
+  final int createdAt;
   final TaskStatus status;
   final TaskPriority priority;
   final List<String> existingTagIds;
@@ -105,6 +107,7 @@ class TaskFormState {
     Object? notes = _unset,
     Object? startAt = _unset,
     Object? endAt = _unset,
+    Object? createdAt = _unset,
     Object? status = _unset,
     Object? priority = _unset,
     Object? existingTagIds = _unset,
@@ -127,6 +130,9 @@ class TaskFormState {
       notes: identical(notes, _unset) ? this.notes : notes as String,
       startAt: identical(startAt, _unset) ? this.startAt : startAt as int?,
       endAt: identical(endAt, _unset) ? this.endAt : endAt as int?,
+      createdAt: identical(createdAt, _unset)
+          ? this.createdAt
+          : createdAt as int,
       status: identical(status, _unset) ? this.status : status as TaskStatus,
       priority: identical(priority, _unset)
           ? this.priority
@@ -177,6 +183,7 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
       notes: task.notes,
       startAt: task.startAt,
       endAt: task.endAt,
+      createdAt: task.createdAt,
       status: task.status,
       priority: task.priority,
       existingTagIds: tagIds,

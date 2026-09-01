@@ -4,12 +4,9 @@ import '../../core/db/database.dart';
 import '../../core/db/tables.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
-import '../../core/theme/priority_color.dart';
 import '../../core/utils/dates.dart';
-import '../../core/utils/motion.dart';
 import 'animated_strikethrough.dart';
 import 'checkbox_bounce.dart';
-import 'tag_chip.dart';
 import 'task_progress_ring.dart';
 
 /// 扁平行任务行（今日/日历/标签/搜索视图共用，61-task-list-redesign.md §6 阶段 3）。
@@ -45,6 +42,7 @@ class SimpleTaskTile extends StatefulWidget {
     this.projectName,
     this.projectColor,
     this.progressValue,
+    this.subtaskProgressText,
     this.onTap,
     this.onToggleDone,
   });
@@ -59,6 +57,10 @@ class SimpleTaskTile extends StatefulWidget {
 
   /// 有子任务任务的派生完成度（0.0–1.0），无子任务传 null。
   final double? progressValue;
+
+  /// 子任务进度文案（如 "2/5"）；无子任务传 null。
+  final String? subtaskProgressText;
+
   final VoidCallback? onTap;
   final ValueChanged<bool?>? onToggleDone;
 
@@ -74,64 +76,65 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
     final timeText = formatDateRange(
       widget.task.startAt,
       widget.task.endAt,
       l10n,
     );
-    final relativeText = formatRelativeStart(widget.task.startAt, l10n);
-    // 标题首行行高 = textScaler 缩放后的 fontSize × height（行高由主题
-    // height 钉死，与具体字体度量无关；textScaler 覆盖系统字号缩放）。
-    final titleLineHeight =
-        MediaQuery.textScalerOf(
-          context,
-        ).scale(theme.textTheme.bodyLarge?.fontSize ?? AppTokens.textBodySize) *
-        (theme.textTheme.bodyLarge?.height ?? AppTokens.textBodyHeight);
-    // 标题首行顶部留白 = (复选框触控区 − 首行行高) / 2：外层 Row 改 start
-    // 对齐后，首行文本中心仍与复选框中心（触控区 y=22）严格重合——任务带
-    // 描述/日期/标签行时复选框对齐**标题首行**而非整块中心（用户评审
-    // 2026-08，与 TaskRow 同款几何）。
-    final titleTopPad = (AppTokens.checkboxTapTargetSize - titleLineHeight) / 2;
+
+    // 优先级条颜色：高=红，中=橙，低/无=透明
+    final Color priorityBarColor = switch (widget.task.priority) {
+      TaskPriority.high => AppTokens.colorPriorityHigh,
+      TaskPriority.medium => AppTokens.colorPriorityMedium,
+      _ => Colors.transparent,
+    };
+
+    final borderColor = isDark
+        ? AppTokens.borderSubtleDark
+        : AppTokens.borderSubtleLight;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppTokens.spaceXxs),
-        child: AnimatedContainer(
-          duration: motionFast(context),
-          curve: motionCurve(context),
-          decoration: BoxDecoration(
-            // 形态 A：极简平铺（透明底，悬停给轻微底色反馈）
-            color: _hovered
-                ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.35)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(AppTokens.radiusList),
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(AppTokens.radiusList),
-              onTap: widget.onTap,
-              child: Padding(
-                padding: const EdgeInsets.only(
-                  left: AppTokens.spaceXxs,
-                  right: AppTokens.spaceXxs,
-                ),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    minHeight: AppTokens.taskRowMinHeight,
+      child: Container(
+        decoration: BoxDecoration(
+          color: _hovered
+              ? colorScheme.onSurface.withValues(alpha: 0.035)
+              : Colors.transparent,
+          border: Border(bottom: BorderSide(color: borderColor, width: 1)),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.onTap,
+            child: Stack(
+              children: [
+                // 优先级左侧竖条（高=红 / 中=橙）
+                if (priorityBarColor != Colors.transparent)
+                  Positioned(
+                    left: 0,
+                    top: 14,
+                    bottom: 14,
+                    width: 3,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: priorityBarColor,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
                   ),
                   child: Row(
-                    // start 对齐（用户评审 2026-08）：复选框钉在首行，与标题
-                    // 首行中心对齐（此前 center 对齐到整块中心，带描述/日期/
-                    // 标签行时复选框明显偏低）。
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 圆形勾选（Linear / Things 风格；有子任务 → 禁用，状态由子任务派生）。
-                      // 触控区 44，视觉 24 居中。
-                      // A 批：勾选/取消 scale 弹性脉冲（CheckboxBounce），
-                      // 勾线本身由 Material Checkbox 的勾动画淡入。
+                      // 方形复选框（22x22，圆角 6px，使用 Checkbox 组件）
                       SizedBox(
                         width: AppTokens.checkboxTapTargetSize,
                         height: AppTokens.checkboxTapTargetSize,
@@ -139,342 +142,285 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                           isDone: widget.isDone,
                           child: widget.hasChildren
                               ? Tooltip(
-                                  // 无障碍（NFR-06）：禁用原因走 ARB 文案。
                                   message: l10n.statusDerivedFromChildren,
                                   child: Checkbox(
                                     value: widget.isDone,
-                                    shape: AppTokens.checkboxShape,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
                                     side: BorderSide(
                                       color: widget.isDone
-                                          ? colorScheme.onSurfaceVariant
-                                          : (theme.brightness == Brightness.dark
+                                          ? colorScheme.onSurface
+                                          : (isDark
                                                 ? Colors.white.withValues(
-                                                    alpha: 0.35,
+                                                    alpha: 0.34,
                                                   )
-                                                : colorScheme.outline
-                                                      .withValues(alpha: 0.45)),
+                                                : colorScheme.onSurface
+                                                      .withValues(alpha: 0.34)),
                                       width: 1.5,
                                     ),
+                                    activeColor: colorScheme.onSurface,
+                                    checkColor: colorScheme.surface,
                                     onChanged: null,
                                   ),
                                 )
                               : Checkbox(
                                   value: widget.isDone,
-                                  shape: AppTokens.checkboxShape,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
                                   side: BorderSide(
                                     color: widget.isDone
-                                        ? colorScheme.onSurfaceVariant
-                                        : (theme.brightness == Brightness.dark
+                                        ? colorScheme.onSurface
+                                        : (isDark
                                               ? Colors.white.withValues(
-                                                  alpha: 0.35,
+                                                  alpha: 0.34,
                                                 )
-                                              : colorScheme.outline.withValues(
-                                                  alpha: 0.45,
-                                                )),
+                                              : colorScheme.onSurface
+                                                    .withValues(alpha: 0.34)),
                                     width: 1.5,
                                   ),
+                                  activeColor: colorScheme.onSurface,
+                                  checkColor: colorScheme.surface,
                                   onChanged: widget.onToggleDone,
                                 ),
                         ),
                       ),
-                      const SizedBox(width: AppTokens.spaceXxs),
+                      const SizedBox(width: 4),
+
+                      // 标题 + 属性元数据
                       Expanded(
-                        // 已完成 → 内容区整体淡化（勾选/进度环保持全不透明，
-                        // 行仍可交互；strikethrough + onSurfaceVariant 保留）。
-                        child: AnimatedOpacity(
-                          opacity: widget.isDone
-                              ? AppTokens.doneContentOpacity
-                              : 1,
-                          duration: motionFast(context),
-                          curve: motionCurve(context),
-                          child: Padding(
-                            // 首行顶部留白：start 对齐下标题首行中心仍与复选
-                            // 框中心重合（见 titleTopPad 注释）。
-                            padding: EdgeInsets.only(top: titleTopPad),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    // 优先级旗帜（用户要求：与编辑器工具栏同一
-                                    // flag 图标/配色）；无优先级不渲染，行布局
-                                    // 与改造前完全一致。
-                                    if (widget.task.priority !=
-                                        TaskPriority.none) ...[
-                                      Icon(
-                                        Icons.flag_outlined,
-                                        size: 14,
-                                        color: priorityColor(
-                                          widget.task.priority,
-                                        ),
-                                      ),
-                                      const SizedBox(width: AppTokens.spaceXxs),
-                                    ],
-                                    Expanded(
-                                      child: AnimatedStrikethrough(
-                                        text: widget.task.title,
-                                        isDone: widget.isDone,
-                                        style: theme.textTheme.bodyLarge
-                                            ?.copyWith(
-                                              fontSize:
-                                                  AppTokens.textTaskL1Size,
-                                              fontWeight:
-                                                  AppTokens.textTaskL1Weight,
-                                              color: widget.isDone
-                                                  ? colorScheme.onSurfaceVariant
-                                                  : colorScheme.onSurface,
-                                            ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    // 逾期徽标。
-                                    if (widget.isOverdue)
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          left: AppTokens.spaceXxs,
-                                        ),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: AppTokens.spaceXs,
-                                            vertical: 2,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: AppTokens.colorOverdue
-                                                .withValues(alpha: 0.12),
-                                            borderRadius: BorderRadius.circular(
-                                              AppTokens.radiusChip,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            l10n.overdue,
-                                            style: theme.textTheme.bodySmall
-                                                ?.copyWith(
-                                                  color: AppTokens.colorOverdue,
-                                                  fontSize:
-                                                      AppTokens.textMicroSize,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                                // 描述文字（61 §4.4）：标题下方灰色小字。
-                                if (widget.task.description.isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      top: AppTokens.spaceXxs,
-                                    ),
-                                    child: Text(
-                                      widget.task.description,
-                                      style: theme.textTheme.bodySmall
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // 任务标题 + 逾期徽标
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: AnimatedStrikethrough(
+                                      text: widget.task.title,
+                                      isDone: widget.isDone,
+                                      style: theme.textTheme.bodyLarge
                                           ?.copyWith(
-                                            color: colorScheme.onSurfaceVariant,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: widget.isDone
+                                                ? colorScheme.onSurfaceVariant
+                                                      .withValues(alpha: 0.6)
+                                                : colorScheme.onSurface,
                                           ),
-                                      maxLines: 1,
+                                      maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                // 日期行（61 §4.4）：标题下方独立行，范围灰色 +
-                                // 相对时间橙色强调。
-                                if (timeText.isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      top: AppTokens.spaceXxs,
+                                  if (widget.isOverdue)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        left: AppTokens.spaceXxs,
+                                      ),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: AppTokens.spaceXs,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppTokens.colorOverdue
+                                              .withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(
+                                            AppTokens.radiusChip,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          l10n.overdue,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: AppTokens.colorOverdue,
+                                                fontSize:
+                                                    AppTokens.textMicroSize,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                      ),
                                     ),
-                                    child: Row(
+                                ],
+                              ),
+
+                              // 描述或元数据行（项目圆点 + 时间 + 标签）
+                              if (widget.projectName != null ||
+                                  timeText.isNotEmpty ||
+                                  widget.tags.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: Opacity(
+                                    opacity: widget.isDone ? 0.55 : 1.0,
+                                    child: Wrap(
+                                      spacing: 10,
+                                      runSpacing: 4,
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.center,
                                       children: [
-                                        Icon(
-                                          Icons.calendar_today_outlined,
-                                          size: 11,
-                                          color: widget.isOverdue
-                                              ? AppTokens.colorOverdue
-                                              : colorScheme.onSurfaceVariant,
-                                        ),
-                                        const SizedBox(
-                                          width: AppTokens.spaceXxs,
-                                        ),
-                                        Expanded(
-                                          child: Text(
-                                            timeText,
-                                            style: theme.textTheme.bodySmall
-                                                ?.copyWith(
-                                                  color: widget.isOverdue
-                                                      ? AppTokens.colorOverdue
-                                                      : colorScheme
-                                                            .onSurfaceVariant,
-                                                  fontWeight: widget.isOverdue
-                                                      ? FontWeight.w500
-                                                      : FontWeight.w400,
-                                                ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                        if (relativeText.isNotEmpty) ...[
-                                          const SizedBox(
-                                            width: AppTokens.spaceXs,
-                                          ),
-                                          Text(
-                                            relativeText,
-                                            style: theme.textTheme.bodySmall
-                                                ?.copyWith(
-                                                  color: AppTokens
-                                                      .colorDateRelative,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                // 项目归属胶囊 + 标签 chips（底部独立行）。
-                                // 底部对称留白：bottom = top = spaceXxs。
-                                if ((widget.projectName != null &&
-                                        widget.projectName!.isNotEmpty) ||
-                                    widget.tags.isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: AppTokens.spaceXxs,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Flexible(
-                                          child: Row(
+                                        // 所属项目
+                                        if (widget.projectName != null &&
+                                            widget.projectName!.isNotEmpty)
+                                          Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              if (widget.projectName != null &&
-                                                  widget
-                                                      .projectName!
-                                                      .isNotEmpty) ...[
-                                                Flexible(
-                                                  child: Padding(
-                                                    padding:
-                                                        const EdgeInsets.only(
-                                                          right: AppTokens
-                                                              .spaceXxs,
-                                                        ),
-                                                    child: _ProjectCapsule(
-                                                      name: widget.projectName!,
-                                                      color: Color(
-                                                        widget.projectColor ??
-                                                            AppTokens.seedColor
-                                                                .toARGB32(),
-                                                      ),
+                                              Container(
+                                                width: 7,
+                                                height: 7,
+                                                decoration: BoxDecoration(
+                                                  color: Color(
+                                                    widget.projectColor ??
+                                                        AppTokens.seedColor
+                                                            .toARGB32(),
+                                                  ),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 5),
+                                              Text(
+                                                widget.projectName!,
+                                                style: theme.textTheme.bodySmall
+                                                    ?.copyWith(
+                                                      color: colorScheme
+                                                          .onSurfaceVariant,
+                                                      fontSize: 12.5,
                                                     ),
+                                              ),
+                                            ],
+                                          ),
+
+                                        // 时间展示
+                                        if (timeText.isNotEmpty)
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.access_time,
+                                                size: 13,
+                                                color: widget.isOverdue
+                                                    ? AppTokens.colorOverdue
+                                                    : colorScheme
+                                                          .onSurfaceVariant,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                timeText,
+                                                style: theme.textTheme.bodySmall
+                                                    ?.copyWith(
+                                                      color: widget.isOverdue
+                                                          ? AppTokens
+                                                                .colorOverdue
+                                                          : colorScheme
+                                                                .onSurfaceVariant,
+                                                      fontWeight:
+                                                          widget.isOverdue
+                                                          ? FontWeight.w600
+                                                          : FontWeight.normal,
+                                                      fontSize: 12.5,
+                                                      fontFeatures:
+                                                          AppTokens.fontTabular,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+
+                                        // 标签
+                                        for (final tag in widget.tags.take(3))
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: colorScheme.surface,
+                                              borderRadius:
+                                                  BorderRadius.circular(100),
+                                              border: Border.all(
+                                                color: borderColor,
+                                                width: 1,
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Container(
+                                                  width: 5,
+                                                  height: 5,
+                                                  decoration: BoxDecoration(
+                                                    color: Color(tag.color),
+                                                    shape: BoxShape.circle,
                                                   ),
                                                 ),
-                                              ],
-                                              ...widget.tags
-                                                  .take(2)
-                                                  .map(
-                                                    (tag) => Flexible(
-                                                      child: Padding(
-                                                        padding:
-                                                            const EdgeInsets.only(
-                                                              right: AppTokens
-                                                                  .spaceXxs,
-                                                            ),
-                                                        child: TagChip(
-                                                          tag: tag,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                              if (widget.tags.length > 2)
+                                                const SizedBox(width: 4),
                                                 Text(
-                                                  '+${widget.tags.length - 2}',
+                                                  tag.name,
                                                   style: theme
                                                       .textTheme
                                                       .bodySmall
                                                       ?.copyWith(
                                                         color: colorScheme
                                                             .onSurfaceVariant,
+                                                        fontSize: 11.5,
                                                       ),
                                                 ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
-                                        ),
                                       ],
                                     ),
                                   ),
-                              ],
-                            ),
+                                ),
+                            ],
                           ),
                         ),
                       ),
-                      // 进度环 + 百分比（61 §4.4：行尾，有子任务任务的派生完成度）。
-                      // 定高 44 居中：start 对齐下进度环始终与复选框中心对齐，
-                      // 不随描述/日期/标签行撑高的内容块偏移。
-                      if (widget.hasChildren &&
-                          widget.progressValue != null) ...[
-                        const SizedBox(width: AppTokens.spaceSm),
-                        SizedBox(
-                          height: AppTokens.checkboxTapTargetSize,
-                          child: Center(
-                            child: TaskProgressRing(
-                              value: widget.progressValue!,
+
+                      // 右侧尾部：进度环 / 子任务数 (如 "2/5") + Chevron 箭头
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8, left: 6),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (widget.hasChildren &&
+                                widget.progressValue != null)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: TaskProgressRing(
+                                  value: widget.progressValue!,
+                                ),
+                              ),
+                            if (widget.subtaskProgressText != null)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 4),
+                                child: Text(
+                                  widget.subtaskProgressText!,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                    fontSize: 11.5,
+                                    fontFeatures: AppTokens.fontTabular,
+                                  ),
+                                ),
+                              ),
+                            Icon(
+                              Icons.chevron_right,
+                              size: 16,
+                              color: colorScheme.onSurfaceVariant.withValues(
+                                alpha: 0.65,
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-                        const SizedBox(width: AppTokens.spaceXs),
-                      ],
+                      ),
                     ],
                   ),
                 ),
-              ),
+              ],
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// 紧凑项目归属胶囊微标签。
-class _ProjectCapsule extends StatelessWidget {
-  const _ProjectCapsule({required this.name, required this.color});
-
-  final String name;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTokens.spaceXs,
-        vertical: 2,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(AppTokens.projectCapsuleRadius),
-        border: Border.all(color: color.withValues(alpha: 0.22), width: 0.5),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 5,
-            height: 5,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 4),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 110),
-            child: Text(
-              name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontSize: AppTokens.textMicroSize,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -20,6 +20,7 @@ class TodayTaskView {
     this.projectName,
     this.projectColor,
     this.progressValue,
+    this.subtaskProgressText,
   });
 
   final Task task;
@@ -45,6 +46,9 @@ class TodayTaskView {
 
   /// 有子任务任务的派生完成度（0.0–1.0，进度环用）；无子任务为 null。
   final double? progressValue;
+
+  /// 子任务进度文案（如 "2/5"）；无子任务为 null。
+  final String? subtaskProgressText;
 }
 
 /// 今日视图分组数据：逾期组 + 今天组（各组内已排序）。
@@ -104,19 +108,22 @@ Future<TodayViewData> buildTodayView({
 
     final tags = await tagsForTask(task.id);
     final project = projectsMap[task.projectId];
+    final isParent = parentIds.contains(task.id);
+    final counts = isParent ? taskSubtreeCounts(task, tasks) : null;
 
     views.add(
       TodayTaskView(
         task: task,
         tags: tags,
-        hasChildren: parentIds.contains(task.id),
+        hasChildren: isParent,
         effectiveStatus: effectiveStatus,
         isOverdue: isOverdue,
         projectName: project?.name,
         projectColor: project?.color,
         // 进度环（滴答式）：有子任务任务按整棵子树统计完成度。
-        progressValue: parentIds.contains(task.id)
-            ? taskProgress(task, tasks)
+        progressValue: isParent ? taskProgress(task, tasks) : null,
+        subtaskProgressText: counts != null
+            ? '${counts.done}/${counts.total}'
             : null,
       ),
     );

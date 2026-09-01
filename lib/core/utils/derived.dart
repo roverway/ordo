@@ -102,3 +102,33 @@ double? taskProgress(Task task, List<Task> allTasks) {
   collect(task.id);
   return progress(task, subtree, includeSelf: false);
 }
+
+/// 有直接子任务的任务的完成与总数统计（用于展示 "2/5" 等子任务计数）。
+({int done, int total})? taskSubtreeCounts(Task task, List<Task> allTasks) {
+  final childrenIndex = indexChildrenByParent(allTasks);
+  if ((childrenIndex[task.id] ?? const <Task>[]).isEmpty) return null;
+  final byId = indexTasksById(allTasks);
+  final subtree = <Task>[];
+  void collect(String id) {
+    final t = byId[id];
+    if (t == null) return;
+    subtree.add(t);
+    for (final child in childrenIndex[id] ?? const <Task>[]) {
+      collect(child.id);
+    }
+  }
+
+  collect(task.id);
+  var total = 0;
+  var done = 0;
+  for (final t in subtree) {
+    if (t.id == task.id) continue;
+    if (t.deleted != 0) continue;
+    final children = childrenIndex[t.id] ?? const <Task>[];
+    final effective = children.isEmpty ? t.status : derivedStatus(t, children);
+    if (effective == TaskStatus.cancelled) continue;
+    total++;
+    if (effective == TaskStatus.done) done++;
+  }
+  return (done: done, total: total);
+}

@@ -217,10 +217,12 @@ class TaskListPage extends ConsumerWidget {
 
   Widget _buildFab(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return _BouncingFab(
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return FloatingActionButton.extended(
       tooltip: l10n.newTask,
       onPressed: () => switch (scope) {
-        // 今日缺省收件箱（des-3 幂等）；收件箱/项目显式传 projectId（§3.2）。
         TodayTaskScope() => TaskCreateSheet.show(context),
         InboxTaskScope() => TaskCreateSheet.show(
           context,
@@ -231,7 +233,15 @@ class TaskListPage extends ConsumerWidget {
           projectId: projectId,
         ),
       },
-      child: const Icon(Icons.add),
+      backgroundColor: isDark ? Colors.white : Colors.black,
+      foregroundColor: isDark ? Colors.black : Colors.white,
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+      icon: const Icon(Icons.add, size: 18),
+      label: Text(
+        l10n.newTask,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5),
+      ),
     );
   }
 
@@ -313,6 +323,7 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     // 1. Calculate counts
     final totalCount = view.overdue.length + view.today.length;
@@ -359,8 +370,6 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
     }
 
     final repo = ref.read(todoRepositoryProvider);
-    final todayHeaderColor = theme.colorScheme.onSurfaceVariant;
-
     final progressVal = totalCount == 0 ? 0.0 : completedCount / totalCount;
 
     var tileIndex = 0;
@@ -368,10 +377,11 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Header card/section
+        // Hero: 大日期 + 逾期/完成统计 + 进度环
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
                 child: Column(
@@ -384,17 +394,19 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                         Text(
                           dateStr,
                           style: theme.textTheme.headlineMedium?.copyWith(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w800,
+                            fontSize: 31,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.8,
                             color: colorScheme.onSurface,
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 10),
                         Text(
                           weekdayStr,
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                            fontSize: 16,
+                            color: colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14,
                           ),
                         ),
                       ],
@@ -407,22 +419,37 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                           '${l10n.overdue} ',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
-                            fontSize: 13,
+                            fontSize: 12,
                           ),
                         ),
                         Text(
                           '${view.overdue.length}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: AppTokens.colorOverdue,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
                           ),
                         ),
                         Text(
-                          '  ·  已完成 $completedCount/$totalCount',
+                          ' · ${l10n.statusDone} ',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
-                            fontSize: 13,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          '$completedCount',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          '/$totalCount',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 12,
+                            color: colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -430,28 +457,32 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                   ],
                 ),
               ),
-              // Circular progress ring showing progress
+              // 62x62 进度环
               Stack(
                 alignment: Alignment.center,
                 children: [
                   SizedBox(
-                    width: 56,
-                    height: 56,
+                    width: 62,
+                    height: 62,
                     child: CircularProgressIndicator(
                       value: progressVal,
-                      strokeWidth: 3.5,
-                      backgroundColor: theme.brightness == Brightness.dark
-                          ? Colors.white10
-                          : Colors.grey[100],
-                      valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                      strokeWidth: 3.0,
+                      strokeCap: StrokeCap.round,
+                      backgroundColor: isDark
+                          ? AppTokens.borderSubtleDark
+                          : AppTokens.borderSubtleLight,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        colorScheme.primary,
+                      ),
                     ),
                   ),
                   Text(
                     '$completedCount/$totalCount',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w500,
+                      fontFeatures: AppTokens.fontTabular,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                 ],
@@ -459,9 +490,10 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
             ],
           ),
         ),
-        // Filter Chips Row
+
+        // 筛选 chips：全部 / 进行中 / 已完成
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           child: Row(
             children: [
               _buildFilterChip(
@@ -484,8 +516,10 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
             ],
           ),
         ),
-        const SizedBox(height: 12),
-        // The list of tasks
+
+        const SizedBox(height: 8),
+
+        // 任务列表
         Expanded(
           child: filteredOverdue.isEmpty && filteredToday.isEmpty
               ? Center(
@@ -496,16 +530,14 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                   ),
                 )
               : ListView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 8,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
                   children: [
                     if (filteredOverdue.isNotEmpty) ...[
                       _SectionHeader(
                         title: l10n.overdue,
                         color: AppTokens.colorOverdue,
                         count: filteredOverdue.length,
+                        isError: true,
                       ),
                       for (final v in filteredOverdue)
                         StaggeredFadeSlide(
@@ -517,8 +549,9 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                     if (filteredToday.isNotEmpty) ...[
                       _SectionHeader(
                         title: l10n.today,
-                        color: todayHeaderColor,
+                        color: colorScheme.onSurfaceVariant,
                         count: filteredToday.length,
+                        isError: false,
                       ),
                       for (final v in filteredToday)
                         StaggeredFadeSlide(
@@ -541,7 +574,12 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
   }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final isSelected = _selectedFilter == filter;
+
+    final borderColor = isDark
+        ? AppTokens.borderSubtleDark
+        : AppTokens.borderSubtleLight;
 
     return GestureDetector(
       onTap: () {
@@ -549,23 +587,16 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
           _selectedFilter = filter;
         });
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        height: 34,
+        padding: const EdgeInsets.symmetric(horizontal: 13),
         decoration: BoxDecoration(
-          color: isSelected
-              ? (theme.brightness == Brightness.dark
-                  ? Colors.white
-                  : Colors.black)
-              : Colors.transparent,
+          color: isSelected ? colorScheme.onSurface : Colors.transparent,
           borderRadius: BorderRadius.circular(100),
           border: Border.all(
-            color: isSelected
-                ? (theme.brightness == Brightness.dark
-                    ? Colors.white
-                    : Colors.black)
-                : (theme.brightness == Brightness.dark
-                    ? Colors.white24
-                    : Colors.black12),
+            color: isSelected ? colorScheme.onSurface : borderColor,
+            width: 1,
           ),
         ),
         child: Row(
@@ -575,24 +606,21 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
               label,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: isSelected
-                    ? (theme.brightness == Brightness.dark
-                        ? Colors.black
-                        : Colors.white)
+                    ? colorScheme.surface
                     : colorScheme.onSurfaceVariant,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 fontSize: 13,
               ),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 6),
             Text(
               '$count',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: isSelected
-                    ? (theme.brightness == Brightness.dark
-                        ? Colors.black
-                        : Colors.white)
-                    : colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                fontSize: 13,
+                    ? colorScheme.surface.withValues(alpha: 0.7)
+                    : colorScheme.onSurfaceVariant,
+                fontSize: 11.5,
+                fontFeatures: AppTokens.fontTabular,
               ),
             ),
           ],
@@ -616,15 +644,16 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
       projectName: view.projectName,
       projectColor: view.projectColor,
       progressValue: view.progressValue,
+      subtaskProgressText: view.subtaskProgressText,
       onTap: () => openTaskEdit(context, taskId: task.id),
       onToggleDone: view.hasChildren
           ? null
           : (_) => repo.updateTask(
-                task.id,
-                status: view.effectiveStatus == TaskStatus.done
-                    ? TaskStatus.todo
-                    : TaskStatus.done,
-              ),
+              task.id,
+              status: view.effectiveStatus == TaskStatus.done
+                  ? TaskStatus.todo
+                  : TaskStatus.done,
+            ),
     );
   }
 }
@@ -664,38 +693,43 @@ class _ProjectBody extends ConsumerWidget {
 
 /// 分组标题：逾期组红色（[AppTokens.colorOverdue]），今天组弱色。
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.color, this.count});
+  const _SectionHeader({
+    required this.title,
+    required this.color,
+    this.count,
+    this.isError = false,
+  });
 
   final String title;
   final Color color;
   final int? count;
+  final bool isError;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppTokens.spaceMd,
-        AppTokens.spaceMd,
-        AppTokens.spaceMd,
-        AppTokens.spaceXs,
-      ),
+      padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            title,
-            style: theme.textTheme.titleSmall?.copyWith(
+            title.toUpperCase(),
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.4,
               color: color,
-              fontWeight: AppTokens.textTitleWeight,
             ),
           ),
           if (count != null)
             Text(
               '$count',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.bold,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: isError ? AppTokens.colorOverdue : color,
+                fontFeatures: AppTokens.fontTabular,
               ),
             ),
         ],

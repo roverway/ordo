@@ -24,7 +24,6 @@ import 'app_menu_item.dart';
 import 'error_view.dart';
 import 'loading_view.dart';
 
-
 /// 移动端侧边栏抽屉（55-ui-redesign-proposal.md §3.1，D1，批 2-A；
 /// 62-folder-nav.md §6.1 批 3 文件夹化）。
 ///
@@ -238,11 +237,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
         children: [
           // ── 顶部品牌区 ──
           Padding(
-            padding: const EdgeInsets.only(
-              left: 24.0,
-              top: 32.0,
-              bottom: 20.0,
-            ),
+            padding: const EdgeInsets.only(left: 24.0, top: 32.0, bottom: 20.0),
             child: Row(
               children: [
                 const AppLogo(size: 36, borderRadius: 10),
@@ -362,7 +357,11 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
         statusText = '同步中...';
         break;
       case SyncStateStatus.error:
-        statusIcon = Icon(Icons.error_outline, color: colorScheme.error, size: 12);
+        statusIcon = Icon(
+          Icons.error_outline,
+          color: colorScheme.error,
+          size: 12,
+        );
         statusText = '同步失败';
         textColor = colorScheme.error;
         break;
@@ -385,7 +384,9 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
         break;
     }
 
-    final protocol = syncConfigAsync.value?.type == RemoteType.s3 ? 'S3' : 'WebDAV';
+    final protocol = syncConfigAsync.value?.type == RemoteType.s3
+        ? 'S3'
+        : 'WebDAV';
 
     return Padding(
       padding: const EdgeInsets.only(left: 24.0, bottom: 16.0, top: 4.0),
@@ -1392,7 +1393,11 @@ class _NestedProjectLeadingPainter extends CustomPainter {
     if (isLast) {
       canvas.drawLine(Offset(startX, 0), Offset(startX, centerY), linePaint);
     } else {
-      canvas.drawLine(Offset(startX, 0), Offset(startX, size.height), linePaint);
+      canvas.drawLine(
+        Offset(startX, 0),
+        Offset(startX, size.height),
+        linePaint,
+      );
     }
 
     // Draw horizontal line branch
