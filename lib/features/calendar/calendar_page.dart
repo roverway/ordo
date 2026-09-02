@@ -159,10 +159,22 @@ class CalendarPage extends ConsumerWidget {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         tooltip: l10n.newTask,
         onPressed: () => _createTaskOnDay(context, ref, state.selectedDate),
-        child: const Icon(Icons.add),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white
+            : Colors.black,
+        foregroundColor: Theme.of(context).brightness == Brightness.dark
+            ? Colors.black
+            : Colors.white,
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+        icon: const Icon(Icons.add, size: 20),
+        label: Text(
+          l10n.newTask,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5),
+        ),
       ),
     );
   }
@@ -1001,35 +1013,15 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
               child: Row(
                 children: [
                   Expanded(
-                    child: Row(
-                      children: [
-                        Text(
-                          dateHeader,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: isHighlighted
-                                ? theme.colorScheme.primary
-                                : theme.colorScheme.onSurface,
-                          ),
-                        ),
-                        if (isHighlighted) ...[
-                          const SizedBox(width: 6),
-                          Text(
-                            widget.state.agendaScope == CalendarAgendaScope.day
-                                ? '今天'
-                                : (widget.state.agendaScope ==
-                                          CalendarAgendaScope.week
-                                      ? '本周'
-                                      : '本月'),
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                        ],
-                      ],
+                    child: Text(
+                      dateHeader,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: isHighlighted
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurface,
+                      ),
                     ),
                   ),
                   Container(

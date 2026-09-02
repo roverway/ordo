@@ -38,29 +38,34 @@ class SubtaskList extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  l10n.subtasks,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.2,
-                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-                  ),
-                ),
-                if (totalCount > 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
                   Text(
-                    '$doneCount/$totalCount',
+                    l10n.subtasks,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 11.5,
+                      fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurfaceVariant,
-                      fontFeatures: AppTokens.fontTabular,
+                      letterSpacing: 1.2,
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.8,
+                      ),
                     ),
                   ),
-              ],
+                  if (totalCount > 0)
+                    Text(
+                      '$doneCount/$totalCount',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurfaceVariant,
+                        fontFeatures: AppTokens.fontTabular,
+                      ),
+                    ),
+                ],
+              ),
             ),
             const SizedBox(height: 6),
             if (controller.subtaskRows.isNotEmpty)
@@ -84,17 +89,20 @@ class SubtaskList extends StatelessWidget {
                 },
               ),
             Padding(
-              padding: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.only(top: 2),
               child: InkWell(
                 borderRadius: BorderRadius.circular(8),
                 onTap: onAddSubtaskAndFocus,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8.0,
+                    vertical: 8.0,
+                  ),
                   child: Row(
                     children: [
                       Container(
-                        width: 22,
-                        height: 22,
+                        width: 20,
+                        height: 20,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(
@@ -106,13 +114,13 @@ class SubtaskList extends StatelessWidget {
                         ),
                         child: Icon(
                           Icons.add,
-                          size: 14,
+                          size: 13,
                           color: colorScheme.onSurfaceVariant.withValues(
                             alpha: 0.7,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       Text(
                         l10n.addSubtask,
                         style: TextStyle(

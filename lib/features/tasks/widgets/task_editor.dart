@@ -344,15 +344,18 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
 
                 // 2. 优先级行 (直接展示所有优先级选项供用户点击选择)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 8.0,
+                  ),
                   child: Row(
                     children: [
                       Icon(
                         Icons.flag_outlined,
-                        size: 18,
+                        size: 20,
                         color: colorScheme.onSurfaceVariant,
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       Text(
                         '优先级',
                         style: theme.textTheme.bodyMedium?.copyWith(

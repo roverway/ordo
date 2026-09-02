@@ -991,13 +991,85 @@ class _SlidableActionTileState extends State<_SlidableActionTile>
     _controller.forward();
   }
 
+  void _showContextMenu(BuildContext context, Offset position) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
+    final rect = RelativeRect.fromRect(
+      Rect.fromLTWH(position.dx, position.dy, 0, 0),
+      Offset.zero & (overlay?.size ?? MediaQuery.of(context).size),
+    );
+
+    showMenu<String>(
+      context: context,
+      position: rect,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      items: [
+        PopupMenuItem<String>(
+          value: 'edit',
+          height: 38,
+          child: Row(
+            children: [
+              Icon(Icons.edit_outlined, size: 17, color: colorScheme.onSurface),
+              const SizedBox(width: 10),
+              Text(
+                l10n.edit,
+                style: TextStyle(fontSize: 13.5, color: colorScheme.onSurface),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'delete',
+          height: 38,
+          child: Row(
+            children: [
+              Icon(Icons.delete_outline, size: 17, color: colorScheme.error),
+              const SizedBox(width: 10),
+              Text(
+                l10n.delete,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  color: colorScheme.error,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ).then((value) {
+      if (value == 'edit') {
+        widget.onEdit();
+      } else if (value == 'delete') {
+        widget.onDelete();
+      }
+    });
+  }
+
   void _close() {
     _animateTo(0);
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDesktop =
+        theme.platform == TargetPlatform.windows ||
+        theme.platform == TargetPlatform.linux ||
+        theme.platform == TargetPlatform.macOS;
+
+    if (isDesktop) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onSecondaryTapDown: (details) =>
+            _showContextMenu(context, details.globalPosition),
+        child: widget.child,
+      );
+    }
 
     return ClipRect(
       child: Stack(

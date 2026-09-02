@@ -770,7 +770,8 @@ class KanbanTaskCard extends ConsumerWidget {
                             color: isDone
                                 ? theme.colorScheme.onSurfaceVariant
                                 : theme.colorScheme.onSurface,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.normal,
+                            fontSize: 14.5,
                             height: 1.3,
                           ),
                         ),

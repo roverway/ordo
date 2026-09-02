@@ -731,10 +731,18 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                   ),
                   const SizedBox(height: 8),
 
-                  // 已添加的子任务列表（按需编辑）
+                  // 已添加的子任务列表（按需编辑 + 水平分割行）
                   for (var i = 0; i < _subtaskRows.length; i++)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: borderColor.withValues(alpha: 0.6),
+                            width: 0.8,
+                          ),
+                        ),
+                      ),
                       child: Row(
                         children: [
                           GestureDetector(
@@ -779,7 +787,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                     },
                                     child: Padding(
                                       padding: const EdgeInsets.symmetric(
-                                        vertical: 6,
+                                        vertical: 2,
                                       ),
                                       child: Text(
                                         _subtaskRows[i].controller.text,
@@ -827,7 +835,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                       isDense: true,
                                       contentPadding:
                                           const EdgeInsets.symmetric(
-                                            vertical: 6,
+                                            vertical: 2,
                                           ),
                                     ),
                                     onSubmitted: (_) => _addSubtaskAndFocus(),
@@ -853,9 +861,9 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                       ),
                     ),
 
-                  // 添加子任务按钮 / 行（与子任务复选框 22x22 对齐）
+                  // 添加子任务按钮 / 行（与子任务复选框 22x22 对齐，统一垂直间距）
                   Padding(
-                    padding: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.only(top: 2),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(8),
                       onTap: _addSubtaskAndFocus,

@@ -478,7 +478,7 @@ void main() {
       expect(find.textContaining('还没有任务'), findsOneWidget);
     });
 
-    testWidgets('AppBar 有编辑和删除按钮', (tester) async {
+    testWidgets('任务列表顶部无三点菜单（功能已在导航弹层等实现）', (tester) async {
       final projects = [_project('p1', '工作')];
 
       await _pump(
@@ -496,104 +496,7 @@ void main() {
         projects: projects,
       );
 
-      // 编辑/删除收纳在 AppBar 三点菜单内。
-      expect(find.byIcon(Icons.more_vert), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.more_vert));
-      await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.delete_outlined), findsOneWidget);
-    });
-
-    testWidgets('删除按钮弹出确认对话框', (tester) async {
-      final projects = [_project('p1', '工作')];
-
-      await _pump(
-        tester,
-        initialLocation: '/projects/p1',
-        routes: [
-          GoRoute(
-            path: '/projects/:id',
-            builder: (_, state) => TaskListPage(
-              scope: ProjectTaskScope(state.pathParameters['id']!),
-            ),
-          ),
-          GoRoute(path: '/projects', builder: (_, _) => const Scaffold()),
-        ],
-        projects: projects,
-      );
-
-      await tester.tap(find.byIcon(Icons.more_vert));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.delete_outlined));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(AlertDialog), findsOneWidget);
-      expect(find.textContaining('工作'), findsWidgets);
-    });
-
-    testWidgets('删除确认对话框：取消关闭', (tester) async {
-      final projects = [_project('p1', '工作')];
-
-      await _pump(
-        tester,
-        initialLocation: '/projects/p1',
-        routes: [
-          GoRoute(
-            path: '/projects/:id',
-            builder: (_, state) => TaskListPage(
-              scope: ProjectTaskScope(state.pathParameters['id']!),
-            ),
-          ),
-          GoRoute(path: '/projects', builder: (_, _) => const Scaffold()),
-        ],
-        projects: projects,
-      );
-
-      await tester.tap(find.byIcon(Icons.more_vert));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.delete_outlined));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('取消'));
-      await tester.pumpAndSettle();
-
-      // 对话框关闭，仍在项目详情页。
-      expect(find.byType(AlertDialog), findsNothing);
-      expect(find.text('工作'), findsOneWidget);
-    });
-
-    testWidgets('删除确认后跳转 /today（D5）', (tester) async {
-      final projects = [_project('p1', '工作')];
-
-      await _pump(
-        tester,
-        initialLocation: '/projects/p1',
-        routes: [
-          GoRoute(
-            path: '/projects/:id',
-            builder: (_, state) => TaskListPage(
-              scope: ProjectTaskScope(state.pathParameters['id']!),
-            ),
-          ),
-          // 新默认首页（D3：initialLocation 改 /today）。
-          GoRoute(
-            path: '/today',
-            builder: (_, _) => const Scaffold(body: Text('今日页')),
-          ),
-          GoRoute(path: '/projects', builder: (_, _) => const Scaffold()),
-        ],
-        projects: projects,
-      );
-
-      await tester.tap(find.byIcon(Icons.more_vert));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.delete_outlined));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('删除'));
-      await tester.pumpAndSettle();
-
-      // 删除成功后跳转 /today（D5，而非旧 /projects）。
-      expect(find.text('今日页'), findsOneWidget);
+      expect(find.byIcon(Icons.more_vert), findsNothing);
     });
   });
 }

@@ -499,7 +499,7 @@ void main() {
     expect(find.text('Project:p1'), findsOneWidget);
   });
 
-  testWidgets('项目菜单：切换「显示已完成任务」隐藏/恢复已完成任务', (tester) async {
+  testWidgets('项目筛选：切换「进行中」/「全部」筛选任务', (tester) async {
     final project = Project(
       id: 'p1',
       name: '工作',
@@ -526,28 +526,20 @@ void main() {
     expect(find.text('已完成任务'), findsOneWidget);
     expect(find.text('待办任务'), findsOneWidget);
 
-    // 2. 三点菜单：隐藏已完成任务
-    await tester.tap(find.byIcon(Icons.more_vert));
-    await tester.pumpAndSettle();
-    expect(find.text('隐藏已完成任务'), findsOneWidget);
-
-    // 3. 点击隐藏
-    await tester.tap(find.text('隐藏已完成任务'));
+    // 2. 切换到「进行中」
+    await tester.tap(find.text('进行中'));
     await tester.pumpAndSettle();
     expect(find.text('已完成任务'), findsNothing);
     expect(find.text('待办任务'), findsOneWidget);
 
-    // 4. 恢复显示
-    await tester.tap(find.byIcon(Icons.more_vert));
-    await tester.pumpAndSettle();
-    expect(find.text('显示已完成任务'), findsOneWidget);
-    await tester.tap(find.text('显示已完成任务'));
+    // 3. 恢复「全部」
+    await tester.tap(find.text('全部'));
     await tester.pumpAndSettle();
     expect(find.text('已完成任务'), findsOneWidget);
     expect(find.text('待办任务'), findsOneWidget);
   });
 
-  testWidgets('隐藏已完成任务时行尾「未完成/总数」分母保持真实总数', (tester) async {
+  testWidgets('筛选进行中任务时行尾「未完成/总数」分母保持真实总数', (tester) async {
     final project = Project(
       id: 'p1',
       name: '工作',
@@ -588,25 +580,23 @@ void main() {
     expect(find.text('子任务-完成'), findsOneWidget);
     expect(find.text('子任务-待办'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.more_vert));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('隐藏已完成任务'));
+    // 切换为「进行中」筛选
+    await tester.tap(find.text('进行中'));
     await tester.pumpAndSettle();
     expect(find.text('子任务-完成'), findsNothing);
     expect(find.text('子任务-待办'), findsOneWidget);
     expect(find.text('父任务'), findsOneWidget);
     expect(find.text('1/2'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.more_vert));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('显示已完成任务'));
+    // 切换回「全部」筛选
+    await tester.tap(find.text('全部'));
     await tester.pumpAndSettle();
     expect(find.text('子任务-完成'), findsOneWidget);
     expect(find.text('子任务-待办'), findsOneWidget);
     expect(find.text('1/2'), findsOneWidget);
   });
 
-  testWidgets('项目仅含已完成任务且隐藏开启 → 显示「全部任务已完成」空态', (tester) async {
+  testWidgets('项目仅含已完成任务且筛选「进行中」 → 显示「全部任务已完成」空态', (tester) async {
     final project = Project(
       id: 'p1',
       name: '工作',
@@ -628,16 +618,12 @@ void main() {
 
     expect(find.text('已完成任务'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.more_vert));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('隐藏已完成任务'));
+    await tester.tap(find.text('进行中'));
     await tester.pumpAndSettle();
     expect(find.text('已完成任务'), findsNothing);
     expect(find.text('全部任务已完成'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.more_vert));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('显示已完成任务'));
+    await tester.tap(find.text('全部'));
     await tester.pumpAndSettle();
     expect(find.text('已完成任务'), findsOneWidget);
     expect(find.text('全部任务已完成'), findsNothing);

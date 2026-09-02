@@ -9,8 +9,6 @@ import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_breakpoints.dart';
 import '../../core/utils/dates.dart';
-import '../../shared/widgets/app_menu_item.dart';
-import '../../shared/widgets/confirm_dialog.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/filter_chips_bar.dart';
@@ -22,7 +20,6 @@ import '../../shared/widgets/scope_switcher_sheet.dart';
 import '../../shared/widgets/simple_task_tile.dart';
 import '../../shared/widgets/staggered_fade_slide.dart';
 import '../projects/project_providers.dart';
-import '../projects/widgets/project_form_dialog.dart';
 import '../today/today_providers.dart';
 import 'task_providers.dart';
 import 'widgets/task_create_sheet.dart';
@@ -593,13 +590,9 @@ class _ProjectOrInboxBodyState extends ConsumerState<_ProjectOrInboxBody> {
               onTitleTap: widget.isNarrow
                   ? () => showScopeSwitcherSheet(context)
                   : null,
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  HeroProgressRing(completed: doneCount, total: totalCount),
-                  if (!widget.isInbox && project != null)
-                    _buildProjectMoreMenu(context, ref, project),
-                ],
+              trailing: HeroProgressRing(
+                completed: doneCount,
+                total: totalCount,
               ),
             ),
             FilterChipsBar(
@@ -641,93 +634,5 @@ class _ProjectOrInboxBodyState extends ConsumerState<_ProjectOrInboxBody> {
         return ErrorView(onRetry: () => ref.invalidate(projectsStreamProvider));
       },
     );
-  }
-
-  Widget _buildProjectMoreMenu(
-    BuildContext context,
-    WidgetRef ref,
-    Project project,
-  ) {
-    final l10n = AppLocalizations.of(context);
-    final hideDone = ref.watch(hideCompletedTasksProvider);
-
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert),
-      onSelected: (value) {
-        switch (value) {
-          case 'toggleCompleted':
-            ref.read(hideCompletedTasksProvider.notifier).toggle();
-          case 'edit':
-            _editProject(context, ref, project);
-          case 'delete':
-            _deleteProject(context, ref, project);
-        }
-      },
-      itemBuilder: (context) => [
-        AppMenuItem<String>(
-          value: 'toggleCompleted',
-          icon: hideDone
-              ? Icons.visibility_off_outlined
-              : Icons.visibility_outlined,
-          label: hideDone ? l10n.showCompletedTasks : l10n.hideCompletedTasks,
-        ),
-        const PopupMenuDivider(),
-        AppMenuItem<String>(
-          value: 'edit',
-          icon: Icons.edit_outlined,
-          label: l10n.edit,
-        ),
-        AppMenuItem<String>(
-          value: 'delete',
-          icon: Icons.delete_outlined,
-          label: l10n.delete,
-          destructive: true,
-        ),
-      ],
-    );
-  }
-
-  Future<void> _editProject(
-    BuildContext context,
-    WidgetRef ref,
-    Project project,
-  ) async {
-    final result = await showProjectFormDialog(
-      context: context,
-      initialName: project.name,
-      initialColor: project.color,
-      initialDescription: project.description,
-    );
-    if (result != null && context.mounted) {
-      await ref
-          .read(todoRepositoryProvider)
-          .updateProject(
-            project.id,
-            name: result.name,
-            color: result.color,
-            description: result.description,
-          );
-    }
-  }
-
-  Future<void> _deleteProject(
-    BuildContext context,
-    WidgetRef ref,
-    Project project,
-  ) async {
-    final l10n = AppLocalizations.of(context);
-    final confirmed = await showConfirmDialog(
-      context: context,
-      title: l10n.deleteProject,
-      message: l10n.deleteProjectConfirm(project.name),
-      confirmLabel: l10n.delete,
-      confirmColor: Theme.of(context).colorScheme.error,
-    );
-    if (confirmed && context.mounted) {
-      await ref.read(todoRepositoryProvider).deleteProject(project.id);
-      if (context.mounted) {
-        context.go('/today');
-      }
-    }
   }
 }

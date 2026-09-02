@@ -81,17 +81,30 @@ class _SubtaskRowTileState extends State<SubtaskRowTile> {
     final isEditing =
         _mode == SubtaskTileDisplayMode.editing || widget.row.isNew;
 
+    final borderColor = theme.brightness == Brightness.dark
+        ? AppTokens.borderSubtleDark
+        : AppTokens.borderSubtleLight;
+
     return Container(
       constraints: const BoxConstraints(minHeight: 40),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: borderColor.withValues(alpha: 0.5),
+            width: 0.8,
+          ),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 复选框：方形圆角（22x22，圆角 6px）
+          // 复选框：方形圆角（20x20，圆角 6px，与上方属性行图标对齐）
           Padding(
-            padding: const EdgeInsets.only(top: 8.0, right: 10.0),
+            padding: const EdgeInsets.only(top: 8.0, right: 12.0),
             child: SizedBox(
-              width: 22,
-              height: 22,
+              width: 20,
+              height: 20,
               child: Checkbox(
                 value: isDone,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
