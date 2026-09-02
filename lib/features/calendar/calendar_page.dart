@@ -48,16 +48,6 @@ class CalendarPage extends ConsumerWidget {
     final state = ref.watch(calendarStateProvider);
     final bucketsAsync = ref.watch(calendarBucketsProvider);
 
-    final range = calendarRangeFor(state);
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
-    final formattedPeriod = formatCalendarHeader(
-      selectedDate: state.selectedDate,
-      isMonthMode: state.mode == CalendarMode.month,
-      weekStart: range.start,
-      weekEnd: range.end,
-      isZh: isZh,
-    );
-
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -68,27 +58,6 @@ class CalendarPage extends ConsumerWidget {
               onTitleTap: isNarrow
                   ? () => showScopeSwitcherSheet(context)
                   : null,
-              subtitleWidget: GestureDetector(
-                onTap: () => _pickDate(context, ref, state.selectedDate),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      formattedPeriod,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(width: 2),
-                    Icon(
-                      Icons.keyboard_arrow_down,
-                      size: 14,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ],
-                ),
-              ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -196,24 +165,6 @@ class CalendarPage extends ConsumerWidget {
         child: const Icon(Icons.add),
       ),
     );
-  }
-
-  // ── 日期快捷选择面板 ──────────────────────────────────────────────────
-
-  Future<void> _pickDate(
-    BuildContext context,
-    WidgetRef ref,
-    DateTime initialDate,
-  ) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(2000, 1, 1),
-      lastDate: DateTime(2100, 12, 31),
-    );
-    if (picked != null) {
-      ref.read(calendarStateProvider.notifier).selectDate(picked);
-    }
   }
 
   // ── 窄屏布局（上下联动）───────────────────────────────────────────────
@@ -392,7 +343,104 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: AppTokens.spaceXs),
+          // ── 日历头部：翻月/翻周 + 视图切换 ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 4, 12, 2),
+            child: Row(
+              children: [
+                IconButton(
+                  tooltip: '上一周期',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                  icon: const Icon(Icons.chevron_left, size: 20),
+                  onPressed: () {
+                    _slideDirection = -1;
+                    ref.read(calendarStateProvider.notifier).prevPeriod();
+                  },
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      () {
+                        final range = calendarRangeFor(widget.state);
+                        final isZh =
+                            Localizations.localeOf(context).languageCode ==
+                            'zh';
+                        return formatCalendarHeader(
+                          selectedDate: widget.state.selectedDate,
+                          isMonthMode: widget.state.mode == CalendarMode.month,
+                          weekStart: range.start,
+                          weekEnd: range.end,
+                          isZh: isZh,
+                        );
+                      }(),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                        fontFeatures: AppTokens.fontTabular,
+                      ),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: '下一周期',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                  icon: const Icon(Icons.chevron_right, size: 20),
+                  onPressed: () {
+                    _slideDirection = 1;
+                    ref.read(calendarStateProvider.notifier).nextPeriod();
+                  },
+                ),
+                const SizedBox(width: 4),
+                // 视图切换分段 (月 / 周)
+                Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.45,
+                    ),
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildModeSegButton(
+                        context,
+                        label: '月',
+                        isActive: widget.state.mode == CalendarMode.month,
+                        onTap: () {
+                          _slideDirection = 0;
+                          ref
+                              .read(calendarStateProvider.notifier)
+                              .setMode(CalendarMode.month);
+                        },
+                      ),
+                      _buildModeSegButton(
+                        context,
+                        label: '周',
+                        isActive: widget.state.mode == CalendarMode.week,
+                        onTap: () {
+                          _slideDirection = 0;
+                          ref
+                              .read(calendarStateProvider.notifier)
+                              .setMode(CalendarMode.week);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 2),
           // 星期表头（一至日）
           _buildWeekdayRow(context),
           const SizedBox(height: AppTokens.spaceXs),
@@ -489,14 +537,14 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
               },
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 6),
+                padding: const EdgeInsets.symmetric(vertical: 4),
                 alignment: Alignment.center,
                 child: Container(
-                  width: 32,
-                  height: 4,
+                  width: 34,
+                  height: 5,
                   decoration: BoxDecoration(
-                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(2),
+                    color: colorScheme.onSurface.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(3),
                   ),
                 ),
               ),
@@ -507,6 +555,47 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
             color: colorScheme.outlineVariant.withValues(alpha: 0.25),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildModeSegButton(
+    BuildContext context, {
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(7),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: isActive ? colorScheme.surface : Colors.transparent,
+          borderRadius: BorderRadius.circular(7),
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 3,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+            color: isActive
+                ? colorScheme.onSurface
+                : colorScheme.onSurfaceVariant,
+          ),
+        ),
       ),
     );
   }
@@ -852,10 +941,8 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
         );
         isHighlighted =
             selected.year == now.year && selected.month == now.month;
-        break;
     }
-
-    final countText = tasks.isEmpty ? '' : l10n.tasksCount(tasks.length);
+    final isDark = theme.brightness == Brightness.dark;
 
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
@@ -910,46 +997,103 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
           // 概览 Sticky / Header 栏
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppTokens.spaceMd,
-                AppTokens.spaceSm,
-                AppTokens.spaceMd,
-                AppTokens.spaceXs,
-              ),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
               child: Row(
                 children: [
                   Expanded(
+                    child: Row(
+                      children: [
+                        Text(
+                          dateHeader,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: isHighlighted
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurface,
+                          ),
+                        ),
+                        if (isHighlighted) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            widget.state.agendaScope == CalendarAgendaScope.day
+                                ? '今天'
+                                : (widget.state.agendaScope ==
+                                          CalendarAgendaScope.week
+                                      ? '本周'
+                                      : '本月'),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2.5,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: isDark
+                            ? AppTokens.borderSubtleDark
+                            : AppTokens.borderSubtleLight,
+                      ),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
                     child: Text(
-                      dateHeader,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: isHighlighted
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.onSurface,
+                      '${tasks.length} 项',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        fontFeatures: AppTokens.fontTabular,
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
-                  if (countText.isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppTokens.spaceXs,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(
-                          AppTokens.radiusChip,
-                        ),
-                      ),
-                      child: Text(
-                        countText,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: AppTokens.textMicroSize,
-                          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                    ),
+                ],
+              ),
+            ),
+          ),
+          // ── Scope Chips: 当日 | 该周 | 该月 ──
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+              child: Row(
+                children: [
+                  _buildScopeChip(
+                    context,
+                    label: '当日',
+                    isActive:
+                        widget.state.agendaScope == CalendarAgendaScope.day,
+                    onTap: () => ref
+                        .read(calendarStateProvider.notifier)
+                        .setAgendaScope(CalendarAgendaScope.day),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildScopeChip(
+                    context,
+                    label: '该周',
+                    isActive:
+                        widget.state.agendaScope == CalendarAgendaScope.week,
+                    onTap: () => ref
+                        .read(calendarStateProvider.notifier)
+                        .setAgendaScope(CalendarAgendaScope.week),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildScopeChip(
+                    context,
+                    label: '该月',
+                    isActive:
+                        widget.state.agendaScope == CalendarAgendaScope.month,
+                    onTap: () => ref
+                        .read(calendarStateProvider.notifier)
+                        .setAgendaScope(CalendarAgendaScope.month),
+                  ),
                 ],
               ),
             ),
@@ -987,6 +1131,49 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildScopeChip(
+    BuildContext context, {
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+        decoration: BoxDecoration(
+          color: isActive
+              ? (isDark ? Colors.white : Colors.black87)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: isActive
+                ? Colors.transparent
+                : (isDark
+                      ? AppTokens.borderSubtleDark
+                      : AppTokens.borderSubtleLight),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+            color: isActive
+                ? (isDark ? Colors.black87 : Colors.white)
+                : colorScheme.onSurfaceVariant,
+          ),
+        ),
       ),
     );
   }

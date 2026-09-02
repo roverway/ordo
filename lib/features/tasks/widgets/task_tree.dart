@@ -11,6 +11,7 @@ import '../../../core/utils/tree.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/error_view.dart';
+import '../../../shared/widgets/filter_chips_bar.dart';
 import '../../../shared/widgets/loading_view.dart';
 import '../../../shared/widgets/staggered_fade_slide.dart';
 import '../../projects/project_providers.dart';
@@ -19,22 +20,17 @@ import '../task_providers.dart';
 import 'task_row.dart';
 
 /// 任务树组件（50-ui-ux.md §5.3；57-task-page-polish.md §4.2 批 2 卡片化）。
-///
-/// 项目作用域结构（D1）：
-/// - **一级任务 = 大卡片**（白卡 `surfaceCard` + `radiusCard` + 轻阴影，默认展开 D3）；
-///   卡片头部 = [TaskRow]（`cardHeader` 形态）：勾选、标题、标签 chips、时间、
-///   进度环、展开/折叠箭头、行菜单。
-/// - 展开区（卡片内缩进区，Divider 分隔紧凑行 D7）：二级任务 = [TaskRow]（`compact`
-///   形态，借鉴 TaskCreateSheet 行距节奏）；二级有子任务时再缩进展开至 3 级。
-///
-/// 拖拽（D2 完整保留）：一级卡片头长按拖拽同级排序；卡片内子任务行长按拖拽
-/// 排序/调级/回 1 级。`_rowKeys` 覆盖两类行（卡片头 + 内部子行），上下半命中判定
-/// （`_dropAsChild`）、`_fitsDepthLimit` 深度校验、防环、非法目标红色高亮、回弹
-/// 提示全部沿用；`onAccept` 仍调 `repo.moveTask`。
 class TaskTree extends ConsumerStatefulWidget {
-  const TaskTree({super.key, required this.projectId});
+  const TaskTree({
+    super.key,
+    required this.projectId,
+    this.filterMode = TaskFilterChipMode.all,
+    this.searchQuery = '',
+  });
 
   final String projectId;
+  final TaskFilterChipMode filterMode;
+  final String searchQuery;
 
   @override
   ConsumerState<TaskTree> createState() => _TaskTreeState();
@@ -83,21 +79,39 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
         // 隐藏过滤复用，避免每行重算 O(n) 索引（打开任务页变慢的主因）。
         final childrenIndexAll = indexChildrenByParent(tasks);
         final byIdAll = indexTasksById(tasks);
-        // 隐藏已完成任务（会话级，用户要求）：按**递归有效状态**过滤——叶子
-        // 看自身 status，有子任务的**整棵子树**全部递归 done 才隐藏（F1 修复：
-        // 避免「A 存储 done 但有未完成子任务」时父级被隐藏导致可见子树悬空）。
-        // 在 treeNodes / 计数 / 拖拽逻辑之前过滤，整棵可见树保持一致。
+
+        var filteredTasks = tasks;
+        if (widget.filterMode == TaskFilterChipMode.open) {
+          filteredTasks = _filterDoneTasks(tasks, childrenIndexAll);
+        } else if (widget.filterMode == TaskFilterChipMode.done) {
+          filteredTasks = tasks
+              .where((t) => t.status == TaskStatus.done)
+              .toList();
+        }
+
+        if (widget.searchQuery.isNotEmpty) {
+          final q = widget.searchQuery.toLowerCase();
+          filteredTasks = filteredTasks.where((t) {
+            return t.title.toLowerCase().contains(q) ||
+                t.description.toLowerCase().contains(q);
+          }).toList();
+        }
+
         final hideDone = ref.watch(hideCompletedTasksProvider);
-        final visibleTasks = hideDone
-            ? _filterDoneTasks(tasks, childrenIndexAll)
-            : tasks;
+        final visibleTasks =
+            (hideDone && widget.filterMode == TaskFilterChipMode.all)
+            ? _filterDoneTasks(filteredTasks, childrenIndexAll)
+            : filteredTasks;
+
         if (visibleTasks.isEmpty) {
-          // 任务存在但全部被隐藏（hide ON 且全部已完成）→ 专用空态，
-          // 与「还没有任务」（tasks.isEmpty）区分（F4）。
           _rowKeys.clear();
           return EmptyState(
             icon: Icons.check_circle_outline,
-            message: l10n.allTasksCompleted,
+            message: widget.searchQuery.isNotEmpty
+                ? '未搜索到相关任务'
+                : (widget.filterMode == TaskFilterChipMode.done
+                      ? '暂无已完成任务'
+                      : l10n.allTasksCompleted),
           );
         }
 
@@ -327,23 +341,16 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     required Map<String, Task> byIdAll,
     required int depth,
   }) {
-    final grandChildren = childrenOf[childNode.task.id];
-    final hasGrandChildren =
-        childNode.isExpanded && (grandChildren?.isNotEmpty ?? false);
-
-    // 3 级自然梯度缩进：
-    // depth == 1 (二级子任务) 缩进 treeIndentL2 (20dp)
-    // depth == 2 (三级孙任务) 额外缩进 (treeIndentL3 - treeIndentL2 = 18dp)
-    final indentLeft = depth == 1
-        ? AppTokens.treeIndentL2
-        : (AppTokens.treeIndentL3 - AppTokens.treeIndentL2);
+    final grandChildren = childrenOf[childNode.task.id] ?? const <TreeNode>[];
+    final hasGrandChildren = childNode.isExpanded && grandChildren.isNotEmpty;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final borderColor = isDark
+        ? AppTokens.borderSubtleDark
+        : AppTokens.borderSubtleLight;
 
     return Padding(
-      padding: EdgeInsets.only(
-        left: indentLeft,
-        top: AppTokens.spaceXxs / 2,
-        bottom: AppTokens.spaceXxs / 2,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 1),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -357,15 +364,26 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
             byIdAll: byIdAll,
           ),
           if (hasGrandChildren)
-            _buildChildrenSection(
-              context,
-              grandChildren!,
-              childrenOf,
-              repo,
-              expandState,
-              childrenIndexAll: childrenIndexAll,
-              byIdAll: byIdAll,
-              depth: depth + 1,
+            Padding(
+              padding: const EdgeInsets.only(left: 20, top: 2, bottom: 6),
+              child: Container(
+                padding: const EdgeInsets.only(left: 8),
+                decoration: BoxDecoration(
+                  border: Border(
+                    left: BorderSide(color: borderColor, width: 1),
+                  ),
+                ),
+                child: _buildChildrenSection(
+                  context,
+                  grandChildren,
+                  childrenOf,
+                  repo,
+                  expandState,
+                  childrenIndexAll: childrenIndexAll,
+                  byIdAll: byIdAll,
+                  depth: depth + 1,
+                ),
+              ),
             ),
         ],
       ),

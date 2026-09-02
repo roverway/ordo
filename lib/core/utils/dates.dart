@@ -163,26 +163,15 @@ const List<String> enWeekdayShorts = [
 List<String> getWeekdayShorts({required bool isZh}) =>
     isZh ? zhWeekdayShorts : enWeekdayShorts;
 
-/// 格式化日历议程列表日期标题（如「8月27日 · 今天」/「8月28日 星期四」）。
+/// 格式化日历议程列表日期标题（如「8月27日 星期四」）。
 String formatAgendaDateHeader({
   required DateTime selected,
   required String todayLabel,
   required bool isZh,
 }) {
-  final now = DateTime.now();
-  final isToday =
-      selected.year == now.year &&
-      selected.month == now.month &&
-      selected.day == now.day;
   if (isZh) {
-    if (isToday) {
-      return '${intl.DateFormat('M月d日').format(selected)} · $todayLabel';
-    }
     return '${intl.DateFormat('M月d日').format(selected)} ${zhWeekdays[selected.weekday - 1]}';
   } else {
-    if (isToday) {
-      return '${intl.DateFormat('MMM d', 'en').format(selected)} · $todayLabel';
-    }
     return intl.DateFormat('EEEE, MMM d', 'en').format(selected);
   }
 }

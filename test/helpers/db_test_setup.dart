@@ -7,11 +7,13 @@
 import 'dart:ffi';
 import 'dart:io';
 
+import 'package:drift/drift.dart';
 import 'package:sqlite3/open.dart';
 import 'package:todo/core/db/database.dart';
 
 /// 配置 sqlite3 使用系统 `libsqlite3.so.0`（幂等，可重复调用）。
 void configureTestSqlite3() {
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   if (Platform.isLinux) {
     open.overrideFor(
       OperatingSystem.linux,

@@ -323,8 +323,8 @@ void main() {
       expect(find.byIcon(Icons.arrow_back), findsOneWidget);
 
       // Title and preset chips render
-      expect(find.text('状态看板（待办/进行中/已完成）'), findsOneWidget);
-      expect(find.text('优先级看板（高/中/低/无）'), findsOneWidget);
+      expect(find.text('状态看板'), findsOneWidget);
+      expect(find.text('优先级看板'), findsOneWidget);
 
       // Tap back button (handles canPop / fallback)
       await tester.tap(find.byIcon(Icons.arrow_back));

@@ -107,9 +107,6 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
 
         final header = PageHeroHeader(
           title: view.name,
-          subtitle: isKanban
-              ? '看板视图 · ${panels.length} 列'
-              : '列表视图 · ${panels.length} 分组',
           onTitleTap: narrow ? () => showScopeSwitcherSheet(context) : null,
           trailing: _buildTrailingActions(context, l10n, view),
         );

@@ -172,7 +172,7 @@ class PanelColumn extends ConsumerWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.all(AppTokens.spaceSm),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       child: content,
     );
   }
@@ -312,120 +312,183 @@ class PanelColumn extends ConsumerWidget {
         AppTokens.spaceXs,
         AppTokens.spaceXs,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 面板标题 + 数量 Badge
-          Expanded(
-            child: Row(
-              children: [
-                Flexible(
-                  child: Text(
-                    panel.title,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: AppTokens.textHeadingWeight,
-                      letterSpacing: 0.2,
+          Row(
+            children: [
+              // 面板标题 + 数量 Badge
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(
+                          alpha: 0.12,
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Icon(
+                        Icons.view_column_outlined,
+                        size: 13,
+                        color: theme.colorScheme.primary,
+                      ),
                     ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: AppTokens.spaceXs),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 7,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(AppTokens.radiusChip),
-                  ),
-                  child: Text(
-                    count.toString(),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: theme.colorScheme.onSurfaceVariant,
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        panel.title,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14.5,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 1.5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        count.toString(),
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          fontFeatures: AppTokens.fontTabular,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-
-          // 排序按钮
-          PopupMenuButton<String>(
-            tooltip: l10n.sortBy,
-            icon: Icon(
-              Icons.swap_vert,
-              size: 20,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-            onSelected: (val) {
-              if (val == 'toggle_direction') {
-                final newDir = panel.sortDirection == 'asc' ? 'desc' : 'asc';
-                onUpdatePanel?.call(panel.copyWith(sortDirection: newDir));
-              } else {
-                onUpdatePanel?.call(panel.copyWith(sortBy: val));
-              }
-            },
-            itemBuilder: (ctx) => _buildSortMenuItems(l10n),
-          ),
-
-          // 筛选按钮
-          IconButton(
-            tooltip: l10n.filterCriteria,
-            icon: Icon(
-              hasActiveFilter ? Icons.filter_alt : Icons.filter_alt_outlined,
-              size: 19,
-              color: hasActiveFilter
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurfaceVariant,
-            ),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-            onPressed: () async {
-              final newCriteria = await showFilterCriteriaSheet(
-                context: context,
-                initialCriteria: panel.filter,
-              );
-              if (newCriteria != null) {
-                onUpdatePanel?.call(panel.copyWith(filter: newCriteria));
-              }
-            },
-          ),
-
-          // 更多操作
-          if (onDeletePanel != null)
-            PopupMenuButton<String>(
-              icon: Icon(
-                Icons.more_vert,
-                size: 20,
-                color: theme.colorScheme.onSurfaceVariant,
               ),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-              onSelected: (val) {
-                if (val == 'delete') {
-                  onDeletePanel?.call();
-                } else if (val == 'edit_title') {
-                  _showEditTitleDialog(context, l10n);
-                }
-              },
-              itemBuilder: (ctx) => [
-                AppMenuItem(
-                  value: 'edit_title',
-                  icon: Icons.edit_outlined,
-                  label: l10n.editPanel,
+
+              // 筛选按钮
+              IconButton(
+                tooltip: l10n.filterCriteria,
+                icon: Icon(
+                  hasActiveFilter
+                      ? Icons.filter_alt
+                      : Icons.filter_alt_outlined,
+                  size: 18,
+                  color: hasActiveFilter
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
                 ),
-                AppMenuItem(
-                  value: 'delete',
-                  icon: Icons.delete_outline,
-                  label: l10n.deletePanel,
-                  destructive: true,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                onPressed: () async {
+                  final newCriteria = await showFilterCriteriaSheet(
+                    context: context,
+                    initialCriteria: panel.filter,
+                  );
+                  if (newCriteria != null) {
+                    onUpdatePanel?.call(panel.copyWith(filter: newCriteria));
+                  }
+                },
+              ),
+
+              // 更多操作
+              if (onDeletePanel != null)
+                PopupMenuButton<String>(
+                  icon: Icon(
+                    Icons.more_vert,
+                    size: 18,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 28,
+                    minHeight: 28,
+                  ),
+                  onSelected: (val) {
+                    if (val == 'delete') {
+                      onDeletePanel?.call();
+                    } else if (val == 'edit_title') {
+                      _showEditTitleDialog(context, l10n);
+                    }
+                  },
+                  itemBuilder: (ctx) => [
+                    AppMenuItem(
+                      value: 'edit_title',
+                      icon: Icons.edit_outlined,
+                      label: l10n.editPanel,
+                    ),
+                    AppMenuItem(
+                      value: 'delete',
+                      icon: Icons.delete_outline,
+                      label: l10n.deletePanel,
+                      destructive: true,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          // 快速排序工具条 (优先级 | 截止 | 手动)
+          Row(
+            children: [
+              _buildQuickSortChip(
+                label: '优先级',
+                isActive: panel.sortBy == 'priority',
+                onTap: () =>
+                    onUpdatePanel?.call(panel.copyWith(sortBy: 'priority')),
+              ),
+              const SizedBox(width: 5),
+              _buildQuickSortChip(
+                label: '截止',
+                isActive: panel.sortBy == 'endAt',
+                onTap: () =>
+                    onUpdatePanel?.call(panel.copyWith(sortBy: 'endAt')),
+              ),
+              const SizedBox(width: 5),
+              _buildQuickSortChip(
+                label: '手动',
+                isActive:
+                    panel.sortBy == 'sortOrder' || panel.sortBy == 'manual',
+                onTap: () =>
+                    onUpdatePanel?.call(panel.copyWith(sortBy: 'sortOrder')),
+              ),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildQuickSortChip({
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(6),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+        decoration: BoxDecoration(
+          color: isActive
+              ? (AppTokens.colorPriorityHigh.withValues(alpha: 0.12))
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+            color: isActive ? AppTokens.colorPriorityHigh : null,
+          ),
+        ),
       ),
     );
   }
@@ -530,12 +593,16 @@ class PanelColumn extends ConsumerWidget {
     ThemeData theme,
     AppLocalizations l10n,
   ) {
+    final mutedColor = theme.colorScheme.onSurfaceVariant.withValues(
+      alpha: 0.8,
+    );
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        AppTokens.spaceSm,
         AppTokens.spaceXs,
-        AppTokens.spaceSm,
-        AppTokens.spaceSm,
+        AppTokens.spaceXs,
+        AppTokens.spaceXs,
+        AppTokens.spaceXs,
       ),
       child: Material(
         color: Colors.transparent,
@@ -554,29 +621,21 @@ class PanelColumn extends ConsumerWidget {
                   : null,
             );
           },
-          borderRadius: BorderRadius.circular(AppTokens.radiusButton),
+          borderRadius: BorderRadius.circular(10),
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 9),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppTokens.radiusButton),
-              border: Border.all(
-                color: theme.colorScheme.primary.withValues(alpha: 0.25),
-                width: 1.0,
-              ),
-              color: theme.colorScheme.primary.withValues(
-                alpha: AppTokens.alphaTintFaint,
-              ),
-            ),
+            height: 38,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.add, size: 17, color: theme.colorScheme.primary),
-                const SizedBox(width: 6),
+                Icon(Icons.add, size: 16, color: mutedColor),
+                const SizedBox(width: 8),
                 Text(
-                  l10n.newTask,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w600,
+                  '添加任务',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: mutedColor,
+                    fontWeight: FontWeight.normal,
                   ),
                 ),
               ],

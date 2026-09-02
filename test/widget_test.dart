@@ -371,12 +371,11 @@ void main() {
 
       // 底部弹层已显示
       expect(find.byType(ScopeSwitcherSheet), findsOneWidget);
-      expect(find.text('切换清单'), findsOneWidget);
       expect(find.text('今日'), findsOneWidget);
       expect(find.text('收件箱'), findsOneWidget);
 
-      // 点击关闭按钮 → 弹层正常关闭
-      await tester.tap(find.byIcon(Icons.close));
+      // 点击背景遮罩 → 弹层正常关闭
+      await tester.tapAt(const Offset(20, 20));
       await tester.pumpAndSettle();
 
       expect(find.byType(ScopeSwitcherSheet), findsNothing);

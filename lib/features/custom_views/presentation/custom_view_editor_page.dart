@@ -404,73 +404,139 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
           const SizedBox(height: AppTokens.spaceMd),
 
           // ── 2. 快速模板预设 ──
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(
+              '快速模板',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.1,
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.75,
+                ),
+              ),
+            ),
+          ),
           Row(
             children: [
-              Icon(
-                Icons.auto_awesome,
-                size: 17,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                l10n.presetTemplates,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: AppTokens.textHeadingWeight,
-                  color: theme.colorScheme.primary,
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _panels = createStatusKanbanPanels(
+                        titleTodo: l10n.statusTodo,
+                        titleInProgress: l10n.statusInProgress,
+                        titleDone: l10n.statusDone,
+                      );
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppTokens.surfaceCardDark
+                          : AppTokens.surfaceCard,
+                      borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                      border: Border.all(
+                        color: isDark
+                            ? AppTokens.borderSubtleDark
+                            : AppTokens.borderSubtleLight,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.view_column_outlined,
+                              size: 16,
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(width: 6),
+                            const Text(
+                              '状态看板',
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '待办 / 进行中 / 已完成',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: AppTokens.spaceXs),
-          Wrap(
-            spacing: AppTokens.spaceSm,
-            children: [
-              ActionChip(
-                avatar: Icon(
-                  Icons.view_column,
-                  size: 15,
-                  color: theme.colorScheme.primary,
+              const SizedBox(width: 10),
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _panels = createPriorityKanbanPanels(
+                        titleHigh: l10n.priorityHigh,
+                        titleMedium: l10n.priorityMedium,
+                        titleLow: l10n.priorityLow,
+                        titleNone: l10n.priorityNone,
+                      );
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppTokens.surfaceCardDark
+                          : AppTokens.surfaceCard,
+                      borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                      border: Border.all(
+                        color: isDark
+                            ? AppTokens.borderSubtleDark
+                            : AppTokens.borderSubtleLight,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.flag_outlined,
+                              size: 16,
+                              color: AppTokens.colorPriorityHigh,
+                            ),
+                            const SizedBox(width: 6),
+                            const Text(
+                              '优先级看板',
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '高优 / 中优 / 低优 / 无',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                label: Text(l10n.presetStatusKanban),
-                backgroundColor: theme.colorScheme.primaryContainer.withValues(
-                  alpha: 0.25,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppTokens.radiusChip),
-                ),
-                onPressed: () {
-                  setState(() {
-                    _panels = createStatusKanbanPanels(
-                      titleTodo: l10n.statusTodo,
-                      titleInProgress: l10n.statusInProgress,
-                      titleDone: l10n.statusDone,
-                    );
-                  });
-                },
-              ),
-              ActionChip(
-                avatar: const Icon(
-                  Icons.flag,
-                  size: 15,
-                  color: AppTokens.colorPriorityHigh,
-                ),
-                label: Text(l10n.presetPriorityKanban),
-                backgroundColor: AppTokens.colorPriorityHigh.withValues(
-                  alpha: 0.1,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppTokens.radiusChip),
-                ),
-                onPressed: () {
-                  setState(() {
-                    _panels = createPriorityKanbanPanels(
-                      titleHigh: l10n.priorityHigh,
-                      titleMedium: l10n.priorityMedium,
-                      titleLow: l10n.priorityLow,
-                      titleNone: l10n.priorityNone,
-                    );
-                  });
-                },
               ),
             ],
           ),

@@ -231,201 +231,200 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
     final repo = ref.read(todoRepositoryProvider);
     var tileIndex = 0;
 
-    return CustomScrollView(
-      slivers: [
-        // Hero 头部
-        SliverToBoxAdapter(
-          child: PageHeroHeader(
-            title: dateStr,
-            onTitleTap: widget.isNarrow
-                ? () => showScopeSwitcherSheet(context)
-                : null,
-            subtitleWidget: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  weekdayStr,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-                Text(
-                  ' · 逾期 ',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                Text(
-                  '${view.overdue.length}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: view.overdue.isNotEmpty
-                        ? AppTokens.colorOverdue
-                        : colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                Text(
-                  ' · 已完成 ',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                Text(
-                  '$completedCount',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-                Text(
-                  '/$totalCount',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-            trailing: HeroProgressRing(
-              completed: completedCount,
-              total: totalCount,
-            ),
-          ),
-        ),
-
-        // 筛选 Chips + 内联搜索
-        SliverToBoxAdapter(
-          child: Column(
+    return Column(
+      children: [
+        // 固定顶部 Hero 头部
+        PageHeroHeader(
+          title: dateStr,
+          onTitleTap: widget.isNarrow
+              ? () => showScopeSwitcherSheet(context)
+              : null,
+          subtitleWidget: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              FilterChipsBar(
-                selectedMode: _filterMode,
-                onModeChanged: (mode) => setState(() => _filterMode = mode),
-                allCount: totalCount,
-                openCount: openCount,
-                doneCount: completedCount,
-                isSearchOpen: _isSearchOpen,
-                onToggleSearch: () {
-                  setState(() {
-                    _isSearchOpen = !_isSearchOpen;
-                    if (!_isSearchOpen) {
-                      _searchController.clear();
-                      _searchQuery = '';
-                    }
-                  });
-                },
+              Text(
+                weekdayStr,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface,
+                ),
               ),
-              InlineSearchBar(
-                isOpen: _isSearchOpen,
-                controller: _searchController,
-                onChanged: (val) => setState(() => _searchQuery = val.trim()),
-                onClear: () => setState(() => _searchQuery = ''),
+              Text(
+                ' · 逾期 ',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              Text(
+                '${view.overdue.length}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: view.overdue.isNotEmpty
+                      ? AppTokens.colorOverdue
+                      : colorScheme.onSurfaceVariant,
+                ),
+              ),
+              Text(
+                ' · 已完成 ',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              Text(
+                '$completedCount',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              Text(
+                '/$totalCount',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
+          trailing: HeroProgressRing(
+            completed: completedCount,
+            total: totalCount,
+          ),
         ),
 
-        // 逾期分组
-        if (overdueList.isNotEmpty) ...[
-          SliverToBoxAdapter(
-            child: _buildGroupHeader(
-              title: l10n.overdue,
-              count: overdueList.length,
-              countColor: AppTokens.colorOverdue,
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final v = overdueList[index];
-                return StaggeredFadeSlide(
-                  index: tileIndex++,
-                  child: SimpleTaskTile(
-                    task: v.task,
-                    hasChildren: v.hasChildren,
-                    isDone: v.effectiveStatus == TaskStatus.done,
-                    isOverdue: true,
-                    tags: v.tags,
-                    projectName: v.projectName,
-                    projectColor: v.projectColor,
-                    progressValue: v.progressValue,
-                    subtaskProgressText: v.subtaskProgressText,
-                    onTap: () => context.push('/task/${v.task.id}'),
-                    onToggleDone: (done) {
-                      final newStatus = (done ?? false)
-                          ? TaskStatus.done
-                          : TaskStatus.todo;
-                      repo.updateTask(v.task.id, status: newStatus);
-                    },
+        // 固定筛选 Chips + 内联搜索
+        FilterChipsBar(
+          selectedMode: _filterMode,
+          onModeChanged: (mode) => setState(() => _filterMode = mode),
+          allCount: totalCount,
+          openCount: openCount,
+          doneCount: completedCount,
+          isSearchOpen: _isSearchOpen,
+          onToggleSearch: () {
+            setState(() {
+              _isSearchOpen = !_isSearchOpen;
+              if (!_isSearchOpen) {
+                _searchController.clear();
+                _searchQuery = '';
+              }
+            });
+          },
+        ),
+        InlineSearchBar(
+          isOpen: _isSearchOpen,
+          controller: _searchController,
+          onChanged: (val) => setState(() => _searchQuery = val.trim()),
+          onClear: () => setState(() => _searchQuery = ''),
+        ),
+
+        // 任务列表滚动区
+        Expanded(
+          child: CustomScrollView(
+            slivers: [
+              // 逾期分组
+              if (overdueList.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: _buildGroupHeader(
+                    title: l10n.overdue,
+                    count: overdueList.length,
+                    countColor: AppTokens.colorOverdue,
                   ),
-                );
-              }, childCount: overdueList.length),
-            ),
-          ),
-        ],
-
-        // 今天分组
-        if (todayList.isNotEmpty) ...[
-          SliverToBoxAdapter(
-            child: _buildGroupHeader(
-              title: l10n.today,
-              count: todayList.length,
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final v = todayList[index];
-                return StaggeredFadeSlide(
-                  index: tileIndex++,
-                  child: SimpleTaskTile(
-                    task: v.task,
-                    hasChildren: v.hasChildren,
-                    isDone: v.effectiveStatus == TaskStatus.done,
-                    isOverdue: false,
-                    tags: v.tags,
-                    projectName: v.projectName,
-                    projectColor: v.projectColor,
-                    progressValue: v.progressValue,
-                    subtaskProgressText: v.subtaskProgressText,
-                    onTap: () => context.push('/task/${v.task.id}'),
-                    onToggleDone: (done) {
-                      final newStatus = (done ?? false)
-                          ? TaskStatus.done
-                          : TaskStatus.todo;
-                      repo.updateTask(v.task.id, status: newStatus);
-                    },
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final v = overdueList[index];
+                      return StaggeredFadeSlide(
+                        index: tileIndex++,
+                        child: SimpleTaskTile(
+                          task: v.task,
+                          hasChildren: v.hasChildren,
+                          isDone: v.effectiveStatus == TaskStatus.done,
+                          isOverdue: true,
+                          tags: v.tags,
+                          projectName: v.projectName,
+                          projectColor: v.projectColor,
+                          progressValue: v.progressValue,
+                          subtaskProgressText: v.subtaskProgressText,
+                          onTap: () => context.push('/task/${v.task.id}'),
+                          onToggleDone: (done) {
+                            final newStatus = (done ?? false)
+                                ? TaskStatus.done
+                                : TaskStatus.todo;
+                            repo.updateTask(v.task.id, status: newStatus);
+                          },
+                        ),
+                      );
+                    }, childCount: overdueList.length),
                   ),
-                );
-              }, childCount: todayList.length),
-            ),
-          ),
-        ],
+                ),
+              ],
 
-        // 空态提示
-        if (overdueList.isEmpty && todayList.isEmpty)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(
-              child: EmptyState(
-                icon: Icons.done_all_rounded,
-                message: _searchQuery.isNotEmpty
-                    ? '未搜索到相关任务'
-                    : (_filterMode == TaskFilterChipMode.done
-                          ? '暂无已完成任务'
-                          : l10n.emptyToday),
-              ),
-            ),
-          ),
+              // 今天分组
+              if (todayList.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: _buildGroupHeader(
+                    title: l10n.today,
+                    count: todayList.length,
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final v = todayList[index];
+                      return StaggeredFadeSlide(
+                        index: tileIndex++,
+                        child: SimpleTaskTile(
+                          task: v.task,
+                          hasChildren: v.hasChildren,
+                          isDone: v.effectiveStatus == TaskStatus.done,
+                          isOverdue: false,
+                          tags: v.tags,
+                          projectName: v.projectName,
+                          projectColor: v.projectColor,
+                          progressValue: v.progressValue,
+                          subtaskProgressText: v.subtaskProgressText,
+                          onTap: () => context.push('/task/${v.task.id}'),
+                          onToggleDone: (done) {
+                            final newStatus = (done ?? false)
+                                ? TaskStatus.done
+                                : TaskStatus.todo;
+                            repo.updateTask(v.task.id, status: newStatus);
+                          },
+                        ),
+                      );
+                    }, childCount: todayList.length),
+                  ),
+                ),
+              ],
 
-        const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              // 空态提示
+              if (overdueList.isEmpty && todayList.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: EmptyState(
+                      icon: Icons.done_all_rounded,
+                      message: _searchQuery.isNotEmpty
+                          ? '未搜索到相关任务'
+                          : (_filterMode == TaskFilterChipMode.done
+                                ? '暂无已完成任务'
+                                : l10n.emptyToday),
+                    ),
+                  ),
+                ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -469,8 +468,8 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
   }
 }
 
-/// 收集箱 / 项目作用域 Body（Hero 头部 + 任务树 TaskTree）。
-class _ProjectOrInboxBody extends ConsumerWidget {
+/// 收集箱 / 项目作用域 Body（Hero 头部 + 筛选器 + 任务树 TaskTree）。
+class _ProjectOrInboxBody extends ConsumerStatefulWidget {
   const _ProjectOrInboxBody({
     required this.projectId,
     required this.isInbox,
@@ -482,15 +481,34 @@ class _ProjectOrInboxBody extends ConsumerWidget {
   final bool isNarrow;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ProjectOrInboxBody> createState() =>
+      _ProjectOrInboxBodyState();
+}
+
+class _ProjectOrInboxBodyState extends ConsumerState<_ProjectOrInboxBody> {
+  TaskFilterChipMode _filterMode = TaskFilterChipMode.all;
+  bool _isSearchOpen = false;
+  String _searchQuery = '';
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
     final projectAsync = ref.watch(projectsStreamProvider);
 
     return projectAsync.when(
       data: (projects) {
-        final project = projects.where((p) => p.id == projectId).firstOrNull;
-        if (project == null && !isInbox) {
+        final project = projects
+            .where((p) => p.id == widget.projectId)
+            .firstOrNull;
+        if (project == null && !widget.isInbox) {
           return Center(
             child: EmptyState(
               icon: Icons.folder_open_outlined,
@@ -498,16 +516,18 @@ class _ProjectOrInboxBody extends ConsumerWidget {
             ),
           );
         }
-        final title = isInbox
+        final title = widget.isInbox
             ? l10n.inbox
             : (project?.name ?? l10n.navProjects);
 
         final tasks =
-            ref.watch(projectTasksProvider(projectId)).value ?? const <Task>[];
+            ref.watch(projectTasksProvider(widget.projectId)).value ??
+            const <Task>[];
         final totalCount = tasks.length;
         final doneCount = tasks
             .where((t) => t.status == TaskStatus.done)
             .length;
+        final openCount = totalCount - doneCount;
         final rootCount = tasks.where((t) => t.parentId == null).length;
         final theme = Theme.of(context);
         final colorScheme = theme.colorScheme;
@@ -569,20 +589,48 @@ class _ProjectOrInboxBody extends ConsumerWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              onTitleTap: isNarrow
+              onTitleTap: widget.isNarrow
                   ? () => showScopeSwitcherSheet(context)
                   : null,
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   HeroProgressRing(completed: doneCount, total: totalCount),
-                  if (!isInbox && project != null)
+                  if (!widget.isInbox && project != null)
                     _buildProjectMoreMenu(context, ref, project),
                 ],
               ),
             ),
-            const Divider(height: 1, indent: 20, endIndent: 20),
-            Expanded(child: TaskTree(projectId: projectId)),
+            FilterChipsBar(
+              selectedMode: _filterMode,
+              onModeChanged: (mode) => setState(() => _filterMode = mode),
+              allCount: totalCount,
+              openCount: openCount,
+              doneCount: doneCount,
+              isSearchOpen: _isSearchOpen,
+              onToggleSearch: () {
+                setState(() {
+                  _isSearchOpen = !_isSearchOpen;
+                  if (!_isSearchOpen) {
+                    _searchController.clear();
+                    _searchQuery = '';
+                  }
+                });
+              },
+            ),
+            InlineSearchBar(
+              isOpen: _isSearchOpen,
+              controller: _searchController,
+              onChanged: (val) => setState(() => _searchQuery = val.trim()),
+              onClear: () => setState(() => _searchQuery = ''),
+            ),
+            Expanded(
+              child: TaskTree(
+                projectId: widget.projectId,
+                filterMode: _filterMode,
+                searchQuery: _searchQuery,
+              ),
+            ),
           ],
         );
       },

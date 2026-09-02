@@ -83,46 +83,77 @@ class SettingsBody extends ConsumerWidget {
         _SectionHeader(title: l10n.settingsSectionAppearance),
         _SettingsCard(
           children: [
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(l10n.themeMode, style: theme.textTheme.bodyLarge),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: AppTokens.spaceSm),
-                child: SegmentedButton<ThemeMode>(
-                  showSelectedIcon: false,
-                  segments: [
-                    ButtonSegment(
-                      value: ThemeMode.system,
-                      label: Text(l10n.themeModeSystem),
-                      icon: const Icon(Icons.brightness_auto_outlined),
-                    ),
-                    ButtonSegment(
-                      value: ThemeMode.light,
-                      label: Text(l10n.themeModeLight),
-                      icon: const Icon(Icons.light_mode_outlined),
-                    ),
-                    ButtonSegment(
-                      value: ThemeMode.dark,
-                      label: Text(l10n.themeModeDark),
-                      icon: const Icon(Icons.dark_mode_outlined),
-                    ),
-                  ],
-                  selected: {themeMode},
-                  onSelectionChanged: (selection) => ref
-                      .read(themeModeProvider.notifier)
-                      .setThemeMode(selection.first),
+            // 1. 图标和主题模式文字同一行
+            Row(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.palette_outlined,
+                    size: 16,
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
+                const SizedBox(width: 12),
+                Text(
+                  l10n.themeMode,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // 2. 选择明暗区域
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<ThemeMode>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(
+                    value: ThemeMode.system,
+                    label: Text(l10n.themeModeSystem),
+                    icon: const Icon(Icons.brightness_auto_outlined, size: 16),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.light,
+                    label: Text(l10n.themeModeLight),
+                    icon: const Icon(Icons.light_mode_outlined, size: 16),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.dark,
+                    label: Text(l10n.themeModeDark),
+                    icon: const Icon(Icons.dark_mode_outlined, size: 16),
+                  ),
+                ],
+                selected: {themeMode},
+                onSelectionChanged: (selection) => ref
+                    .read(themeModeProvider.notifier)
+                    .setThemeMode(selection.first),
               ),
             ),
-            const Divider(),
+            const Divider(height: 28),
+            // 3. 颜色选区
             const _ThemeColorPicker(),
-            const Divider(),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(l10n.language, style: theme.textTheme.bodyLarge),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: AppTokens.spaceSm),
-                child: SegmentedButton<Locale>(
+            const Divider(height: 28),
+            // 4. 语言和选择项同一行
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  l10n.language,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SegmentedButton<Locale>(
                   showSelectedIcon: false,
                   segments: [
                     ButtonSegment(
@@ -139,34 +170,34 @@ class SettingsBody extends ConsumerWidget {
                       .read(localeProvider.notifier)
                       .setLocale(selection.first),
                 ),
-              ),
+              ],
             ),
           ],
         ),
-        const SizedBox(height: AppTokens.spaceXl),
+        const SizedBox(height: AppTokens.spaceLg),
         _SectionHeader(title: l10n.taskTags),
         _SettingsCard(
           children: [
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Container(
-                width: 34,
-                height: 34,
+                width: 30,
+                height: 30,
                 decoration: BoxDecoration(
                   color: const Color(0xFF8B5CF6).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.label_outline,
-                  size: 18,
+                  size: 16,
                   color: Color(0xFF8B5CF6),
                 ),
               ),
               title: Text(
                 l10n.taskTags,
                 style: const TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               subtitle: tagsAsync.hasValue
@@ -183,35 +214,35 @@ class SettingsBody extends ConsumerWidget {
                       ),
                     )
                   : null,
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const Icon(Icons.chevron_right, size: 18),
               onTap: onOpenTags,
             ),
           ],
         ),
-        const SizedBox(height: AppTokens.spaceXl),
+        const SizedBox(height: AppTokens.spaceLg),
         _SectionHeader(title: l10n.sync),
         _SettingsCard(
           children: [
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Container(
-                width: 34,
-                height: 34,
+                width: 30,
+                height: 30,
                 decoration: BoxDecoration(
                   color: const Color(0xFF0D9488).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.cloud_outlined,
-                  size: 18,
+                  size: 16,
                   color: Color(0xFF0D9488),
                 ),
               ),
               title: Text(
                 l10n.syncSettings,
                 style: const TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               subtitle: Padding(
@@ -234,30 +265,30 @@ class SettingsBody extends ConsumerWidget {
                     colorScheme,
                   ),
                   const SizedBox(width: AppTokens.spaceXs),
-                  const Icon(Icons.chevron_right),
+                  const Icon(Icons.chevron_right, size: 18),
                 ],
               ),
               onTap: onOpenSync,
             ),
-            const Divider(),
+            const Divider(height: 20),
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Container(
-                width: 34,
-                height: 34,
+                width: 30,
+                height: 30,
                 decoration: BoxDecoration(
                   color: const Color(0xFF10B981).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.sync,
-                  size: 18,
+                  size: 16,
                   color: Color(0xFF10B981),
                 ),
               ),
               title: const Text(
                 '自动同步',
-                style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w500),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
               ),
               subtitle: const Text(
                 '数据变更或启动时自动同步',
@@ -398,15 +429,16 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTokens.spaceXs,
-        vertical: AppTokens.spaceXs,
-      ),
+      padding: const EdgeInsets.fromLTRB(4, 12, 4, 6),
       child: Text(
         title,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
+        style: TextStyle(
+          fontSize: 11,
           fontWeight: FontWeight.w600,
+          letterSpacing: 0.1,
+          color: Theme.of(
+            context,
+          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
         ),
       ),
     );
@@ -504,16 +536,25 @@ class _ThemeColorPicker extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
     final currentSeed = ref.watch(themeSeedColorProvider);
 
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(l10n.themeColor, style: theme.textTheme.bodyLarge),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: AppTokens.spaceSm),
-        child: Wrap(
-          spacing: AppTokens.spaceSm,
-          runSpacing: AppTokens.spaceSm,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.themeColor,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '为应用注入个性色',
+          style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 10,
           children: AppTokens.themePalettes.map((palette) {
             final isSelected =
                 palette.color.toARGB32() == currentSeed.toARGB32();
@@ -532,8 +573,8 @@ class _ThemeColorPicker extends ConsumerWidget {
                   child: AnimatedContainer(
                     duration: AppTokens.motionFast,
                     curve: AppTokens.motionSpring,
-                    width: 34,
-                    height: 34,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
                       color: palette.color,
                       shape: BoxShape.circle,
@@ -570,7 +611,7 @@ class _ThemeColorPicker extends ConsumerWidget {
             );
           }).toList(),
         ),
-      ),
+      ],
     );
   }
 }

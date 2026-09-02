@@ -128,10 +128,10 @@ void main() {
     expect(find.text('测试项目'), findsOneWidget);
     // 标题输入（占位符「任务标题」）。
     expect(find.text('任务标题'), findsOneWidget);
-    // 选项行 → 底部工具栏图标（Tooltip 未长按不渲染，改查 Icon）。
+    // 选项行（胶囊与优先级、标签选项行）。
     expect(find.byIcon(Icons.calendar_today_outlined), findsOneWidget);
-    expect(find.byIcon(Icons.flag_outlined), findsOneWidget);
-    expect(find.byIcon(Icons.label_outline), findsOneWidget);
+    expect(find.text('优先级'), findsOneWidget);
+    expect(find.text('标签'), findsOneWidget);
     // 子任务区（1 级任务展示）。
     expect(find.text('子任务'), findsOneWidget);
     expect(find.text('添加子任务'), findsOneWidget);
@@ -349,13 +349,13 @@ void main() {
     expect(subtaskFields(), hasLength(1));
     expect(subtaskFields().single.focusNode!.hasFocus, isTrue);
 
-    // 新行输入内容后回车（onSubmitted）→ 追加下一行并再次聚焦（与按钮同 UX）。
+    // 新行输入内容后回车（onSubmitted）→ 追加下一行并再次聚焦（与按钮同 UX，已输入文本行在失焦后转为按需静态展示）。
     await tester.enterText(find.byType(TextField).last, '子任务一');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
-    expect(subtaskFields(), hasLength(2));
+    expect(find.text('子任务一'), findsOneWidget);
+    expect(subtaskFields(), hasLength(1));
     expect(subtaskFields().last.focusNode!.hasFocus, isTrue);
-    expect(subtaskFields().first.focusNode!.hasFocus, isFalse);
   });
 
   testWidgets('预填优先级与标签可正确初始化表单并在关闭时保存', (tester) async {

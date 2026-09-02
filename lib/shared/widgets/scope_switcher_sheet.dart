@@ -15,6 +15,7 @@ import '../../features/projects/widgets/project_form_dialog.dart';
 import '../../features/sync_setup/sync_setup_providers.dart';
 import '../../features/tasks/task_providers.dart';
 import '../../features/today/today_providers.dart';
+import 'confirm_dialog.dart';
 
 /// 呼出清单/作用域切换底部弹层。
 Future<void> showScopeSwitcherSheet(
@@ -104,46 +105,17 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
             Container(
               width: 36,
               height: 4,
-              margin: const EdgeInsets.only(top: 8, bottom: 4),
+              margin: const EdgeInsets.only(top: 8, bottom: 8),
               decoration: BoxDecoration(
                 color: colorScheme.onSurface.withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            // 头部标题
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Row(
-                children: [
-                  Text(
-                    '切换清单',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: Icon(
-                      Icons.close,
-                      size: 20,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                    onPressed: () => Navigator.of(context).maybePop(),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
 
             // 主滚动内容区
             Flexible(
               child: ListView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
+                padding: const EdgeInsets.fromLTRB(10, 2, 10, 12),
                 children: [
                   // 1. 系统作用域
                   _buildSectionHeader('视图'),
@@ -245,7 +217,6 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                     title: '清单',
                     tooltip: '新建文件夹',
                     onAdd: () async {
-                      Navigator.of(context).maybePop();
                       final name = await showFolderNameDialog(context: context);
                       if (name != null &&
                           name.trim().isNotEmpty &&
@@ -269,21 +240,34 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           for (final folder in folders) ...[
-                            _buildFolderHeader(
-                              folder: folder,
-                              isCollapsed: _collapsedFolders.contains(
-                                folder.id,
-                              ),
-                              onToggleCollapse: () {
-                                setState(() {
-                                  if (_collapsedFolders.contains(folder.id)) {
-                                    _collapsedFolders.remove(folder.id);
-                                  } else {
-                                    _collapsedFolders.add(folder.id);
-                                  }
-                                });
-                              },
-                            ),
+                            () {
+                              final fProjects =
+                                  grouping.folderProjects[folder.id] ??
+                                  const <Project>[];
+                              var fUncompleted = 0;
+                              for (final p in fProjects) {
+                                fUncompleted += ref
+                                    .watch(projectSummaryProvider(p.id))
+                                    .uncompletedCount;
+                              }
+                              return _buildFolderHeader(
+                                folder: folder,
+                                uncompletedCount: fUncompleted,
+                                isCollapsed: _collapsedFolders.contains(
+                                  folder.id,
+                                ),
+                                projectCount: fProjects.length,
+                                onToggleCollapse: () {
+                                  setState(() {
+                                    if (_collapsedFolders.contains(folder.id)) {
+                                      _collapsedFolders.remove(folder.id);
+                                    } else {
+                                      _collapsedFolders.add(folder.id);
+                                    }
+                                  });
+                                },
+                              );
+                            }(),
                             if (!_collapsedFolders.contains(folder.id))
                               Container(
                                 margin: const EdgeInsets.only(
@@ -323,7 +307,35 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                           ],
                           if (ungrouped.isNotEmpty) ...[
                             if (folders.isNotEmpty)
-                              _buildSubHeader(l10n.ungrouped),
+                              DragTarget<Project>(
+                                onWillAcceptWithDetails: (details) =>
+                                    details.data.folderId != null,
+                                onAcceptWithDetails: (details) async {
+                                  await ref
+                                      .read(todoRepositoryProvider)
+                                      .moveProjectToFolder(
+                                        details.data.id,
+                                        folderId: null,
+                                        newIndex: ungrouped.length,
+                                      );
+                                },
+                                builder:
+                                    (context, candidateData, rejectedData) {
+                                      final isHovered =
+                                          candidateData.isNotEmpty;
+                                      return Container(
+                                        decoration: isHovered
+                                            ? BoxDecoration(
+                                                color: colorScheme.primary
+                                                    .withValues(alpha: 0.08),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              )
+                                            : null,
+                                        child: _buildSubHeader(l10n.ungrouped),
+                                      );
+                                    },
+                              ),
                             for (final p in ungrouped)
                               _buildProjectTile(
                                 project: p,
@@ -356,7 +368,6 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                     icon: Icons.add,
                     label: l10n.newProject,
                     onTap: () async {
-                      Navigator.of(context).maybePop();
                       final result = await showProjectFormDialog(
                         context: context,
                       );
@@ -376,7 +387,6 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                     icon: Icons.create_new_folder_outlined,
                     label: '新文件夹',
                     onTap: () async {
-                      Navigator.of(context).maybePop();
                       final name = await showFolderNameDialog(context: context);
                       if (name != null &&
                           name.trim().isNotEmpty &&
@@ -432,13 +442,14 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
   Widget _buildSectionHeader(String title) {
     final colorScheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 4),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 2),
       child: Text(
         title,
         style: TextStyle(
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+          letterSpacing: 0.1,
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
         ),
       ),
     );
@@ -451,16 +462,17 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 8, 4, 2),
+      padding: const EdgeInsets.fromLTRB(10, 6, 4, 0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             title,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+              letterSpacing: 0.1,
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
             ),
           ),
           SizedBox.square(
@@ -468,7 +480,11 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
             child: IconButton(
               padding: EdgeInsets.zero,
               tooltip: tooltip,
-              icon: const Icon(Icons.add, size: 16),
+              icon: Icon(
+                Icons.add,
+                size: 15,
+                color: colorScheme.onSurfaceVariant,
+              ),
               onPressed: onAdd,
             ),
           ),
@@ -480,12 +496,13 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
   Widget _buildSubHeader(String title) {
     final colorScheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 8, 10, 2),
+      padding: const EdgeInsets.fromLTRB(14, 6, 10, 2),
       child: Text(
         title,
         style: TextStyle(
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: FontWeight.w500,
+          letterSpacing: 0.1,
           color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
         ),
       ),
@@ -505,97 +522,221 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
     final colorScheme = theme.colorScheme;
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 2),
+      margin: const EdgeInsets.symmetric(vertical: 1),
       decoration: BoxDecoration(
         color: isSelected
-            ? colorScheme.primary.withValues(alpha: 0.10)
+            ? colorScheme.primary.withValues(alpha: 0.08)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(10),
       ),
-      child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        dense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-        leading: Icon(icon, color: iconColor, size: 20),
-        title: Text(
-          title,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-            color: isSelected ? colorScheme.primary : colorScheme.onSurface,
-          ),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (badgeCount != null && badgeCount > 0)
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          child: Row(
+            children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                width: 26,
+                height: 26,
                 decoration: BoxDecoration(
-                  color: (badgeColor ?? colorScheme.primary).withValues(
-                    alpha: 0.15,
-                  ),
-                  borderRadius: BorderRadius.circular(10),
+                  color: iconColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
+                child: Icon(icon, color: iconColor, size: 15),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
                 child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    color: isSelected
+                        ? colorScheme.primary
+                        : colorScheme.onSurface,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (badgeCount != null && badgeCount > 0)
+                Text(
                   '$badgeCount',
                   style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
                     fontFeatures: AppTokens.fontTabular,
-                    color: badgeColor ?? colorScheme.primary,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
-              ),
-            if (isSelected)
-              Padding(
-                padding: const EdgeInsets.only(left: 6),
-                child: Icon(Icons.check, size: 16, color: colorScheme.primary),
-              ),
-          ],
+              if (isSelected)
+                Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: Icon(
+                    Icons.check,
+                    size: 16,
+                    color: colorScheme.primary,
+                  ),
+                ),
+            ],
+          ),
         ),
-        onTap: onTap,
       ),
     );
   }
 
+  Future<void> _editFolder(Folder folder) async {
+    final name = await showFolderNameDialog(
+      context: context,
+      initialName: folder.name,
+    );
+    if (name != null && name.trim().isNotEmpty && mounted) {
+      await ref
+          .read(todoRepositoryProvider)
+          .renameFolder(folder.id, name: name.trim());
+    }
+  }
+
+  Future<void> _deleteFolder(Folder folder) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showConfirmDialog(
+      context: context,
+      title: l10n.deleteFolder,
+      message:
+          '${l10n.deleteFolderConfirm(folder.name)}\n${l10n.deleteFolderWarning}',
+      confirmLabel: l10n.delete,
+      confirmColor: Theme.of(context).colorScheme.error,
+    );
+    if (confirmed && mounted) {
+      await ref.read(todoRepositoryProvider).deleteFolder(folder.id);
+    }
+  }
+
+  Future<void> _editProject(Project project) async {
+    final result = await showProjectFormDialog(
+      context: context,
+      initialName: project.name,
+      initialColor: project.color,
+      initialDescription: project.description,
+    );
+    if (result != null && mounted) {
+      await ref
+          .read(todoRepositoryProvider)
+          .updateProject(
+            project.id,
+            name: result.name,
+            color: result.color,
+            description: result.description,
+          );
+    }
+  }
+
+  Future<void> _deleteProject(Project project) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showConfirmDialog(
+      context: context,
+      title: l10n.deleteProject,
+      message: l10n.deleteProjectConfirm(project.name),
+      confirmLabel: l10n.delete,
+      confirmColor: Theme.of(context).colorScheme.error,
+    );
+    if (confirmed && mounted) {
+      await ref.read(todoRepositoryProvider).deleteProject(project.id);
+    }
+  }
+
   Widget _buildFolderHeader({
     required Folder folder,
+    required int uncompletedCount,
     required bool isCollapsed,
+    required int projectCount,
     required VoidCallback onToggleCollapse,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onToggleCollapse,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        child: Row(
-          children: [
-            Icon(
-              isCollapsed ? Icons.chevron_right : Icons.expand_more,
-              size: 18,
-              color: colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.folder_outlined,
-              size: 16,
-              color: colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              folder.name,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: colorScheme.onSurfaceVariant,
+    final headerTile = DragTarget<Project>(
+      onWillAcceptWithDetails: (details) => details.data.folderId != folder.id,
+      onAcceptWithDetails: (details) async {
+        await ref
+            .read(todoRepositoryProvider)
+            .moveProjectToFolder(
+              details.data.id,
+              folderId: folder.id,
+              newIndex: projectCount,
+            );
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isHovered = candidateData.isNotEmpty;
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 1),
+          decoration: BoxDecoration(
+            color: isHovered
+                ? colorScheme.primary.withValues(alpha: 0.12)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: onToggleCollapse,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              child: Row(
+                children: [
+                  Container(
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.folder_outlined,
+                      color: colorScheme.primary,
+                      size: 15,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      folder.name,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: colorScheme.onSurface,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (uncompletedCount > 0)
+                    Text(
+                      '$uncompletedCount',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontFeatures: AppTokens.fontTabular,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  const SizedBox(width: 4),
+                  AnimatedRotation(
+                    turns: isCollapsed ? -0.25 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      Icons.keyboard_arrow_down,
+                      size: 18,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
+    );
+
+    return _SlidableActionTile(
+      onEdit: () => _editFolder(folder),
+      onDelete: () => _deleteFolder(folder),
+      child: headerTile,
     );
   }
 
@@ -612,56 +753,135 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
     final summary = ref.watch(projectSummaryProvider(project.id));
     final uncompleted = summary.uncompletedCount;
 
-    return Container(
-      margin: EdgeInsets.only(left: isIndented ? 20 : 0, top: 1, bottom: 1),
+    final tileContent = Container(
+      margin: EdgeInsets.only(left: isIndented ? 16 : 0, top: 1, bottom: 1),
       decoration: BoxDecoration(
         color: isSelected
-            ? colorScheme.primary.withValues(alpha: 0.10)
+            ? colorScheme.primary.withValues(alpha: 0.08)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(10),
       ),
-      child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        dense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-        leading: Container(
-          width: 8,
-          height: 8,
-          margin: const EdgeInsets.only(left: 6),
-          decoration: BoxDecoration(
-            color: projectColor,
-            shape: BoxShape.circle,
-          ),
-        ),
-        title: Text(
-          project.name,
-          style: TextStyle(
-            fontSize: 13.5,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-            color: isSelected ? colorScheme.primary : colorScheme.onSurface,
-          ),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (uncompleted > 0)
-              Text(
-                '$uncompleted',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontFeatures: AppTokens.fontTabular,
-                  color: colorScheme.onSurfaceVariant,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  color: projectColor,
+                  shape: BoxShape.circle,
                 ),
               ),
-            if (isSelected)
-              Padding(
-                padding: const EdgeInsets.only(left: 6),
-                child: Icon(Icons.check, size: 16, color: colorScheme.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  project.name,
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    color: isSelected
+                        ? colorScheme.primary
+                        : colorScheme.onSurface,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
+              if (uncompleted > 0)
+                Text(
+                  '$uncompleted',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontFeatures: AppTokens.fontTabular,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              if (isSelected)
+                Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: Icon(
+                    Icons.check,
+                    size: 16,
+                    color: colorScheme.primary,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final isMobile =
+        theme.platform == TargetPlatform.android ||
+        theme.platform == TargetPlatform.iOS;
+
+    final feedback = Material(
+      color: Colors.transparent,
+      elevation: 6,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: 240,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
-        onTap: onTap,
+        child: Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: projectColor,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                project.name,
+                style: TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+
+    final draggableTile = isMobile
+        ? LongPressDraggable<Project>(
+            data: project,
+            feedback: feedback,
+            childWhenDragging: Opacity(opacity: 0.35, child: tileContent),
+            child: tileContent,
+          )
+        : Draggable<Project>(
+            data: project,
+            feedback: feedback,
+            childWhenDragging: Opacity(opacity: 0.35, child: tileContent),
+            child: tileContent,
+          );
+
+    return _SlidableActionTile(
+      onEdit: () => _editProject(project),
+      onDelete: () => _deleteProject(project),
+      child: draggableTile,
     );
   }
 
@@ -692,6 +912,153 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 支持左滑显露“编辑”与“删除”两个操作按钮的滑动包装组件。
+class _SlidableActionTile extends StatefulWidget {
+  const _SlidableActionTile({
+    required this.child,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final Widget child;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  State<_SlidableActionTile> createState() => _SlidableActionTileState();
+}
+
+class _SlidableActionTileState extends State<_SlidableActionTile>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+  double _dragExtent = 0;
+  static const double _actionWidth = 96;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _animation = Tween<double>(begin: 0, end: 0).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onHorizontalDragUpdate(DragUpdateDetails details) {
+    setState(() {
+      _dragExtent += details.primaryDelta!;
+      if (_dragExtent > 0) _dragExtent = 0;
+      if (_dragExtent < -_actionWidth) _dragExtent = -_actionWidth;
+    });
+  }
+
+  void _onHorizontalDragEnd(DragEndDetails details) {
+    if (_dragExtent < -_actionWidth / 2) {
+      _animateTo(-_actionWidth);
+    } else {
+      _animateTo(0);
+    }
+  }
+
+  void _animateTo(double target) {
+    _animation =
+        Tween<double>(begin: _dragExtent, end: target).animate(
+          CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+        )..addListener(() {
+          setState(() {
+            _dragExtent = _animation.value;
+          });
+        });
+    _controller.reset();
+    _controller.forward();
+  }
+
+  void _close() {
+    _animateTo(0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Stack(
+      children: [
+        // 背景操作区
+        Positioned.fill(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                InkWell(
+                  onTap: () {
+                    _close();
+                    widget.onEdit();
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    width: 42,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.edit_outlined,
+                      size: 17,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                InkWell(
+                  onTap: () {
+                    _close();
+                    widget.onDelete();
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    width: 42,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: colorScheme.error.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.delete_outline,
+                      size: 17,
+                      color: colorScheme.error,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // 前景滑动内容
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onHorizontalDragUpdate: _onHorizontalDragUpdate,
+          onHorizontalDragEnd: _onHorizontalDragEnd,
+          child: Transform.translate(
+            offset: Offset(_dragExtent, 0),
+            child: Container(color: colorScheme.surface, child: widget.child),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -158,7 +158,7 @@ final calendarStateProvider = NotifierProvider<CalendarNotifier, CalendarState>(
     selected.month,
     selected.day - (selected.weekday - DateTime.monday),
   );
-  final sunday = DateTime(selected.year, selected.month, monday.day + 6);
+  final sunday = DateTime(monday.year, monday.month, monday.day + 6);
   return (
     start: DateTime(monday.year, monday.month, monday.day),
     end: DateTime(sunday.year, sunday.month, sunday.day, 23, 59, 59, 999),

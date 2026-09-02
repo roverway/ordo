@@ -163,6 +163,7 @@ Future<TodoRepository> _pumpTreeWithDb(
   addTearDown(tester.view.reset);
   final cache = AppSettingsCache();
   final db = openTestDatabase();
+  addTearDown(db.close);
   final repo = TodoRepository(database: db);
   await db
       .into(db.projects)
@@ -556,7 +557,7 @@ void main() {
         findsOneWidget,
       );
       // 只有有子任务的行渲染箭头（Root 一个；C1/C2/Leaf 无）。
-      expect(find.byIcon(Icons.arrow_right), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
     });
 
     testWidgets('隐藏已完成（F1 回归）：A 存储 done 但有未完成子任务 C → P/A/C 全保留', (
@@ -730,7 +731,7 @@ void main() {
         _task('c', parentId: 'r', title: 'Child', sortOrder: 1),
       ]);
       expect(find.text('Child'), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.arrow_right).first);
+      await tester.tap(find.byIcon(Icons.chevron_right).first);
       await tester.pumpAndSettle();
       expect(find.text('Child'), findsNothing);
     });
@@ -739,10 +740,10 @@ void main() {
         _task('r', title: 'Root'),
         _task('c', parentId: 'r', title: 'Child', sortOrder: 1),
       ]);
-      await tester.tap(find.byIcon(Icons.arrow_right).first);
+      await tester.tap(find.byIcon(Icons.chevron_right).first);
       await tester.pumpAndSettle();
       expect(find.text('Child'), findsNothing);
-      await tester.tap(find.byIcon(Icons.arrow_right).first);
+      await tester.tap(find.byIcon(Icons.chevron_right).first);
       await tester.pumpAndSettle();
       expect(find.text('Child'), findsOneWidget);
     });
@@ -756,7 +757,7 @@ void main() {
       expect(find.text('Child'), findsOneWidget);
 
       // 折叠 → 子区收起。
-      await tester.tap(find.byIcon(Icons.arrow_right).first);
+      await tester.tap(find.byIcon(Icons.chevron_right).first);
       await tester.pumpAndSettle();
       expect(find.text('Child'), findsNothing);
 
@@ -764,7 +765,7 @@ void main() {
       // 错落（子行 StaggeredFadeSlide 已移除：其自下而上滑入与容器揭示
       // 方向相反）。首帧起子行相关 FadeTransition 全部不透明（无
       // opacity < 1 的错落层），且高度动画进行中（尺寸未到位）。
-      await tester.tap(find.byIcon(Icons.arrow_right).first);
+      await tester.tap(find.byIcon(Icons.chevron_right).first);
       await tester.pump();
       final childFades = find.ancestor(
         of: find.text('Child'),
@@ -795,7 +796,7 @@ void main() {
       expect(find.byType(AnimatedSize), findsOneWidget);
 
       // 显式展开孙级任务 b（Root 展开、B 折叠 → 第 2 个箭头是 B 的）。
-      await tester.tap(find.byIcon(Icons.arrow_right).at(1));
+      await tester.tap(find.byIcon(Icons.chevron_right).at(1));
       await tester.pump(); // 单帧：高度动画刚启动（尺寸仍在旧值）。
       final heightDuring = tester.getSize(find.byType(AnimatedSize)).height;
       await tester.pumpAndSettle();

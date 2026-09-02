@@ -390,9 +390,9 @@ void main() {
     // 验证菜单项（今日已外置，菜单内无「回到今天」）
     expect(find.text('回到今天'), findsNothing);
     expect(find.text('切换为周视图'), findsOneWidget);
-    expect(find.text('当日'), findsOneWidget);
-    expect(find.text('该周'), findsOneWidget);
-    expect(find.text('该月'), findsOneWidget);
+    expect(find.text('当日'), findsWidgets);
+    expect(find.text('该周'), findsWidgets);
+    expect(find.text('该月'), findsWidgets);
     expect(find.text('搜索'), findsOneWidget);
 
     // 点击切换为周视图
@@ -457,7 +457,7 @@ void main() {
     // 2. 切换到「该周」
     await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('该周'));
+    await tester.tap(find.text('该周').last);
     await tester.pumpAndSettle();
 
     expect(find.text('8月10日 – 16日'), findsOneWidget);
@@ -469,7 +469,7 @@ void main() {
     // 3. 切换到「该月」
     await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('该月'));
+    await tester.tap(find.text('该月').last);
     await tester.pumpAndSettle();
 
     // 议程头部显示月份标题

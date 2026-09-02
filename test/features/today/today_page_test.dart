@@ -370,11 +370,11 @@ void main() {
     expect(find.text('逾期任务'), findsOneWidget);
     expect(find.byType(SimpleTaskTile), findsOneWidget);
 
-    // 「已逾期」共 2 处：逾期分组标题 + 行内徽标。
-    expect(find.text('已逾期'), findsNWidgets(2));
+    // 「已逾期」共 1 处：逾期分组标题（行内药丸已按设计原型移除）。
+    expect(find.text('已逾期'), findsOneWidget);
 
     // 分组标题用 AppTokens.colorOverdue（红色）。
-    final header = tester.widget<Text>(find.text('已逾期').first);
+    final header = tester.widget<Text>(find.text('已逾期'));
     expect(header.style?.color, AppTokens.colorOverdue);
   });
 
@@ -433,12 +433,12 @@ void main() {
       ],
     );
 
-    // todo 逾期任务进入逾期组并带徽标。
+    // todo 逾期任务进入逾期组。
     expect(find.text('昨天逾期'), findsOneWidget);
     // done 任务既不匹配今日也不逾期 → 不渲染、不标逾期。
     expect(find.text('昨天完成'), findsNothing);
-    // 「已逾期」仅来自逾期任务的分组标题 + 行内徽标。
-    expect(find.text('已逾期'), findsNWidgets(2));
+    // 「已逾期」仅来自逾期任务的分组标题。
+    expect(find.text('已逾期'), findsOneWidget);
   });
 
   testWidgets('勾选今天任务的复选框 → DB 状态变为 done', (tester) async {
@@ -572,19 +572,8 @@ void main() {
       ],
     );
 
-    // 验证在 SimpleTaskTile 内同时存在「已逾期」徽标和 TaskProgressRing
-    final overdueFinder = find.descendant(
-      of: find.byType(SimpleTaskTile),
-      matching: find.text('已逾期'),
-    );
+    // 验证在 SimpleTaskTile 内存在 TaskProgressRing
     final progressFinder = find.byType(TaskProgressRing);
-    expect(overdueFinder, findsOneWidget);
     expect(progressFinder, findsOneWidget);
-
-    final overdueTopRight = tester.getTopRight(overdueFinder);
-    final progressTopLeft = tester.getTopLeft(progressFinder);
-
-    // 进度环在已逾期徽标右侧，且两者横向距离大于等于 12dp (AppTokens.spaceSm)
-    expect(progressTopLeft.dx - overdueTopRight.dx, greaterThanOrEqualTo(12.0));
   });
 }
