@@ -236,6 +236,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
           final panel = panels.first;
           return Scaffold(
             floatingActionButton: FloatingActionButton.extended(
+              tooltip: l10n.newTask,
               onPressed: () {
                 TaskCreateSheet.show(
                   context,
@@ -250,8 +251,20 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
                       : null,
                 );
               },
-              icon: const Icon(Icons.add),
-              label: Text(l10n.newTask),
+              backgroundColor: isDark ? Colors.white : Colors.black,
+              foregroundColor: isDark ? Colors.black : Colors.white,
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(100),
+              ),
+              icon: const Icon(Icons.add, size: 20),
+              label: Text(
+                l10n.newTask,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14.5,
+                ),
+              ),
             ),
             body: SafeArea(
               bottom: false,
@@ -286,11 +299,24 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
           length: panels.length,
           child: Scaffold(
             floatingActionButton: FloatingActionButton.extended(
+              tooltip: l10n.newTask,
               onPressed: () {
                 TaskCreateSheet.show(context);
               },
-              icon: const Icon(Icons.add),
-              label: Text(l10n.newTask),
+              backgroundColor: isDark ? Colors.white : Colors.black,
+              foregroundColor: isDark ? Colors.black : Colors.white,
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(100),
+              ),
+              icon: const Icon(Icons.add, size: 20),
+              label: Text(
+                l10n.newTask,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14.5,
+                ),
+              ),
             ),
             body: SafeArea(
               bottom: false,

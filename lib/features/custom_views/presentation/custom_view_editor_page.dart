@@ -292,6 +292,8 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                             decoration: InputDecoration(
                               hintText: l10n.viewNameHint,
                               isDense: true,
+                              filled: false,
+                              fillColor: Colors.transparent,
                               contentPadding: const EdgeInsets.symmetric(
                                 vertical: 6,
                               ),

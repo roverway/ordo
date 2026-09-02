@@ -90,16 +90,18 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
         }
 
         if (widget.searchQuery.isNotEmpty) {
-          final q = widget.searchQuery.toLowerCase();
-          filteredTasks = filteredTasks.where((t) {
-            return t.title.toLowerCase().contains(q) ||
-                t.description.toLowerCase().contains(q);
-          }).toList();
+          filteredTasks = _filterBySearch(
+            filteredTasks,
+            widget.searchQuery,
+            byIdAll,
+          );
         }
 
         final hideDone = ref.watch(hideCompletedTasksProvider);
         final visibleTasks =
-            (hideDone && widget.filterMode == TaskFilterChipMode.all)
+            (hideDone &&
+                widget.filterMode == TaskFilterChipMode.all &&
+                widget.searchQuery.isEmpty)
             ? _filterDoneTasks(filteredTasks, childrenIndexAll)
             : filteredTasks;
 
@@ -119,9 +121,13 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
         final visibleIds = {for (final t in visibleTasks) t.id};
         _rowKeys.removeWhere((id, _) => !visibleIds.contains(id));
 
+        final effectiveExpandState = widget.searchQuery.isNotEmpty
+            ? {for (final t in visibleTasks) t.id: true}
+            : expandState;
+
         final treeNodes = buildTreeNodes(
           tasks: visibleTasks,
-          expandState: expandState,
+          expandState: effectiveExpandState,
         );
         // 一级任务 = 列表项（卡片）；内部子任务行递归渲染在卡片内。
         final roots = treeNodes.where((n) => n.depth == 0).toList();
@@ -129,10 +135,7 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
         final repo = ref.read(todoRepositoryProvider);
 
         return ListView.builder(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: AppTokens.spaceXs,
-          ),
+          padding: const EdgeInsets.fromLTRB(20, AppTokens.spaceXs, 20, 130),
           itemCount: roots.length + (_draggingTaskId != null ? 1 : 0),
           itemBuilder: (context, index) {
             // 拖拽进行时在列表末尾追加"回到 1 级"落点（FR-TSK-07）。
@@ -200,6 +203,31 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
     }
 
     return tasks.where((t) => !isDoneRecursive(t)).toList();
+  }
+
+  /// 搜索过滤：保留所有匹配任务及其完整祖先链（确保树形结构完整）
+  List<Task> _filterBySearch(
+    List<Task> tasks,
+    String query,
+    Map<String, Task> byId,
+  ) {
+    final q = query.toLowerCase();
+    final matchedIds = <String>{};
+    for (final t in tasks) {
+      if (t.title.toLowerCase().contains(q) ||
+          t.description.toLowerCase().contains(q)) {
+        matchedIds.add(t.id);
+      }
+    }
+    final visibleIds = <String>{...matchedIds};
+    for (final id in matchedIds) {
+      var current = byId[id];
+      while (current?.parentId != null) {
+        visibleIds.add(current!.parentId!);
+        current = byId[current.parentId];
+      }
+    }
+    return tasks.where((t) => visibleIds.contains(t.id)).toList();
   }
 
   /// 将扁平先序 [treeNodes] 分组成「父任务 id → 直接子节点列表」。
@@ -270,9 +298,15 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
             clipBehavior: Clip.hardEdge,
             child: rootNode.isExpanded && children.isNotEmpty
                 ? Padding(
-                    padding: const EdgeInsets.only(left: 26, top: 2, bottom: 8),
+                    padding: const EdgeInsets.only(
+                      left: AppTokens.treeGuideLineIndent,
+                      top: 2,
+                      bottom: 8,
+                    ),
                     child: Container(
-                      padding: const EdgeInsets.only(left: 8),
+                      padding: const EdgeInsets.only(
+                        left: AppTokens.treeChildrenLeftPadding,
+                      ),
                       decoration: BoxDecoration(
                         border: Border(
                           left: BorderSide(color: borderColor, width: 1),
@@ -363,9 +397,15 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
           ),
           if (hasGrandChildren)
             Padding(
-              padding: const EdgeInsets.only(left: 26, top: 2, bottom: 6),
+              padding: const EdgeInsets.only(
+                left: AppTokens.treeGuideLineIndent,
+                top: 2,
+                bottom: 6,
+              ),
               child: Container(
-                padding: const EdgeInsets.only(left: 8),
+                padding: const EdgeInsets.only(
+                  left: AppTokens.treeChildrenLeftPadding,
+                ),
                 decoration: BoxDecoration(
                   border: Border(
                     left: BorderSide(color: borderColor, width: 1),

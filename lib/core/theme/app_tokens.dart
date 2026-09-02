@@ -329,15 +329,18 @@ abstract final class AppTokens {
   /// Task editor toolbar fixed height (48dp).
   static const double toolbarHeight = 48;
 
-  /// Checkbox touch area size.
-  static const double checkboxSize = 24;
+  /// 任务行复选框触控/占位区尺寸（紧凑化 28dp，适度缩小与标题间距）
+  static const double checkboxTapTargetSize = 28;
 
-  /// 任务行勾选框触控区尺寸（用户打磨要求 4，override 61 §3.2 行高规格 +
-  /// NFR-06 ≥48dp 触控下限的权衡）：视觉 [checkboxSize]=24，触控区取 44
-  /// ——单行任务行高由触控区决定，44 处「48 硬约束」与「行高明显更窄」
-  /// （用户期望 36-48）的折中，用户明确接受 44-48 区间取舍；
-  /// 行点击（onTap → 编辑页）由整行 InkWell 兜底。
-  static const double checkboxTapTargetSize = 44;
+  /// 复选框与标题文字的间距
+  static const double checkboxToTitleGap = 6;
+
+  /// 树形层级引导竖线缩进量（等于复选框中心：checkboxTapTargetSize / 2 = 14dp）
+  static const double treeGuideLineIndent = 14;
+
+  /// 树形子任务区域内边距（引导线到子任务复选框起始：treeGuideLineIndent + checkboxToTitleGap = 20dp）
+  /// 使得子任务复选框精确对齐父任务标题第一个文字（14 + 20 = 34dp = checkboxTapTargetSize + checkboxToTitleGap）
+  static const double treeChildrenLeftPadding = 20;
 
   /// Expand/collapse arrow size.
   static const double expandArrowSize = 20;
@@ -388,9 +391,9 @@ abstract final class AppTokens {
   static const double textTaskL2Size = 15;
   static const FontWeight textTaskL2Weight = FontWeight.w500;
 
-  /// 三级任务标题字阶
-  static const double textTaskL3Size = 14;
-  static const FontWeight textTaskL3Weight = FontWeight.w400;
+  /// 三级任务标题字阶（统一到二级任务样式）
+  static const double textTaskL3Size = 15;
+  static const FontWeight textTaskL3Weight = FontWeight.w500;
 
   /// 行尾展开/折叠箭头尺寸（61 §4.5，比 AppBar/树内 [expandArrowSize] 20 稍小）。
   static const double expandArrowSizeRow = 16;

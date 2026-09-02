@@ -419,7 +419,7 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                   ),
                 ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              const SliverToBoxAdapter(child: SizedBox(height: 130)),
             ],
           ),
         ),
@@ -623,6 +623,19 @@ class _ProjectOrInboxBodyState extends ConsumerState<_ProjectOrInboxBody> {
             InlineSearchBar(
               isOpen: _isSearchOpen,
               controller: _searchController,
+              matchCount: _searchQuery.isNotEmpty
+                  ? tasks
+                        .where(
+                          (t) =>
+                              t.title.toLowerCase().contains(
+                                _searchQuery.toLowerCase(),
+                              ) ||
+                              t.description.toLowerCase().contains(
+                                _searchQuery.toLowerCase(),
+                              ),
+                        )
+                        .length
+                  : null,
               onChanged: (val) => setState(() => _searchQuery = val.trim()),
               onClear: () => setState(() => _searchQuery = ''),
             ),

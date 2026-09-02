@@ -374,34 +374,6 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('三点更多菜单：展开显示切换周/月、当日/该周/该月范围选择、搜索并可交互', (tester) async {
-    final db = openTestDatabase();
-    final repo = TodoRepository(database: db);
-    final state = _fixedState(CalendarMode.month);
-
-    final controller = await _pump(tester, repo: repo, state: state);
-    controller.add(buildCalendarBuckets([], state));
-    await tester.pumpAndSettle();
-
-    // 点击右上角三点菜单
-    await tester.tap(find.byIcon(Icons.more_vert));
-    await tester.pumpAndSettle();
-
-    // 验证菜单项（今日已外置，菜单内无「回到今天」）
-    expect(find.text('回到今天'), findsNothing);
-    expect(find.text('切换为周视图'), findsOneWidget);
-    expect(find.text('当日'), findsWidgets);
-    expect(find.text('该周'), findsWidgets);
-    expect(find.text('该月'), findsWidgets);
-    expect(find.text('搜索'), findsOneWidget);
-
-    // 点击切换为周视图
-    await tester.tap(find.text('切换为周视图'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('8月10日 – 8月16日'), findsOneWidget);
-  });
-
   testWidgets('任务列表上下滑动溢出联动日历折叠与展开', (tester) async {
     final db = openTestDatabase();
     final repo = TodoRepository(database: db);
@@ -455,9 +427,7 @@ void main() {
     expect(find.text('T4'), findsNothing);
 
     // 2. 切换到「该周」
-    await tester.tap(find.byIcon(Icons.more_vert));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('该周').last);
+    await tester.tap(find.text('该周'));
     await tester.pumpAndSettle();
 
     expect(find.text('8月10日 – 16日'), findsOneWidget);
@@ -467,9 +437,7 @@ void main() {
     expect(find.text('T4'), findsNothing);
 
     // 3. 切换到「该月」
-    await tester.tap(find.byIcon(Icons.more_vert));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('该月').last);
+    await tester.tap(find.text('该月'));
     await tester.pumpAndSettle();
 
     // 议程头部显示月份标题

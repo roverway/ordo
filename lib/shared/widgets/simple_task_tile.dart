@@ -103,46 +103,45 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
           child: InkWell(
             onTap: widget.onTap,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 现代极简复选框（22x22，圆角 6px），与首行标题顶对齐
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2.0),
-                    child: CheckboxBounce(
-                      isDone: widget.isDone,
-                      child: widget.hasChildren
-                          ? Tooltip(
-                              message: l10n.statusDerivedFromChildren,
-                              child: ModernCheckbox(
-                                checked: widget.isDone,
-                                onChanged: null,
-                              ),
-                            )
-                          : ModernCheckbox(
+                  CheckboxBounce(
+                    isDone: widget.isDone,
+                    child: widget.hasChildren
+                        ? Tooltip(
+                            message: l10n.statusDerivedFromChildren,
+                            child: ModernCheckbox(
                               checked: widget.isDone,
-                              onChanged: (val) =>
-                                  widget.onToggleDone?.call(val),
+                              onChanged: null,
+                              size: 20,
+                              tapTargetSize: AppTokens.checkboxTapTargetSize,
                             ),
-                    ),
+                          )
+                        : ModernCheckbox(
+                            checked: widget.isDone,
+                            onChanged: (val) => widget.onToggleDone?.call(val),
+                            size: 20,
+                            tapTargetSize: AppTokens.checkboxTapTargetSize,
+                          ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: AppTokens.checkboxToTitleGap),
 
                   // 标题 + 属性元数据
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.only(top: 1.0),
+                      padding: const EdgeInsets.only(top: 2.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 任务标题
+                          // 任务标题（统一到二级任务字阶 15 / w500）
                           AnimatedStrikethrough(
                             text: widget.task.title,
                             isDone: widget.isDone,
                             style: theme.textTheme.bodyLarge?.copyWith(
-                              fontSize: 15.0,
-                              fontWeight: FontWeight.normal,
+                              fontSize: AppTokens.textTaskL2Size,
+                              fontWeight: AppTokens.textTaskL2Weight,
                               height: 1.35,
                               color: widget.isDone
                                   ? colorScheme.onSurfaceVariant.withValues(

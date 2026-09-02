@@ -74,6 +74,7 @@ Future<void> _pumpTree(
   Size size = const Size(400, 800),
   Map<String, List<Tag>> taskTags = const {},
   bool hideCompleted = false,
+  String searchQuery = '',
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
@@ -128,8 +129,12 @@ Future<void> _pumpTree(
     routes: [
       GoRoute(
         path: '/projects/:id',
-        builder: (_, state) =>
-            Scaffold(body: TaskTree(projectId: state.pathParameters['id']!)),
+        builder: (_, state) => Scaffold(
+          body: TaskTree(
+            projectId: state.pathParameters['id']!,
+            searchQuery: searchQuery,
+          ),
+        ),
       ),
       GoRoute(path: '/task/new', builder: (_, _) => const Scaffold()),
       GoRoute(path: '/task/:id', builder: (_, _) => const Scaffold()),
@@ -532,12 +537,12 @@ void main() {
       expect(plain, lessThanOrEqualTo(48));
     });
 
-    testWidgets('勾选框触控区 ≥44（NFR-06 取舍下限，用户打磨要求 4）', (tester) async {
+    testWidgets('勾选框触控区与 AppTokens.checkboxTapTargetSize 一致', (tester) async {
       await _pumpTree(tester, [_task('a', title: 'A')]);
       final box = tester.widget<ModernCheckbox>(
         find.byType(ModernCheckbox).first,
       );
-      expect(box.tapTargetSize, greaterThanOrEqualTo(44));
+      expect(box.tapTargetSize, AppTokens.checkboxTapTargetSize);
     });
 
     testWidgets('行尾显示子任务数 + 展开箭头，无子任务不显示', (tester) async {
@@ -1195,6 +1200,29 @@ void main() {
       final after = await repo.tasks.getByProject('p1');
       final b = after.firstWhere((t) => t.id == 'b');
       expect(b.parentId, 'a');
+    });
+  });
+
+  group('树形内联搜索（3.1 修复）', () {
+    testWidgets('匹配子任务时，保留其父级节点并自动展开显示', (tester) async {
+      await _pumpTree(tester, [
+        _task('p', title: 'ParentProject'),
+        _task('c', parentId: 'p', title: 'ChildTaskSpecificKeyword'),
+        _task('other', title: 'UnrelatedTask'),
+      ], searchQuery: 'SpecificKeyword');
+      // 匹配词在子任务中：子任务及其父任务都可见
+      expect(find.text('ParentProject'), findsOneWidget);
+      expect(find.text('ChildTaskSpecificKeyword'), findsOneWidget);
+      // 无关任务不显示
+      expect(find.text('UnrelatedTask'), findsNothing);
+    });
+
+    testWidgets('无匹配任务时显示空状态', (tester) async {
+      await _pumpTree(tester, [
+        _task('p', title: 'ParentProject'),
+      ], searchQuery: 'NonExistentWord');
+      expect(find.text('未搜索到相关任务'), findsOneWidget);
+      expect(find.text('ParentProject'), findsNothing);
     });
   });
 }

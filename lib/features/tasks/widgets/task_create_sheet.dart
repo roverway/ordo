@@ -18,6 +18,7 @@ import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/platform/keyboard_inset_bridge.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../core/theme/priority_color.dart';
 import '../../../core/utils/dates.dart';
 import '../../../core/utils/motion.dart';
 import '../../projects/project_providers.dart';
@@ -470,6 +471,8 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                   ),
                 ),
 
+                const SizedBox(height: 14),
+
                 Divider(height: 1, color: borderColor),
 
                 // 4. 优先级选择行（与任务编辑页完全一致）
@@ -494,58 +497,72 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                         ),
                       ),
                       const Spacer(),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          for (final p in TaskPriority.values)
-                            GestureDetector(
-                              onTap: () => ref
-                                  .read(taskFormProvider.notifier)
-                                  .updatePriority(p),
-                              child: Container(
-                                margin: const EdgeInsets.only(left: 4),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: priority == p
-                                      ? (p == TaskPriority.none
-                                            ? (isDark
-                                                  ? Colors.white12
-                                                  : Colors.black12)
-                                            : _getPriorityColor(
-                                                p,
-                                              ).withValues(alpha: 0.15))
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(6),
-                                  border:
-                                      priority == p && p != TaskPriority.none
-                                      ? Border.all(
-                                          color: _getPriorityColor(
-                                            p,
-                                          ).withValues(alpha: 0.4),
-                                          width: 1,
-                                        )
-                                      : null,
-                                ),
-                                child: Text(
-                                  _getPriorityLabel(l10n, p),
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: priority == p
-                                        ? FontWeight.w600
-                                        : FontWeight.normal,
+                      Container(
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? colorScheme.surfaceContainerHighest.withValues(
+                                  alpha: 0.5,
+                                )
+                              : colorScheme.onSurface.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.all(2),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (final p in [
+                              TaskPriority.none,
+                              TaskPriority.low,
+                              TaskPriority.medium,
+                              TaskPriority.high,
+                            ])
+                              InkWell(
+                                onTap: () => ref
+                                    .read(taskFormProvider.notifier)
+                                    .updatePriority(p),
+                                borderRadius: BorderRadius.circular(6),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
                                     color: priority == p
                                         ? (p == TaskPriority.none
-                                              ? colorScheme.onSurface
-                                              : _getPriorityColor(p))
-                                        : colorScheme.onSurfaceVariant,
+                                              ? colorScheme.surface
+                                              : priorityColor(
+                                                  p,
+                                                ).withValues(alpha: 0.15))
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border:
+                                        priority == p && p != TaskPriority.none
+                                        ? Border.all(
+                                            color: priorityColor(
+                                              p,
+                                            ).withValues(alpha: 0.4),
+                                            width: 1,
+                                          )
+                                        : null,
+                                  ),
+                                  child: Text(
+                                    _getPriorityLabel(l10n, p),
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: priority == p
+                                          ? FontWeight.w600
+                                          : FontWeight.normal,
+                                      color: priority == p
+                                          ? (p == TaskPriority.none
+                                                ? colorScheme.onSurface
+                                                : priorityColor(p))
+                                          : colorScheme.onSurfaceVariant,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -1062,13 +1079,6 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
       ),
     );
   }
-
-  Color _getPriorityColor(TaskPriority p) => switch (p) {
-    TaskPriority.high => AppTokens.colorPriorityHigh,
-    TaskPriority.medium => AppTokens.colorPriorityMedium,
-    TaskPriority.low => AppTokens.colorPriorityLow,
-    TaskPriority.none => AppTokens.colorCancelled,
-  };
 
   String _getPriorityLabel(AppLocalizations l10n, TaskPriority p) =>
       switch (p) {

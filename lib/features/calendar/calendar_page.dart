@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/db/database.dart';
 import '../../core/db/tables.dart';
@@ -15,7 +14,6 @@ import '../../core/utils/tree.dart';
 import '../../core/utils/view_rules.dart' as view_rules;
 import '../../shared/widgets/page_hero_header.dart';
 import '../../shared/widgets/scope_switcher_sheet.dart';
-import '../../shared/widgets/app_menu_item.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/loading_view.dart';
@@ -26,13 +24,10 @@ import '../tasks/task_providers.dart';
 import '../tasks/widgets/task_create_sheet.dart';
 import 'calendar_providers.dart';
 
-/// 顶部三点更多菜单的操作枚举。
-enum _CalendarMenuAction { toggleView, scopeDay, scopeWeek, scopeMonth, search }
-
 /// 现代高质感沉浸式日历视图（FR-VIEW-02）。
 ///
 /// 架构设计：
-/// 1. 顶栏融合：周期标题（月/周）置于 AppBar，点击弹出日期快捷面板；右上角设「回到今天」快捷按钮与三点操作菜单。
+/// 1. 顶栏融合：周期标题（月/周）置于 AppBar，点击弹出日期快捷面板；右上角设「回到今天」快捷按钮。
 /// 2. 日历视口（上部）：无边框沉浸式设计 + 统一矩阵格 + 项目色彩微标 + 左右滑动手势翻月/周 + 上下折叠手势。
 /// 3. 当日/周/月议程列表（下部）：实时联动展示选定时间范围的任务清单，支持上下滑动手势穿透联动日历折叠/展开。
 /// 4. 快捷新建（FAB / 内联）：一键唤起创建表单，自动预填选中日期 09:00。
@@ -58,85 +53,12 @@ class CalendarPage extends ConsumerWidget {
               onTitleTap: isNarrow
                   ? () => showScopeSwitcherSheet(context)
                   : null,
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    tooltip: l10n.goToToday,
-                    icon: const Icon(Icons.today_outlined, size: 22),
-                    onPressed: () {
-                      ref.read(calendarStateProvider.notifier).goToToday();
-                    },
-                  ),
-                  PopupMenuButton<_CalendarMenuAction>(
-                    tooltip: l10n.moreOptions,
-                    icon: const Icon(Icons.more_vert, size: 22),
-                    onSelected: (action) {
-                      switch (action) {
-                        case _CalendarMenuAction.toggleView:
-                          ref.read(calendarStateProvider.notifier).toggleView();
-                          break;
-                        case _CalendarMenuAction.scopeDay:
-                          ref
-                              .read(calendarStateProvider.notifier)
-                              .setAgendaScope(CalendarAgendaScope.day);
-                          break;
-                        case _CalendarMenuAction.scopeWeek:
-                          ref
-                              .read(calendarStateProvider.notifier)
-                              .setAgendaScope(CalendarAgendaScope.week);
-                          break;
-                        case _CalendarMenuAction.scopeMonth:
-                          ref
-                              .read(calendarStateProvider.notifier)
-                              .setAgendaScope(CalendarAgendaScope.month);
-                          break;
-                        case _CalendarMenuAction.search:
-                          context.push('/search');
-                          break;
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      AppMenuItem(
-                        value: _CalendarMenuAction.toggleView,
-                        icon: state.mode == CalendarMode.month
-                            ? Icons.calendar_view_week_outlined
-                            : Icons.calendar_view_month_outlined,
-                        label: state.mode == CalendarMode.month
-                            ? l10n.switchToWeekView
-                            : l10n.switchToMonthView,
-                      ),
-                      const PopupMenuDivider(),
-                      AppMenuItem(
-                        value: _CalendarMenuAction.scopeDay,
-                        icon: state.agendaScope == CalendarAgendaScope.day
-                            ? Icons.check
-                            : null,
-                        label: l10n.calendarScopeDay,
-                      ),
-                      AppMenuItem(
-                        value: _CalendarMenuAction.scopeWeek,
-                        icon: state.agendaScope == CalendarAgendaScope.week
-                            ? Icons.check
-                            : null,
-                        label: l10n.calendarScopeWeek,
-                      ),
-                      AppMenuItem(
-                        value: _CalendarMenuAction.scopeMonth,
-                        icon: state.agendaScope == CalendarAgendaScope.month
-                            ? Icons.check
-                            : null,
-                        label: l10n.calendarScopeMonth,
-                      ),
-                      const PopupMenuDivider(),
-                      AppMenuItem(
-                        value: _CalendarMenuAction.search,
-                        icon: Icons.search,
-                        label: l10n.search,
-                      ),
-                    ],
-                  ),
-                ],
+              trailing: IconButton(
+                tooltip: l10n.goToToday,
+                icon: const Icon(Icons.today_outlined, size: 22),
+                onPressed: () {
+                  ref.read(calendarStateProvider.notifier).goToToday();
+                },
               ),
             ),
             const Divider(height: 1, indent: 20, endIndent: 20),
@@ -1003,7 +925,7 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
       },
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
+          parent: ClampingScrollPhysics(),
         ),
         slivers: [
           // 概览 Sticky / Header 栏
@@ -1105,7 +1027,7 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
                 AppTokens.spaceMd,
                 0,
                 AppTokens.spaceMd,
-                88, // 留出 FAB 底部防遮挡安全边距
+                130, // 留出 FAB 底部防遮挡安全边距
               ),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate((context, index) {
