@@ -1330,12 +1330,7 @@ class _FolderUncompletedBadge extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final grouping = ref.watch(projectsByFolderProvider).value;
-    final projects = grouping?.folderProjects[folderId] ?? const <Project>[];
-    var sum = 0;
-    for (final p in projects) {
-      sum += ref.watch(projectSummaryProvider(p.id)).uncompletedCount;
-    }
+    final sum = ref.watch(folderUncompletedCountProvider(folderId));
 
     final theme = Theme.of(context);
     return Text(

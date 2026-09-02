@@ -527,14 +527,13 @@ class _ProjectOrInboxBodyState extends ConsumerState<_ProjectOrInboxBody> {
                       ?.name ??
                   '未分组');
 
+        final summary = ref.watch(projectSummaryProvider(widget.projectId));
         final tasks =
             ref.watch(projectTasksProvider(widget.projectId)).value ??
             const <Task>[];
-        final totalCount = tasks.length;
-        final doneCount = tasks
-            .where((t) => t.status == TaskStatus.done)
-            .length;
-        final openCount = totalCount - doneCount;
+        final totalCount = summary.totalCount;
+        final openCount = summary.uncompletedCount;
+        final doneCount = (totalCount - openCount).clamp(0, totalCount);
         final rootCount = tasks.where((t) => t.parentId == null).length;
         final theme = Theme.of(context);
         final colorScheme = theme.colorScheme;

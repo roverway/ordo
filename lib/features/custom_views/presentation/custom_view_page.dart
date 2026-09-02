@@ -103,7 +103,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
           return Scaffold(body: Center(child: Text(l10n.noCustomViews)));
         }
 
-        final panels = decodePanelsJson(view.panelsJson);
+        final panels = ref.watch(customViewPanelsProvider(widget.viewId));
         final isKanban = isWide || view.layoutMode == 'kanban';
 
         final header = PageHeroHeader(

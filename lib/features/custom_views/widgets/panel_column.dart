@@ -141,23 +141,31 @@ class PanelColumn extends ConsumerWidget {
                         itemBuilder: (context, index) {
                           final task = data.tasks[index];
                           final project = projectsMap[task.projectId];
-                          final tags =
-                              ref.watch(taskTagsProvider(task.id)).value ??
-                              const <Tag>[];
-                          return SimpleTaskTile(
-                            task: task,
-                            hasChildren: false,
-                            isDone: task.status == TaskStatus.done,
-                            tags: tags,
-                            projectName: project?.name,
-                            projectColor: project?.color,
-                            onTap: () => openTaskEdit(context, taskId: task.id),
-                            onToggleDone: (value) async {
-                              final repo = ref.read(todoRepositoryProvider);
-                              final newStatus = value == true
-                                  ? TaskStatus.done
-                                  : TaskStatus.todo;
-                              await repo.updateTask(task.id, status: newStatus);
+                          return Consumer(
+                            builder: (context, ref, _) {
+                              final tags =
+                                  ref.watch(taskTagsProvider(task.id)).value ??
+                                  const <Tag>[];
+                              return SimpleTaskTile(
+                                task: task,
+                                hasChildren: false,
+                                isDone: task.status == TaskStatus.done,
+                                tags: tags,
+                                projectName: project?.name,
+                                projectColor: project?.color,
+                                onTap: () =>
+                                    openTaskEdit(context, taskId: task.id),
+                                onToggleDone: (value) async {
+                                  final repo = ref.read(todoRepositoryProvider);
+                                  final newStatus = value == true
+                                      ? TaskStatus.done
+                                      : TaskStatus.todo;
+                                  await repo.updateTask(
+                                    task.id,
+                                    status: newStatus,
+                                  );
+                                },
+                              );
                             },
                           );
                         },

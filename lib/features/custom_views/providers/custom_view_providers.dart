@@ -21,6 +21,17 @@ final customViewDetailProvider = StreamProvider.family<CustomView?, String>((
   return repo.customViews.watchById(id);
 });
 
+/// 单个自定义视图面板列表解析缓存（Provider.family）。
+final customViewPanelsProvider =
+    Provider.family<List<CustomViewPanelConfig>, String>((ref, id) {
+      final viewAsync = ref.watch(customViewDetailProvider(id));
+      return viewAsync.maybeWhen(
+        data: (view) =>
+            view != null ? decodePanelsJson(view.panelsJson) : const [],
+        orElse: () => const [],
+      );
+    });
+
 /// 全部活跃任务（StreamProvider，用于跨面板筛选与看板展示）。
 final allActiveTasksStreamProvider = StreamProvider<List<Task>>((ref) {
   final repo = ref.watch(todoRepositoryProvider);

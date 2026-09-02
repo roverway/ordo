@@ -81,37 +81,36 @@ class HeroProgressRing extends StatelessWidget {
 }
 
 class _RingPainter extends CustomPainter {
-  const _RingPainter({
+  _RingPainter({
     required this.progress,
     required this.trackColor,
     required this.barColor,
     required this.strokeWidth,
-  });
+  }) : _trackPaint = Paint()
+         ..color = trackColor
+         ..style = PaintingStyle.stroke
+         ..strokeWidth = strokeWidth,
+       _barPaint = Paint()
+         ..color = barColor
+         ..style = PaintingStyle.stroke
+         ..strokeWidth = strokeWidth
+         ..strokeCap = StrokeCap.round;
 
   final double progress;
   final Color trackColor;
   final Color barColor;
   final double strokeWidth;
+  final Paint _trackPaint;
+  final Paint _barPaint;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = (size.width - strokeWidth) / 2;
 
-    final trackPaint = Paint()
-      ..color = trackColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
-
-    canvas.drawCircle(center, radius, trackPaint);
+    canvas.drawCircle(center, radius, _trackPaint);
 
     if (progress > 0.001) {
-      final barPaint = Paint()
-        ..color = barColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth
-        ..strokeCap = StrokeCap.round;
-
       const startAngle = -3.141592653589793 / 2; // -90 deg
       final sweepAngle = 2 * 3.141592653589793 * progress;
 
@@ -120,7 +119,7 @@ class _RingPainter extends CustomPainter {
         startAngle,
         sweepAngle,
         false,
-        barPaint,
+        _barPaint,
       );
     }
   }

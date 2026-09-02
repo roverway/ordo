@@ -773,53 +773,56 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
         // 数字进度（只算子任务）一致（用户定稿 2026-08）。
         ? progress(node.task, subtree, includeSelf: false)
         : null;
-    // 标签 chips：一级卡片头与紧凑子行均展示（61 §4.1/§4.4 统一规格，
-    // 覆盖 57 文档 D7「紧凑子行保持精简」；参考案例子任务同样显示标签）。
-    final tags =
-        ref.watch(taskTagsProvider(node.task.id)).value ?? const <Tag>[];
+    // 标签 chips：通过 Consumer 下沉监听，避免单条标签更新导致整树全量重绘
+    return Consumer(
+      builder: (context, ref, child) {
+        final tags =
+            ref.watch(taskTagsProvider(node.task.id)).value ?? const <Tag>[];
 
-    return TaskRow(
-      task: node.task,
-      depth: node.depth,
-      style: style,
-      hasChildren: node.hasChildren,
-      isExpanded: node.isExpanded,
-      childCount: directChildren.length,
-      incompleteChildCount: incompleteChildren,
-      onToggleExpand: () {
-        ref
-            .read(treeExpandProvider(widget.projectId).notifier)
-            .toggle(node.task.id);
+        return TaskRow(
+          task: node.task,
+          depth: node.depth,
+          style: style,
+          hasChildren: node.hasChildren,
+          isExpanded: node.isExpanded,
+          childCount: directChildren.length,
+          incompleteChildCount: incompleteChildren,
+          onToggleExpand: () {
+            ref
+                .read(treeExpandProvider(widget.projectId).notifier)
+                .toggle(node.task.id);
+          },
+          onToggleDone: (value) async {
+            final newStatus = value == true ? TaskStatus.done : TaskStatus.todo;
+            try {
+              await repo.updateTask(node.task.id, status: newStatus);
+            } catch (e) {
+              if (context.mounted) {
+                final l10n = AppLocalizations.of(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(_friendlyError(l10n, e))),
+                );
+              }
+            }
+          },
+          onTap: () => openTaskEdit(context, taskId: node.task.id),
+          onMenuAction: (action) => _handleMenuAction(
+            context,
+            action,
+            node.task,
+            childrenIndexAll,
+            byIdAll,
+            repo,
+          ),
+          derivedStatus: effectiveStatus,
+          progressValue: progressValue,
+          tags: tags,
+          isDragging: isDragging,
+          isDragTarget: isDragTarget,
+          isInvalidDragTarget: isInvalidDragTarget,
+          dropAsChild: dropAsChild,
+        );
       },
-      onToggleDone: (value) async {
-        final newStatus = value == true ? TaskStatus.done : TaskStatus.todo;
-        try {
-          await repo.updateTask(node.task.id, status: newStatus);
-        } catch (e) {
-          if (context.mounted) {
-            final l10n = AppLocalizations.of(context);
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(_friendlyError(l10n, e))));
-          }
-        }
-      },
-      onTap: () => openTaskEdit(context, taskId: node.task.id),
-      onMenuAction: (action) => _handleMenuAction(
-        context,
-        action,
-        node.task,
-        childrenIndexAll,
-        byIdAll,
-        repo,
-      ),
-      derivedStatus: effectiveStatus,
-      progressValue: progressValue,
-      tags: tags,
-      isDragging: isDragging,
-      isDragTarget: isDragTarget,
-      isInvalidDragTarget: isInvalidDragTarget,
-      dropAsChild: dropAsChild,
     );
   }
 

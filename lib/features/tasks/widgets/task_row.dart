@@ -240,11 +240,10 @@ class _TaskRowState extends State<TaskRow> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Checkbox（Linear / Things 圆形复选框；有子任务的子任务行禁用：
-                    // 状态由父任务派生，Tooltip 解释原因，AGENTS.md §3-2 +
-                    // NFR-06 语义）。触控区 = checkboxTapTargetSize（44），视觉 24 居中。
-                    // Modern Checkbox
-                    (!hasDerived || widget.task.parentId == null)
+                    // Checkbox（ModernCheckbox：有子任务的任务禁用勾选：
+                    // 状态由直接子任务派生，Tooltip 解释原因，AGENTS.md §3-2 +
+                    // NFR-06 语义）。触控区 = checkboxTapTargetSize（44），视觉 20/22 居中。
+                    !hasDerived
                         ? ModernCheckbox(
                             checked: isDone,
                             onChanged: (val) => widget.onToggleDone(val),

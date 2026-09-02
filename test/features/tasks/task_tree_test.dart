@@ -722,6 +722,34 @@ void main() {
       final childRow = rows.firstWhere((r) => r.task.id == 'c');
       expect(childRow.derivedStatus, isNull);
     });
+
+    testWidgets('有子任务的 1 级任务复选框被禁用且附带派生提示 Tooltip', (tester) async {
+      await _pumpTree(tester, [
+        _task('r', title: 'Root'),
+        _task('c', parentId: 'r', title: 'Child', sortOrder: 1),
+      ]);
+      final rootRow = find.ancestor(
+        of: find.text('Root'),
+        matching: find.byType(TaskRow),
+      );
+      final rootCheckbox = tester.widget<ModernCheckbox>(
+        find.descendant(of: rootRow, matching: find.byType(ModernCheckbox)),
+      );
+      expect(rootCheckbox.onChanged, isNull);
+      expect(
+        find.descendant(of: rootRow, matching: find.byType(Tooltip)),
+        findsOneWidget,
+      );
+
+      final childRow = find.ancestor(
+        of: find.text('Child'),
+        matching: find.byType(TaskRow),
+      );
+      final childCheckbox = tester.widget<ModernCheckbox>(
+        find.descendant(of: childRow, matching: find.byType(ModernCheckbox)),
+      );
+      expect(childCheckbox.onChanged, isNotNull);
+    });
   });
 
   group('expand/collapse interaction', () {

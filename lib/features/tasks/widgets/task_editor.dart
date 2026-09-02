@@ -139,76 +139,334 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
     final project = projects.where((p) => p.id == projectId).firstOrNull;
 
     if (widget.isDetailsPage) {
-      final startAt = ref.watch(taskFormProvider.select((s) => s.startAt));
-      final endAt = ref.watch(taskFormProvider.select((s) => s.endAt));
-      final priority = ref.watch(taskFormProvider.select((s) => s.priority));
-      final selectedTagIds = ref.watch(
-        taskFormProvider.select((s) => s.selectedTagIds),
+      return _buildDetailsMode(
+        context: context,
+        theme: theme,
+        colorScheme: colorScheme,
+        l10n: l10n,
+        project: project,
       );
-      final tags = ref.watch(tagsStreamProvider).value ?? const <Tag>[];
-      final selectedTags = [
-        for (final id in selectedTagIds)
-          if (tags.any((t) => t.id == id)) tags.firstWhere((t) => t.id == id),
-      ];
+    }
 
-      final isDark = theme.brightness == Brightness.dark;
-      final borderColor = isDark
-          ? AppTokens.borderSubtleDark
-          : AppTokens.borderSubtleLight;
-      final timeText = formatTaskTimeDisplay(startAt, endAt, l10n);
+    return _buildInlineFormMode(
+      context: context,
+      l10n: l10n,
+      hasParent: hasParent,
+    );
+  }
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // 标题输入框 (31px 加粗按需编辑，复刻 editor.html 原型)
-          TextField(
-            controller: widget.controller.titleController,
-            focusNode: widget.controller.titleFocusNode,
-            autofocus: widget.autofocus,
-            maxLines: null,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontSize: 31,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.5,
-              height: 1.25,
-              color: colorScheme.onSurface,
-            ),
-            decoration: InputDecoration(
-              hintText: '准备做什么？',
-              hintStyle: TextStyle(
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                fontWeight: FontWeight.w700,
-                fontSize: 31,
-              ),
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              disabledBorder: InputBorder.none,
-              errorBorder: InputBorder.none,
-              focusedErrorBorder: InputBorder.none,
-              filled: false,
-              fillColor: Colors.transparent,
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 4),
-            ),
-            onChanged: (v) =>
-                ref.read(taskFormProvider.notifier).updateTitle(v),
+  /// 详情页卡片模式布局（31px 大标题 + 属性卡片 + 独立子任务/删除区）
+  Widget _buildDetailsMode({
+    required BuildContext context,
+    required ThemeData theme,
+    required ColorScheme colorScheme,
+    required AppLocalizations l10n,
+    required Project? project,
+  }) {
+    final startAt = ref.watch(taskFormProvider.select((s) => s.startAt));
+    final endAt = ref.watch(taskFormProvider.select((s) => s.endAt));
+    final priority = ref.watch(taskFormProvider.select((s) => s.priority));
+    final selectedTagIds = ref.watch(
+      taskFormProvider.select((s) => s.selectedTagIds),
+    );
+    final tags = ref.watch(tagsStreamProvider).value ?? const <Tag>[];
+    final selectedTags = [
+      for (final id in selectedTagIds)
+        if (tags.any((t) => t.id == id)) tags.firstWhere((t) => t.id == id),
+    ];
+
+    final isDark = theme.brightness == Brightness.dark;
+    final borderColor = isDark
+        ? AppTokens.borderSubtleDark
+        : AppTokens.borderSubtleLight;
+    final timeText = formatTaskTimeDisplay(startAt, endAt, l10n);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // 标题输入框 (31px 加粗按需编辑，复刻 editor.html 原型)
+        TextField(
+          controller: widget.controller.titleController,
+          focusNode: widget.controller.titleFocusNode,
+          autofocus: widget.autofocus,
+          maxLines: null,
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontSize: 31,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+            height: 1.25,
+            color: colorScheme.onSurface,
           ),
-          const SizedBox(height: 6),
+          decoration: InputDecoration(
+            hintText: '准备做什么？',
+            hintStyle: TextStyle(
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+              fontWeight: FontWeight.w700,
+              fontSize: 31,
+            ),
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            disabledBorder: InputBorder.none,
+            errorBorder: InputBorder.none,
+            focusedErrorBorder: InputBorder.none,
+            filled: false,
+            fillColor: Colors.transparent,
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(vertical: 4),
+          ),
+          onChanged: (v) => ref.read(taskFormProvider.notifier).updateTitle(v),
+        ),
+        const SizedBox(height: 6),
 
-          // 标题下方元信息行 (hero-sub: 项目圆点+名称 · 时间 · 优先级)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 6,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                // 所属项目
-                if (project != null)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+        // 标题下方元信息行 (hero-sub: 项目圆点+名称 · 时间 · 优先级)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              // 所属项目
+              if (project != null)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: Color(project.color),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      project.name,
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12.5,
+                      ),
+                    ),
+                  ],
+                ),
+
+              // 时间
+              if (timeText.isNotEmpty && timeText != '未设置')
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.access_time,
+                      size: 13,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      timeText,
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 12.5,
+                        fontFeatures: AppTokens.fontTabular,
+                      ),
+                    ),
+                  ],
+                ),
+
+              // 优先级
+              if (priority != TaskPriority.none)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: priorityColor(priority),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      priorityLabel(l10n, priority),
+                      style: TextStyle(
+                        color: priorityColor(priority),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ),
+
+        // 描述/备注输入框 (15px 按需编辑)
+        TextField(
+          controller: widget.controller.descriptionController,
+          focusNode: widget.controller.descriptionFocusNode,
+          maxLines: null,
+          minLines: 2,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontSize: 15,
+            height: 1.6,
+            color: colorScheme.onSurface,
+          ),
+          decoration: InputDecoration(
+            hintText: '添加描述或要点…',
+            hintStyle: TextStyle(
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.45),
+              fontSize: 15,
+            ),
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            disabledBorder: InputBorder.none,
+            errorBorder: InputBorder.none,
+            focusedErrorBorder: InputBorder.none,
+            filled: false,
+            fillColor: Colors.transparent,
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(vertical: 4),
+          ),
+          onChanged: (v) =>
+              ref.read(taskFormProvider.notifier).updateDescription(v),
+        ),
+        const SizedBox(height: 16),
+
+        // 属性卡片列表（日期、优先级、项目、标签）
+        Container(
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: borderColor, width: 1),
+              bottom: BorderSide(color: borderColor, width: 1),
+            ),
+          ),
+          child: Column(
+            children: [
+              // 1. 日期行
+              _DetailsRow(
+                icon: Icons.calendar_today_outlined,
+                label: '日期',
+                value: Text(
+                  startAt != null || endAt != null
+                      ? formatTaskTimeDisplay(startAt, endAt, l10n)
+                      : '未设置',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: startAt != null || endAt != null
+                        ? colorScheme.onSurface
+                        : colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                    fontSize: 13.5,
+                    fontFeatures: AppTokens.fontTabular,
+                  ),
+                ),
+                onTap: () => showTaskDatePicker(context, ref),
+              ),
+              Divider(height: 1, color: borderColor),
+
+              // 2. 优先级行 (直接展示所有优先级选项供用户点击选择)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 8.0,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.flag_outlined,
+                      size: 20,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      '优先级',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? colorScheme.surfaceContainerHighest.withValues(
+                                alpha: 0.5,
+                              )
+                            : colorScheme.onSurface.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.all(2),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (final p in [
+                            TaskPriority.none,
+                            TaskPriority.low,
+                            TaskPriority.medium,
+                            TaskPriority.high,
+                          ])
+                            InkWell(
+                              onTap: () => ref
+                                  .read(taskFormProvider.notifier)
+                                  .updatePriority(p),
+                              borderRadius: BorderRadius.circular(6),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: priority == p
+                                      ? (p == TaskPriority.none
+                                            ? colorScheme.surface
+                                            : priorityColor(
+                                                p,
+                                              ).withValues(alpha: 0.15))
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border:
+                                      priority == p && p != TaskPriority.none
+                                      ? Border.all(
+                                          color: priorityColor(
+                                            p,
+                                          ).withValues(alpha: 0.4),
+                                          width: 1,
+                                        )
+                                      : null,
+                                ),
+                                child: Text(
+                                  priorityLabel(l10n, p),
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: priority == p
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                    color: priority == p
+                                        ? (p == TaskPriority.none
+                                              ? colorScheme.onSurface
+                                              : priorityColor(p))
+                                        : colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(height: 1, color: borderColor),
+
+              // 3. 所属项目行
+              _DetailsRow(
+                icon: Icons.folder_outlined,
+                label: '项目',
+                value: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (project != null)
                       Container(
                         width: 7,
                         height: 7,
@@ -217,386 +475,156 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                           shape: BoxShape.circle,
                         ),
                       ),
-                      const SizedBox(width: 5),
-                      Text(
-                        project.name,
-                        style: TextStyle(
-                          color: colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12.5,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                // 时间
-                if (timeText.isNotEmpty && timeText != '未设置')
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.access_time,
-                        size: 13,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        timeText,
-                        style: TextStyle(
-                          color: colorScheme.onSurfaceVariant,
-                          fontSize: 12.5,
-                          fontFeatures: AppTokens.fontTabular,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                // 优先级
-                if (priority != TaskPriority.none)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: priorityColor(priority),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        priorityLabel(l10n, priority),
-                        style: TextStyle(
-                          color: priorityColor(priority),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-          ),
-
-          // 描述/备注输入框 (15px 按需编辑)
-          TextField(
-            controller: widget.controller.descriptionController,
-            focusNode: widget.controller.descriptionFocusNode,
-            maxLines: null,
-            minLines: 2,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontSize: 15,
-              height: 1.6,
-              color: colorScheme.onSurface,
-            ),
-            decoration: InputDecoration(
-              hintText: '添加描述或要点…',
-              hintStyle: TextStyle(
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.45),
-                fontSize: 15,
-              ),
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              disabledBorder: InputBorder.none,
-              errorBorder: InputBorder.none,
-              focusedErrorBorder: InputBorder.none,
-              filled: false,
-              fillColor: Colors.transparent,
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 4),
-            ),
-            onChanged: (v) =>
-                ref.read(taskFormProvider.notifier).updateDescription(v),
-          ),
-          const SizedBox(height: 16),
-
-          // 属性卡片列表（日期、优先级、项目、标签）
-          Container(
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(color: borderColor, width: 1),
-                bottom: BorderSide(color: borderColor, width: 1),
-              ),
-            ),
-            child: Column(
-              children: [
-                // 1. 日期行
-                _DetailsRow(
-                  icon: Icons.calendar_today_outlined,
-                  label: '日期',
-                  value: Text(
-                    startAt != null || endAt != null
-                        ? formatTaskTimeDisplay(startAt, endAt, l10n)
-                        : '未设置',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: startAt != null || endAt != null
-                          ? colorScheme.onSurface
-                          : colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                      fontSize: 13.5,
-                      fontFeatures: AppTokens.fontTabular,
-                    ),
-                  ),
-                  onTap: () => showTaskDatePicker(context, ref),
-                ),
-                Divider(height: 1, color: borderColor),
-
-                // 2. 优先级行 (直接展示所有优先级选项供用户点击选择)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 10,
-                    horizontal: 8.0,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.flag_outlined,
-                        size: 20,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        '优先级',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w500,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? colorScheme.surfaceContainerHighest.withValues(
-                                  alpha: 0.5,
-                                )
-                              : colorScheme.onSurface.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.all(2),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            for (final p in [
-                              TaskPriority.none,
-                              TaskPriority.low,
-                              TaskPriority.medium,
-                              TaskPriority.high,
-                            ])
-                              InkWell(
-                                onTap: () => ref
-                                    .read(taskFormProvider.notifier)
-                                    .updatePriority(p),
-                                borderRadius: BorderRadius.circular(6),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: priority == p
-                                        ? (p == TaskPriority.none
-                                              ? colorScheme.surface
-                                              : priorityColor(
-                                                  p,
-                                                ).withValues(alpha: 0.15))
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(6),
-                                    border:
-                                        priority == p && p != TaskPriority.none
-                                        ? Border.all(
-                                            color: priorityColor(
-                                              p,
-                                            ).withValues(alpha: 0.4),
-                                            width: 1,
-                                          )
-                                        : null,
-                                  ),
-                                  child: Text(
-                                    priorityLabel(l10n, p),
-                                    style: TextStyle(
-                                      fontSize: 12.5,
-                                      fontWeight: priority == p
-                                          ? FontWeight.w600
-                                          : FontWeight.normal,
-                                      color: priority == p
-                                          ? (p == TaskPriority.none
-                                                ? colorScheme.onSurface
-                                                : priorityColor(p))
-                                          : colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Divider(height: 1, color: borderColor),
-
-                // 3. 所属项目行
-                _DetailsRow(
-                  icon: Icons.folder_outlined,
-                  label: '项目',
-                  value: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (project != null)
-                        Container(
-                          width: 7,
-                          height: 7,
-                          decoration: BoxDecoration(
-                            color: Color(project.color),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      if (project != null) const SizedBox(width: 6),
-                      Text(
-                        project?.name ?? '收集箱',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurface,
-                          fontSize: 13.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                  onTap: () => showTaskProjectPicker(context, ref),
-                ),
-                Divider(height: 1, color: borderColor),
-
-                // 4. 标签行
-                _DetailsRow(
-                  icon: Icons.label_outline,
-                  label: '标签',
-                  value: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (selectedTags.isEmpty)
-                        Text(
-                          '未添加',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant.withValues(
-                              alpha: 0.6,
-                            ),
-                            fontSize: 13.5,
-                          ),
-                        )
-                      else
-                        Wrap(
-                          spacing: 6,
-                          children: [
-                            for (final tag in selectedTags)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: colorScheme.surface,
-                                  borderRadius: BorderRadius.circular(100),
-                                  border: Border.all(
-                                    color: borderColor,
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      width: 5,
-                                      height: 5,
-                                      decoration: BoxDecoration(
-                                        color: Color(tag.color),
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      tag.name,
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: colorScheme.onSurfaceVariant,
-                                            fontSize: 11.5,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
-                      const SizedBox(width: 6),
-                      Container(
-                        width: 22,
-                        height: 22,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: borderColor, width: 1),
-                        ),
-                        child: Icon(
-                          Icons.add,
-                          size: 13,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                  onTap: () => showTaskTagPicker(context, ref),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // 子任务部分
-          if (widget.showSubtasks) ...[
-            _buildSubtasks(context, l10n),
-            const SizedBox(height: 24),
-          ],
-
-          // 底部：同步信息与删除任务
-          Divider(height: 1, color: borderColor),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                if (ref.watch(taskFormProvider.select((s) => s.id)) != null)
-                  TaskMetadataFooter(taskId: ref.read(taskFormProvider).id!),
-                if (widget.onDeleteRequested != null)
-                  TextButton.icon(
-                    onPressed: widget.onDeleteRequested,
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                    ),
-                    icon: Icon(
-                      Icons.delete_outline,
-                      size: 16,
-                      color: colorScheme.error,
-                    ),
-                    label: Text(
-                      '删除任务',
-                      style: TextStyle(
-                        color: colorScheme.error,
-                        fontWeight: FontWeight.w600,
+                    if (project != null) const SizedBox(width: 6),
+                    Text(
+                      project?.name ?? '收集箱',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurface,
                         fontSize: 13.5,
                       ),
                     ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      );
-    }
+                  ],
+                ),
+                onTap: () => showTaskProjectPicker(context, ref),
+              ),
+              Divider(height: 1, color: borderColor),
 
+              // 4. 标签行
+              _DetailsRow(
+                icon: Icons.label_outline,
+                label: '标签',
+                value: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (selectedTags.isEmpty)
+                      Text(
+                        '未添加',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.6,
+                          ),
+                          fontSize: 13.5,
+                        ),
+                      )
+                    else
+                      Wrap(
+                        spacing: 6,
+                        children: [
+                          for (final tag in selectedTags)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colorScheme.surface,
+                                borderRadius: BorderRadius.circular(100),
+                                border: Border.all(
+                                  color: borderColor,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 5,
+                                    height: 5,
+                                    decoration: BoxDecoration(
+                                      color: Color(tag.color),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    tag.name,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                      fontSize: 11.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    const SizedBox(width: 6),
+                    Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: borderColor, width: 1),
+                      ),
+                      child: Icon(
+                        Icons.add,
+                        size: 13,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+                onTap: () => showTaskTagPicker(context, ref),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // 子任务部分
+        if (widget.showSubtasks) ...[
+          _buildSubtasks(context, l10n),
+          const SizedBox(height: 24),
+        ],
+
+        // 底部：同步信息与删除任务
+        Divider(height: 1, color: borderColor),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (ref.watch(taskFormProvider.select((s) => s.id)) != null)
+                TaskMetadataFooter(taskId: ref.read(taskFormProvider).id!),
+              if (widget.onDeleteRequested != null)
+                TextButton.icon(
+                  onPressed: widget.onDeleteRequested,
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                  ),
+                  icon: Icon(
+                    Icons.delete_outline,
+                    size: 16,
+                    color: colorScheme.error,
+                  ),
+                  label: Text(
+                    '删除任务',
+                    style: TextStyle(
+                      color: colorScheme.error,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13.5,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 行内精简表单模式布局（嵌入列表、抽屉底部或快速编辑场景）
+  Widget _buildInlineFormMode({
+    required BuildContext context,
+    required AppLocalizations l10n,
+    required bool hasParent,
+  }) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,

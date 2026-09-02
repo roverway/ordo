@@ -59,17 +59,12 @@ class ProjectsPage extends ConsumerWidget {
               );
             }
 
-            // 统计待办与完成情况
-            var totalTasks = 0;
-            var totalCompleted = 0;
-            for (final p in allProjects) {
-              final summary = ref.watch(projectSummaryProvider(p.id));
-              totalTasks += summary.totalCount;
-              totalCompleted += (summary.totalCount - summary.uncompletedCount);
-            }
-
+            // 统计待办与完成情况（通过聚合 Provider 统一订阅，避免 build 循环内 watch）
+            final overview = ref.watch(allProjectsOverviewSummaryProvider);
+            final totalTasks = overview.total;
+            final totalCompleted = overview.completed;
+            final totalPendingTasks = overview.uncompleted;
             final totalProjectsCount = allProjects.length;
-            final totalPendingTasks = totalTasks - totalCompleted;
 
             var cardIndex = 0;
 

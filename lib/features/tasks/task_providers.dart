@@ -471,6 +471,42 @@ final projectProgressProvider = Provider.family<double, String>((
   );
 });
 
+/// 某文件夹下全部项目的未完成任务总数。
+final folderUncompletedCountProvider = Provider.family<int, String>((
+  ref,
+  folderId,
+) {
+  final groupingAsync = ref.watch(projectsByFolderProvider);
+  return groupingAsync.maybeWhen(
+    data: (grouping) {
+      final projects = grouping.folderProjects[folderId] ?? const <Project>[];
+      var total = 0;
+      for (final p in projects) {
+        total += ref.watch(projectSummaryProvider(p.id)).uncompletedCount;
+      }
+      return total;
+    },
+    orElse: () => 0,
+  );
+});
+
+/// 全局项目概览统计（总任务数、已完成任务数、总待办任务数，排除内置收件箱）。
+final allProjectsOverviewSummaryProvider =
+    Provider<({int total, int completed, int uncompleted})>((ref) {
+      final projects =
+          ref.watch(projectsStreamProvider).value ?? const <Project>[];
+      var total = 0;
+      var uncompleted = 0;
+      for (final p in projects) {
+        if (p.id == inboxProjectId) continue;
+        final summary = ref.watch(projectSummaryProvider(p.id));
+        total += summary.totalCount;
+        uncompleted += summary.uncompletedCount;
+      }
+      final completed = (total - uncompleted).clamp(0, total);
+      return (total: total, completed: completed, uncompleted: uncompleted);
+    });
+
 /// 展开状态管理。
 class TreeExpandNotifier extends Notifier<Map<String, bool>> {
   @override

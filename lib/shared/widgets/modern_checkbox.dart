@@ -138,50 +138,50 @@ class _ModernCheckboxState extends State<ModernCheckbox>
 }
 
 class _CheckmarkPainter extends CustomPainter {
-  const _CheckmarkPainter({
+  _CheckmarkPainter({
     required this.progress,
     required this.color,
     required this.strokeWidth,
-  });
+  }) : _paint = Paint()
+         ..color = color
+         ..style = PaintingStyle.stroke
+         ..strokeWidth = strokeWidth
+         ..strokeCap = StrokeCap.round
+         ..strokeJoin = StrokeJoin.round;
 
   final double progress;
   final Color color;
   final double strokeWidth;
+  final Paint _paint;
+  static final Path _path = Path();
 
   @override
   void paint(Canvas canvas, Size size) {
     if (progress <= 0) return;
 
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
     final p0 = Offset(size.width * 0.22, size.height * 0.52);
     final p1 = Offset(size.width * 0.44, size.height * 0.73);
     final p2 = Offset(size.width * 0.80, size.height * 0.28);
 
-    final path = Path();
+    _path.reset();
     final firstSegLen = (p1 - p0).distance;
     final secondSegLen = (p2 - p1).distance;
     final totalLen = firstSegLen + secondSegLen;
     final currentLen = totalLen * progress;
 
-    path.moveTo(p0.dx, p0.dy);
+    _path.moveTo(p0.dx, p0.dy);
     if (currentLen <= firstSegLen) {
       final ratio = currentLen / firstSegLen;
       final cur = Offset.lerp(p0, p1, ratio)!;
-      path.lineTo(cur.dx, cur.dy);
+      _path.lineTo(cur.dx, cur.dy);
     } else {
-      path.lineTo(p1.dx, p1.dy);
+      _path.lineTo(p1.dx, p1.dy);
       final ratio = (currentLen - firstSegLen) / secondSegLen;
       final cur = Offset.lerp(p1, p2, ratio)!;
-      path.lineTo(cur.dx, cur.dy);
+      _path.lineTo(cur.dx, cur.dy);
     }
 
-    canvas.drawPath(path, paint);
+    canvas.drawPath(_path, _paint);
   }
 
   @override

@@ -244,12 +244,9 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                               final fProjects =
                                   grouping.folderProjects[folder.id] ??
                                   const <Project>[];
-                              var fUncompleted = 0;
-                              for (final p in fProjects) {
-                                fUncompleted += ref
-                                    .watch(projectSummaryProvider(p.id))
-                                    .uncompletedCount;
-                              }
+                              final fUncompleted = ref.watch(
+                                folderUncompletedCountProvider(folder.id),
+                              );
                               return _buildFolderHeader(
                                 folder: folder,
                                 uncompletedCount: fUncompleted,

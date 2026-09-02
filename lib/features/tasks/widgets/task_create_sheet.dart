@@ -1078,89 +1078,70 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
         TaskPriority.none => l10n.priorityNone,
       };
 
-  Future<void> _saveAndCloseExplicit() async {
+  Future<void> _saveAndCloseExplicit() => _performSave(isExplicit: true);
+
+  Future<void> _saveAndClose() => _performSave(isExplicit: false);
+
+  Future<void> _performSave({required bool isExplicit}) async {
     if (_isSaving) return;
+    if (!mounted) return;
     final formState = ref.read(taskFormProvider);
     final title = _titleController.text.trim().isNotEmpty
         ? _titleController.text.trim()
         : formState.title.trim();
 
     if (title.isEmpty) {
+      if (!isExplicit) {
+        setState(() => _allowPop = true);
+        Navigator.of(context).pop();
+        return;
+      }
       setState(() => _titleError = '标题不能为空');
       _triggerShake();
       _titleFocusNode.requestFocus();
       return;
     }
 
+    if (!isExplicit && !_autoSaveOnClose) {
+      setState(() => _allowPop = true);
+      Navigator.of(context).pop();
+      return;
+    }
+
     setState(() => _isSaving = true);
     final notifier = ref.read(taskFormProvider.notifier);
     notifier.updateTitle(title);
     notifier.updateDescription(_descriptionController.text.trim());
 
-    final errorKey = await notifier.save();
-    if (!mounted) return;
-    if (errorKey != null) {
-      final l10n = AppLocalizations.of(context);
-      final message = switch (errorKey) {
-        'title_required' => l10n.titleRequired,
-        'end_time_before_start' => l10n.endTimeBeforeStart,
-        _ => errorKey,
-      };
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
-      setState(() => _isSaving = false);
-      return;
-    }
+    try {
+      final errorKey = await notifier.save();
+      if (!mounted) return;
+      if (errorKey != null) {
+        final l10n = AppLocalizations.of(context);
+        final message = switch (errorKey) {
+          'title_required' => l10n.titleRequired,
+          'end_time_before_start' => l10n.endTimeBeforeStart,
+          _ => errorKey,
+        };
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+        setState(() => _isSaving = false);
+        return;
+      }
 
-    await _createSubtasks();
-    if (mounted) {
-      setState(() => _allowPop = true);
-      Navigator.of(context).pop();
-    }
-  }
-
-  Future<void> _saveAndClose() async {
-    if (_isSaving) return;
-    if (!mounted) return;
-    final formState = ref.read(taskFormProvider);
-    final title = _titleController.text.trim().isNotEmpty
-        ? _titleController.text.trim()
-        : formState.title.trim();
-
-    if (!_autoSaveOnClose || title.isEmpty) {
+      await _createSubtasks();
       if (mounted) {
         setState(() => _allowPop = true);
         Navigator.of(context).pop();
       }
-      return;
-    }
-
-    setState(() => _isSaving = true);
-    final notifier = ref.read(taskFormProvider.notifier);
-    notifier.updateTitle(title);
-    notifier.updateDescription(_descriptionController.text.trim());
-
-    final errorKey = await notifier.save();
-    if (!mounted) return;
-    if (errorKey != null) {
-      final l10n = AppLocalizations.of(context);
-      final message = switch (errorKey) {
-        'title_required' => l10n.titleRequired,
-        'end_time_before_start' => l10n.endTimeBeforeStart,
-        _ => errorKey,
-      };
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
-      setState(() => _isSaving = false);
-      return;
-    }
-
-    await _createSubtasks();
-    if (mounted) {
-      setState(() => _allowPop = true);
-      Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('保存任务失败: $e')));
+        setState(() => _isSaving = false);
+      }
     }
   }
 
@@ -1169,18 +1150,16 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
     final formState = ref.read(taskFormProvider);
     final parentId = formState.id;
     if (parentId == null) return;
-    try {
-      for (final st in _subtaskRows) {
-        final title = st.controller.text.trim();
-        if (title.isNotEmpty) {
-          await repo.createTask(
-            projectId: formState.projectId,
-            parentId: parentId,
-            title: title,
-            status: st.isDone ? TaskStatus.done : TaskStatus.todo,
-          );
-        }
+    for (final st in _subtaskRows) {
+      final title = st.controller.text.trim();
+      if (title.isNotEmpty) {
+        await repo.createTask(
+          projectId: formState.projectId,
+          parentId: parentId,
+          title: title,
+          status: st.isDone ? TaskStatus.done : TaskStatus.todo,
+        );
       }
-    } catch (_) {}
+    }
   }
 }
