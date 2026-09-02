@@ -36,7 +36,6 @@ class SettingsPage extends StatelessWidget {
           children: [
             PageHeroHeader(
               title: l10n.settings,
-              subtitle: '偏好与同步',
               onTitleTap: narrow ? () => showScopeSwitcherSheet(context) : null,
             ),
             const Divider(height: 1, indent: 20, endIndent: 20),

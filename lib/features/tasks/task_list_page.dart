@@ -500,6 +500,7 @@ class _ProjectOrInboxBodyState extends ConsumerState<_ProjectOrInboxBody> {
     final l10n = AppLocalizations.of(context);
 
     final projectAsync = ref.watch(projectsStreamProvider);
+    final folders = ref.watch(foldersStreamProvider).value ?? const <Folder>[];
 
     return projectAsync.when(
       data: (projects) {
@@ -517,6 +518,14 @@ class _ProjectOrInboxBodyState extends ConsumerState<_ProjectOrInboxBody> {
         final title = widget.isInbox
             ? l10n.inbox
             : (project?.name ?? l10n.navProjects);
+
+        final folderName = widget.isInbox
+            ? l10n.inbox
+            : (folders
+                      .where((f) => f.id == project?.folderId)
+                      .firstOrNull
+                      ?.name ??
+                  '未分组');
 
         final tasks =
             ref.watch(projectTasksProvider(widget.projectId)).value ??
@@ -538,7 +547,7 @@ class _ProjectOrInboxBodyState extends ConsumerState<_ProjectOrInboxBody> {
                 TextSpan(
                   children: [
                     TextSpan(
-                      text: title,
+                      text: folderName,
                       style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,

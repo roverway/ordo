@@ -24,6 +24,7 @@ import '../../projects/project_providers.dart';
 import '../../tags/tag_providers.dart';
 import '../task_providers.dart';
 import 'task_editor/project_picker_sheet.dart';
+import 'task_editor/tag_picker_sheet.dart';
 import 'task_editor/task_date_picker_dialogs.dart';
 
 /// 新建任务底部弹窗。
@@ -142,25 +143,12 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
   final _descriptionController = TextEditingController();
   final _titleFocusNode = FocusNode();
   final _descriptionFocusNode = FocusNode();
-  final _newTagController = TextEditingController();
-  final _newTagFocusNode = FocusNode();
   final List<_SubtaskItem> _subtaskRows = [];
 
   bool _isSaving = false;
   bool _allowPop = false;
   bool _autoSaveOnClose = true;
   String? _titleError;
-
-  // 内联创建新标签状态
-  bool _showInlineTagCreator = false;
-  int _selectedTagColor = 0xFF4A6CF7;
-  final List<int> _presetTagColors = const [
-    0xFF4A6CF7,
-    0xFF10B981,
-    0xFF8B5CF6,
-    0xFFF59E0B,
-    0xFFEF4444,
-  ];
 
   late final AnimationController _shakeController;
   late final Animation<double> _shakeAnimation;
@@ -229,8 +217,6 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
     _descriptionController.dispose();
     _titleFocusNode.dispose();
     _descriptionFocusNode.dispose();
-    _newTagController.dispose();
-    _newTagFocusNode.dispose();
     _shakeController.dispose();
     for (final row in _subtaskRows) {
       row.focusNode.removeListener(_onFocusChange);
@@ -484,232 +470,210 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                   ),
                 ),
 
-                const SizedBox(height: 18),
+                Divider(height: 1, color: borderColor),
 
-                // 4. 优先级选择（文字与分段控制同一行）
-                Row(
-                  children: [
-                    SizedBox(
-                      width: 52,
-                      child: Text(
+                // 4. 优先级选择行（与任务编辑页完全一致）
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 4.0,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.flag_outlined,
+                        size: 20,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
                         l10n.priority,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 1.2,
-                          color: colorScheme.onSurfaceVariant.withValues(
-                            alpha: 0.8,
-                          ),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 13.5,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(3),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? colorScheme.onSurface.withValues(alpha: 0.06)
-                              : const Color(0xFFF1F3F5),
-                          borderRadius: BorderRadius.circular(9),
-                        ),
-                        child: Row(
-                          children: [
-                            for (final p in TaskPriority.values)
-                              Expanded(
-                                child: _buildPrioritySegmentItem(
-                                  priority: p,
-                                  isSelected: priority == p,
-                                  onTap: () => ref
-                                      .read(taskFormProvider.notifier)
-                                      .updatePriority(p),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 18),
-
-                // 5. 标签行 + 内联新建标签（文字与标签在同一行）
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: SizedBox(
-                        width: 52,
-                        child: Text(
-                          l10n.taskTags,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 1.2,
-                            color: colorScheme.onSurfaceVariant.withValues(
-                              alpha: 0.8,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        crossAxisAlignment: WrapCrossAlignment.center,
+                      const Spacer(),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          for (final tag in tags)
-                            _buildTagPill(
-                              tag: tag,
-                              isSelected: selectedTagIds.contains(tag.id),
-                              onTap: () {
-                                final current = [...selectedTagIds];
-                                if (current.contains(tag.id)) {
-                                  current.remove(tag.id);
-                                } else {
-                                  current.add(tag.id);
-                                }
-                                ref
-                                    .read(taskFormProvider.notifier)
-                                    .setSelectedTags(current);
-                              },
-                            ),
-
-                          // + 新建标签 按钮
-                          GestureDetector(
-                            onTap: () => setState(
-                              () => _showInlineTagCreator =
-                                  !_showInlineTagCreator,
-                            ),
-                            child: Container(
-                              height: 30,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.transparent,
-                                borderRadius: BorderRadius.circular(100),
-                                border: Border.all(
-                                  color: borderColor,
-                                  width: 1,
-                                  style: BorderStyle.solid,
+                          for (final p in TaskPriority.values)
+                            GestureDetector(
+                              onTap: () => ref
+                                  .read(taskFormProvider.notifier)
+                                  .updatePriority(p),
+                              child: Container(
+                                margin: const EdgeInsets.only(left: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: priority == p
+                                      ? (p == TaskPriority.none
+                                            ? (isDark
+                                                  ? Colors.white12
+                                                  : Colors.black12)
+                                            : _getPriorityColor(
+                                                p,
+                                              ).withValues(alpha: 0.15))
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border:
+                                      priority == p && p != TaskPriority.none
+                                      ? Border.all(
+                                          color: _getPriorityColor(
+                                            p,
+                                          ).withValues(alpha: 0.4),
+                                          width: 1,
+                                        )
+                                      : null,
+                                ),
+                                child: Text(
+                                  _getPriorityLabel(l10n, p),
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: priority == p
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                    color: priority == p
+                                        ? (p == TaskPriority.none
+                                              ? colorScheme.onSurface
+                                              : _getPriorityColor(p))
+                                        : colorScheme.onSurfaceVariant,
+                                  ),
                                 ),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.add,
-                                    size: 13,
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '新建标签',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: colorScheme.onSurfaceVariant,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ),
-                          ),
                         ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+                Divider(height: 1, color: borderColor),
 
-                // 内联新建标签展开区
-                if (_showInlineTagCreator) ...[
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? colorScheme.surfaceContainerHighest.withValues(
-                              alpha: 0.3,
-                            )
-                          : const Color(0xFFF8F9FA),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: borderColor, width: 1),
+                // 5. 标签行（与任务编辑页完全一致）
+                InkWell(
+                  onTap: () => showTaskTagPicker(context, ref),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 4.0,
                     ),
                     child: Row(
                       children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _newTagController,
-                            autofocus: true,
-                            style: const TextStyle(fontSize: 13),
-                            decoration: const InputDecoration(
-                              hintText: '标签名',
-                              isDense: true,
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                            onSubmitted: (_) => _createInlineTag(),
+                        Icon(
+                          Icons.label_outline,
+                          size: 20,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          l10n.taskTags,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 13.5,
                           ),
                         ),
-                        // 预设颜色圆点
-                        for (final c in _presetTagColors)
-                          GestureDetector(
-                            onTap: () => setState(() => _selectedTagColor = c),
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 3),
-                              width: 16,
-                              height: 16,
+                        const Spacer(),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (selectedTagIds.isEmpty)
+                              Text(
+                                '未添加',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: colorScheme.onSurfaceVariant
+                                      .withValues(alpha: 0.6),
+                                  fontSize: 13.5,
+                                ),
+                              )
+                            else
+                              Wrap(
+                                spacing: 6,
+                                children: [
+                                  for (final id in selectedTagIds)
+                                    if (tags.any((t) => t.id == id))
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: colorScheme.surface,
+                                          borderRadius: BorderRadius.circular(
+                                            100,
+                                          ),
+                                          border: Border.all(
+                                            color: borderColor,
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Container(
+                                              width: 5,
+                                              height: 5,
+                                              decoration: BoxDecoration(
+                                                color: Color(
+                                                  tags
+                                                      .firstWhere(
+                                                        (t) => t.id == id,
+                                                      )
+                                                      .color,
+                                                ),
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              tags
+                                                  .firstWhere((t) => t.id == id)
+                                                  .name,
+                                              style: theme.textTheme.bodySmall
+                                                  ?.copyWith(
+                                                    color: colorScheme
+                                                        .onSurfaceVariant,
+                                                    fontSize: 11.5,
+                                                  ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                ],
+                              ),
+                            const SizedBox(width: 6),
+                            Container(
+                              width: 22,
+                              height: 22,
                               decoration: BoxDecoration(
-                                color: Color(c),
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: _selectedTagColor == c
-                                      ? colorScheme.onSurface
-                                      : Colors.transparent,
-                                  width: 2,
+                                  color: borderColor,
+                                  width: 1,
                                 ),
                               ),
+                              child: Icon(
+                                Icons.add,
+                                size: 13,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
-                          ),
-                        const SizedBox(width: 8),
-                        TextButton(
-                          onPressed: _createInlineTag,
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: const Text(
-                            '添加',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                ],
+                ),
+                Divider(height: 1, color: borderColor),
 
                 // 6. 子任务区（精确复刻 create.html）
                 if (widget.parentId == null) ...[
                   Container(
-                    margin: const EdgeInsets.only(top: 18, bottom: 4),
-                    padding: const EdgeInsets.only(top: 16),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        top: BorderSide(
-                          color: borderColor.withValues(alpha: 0.35),
-                          width: 1,
-                        ),
-                      ),
-                    ),
+                    margin: const EdgeInsets.only(top: 14, bottom: 4),
+                    padding: const EdgeInsets.only(top: 4),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -747,10 +711,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
                         border: Border(
-                          bottom: BorderSide(
-                            color: borderColor.withValues(alpha: 0.25),
-                            width: 0.8,
-                          ),
+                          bottom: BorderSide(color: borderColor, width: 1.0),
                         ),
                       ),
                       child: Row(
@@ -1102,142 +1063,20 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
     );
   }
 
-  Widget _buildPrioritySegmentItem({
-    required TaskPriority priority,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
+  Color _getPriorityColor(TaskPriority p) => switch (p) {
+    TaskPriority.high => AppTokens.colorPriorityHigh,
+    TaskPriority.medium => AppTokens.colorPriorityMedium,
+    TaskPriority.low => AppTokens.colorPriorityLow,
+    TaskPriority.none => AppTokens.colorCancelled,
+  };
 
-    final dotColor = switch (priority) {
-      TaskPriority.high => AppTokens.colorPriorityHigh,
-      TaskPriority.medium => AppTokens.colorPriorityMedium,
-      TaskPriority.low => AppTokens.colorPriorityLow,
-      TaskPriority.none => AppTokens.colorCancelled,
-    };
-
-    final label = switch (priority) {
-      TaskPriority.high => '高',
-      TaskPriority.medium => '中',
-      TaskPriority.low => '低',
-      TaskPriority.none => '无',
-    };
-
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? (isDark ? colorScheme.surfaceContainerHighest : Colors.white)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(7),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
-                    blurRadius: 3,
-                    offset: const Offset(0, 1),
-                  ),
-                ]
-              : null,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(
-                color: dotColor,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected
-                    ? colorScheme.onSurface
-                    : colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTagPill({
-    required Tag tag,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final color = Color(tag.color);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 30,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? color.withValues(alpha: 0.15)
-              : (isDark ? Colors.white10 : const Color(0xFFF1F3F5)),
-          borderRadius: BorderRadius.circular(100),
-          border: Border.all(
-            color: isSelected ? color : Colors.transparent,
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 5),
-            Text(
-              tag.name,
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                color: isSelected ? color : theme.colorScheme.onSurface,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _createInlineTag() async {
-    final name = _newTagController.text.trim();
-    if (name.isEmpty) return;
-    final repo = ref.read(todoRepositoryProvider);
-    try {
-      final tag = await repo.createTag(name: name, color: _selectedTagColor);
-      final current = [...ref.read(taskFormProvider).selectedTagIds, tag.id];
-      ref.read(taskFormProvider.notifier).setSelectedTags(current);
-      _newTagController.clear();
-      setState(() => _showInlineTagCreator = false);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('$e')));
-      }
-    }
-  }
+  String _getPriorityLabel(AppLocalizations l10n, TaskPriority p) =>
+      switch (p) {
+        TaskPriority.high => l10n.priorityHigh,
+        TaskPriority.medium => l10n.priorityMedium,
+        TaskPriority.low => l10n.priorityLow,
+        TaskPriority.none => l10n.priorityNone,
+      };
 
   Future<void> _saveAndCloseExplicit() async {
     if (_isSaving) return;

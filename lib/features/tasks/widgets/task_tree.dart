@@ -130,9 +130,7 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
 
         return ListView.builder(
           padding: const EdgeInsets.symmetric(
-            // 66 §6 留白节奏统一：列表水平 padding 回归 spaceMd=16，
-            // 与今日/搜索/设置等页面共用同一内容横距（覆盖此前 8 的旧决策）。
-            horizontal: AppTokens.spaceMd,
+            horizontal: 20,
             vertical: AppTokens.spaceXs,
           ),
           itemCount: roots.length + (_draggingTaskId != null ? 1 : 0),

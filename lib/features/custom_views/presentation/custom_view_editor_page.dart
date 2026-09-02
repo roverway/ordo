@@ -166,6 +166,10 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
       _initNewDefault(l10n);
     }
 
+    final borderColor = isDark
+        ? AppTokens.borderSubtleDark
+        : AppTokens.borderSubtleLight;
+
     return Scaffold(
       backgroundColor: isDark
           ? AppTokens.surfacePageDark
@@ -209,34 +213,28 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(
-          horizontal: AppTokens.spaceMd,
+          horizontal: 20,
           vertical: AppTokens.spaceSm,
         ),
         children: [
-          // ── 1. 基本信息 Hero 卡片 ──
+          // ── 1. 基本信息 ──
+          _buildSectionHeader(icon: Icons.grid_view_outlined, title: '基本信息'),
           Container(
             decoration: BoxDecoration(
               color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
-              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-              border: Border.all(
-                color: isDark
-                    ? AppTokens.borderSubtleDark
-                    : AppTokens.borderSubtleLight,
-                width: 1.0,
-              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: borderColor, width: 1.0),
               boxShadow: isDark
                   ? AppTokens.cardShadowDarkList
                   : AppTokens.cardShadowLight,
             ),
-            padding: const EdgeInsets.all(AppTokens.spaceMd),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 名称与图标选择
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // 图标选择徽章
                     InkWell(
                       onTap: () async {
                         final selected = await showCustomViewIconPicker(
@@ -256,8 +254,8 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                           color: Color(_color).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: Color(_color).withValues(alpha: 0.3),
-                            width: 1.2,
+                            color: Color(_color).withValues(alpha: 0.26),
+                            width: 1.0,
                           ),
                         ),
                         child: Icon(
@@ -267,73 +265,82 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: AppTokens.spaceMd),
-
-                    // 视图名称输入框
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: TextField(
-                        controller: _nameController,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        decoration: InputDecoration(
-                          labelText: l10n.viewName,
-                          hintText: l10n.viewNameHint,
-                          filled: true,
-                          fillColor: isDark
-                              ? theme.colorScheme.surfaceContainerHigh
-                              : theme.colorScheme.surfaceContainerLowest,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(
-                              AppTokens.radiusCard,
-                            ),
-                            borderSide: BorderSide(
-                              color: theme.colorScheme.outlineVariant
-                                  .withValues(alpha: 0.3),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '视图名称',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontFamily: 'monospace',
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.1,
+                              color: theme.colorScheme.onSurfaceVariant
+                                  .withValues(alpha: 0.7),
                             ),
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(
-                              AppTokens.radiusCard,
+                          const SizedBox(height: 2),
+                          TextField(
+                            controller: _nameController,
+                            style: const TextStyle(
+                              fontSize: 16.5,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: -0.2,
                             ),
-                            borderSide: BorderSide(
-                              color: theme.colorScheme.outlineVariant
-                                  .withValues(alpha: 0.3),
+                            decoration: InputDecoration(
+                              hintText: l10n.viewNameHint,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 6,
+                              ),
+                              border: UnderlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: borderColor,
+                                  width: 1,
+                                ),
+                              ),
+                              enabledBorder: UnderlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: borderColor,
+                                  width: 1,
+                                ),
+                              ),
+                              focusedBorder: UnderlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: theme.colorScheme.primary,
+                                  width: 1.5,
+                                ),
+                              ),
                             ),
                           ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: AppTokens.spaceSm,
-                            vertical: 12,
-                          ),
-                        ),
+                        ],
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 14),
-
-                // 预设主题色圆点排
                 Wrap(
                   spacing: 10,
                   runSpacing: 8,
                   children: [
                     for (final preset in const [
-                      0xFF4A6CF7,
-                      0xFF10B981,
                       0xFF8B5CF6,
+                      0xFF10B981,
+                      0xFF4A6CF7,
                       0xFF06B6D4,
                       0xFFF59E0B,
                       0xFFEF4444,
-                      0xFFEC4899,
                       0xFF64748B,
                     ])
                       InkWell(
                         onTap: () => setState(() => _color = preset),
                         customBorder: const CircleBorder(),
-                        child: Container(
-                          width: 28,
-                          height: 28,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          width: 30,
+                          height: 30,
                           decoration: BoxDecoration(
                             color: Color(preset),
                             shape: BoxShape.circle,
@@ -343,11 +350,22 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                                   : Colors.transparent,
                               width: 2,
                             ),
+                            boxShadow: _color == preset
+                                ? [
+                                    BoxShadow(
+                                      color: Color(
+                                        preset,
+                                      ).withValues(alpha: 0.4),
+                                      blurRadius: 6,
+                                      spreadRadius: 1,
+                                    ),
+                                  ]
+                                : null,
                           ),
                           child: _color == preset
                               ? const Icon(
                                   Icons.check,
-                                  size: 15,
+                                  size: 16,
                                   color: Colors.white,
                                 )
                               : null,
@@ -355,69 +373,64 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                       ),
                   ],
                 ),
-                const SizedBox(height: AppTokens.spaceMd),
+              ],
+            ),
+          ),
 
-                // 布局模式切换
-                Row(
-                  children: [
-                    Text(
-                      l10n.viewLayout,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+          // ── 2. 布局模式 ──
+          _buildSectionHeader(icon: Icons.splitscreen_outlined, title: '布局模式'),
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: borderColor, width: 1.0),
+              boxShadow: isDark
+                  ? AppTokens.cardShadowDarkList
+                  : AppTokens.cardShadowLight,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  '展示方式',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? theme.colorScheme.surfaceContainerHighest.withValues(
+                            alpha: 0.35,
+                          )
+                        : const Color(0xFFF1F3F5),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildLayoutToggleItem(
+                        mode: 'kanban',
+                        label: '看板',
+                        icon: Icons.view_column_outlined,
+                        isSelected: _layoutMode == 'kanban',
                       ),
-                    ),
-                    const Spacer(),
-                    SegmentedButton<String>(
-                      showSelectedIcon: false,
-                      segments: [
-                        ButtonSegment(
-                          value: 'kanban',
-                          label: Text(l10n.layoutKanban),
-                          icon: const Icon(Icons.view_kanban, size: 17),
-                        ),
-                        ButtonSegment(
-                          value: 'list',
-                          label: Text(l10n.layoutList),
-                          icon: const Icon(Icons.view_agenda, size: 17),
-                        ),
-                      ],
-                      selected: {_layoutMode},
-                      style: ButtonStyle(
-                        visualDensity: VisualDensity.compact,
-                        shape: WidgetStatePropertyAll(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              AppTokens.radiusChip,
-                            ),
-                          ),
-                        ),
+                      const SizedBox(width: 2),
+                      _buildLayoutToggleItem(
+                        mode: 'list',
+                        label: '列表',
+                        icon: Icons.view_agenda_outlined,
+                        isSelected: _layoutMode == 'list',
                       ),
-                      onSelectionChanged: (set) {
-                        setState(() => _layoutMode = set.first);
-                      },
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: AppTokens.spaceMd),
 
-          // ── 2. 快速模板预设 ──
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(
-              '快速模板',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.1,
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.75,
-                ),
-              ),
-            ),
-          ),
+          // ── 3. 快速模板 ──
+          _buildSectionHeader(icon: Icons.auto_awesome_outlined, title: '快速模板'),
           Row(
             children: [
               Expanded(
@@ -431,19 +444,15 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                       );
                     });
                   },
-                  borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                  borderRadius: BorderRadius.circular(14),
                   child: Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(13),
                     decoration: BoxDecoration(
                       color: isDark
                           ? AppTokens.surfaceCardDark
                           : AppTokens.surfaceCard,
-                      borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-                      border: Border.all(
-                        color: isDark
-                            ? AppTokens.borderSubtleDark
-                            : AppTokens.borderSubtleLight,
-                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: borderColor),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -452,20 +461,20 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                           children: [
                             Icon(
                               Icons.view_column_outlined,
-                              size: 16,
+                              size: 15,
                               color: theme.colorScheme.primary,
                             ),
                             const SizedBox(width: 6),
                             const Text(
                               '状态看板',
                               style: TextStyle(
-                                fontSize: 13.5,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 5),
                         Text(
                           '待办 / 进行中 / 已完成',
                           style: TextStyle(
@@ -491,19 +500,15 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                       );
                     });
                   },
-                  borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                  borderRadius: BorderRadius.circular(14),
                   child: Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(13),
                     decoration: BoxDecoration(
                       color: isDark
                           ? AppTokens.surfaceCardDark
                           : AppTokens.surfaceCard,
-                      borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-                      border: Border.all(
-                        color: isDark
-                            ? AppTokens.borderSubtleDark
-                            : AppTokens.borderSubtleLight,
-                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: borderColor),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -512,20 +517,20 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                           children: [
                             const Icon(
                               Icons.flag_outlined,
-                              size: 16,
+                              size: 15,
                               color: AppTokens.colorPriorityHigh,
                             ),
                             const SizedBox(width: 6),
                             const Text(
                               '优先级看板',
                               style: TextStyle(
-                                fontSize: 13.5,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 5),
                         Text(
                           '高优 / 中优 / 低优 / 无',
                           style: TextStyle(
@@ -540,147 +545,290 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
               ),
             ],
           ),
-          const SizedBox(height: AppTokens.spaceLg),
 
-          // ── 3. 面板列表管理 ──
-          Row(
-            children: [
-              Text(
-                '${l10n.panelTitle} (${_panels.length})',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: AppTokens.textHeadingWeight,
+          // ── 4. 面板列表 ──
+          _buildSectionHeader(
+            icon: Icons.view_column_outlined,
+            title: '${l10n.panelTitle} (${_panels.length})',
+            trailing: InkWell(
+              onTap: _addNewPanel,
+              borderRadius: BorderRadius.circular(999),
+              child: Container(
+                height: 34,
+                padding: const EdgeInsets.symmetric(horizontal: 13),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? theme.colorScheme.surfaceContainerHighest.withValues(
+                          alpha: 0.35,
+                        )
+                      : const Color(0xFFF1F3F5),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.add,
+                      size: 14,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      l10n.addPanel,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const Spacer(),
-              FilledButton.tonalIcon(
-                onPressed: _addNewPanel,
-                icon: const Icon(Icons.add, size: 17),
-                label: Text(l10n.addPanel),
-                style: FilledButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+            ),
+          ),
+
+          // 连在一起的整体面板卡片
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: borderColor, width: 1.0),
+              boxShadow: isDark
+                  ? AppTokens.cardShadowDarkList
+                  : AppTokens.cardShadowLight,
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: ReorderableListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              buildDefaultDragHandles: false,
+              itemCount: _panels.length,
+              onReorder: (oldIndex, newIndex) {
+                setState(() {
+                  if (newIndex > oldIndex) newIndex -= 1;
+                  final item = _panels.removeAt(oldIndex);
+                  _panels.insert(newIndex, item);
+                });
+              },
+              itemBuilder: (context, index) {
+                final panel = _panels[index];
+                return Container(
+                  key: ValueKey(panel.id),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: index < _panels.length - 1
+                          ? BorderSide(color: borderColor, width: 1.0)
+                          : BorderSide.none,
+                    ),
                   ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 11,
+                  ),
+                  child: Row(
+                    children: [
+                      ReorderableDragStartListener(
+                        index: index,
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.grab,
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: Center(
+                              child: Icon(
+                                Icons.drag_indicator,
+                                size: 17,
+                                color: theme.colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.35),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              panel.title,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            _buildFilterSummary(panel.filter, l10n),
+                          ],
+                        ),
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 34,
+                            height: 34,
+                            child: IconButton(
+                              tooltip: l10n.filterCriteria,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              icon: Icon(
+                                Icons.tune,
+                                size: 16,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                              onPressed: () async {
+                                final newCriteria =
+                                    await showFilterCriteriaSheet(
+                                      context: context,
+                                      initialCriteria: panel.filter,
+                                    );
+                                if (newCriteria != null) {
+                                  setState(() {
+                                    _panels[index] = panel.copyWith(
+                                      filter: newCriteria,
+                                    );
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                          SizedBox(
+                            width: 34,
+                            height: 34,
+                            child: IconButton(
+                              tooltip: l10n.editPanel,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              icon: Icon(
+                                Icons.edit_outlined,
+                                size: 16,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                              onPressed: () => _editPanelTitle(index),
+                            ),
+                          ),
+                          SizedBox(
+                            width: 34,
+                            height: 34,
+                            child: IconButton(
+                              tooltip: l10n.deletePanel,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              icon: Icon(
+                                Icons.delete_outline,
+                                size: 16,
+                                color: theme.colorScheme.error,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _panels.removeAt(index);
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: AppTokens.spaceLg),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader({
+    required IconData icon,
+    required String title,
+    Widget? trailing,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 15, color: theme.colorScheme.primary),
+              const SizedBox(width: 7),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.1,
+                  color: isDark ? Colors.white70 : const Color(0xFF1E293B),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppTokens.spaceSm),
-
-          // 面板排序列表
-          ReorderableListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            buildDefaultDragHandles: false,
-            itemCount: _panels.length,
-            onReorder: (oldIndex, newIndex) {
-              setState(() {
-                if (newIndex > oldIndex) newIndex -= 1;
-                final item = _panels.removeAt(oldIndex);
-                _panels.insert(newIndex, item);
-              });
-            },
-            itemBuilder: (context, index) {
-              final panel = _panels[index];
-              return Container(
-                key: ValueKey(panel.id),
-                margin: const EdgeInsets.only(bottom: AppTokens.spaceSm),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? AppTokens.surfaceCardDark
-                      : AppTokens.surfaceCard,
-                  borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-                  border: Border.all(
-                    color: isDark
-                        ? AppTokens.borderSubtleDark
-                        : AppTokens.borderSubtleLight,
-                    width: 1.0,
-                  ),
-                  boxShadow: isDark
-                      ? AppTokens.cardShadowDarkList
-                      : AppTokens.cardShadowLight,
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppTokens.spaceSm,
-                    vertical: 4,
-                  ),
-                  leading: ReorderableDragStartListener(
-                    index: index,
-                    child: MouseRegion(
-                      cursor: SystemMouseCursors.grab,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppTokens.spaceXs,
-                          vertical: AppTokens.spaceXs,
-                        ),
-                        child: Icon(
-                          Icons.drag_indicator,
-                          color: theme.colorScheme.onSurfaceVariant.withValues(
-                            alpha: 0.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  title: Text(
-                    panel.title,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: _buildFilterSummary(panel.filter, l10n),
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        tooltip: l10n.filterCriteria,
-                        icon: Icon(
-                          Icons.tune,
-                          size: 19,
-                          color: theme.colorScheme.primary,
-                        ),
-                        onPressed: () async {
-                          final newCriteria = await showFilterCriteriaSheet(
-                            context: context,
-                            initialCriteria: panel.filter,
-                          );
-                          if (newCriteria != null) {
-                            setState(() {
-                              _panels[index] = panel.copyWith(
-                                filter: newCriteria,
-                              );
-                            });
-                          }
-                        },
-                      ),
-                      IconButton(
-                        tooltip: l10n.editPanel,
-                        icon: const Icon(Icons.edit_outlined, size: 18),
-                        onPressed: () => _editPanelTitle(index),
-                      ),
-                      IconButton(
-                        tooltip: l10n.deletePanel,
-                        icon: Icon(
-                          Icons.delete_outline,
-                          size: 18,
-                          color: theme.colorScheme.error,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _panels.removeAt(index);
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: AppTokens.spaceLg),
+          ?trailing,
         ],
+      ),
+    );
+  }
+
+  Widget _buildLayoutToggleItem({
+    required String mode,
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
+
+    return GestureDetector(
+      onTap: () => setState(() => _layoutMode = mode),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 13),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isDark ? colorScheme.surfaceContainerHighest : Colors.white)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 15,
+              color: isSelected
+                  ? colorScheme.onSurface
+                  : colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected
+                    ? colorScheme.onSurface
+                    : colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -707,11 +855,20 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
     }
 
     if (chips.isEmpty) {
-      return Text(
-        '全部任务',
-        style: TextStyle(
-          fontSize: AppTokens.textCaptionSize,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        decoration: BoxDecoration(
+          color: Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          '全部任务',
+          style: TextStyle(
+            fontSize: 10.5,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
       );
     }
@@ -721,17 +878,17 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
       runSpacing: 4,
       children: chips.map((c) {
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
           decoration: BoxDecoration(
             color: Theme.of(
               context,
-            ).colorScheme.primaryContainer.withValues(alpha: 0.35),
-            borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+            ).colorScheme.primary.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(999),
           ),
           child: Text(
             c,
             style: TextStyle(
-              fontSize: AppTokens.textMicroSize,
+              fontSize: 10.5,
               fontWeight: FontWeight.w500,
               color: Theme.of(context).colorScheme.primary,
             ),

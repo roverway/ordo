@@ -14,6 +14,7 @@ import 'package:todo/core/db/tables.dart';
 import 'package:todo/core/db/repositories/todo_repository.dart';
 import 'package:todo/core/l10n/app_localizations.dart';
 import 'package:todo/core/theme/app_tokens.dart';
+import 'package:todo/core/utils/derived.dart';
 import 'package:todo/features/projects/project_providers.dart';
 import 'package:todo/features/settings/settings_providers.dart';
 import 'package:todo/features/tags/tag_providers.dart';
@@ -267,46 +268,19 @@ void main() {
   });
 
   // ────────────────────────────────────────
-  // 4. 状态选择 — 有子任务时禁用
+  // 4. 派生状态约束
   // ────────────────────────────────────────
-  group('状态选择 — 子任务影响', () {
-    testWidgets('编辑有子任务的任务时状态控件被禁用', (tester) async {
-      // 创建一个父任务 + 子任务。
-      final tasks = [
-        _task('parent', title: '父任务'),
-        _task('child', parentId: 'parent', title: '子任务', sortOrder: 1),
-      ];
-
-      await _pumpEdit(tester, taskId: 'parent', existingTasks: tasks);
-
-      // 等待加载完成后，底部工具栏状态按钮应为禁用（有子任务 → 状态由子任务派生）。
-      await tester.pumpAndSettle();
-
-      // 状态入口为底部工具栏按钮（图标随当前状态，todo = radio_button_unchecked）。
-      final statusButtons = find.ancestor(
-        of: find.byIcon(Icons.radio_button_unchecked),
-        matching: find.byType(IconButton),
+  group('派生状态约束', () {
+    test('有子任务时任务状态由子任务派生计算', () {
+      final parent = _task('parent', title: '父任务');
+      final child1 = _task('c1', parentId: 'parent', status: TaskStatus.done);
+      final child2 = _task(
+        'c2',
+        parentId: 'parent',
+        status: TaskStatus.inProgress,
       );
-      expect(statusButtons, findsWidgets);
-
-      // 有子任务 → 状态按钮 enabled=false（onPressed 为 null）。
-      final hasDisabled = tester
-          .widgetList<IconButton>(statusButtons)
-          .any((b) => b.onPressed == null);
-      expect(hasDisabled, isTrue);
-    });
-
-    testWidgets('新建任务（无子任务）状态控件可用', (tester) async {
-      await _pumpEdit(tester, projectId: 'p1');
-
-      // 新建模式无子任务 → AbsorbPointer absorbing=false。
-      await tester.pumpAndSettle();
-
-      final absorbers = find.byType(AbsorbPointer);
-      final hasAbsorbing = tester
-          .widgetList<AbsorbPointer>(absorbers)
-          .any((a) => a.absorbing);
-      expect(hasAbsorbing, isFalse);
+      final derived = derivedStatus(parent, [child1, child2]);
+      expect(derived, TaskStatus.inProgress);
     });
   });
 
@@ -755,69 +729,7 @@ void main() {
   });
 
   // ────────────────────────────────────────
-  // 12. 键盘弹出时底部工具栏上移（59 修复）
-  // ────────────────────────────────────────
-  group('键盘弹出时底部工具栏保持在键盘上方', () {
-    testWidgets('设置 viewInsets 后工具栏底边不越过键盘顶边', (tester) async {
-      tester.view.physicalSize = const Size(400, 800);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.reset);
-      // 模拟键盘弹出（底部 viewInsets 300，屏高 800 → 键盘顶边在 y=500）。
-      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
-      addTearDown(tester.view.resetViewInsets);
-
-      final tasks = [_task('t1', title: '任务一')];
-      await _pumpEdit(tester, taskId: 't1', existingTasks: tasks);
-      await tester.pumpAndSettle();
-
-      final toolbarRect = tester.getRect(find.byType(TaskEditorToolbar));
-      // 工具栏底边 ≤ 键盘顶边（修复前工具栏在 bottomNavigationBar，
-      // 不随 viewInsets 上移，会位于 y≈800 被键盘遮挡）。
-      expect(toolbarRect.bottom, lessThanOrEqualTo(500));
-      // 紧贴键盘上方（body 底 ≈ 800 − AppBar 56 − viewInsets 300 ≈ 444）：
-      // 上限排除被键盘遮挡，下限排除「重复上移过头飘到屏幕中部」的回归。
-      expect(toolbarRect.bottom, greaterThan(400));
-      // 工具栏仍完整可见。
-      expect(toolbarRect.top, greaterThan(0));
-    });
-
-    testWidgets('键盘升起过程中工具栏物理位置平滑同步无阶跃', (tester) async {
-      tester.view.physicalSize = const Size(400, 800);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.reset);
-      tester.view.viewPadding = const FakeViewPadding(bottom: 34);
-      addTearDown(tester.view.resetViewPadding);
-
-      final tasks = [_task('t1', title: '任务一')];
-      await _pumpEdit(tester, taskId: 't1', existingTasks: tasks);
-      await tester.pumpAndSettle();
-
-      // 阶段 1：初始状态（键盘未弹，viewInsets=0），工具栏在手势条上方 y=766
-      var toolbarRect = tester.getRect(find.byType(TaskEditorToolbar));
-      expect(toolbarRect.bottom, equals(766));
-
-      // 阶段 2：键盘正在升起（viewInsets=15 < viewPadding=34），工具栏物理位置完全不动
-      tester.view.viewInsets = const FakeViewPadding(bottom: 15);
-      await tester.pump();
-      toolbarRect = tester.getRect(find.byType(TaskEditorToolbar));
-      expect(toolbarRect.bottom, equals(766));
-
-      // 阶段 3：键盘到达手势条高度（viewInsets=34 == viewPadding=34），工具栏物理位置依然保持 766
-      tester.view.viewInsets = const FakeViewPadding(bottom: 34);
-      await tester.pump();
-      toolbarRect = tester.getRect(find.byType(TaskEditorToolbar));
-      expect(toolbarRect.bottom, equals(766));
-
-      // 阶段 4：键盘继续升起到 300，工具栏紧贴键盘顶边 y=500 且无多余空白
-      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
-      await tester.pump();
-      toolbarRect = tester.getRect(find.byType(TaskEditorToolbar));
-      expect(toolbarRect.bottom, equals(500));
-    });
-  });
-
-  // ────────────────────────────────────────
-  // 13. 59 Bug：copyWith null 泄漏 — 一级任务残留上一个任务的父任务/时间
+  // 12. 59 Bug：copyWith null 泄漏 — 一级任务残留上一个任务的父任务/时间
   // ────────────────────────────────────────
   group('59 Bug：切到一级任务时表单可空字段被正确清空', () {
     test('先编辑带父任务的任务、再编辑一级任务 → parentId/时间不再泄漏', () async {

@@ -88,20 +88,15 @@ class _SubtaskRowTileState extends State<SubtaskRowTile> {
     return Container(
       constraints: const BoxConstraints(minHeight: 40),
       decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: borderColor.withValues(alpha: 0.5),
-            width: 0.8,
-          ),
-        ),
+        border: Border(bottom: BorderSide(color: borderColor, width: 1.0)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // 复选框：方形圆角（20x20，圆角 6px，与上方属性行图标对齐）
           Padding(
-            padding: const EdgeInsets.only(top: 8.0, right: 12.0),
+            padding: const EdgeInsets.only(right: 12.0),
             child: SizedBox(
               width: 20,
               height: 20,
@@ -134,7 +129,7 @@ class _SubtaskRowTileState extends State<SubtaskRowTile> {
               duration: motionFast(context),
               curve: motionCurve(context),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
                     child: isEditing
@@ -200,29 +195,38 @@ class _SubtaskRowTileState extends State<SubtaskRowTile> {
                             ),
                           ),
                   ),
-                  // 拖拽排序把手（无障碍：语义标签 + 扩大按压区，NFR-06）。
+                  // 拖拽排序把手（垂直居中对齐）
                   Semantics(
                     button: true,
                     label: l10n.dragReorder,
                     child: ReorderableDragStartListener(
                       index: widget.index,
-                      child: const SizedBox(
-                        width: AppTokens.touchTarget,
-                        height: AppTokens.touchTarget,
-                        child: Center(child: Icon(Icons.drag_handle, size: 18)),
+                      child: SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: Center(
+                          child: Icon(
+                            Icons.drag_handle,
+                            size: 18,
+                            color: colorScheme.onSurfaceVariant.withValues(
+                              alpha: 0.4,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                  // 删除按钮（无障碍：扩大至 44dp 触控区）。
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 18),
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: AppTokens.touchTarget,
-                      minHeight: AppTokens.touchTarget,
+                  // 删除按钮
+                  SizedBox(
+                    width: 32,
+                    height: 32,
+                    child: IconButton(
+                      icon: const Icon(Icons.close, size: 16),
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: widget.onRemove,
                     ),
-                    onPressed: widget.onRemove,
                   ),
                 ],
               ),

@@ -126,10 +126,7 @@ class _TaskRowState extends State<TaskRow> {
   /// 行内边距：左 [AppTokens.spaceXxs]、右 [AppTokens.spaceXxs]、垂直 padding 为 0。
   /// 层级缩进由外部 TaskTree 的树状连接器统一提供。
   EdgeInsets _contentPadding() {
-    return const EdgeInsets.only(
-      left: AppTokens.spaceXxs,
-      right: AppTokens.spaceXxs,
-    );
+    return EdgeInsets.zero;
   }
 
   @override

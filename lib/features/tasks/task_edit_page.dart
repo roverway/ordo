@@ -304,39 +304,13 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
             ),
           ],
         ),
-        body: Stack(
-          children: [
-            Positioned.fill(
-              bottom: _isEditing ? 0 : AppTokens.toolbarHeight,
-              child: RepaintBoundary(
-                child: _TaskEditContentArea(
-                  controller: _editorController,
-                  isEditing: _isEditing,
-                  showSubtasks: _isEditing ? _showSubtasks : parentId == null,
-                  hasChildren: _hasChildren,
-                  onDeleteRequested: _isEditing ? _confirmDeleteTask : null,
-                  isDetailsPage: _isEditing,
-                ),
-              ),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: KeyboardAttachedToolbar(
-                elevation: AppTokens.elevationCard,
-                child: ValueListenableBuilder<bool>(
-                  valueListenable:
-                      _editorController.hasPendingNewSubtasksNotifier,
-                  builder: (context, hasPending, _) {
-                    return TaskEditorToolbar(
-                      statusDisabled: _hasChildren || hasPending,
-                    );
-                  },
-                ),
-              ),
-            ),
-          ],
+        body: _TaskEditContentArea(
+          controller: _editorController,
+          isEditing: _isEditing,
+          showSubtasks: _isEditing ? _showSubtasks : parentId == null,
+          hasChildren: _hasChildren,
+          onDeleteRequested: _isEditing ? _confirmDeleteTask : null,
+          isDetailsPage: _isEditing,
         ),
       ),
     );
