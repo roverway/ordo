@@ -141,8 +141,8 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                             text: widget.task.title,
                             isDone: widget.isDone,
                             style: theme.textTheme.bodyLarge?.copyWith(
-                              fontSize: 15.5,
-                              fontWeight: FontWeight.w600,
+                              fontSize: 15.0,
+                              fontWeight: FontWeight.normal,
                               height: 1.35,
                               color: widget.isDone
                                   ? colorScheme.onSurfaceVariant.withValues(

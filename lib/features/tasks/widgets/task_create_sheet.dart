@@ -697,61 +697,73 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                   ),
                 ],
 
-                // 6. 子任务区（顶部横线划分 + 按需编辑 + 对齐）
+                // 6. 子任务区（精确复刻 create.html）
                 if (widget.parentId == null) ...[
-                  Padding(
-                    padding: const EdgeInsets.only(top: 18),
-                    child: Divider(height: 1, color: borderColor),
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        l10n.subtasks,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 1.2,
-                          color: colorScheme.onSurfaceVariant.withValues(
-                            alpha: 0.8,
-                          ),
+                  Container(
+                    margin: const EdgeInsets.only(top: 18, bottom: 4),
+                    padding: const EdgeInsets.only(top: 16),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(
+                          color: borderColor.withValues(alpha: 0.35),
+                          width: 1,
                         ),
                       ),
-                      if (_subtaskRows.isNotEmpty)
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
                         Text(
-                          '${_subtaskRows.length} 项',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontSize: 11.5,
-                            color: colorScheme.onSurfaceVariant,
-                            fontFeatures: AppTokens.fontTabular,
+                          l10n.subtasks,
+                          style: TextStyle(
+                            fontSize: 11,
+                            letterSpacing: 1.4,
+                            fontWeight: FontWeight.w600,
+                            color: colorScheme.onSurfaceVariant.withValues(
+                              alpha: 0.7,
+                            ),
                           ),
                         ),
-                    ],
+                        if (_subtaskRows.isNotEmpty)
+                          Text(
+                            '${_subtaskRows.length} 项',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontFeatures: AppTokens.fontTabular,
+                              color: colorScheme.onSurfaceVariant.withValues(
+                                alpha: 0.7,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 8),
 
-                  // 已添加的子任务列表（按需编辑 + 水平分割行）
+                  // 已添加的子任务列表
                   for (var i = 0; i < _subtaskRows.length; i++)
                     Container(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
                         border: Border(
                           bottom: BorderSide(
-                            color: borderColor.withValues(alpha: 0.6),
+                            color: borderColor.withValues(alpha: 0.25),
                             width: 0.8,
                           ),
                         ),
                       ),
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           GestureDetector(
                             onTap: () => setState(() {
                               _subtaskRows[i].isDone = !_subtaskRows[i].isDone;
                             }),
                             child: Container(
-                              width: 22,
-                              height: 22,
+                              width: 20,
+                              height: 20,
+                              margin: const EdgeInsets.only(top: 1),
                               decoration: BoxDecoration(
                                 color: _subtaskRows[i].isDone
                                     ? colorScheme.onSurface
@@ -769,13 +781,13 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                               child: _subtaskRows[i].isDone
                                   ? Icon(
                                       Icons.check,
-                                      size: 13,
+                                      size: 11,
                                       color: colorScheme.surface,
                                     )
                                   : null,
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 12),
                           Expanded(
                             child:
                                 _subtaskRows[i].controller.text.isNotEmpty &&
@@ -785,22 +797,19 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                     onTap: () {
                                       _subtaskRows[i].focusNode.requestFocus();
                                     },
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 2,
-                                      ),
-                                      child: Text(
-                                        _subtaskRows[i].controller.text,
-                                        style: TextStyle(
-                                          fontSize: 14.5,
-                                          decoration: _subtaskRows[i].isDone
-                                              ? TextDecoration.lineThrough
-                                              : null,
-                                          color: _subtaskRows[i].isDone
-                                              ? colorScheme.onSurfaceVariant
-                                                    .withValues(alpha: 0.6)
-                                              : colorScheme.onSurface,
-                                        ),
+                                    child: Text(
+                                      _subtaskRows[i].controller.text,
+                                      style: TextStyle(
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.w500,
+                                        height: 1.4,
+                                        decoration: _subtaskRows[i].isDone
+                                            ? TextDecoration.lineThrough
+                                            : null,
+                                        color: _subtaskRows[i].isDone
+                                            ? colorScheme.onSurfaceVariant
+                                                  .withValues(alpha: 0.6)
+                                            : colorScheme.onSurface,
                                       ),
                                     ),
                                   )
@@ -809,6 +818,8 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                     focusNode: _subtaskRows[i].focusNode,
                                     style: TextStyle(
                                       fontSize: 14.5,
+                                      fontWeight: FontWeight.w500,
+                                      height: 1.4,
                                       decoration: _subtaskRows[i].isDone
                                           ? TextDecoration.lineThrough
                                           : null,
@@ -833,22 +844,14 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                       filled: false,
                                       fillColor: Colors.transparent,
                                       isDense: true,
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                            vertical: 2,
-                                          ),
+                                      contentPadding: EdgeInsets.zero,
                                     ),
                                     onSubmitted: (_) => _addSubtaskAndFocus(),
                                   ),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.close, size: 16),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 28,
-                              minHeight: 28,
-                            ),
-                            onPressed: () => setState(() {
+                          InkWell(
+                            borderRadius: BorderRadius.circular(6),
+                            onTap: () => setState(() {
                               _subtaskRows[i].focusNode.removeListener(
                                 _onFocusChange,
                               );
@@ -856,12 +859,24 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                               _subtaskRows[i].focusNode.dispose();
                               _subtaskRows.removeAt(i);
                             }),
+                            child: Container(
+                              width: 24,
+                              height: 24,
+                              alignment: Alignment.center,
+                              child: Icon(
+                                Icons.close,
+                                size: 14,
+                                color: colorScheme.onSurfaceVariant.withValues(
+                                  alpha: 0.45,
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
                     ),
 
-                  // 添加子任务按钮 / 行（与子任务复选框 22x22 对齐，统一垂直间距）
+                  // 添加子任务按钮 / 行（精确复刻 create.html 的 .sub-add）
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: InkWell(
@@ -869,37 +884,38 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                       onTap: _addSubtaskAndFocus,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
-                          vertical: 6,
+                          vertical: 12,
                           horizontal: 0,
                         ),
                         child: Row(
                           children: [
                             Container(
-                              width: 22,
-                              height: 22,
+                              width: 20,
+                              height: 20,
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(6),
                                 border: Border.all(
                                   color: colorScheme.onSurfaceVariant
-                                      .withValues(alpha: 0.4),
-                                  width: 1.5,
+                                      .withValues(alpha: 0.35),
+                                  width: 1.2,
                                 ),
                               ),
                               child: Icon(
                                 Icons.add,
-                                size: 14,
+                                size: 12,
                                 color: colorScheme.onSurfaceVariant.withValues(
-                                  alpha: 0.7,
+                                  alpha: 0.6,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            Text(
-                              l10n.addSubtask,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: colorScheme.onSurfaceVariant.withValues(
-                                  alpha: 0.6,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                '添加子任务，回车确认',
+                                style: TextStyle(
+                                  fontSize: 14.5,
+                                  color: colorScheme.onSurfaceVariant
+                                      .withValues(alpha: 0.45),
                                 ),
                               ),
                             ),

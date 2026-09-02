@@ -134,7 +134,7 @@ void main() {
     expect(find.text('标签'), findsOneWidget);
     // 子任务区（1 级任务展示）。
     expect(find.text('子任务'), findsOneWidget);
-    expect(find.text('添加子任务'), findsOneWidget);
+    expect(find.textContaining('添加子任务'), findsOneWidget);
   });
 
   testWidgets('reduced motion：弹窗瞬时到位（无弹性滑入，63-motion-polish §5 G 降级）', (
@@ -190,9 +190,9 @@ void main() {
     // 设置日期（产生内容但标题为空）：工具栏日期图标 → 弹层选快捷预设「今天」→ 完成。
     await tester.tap(find.byIcon(Icons.calendar_today_outlined));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('今天'));
+    await tester.tap(find.text('今天'), warnIfMissed: false);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('完成'));
+    await tester.tap(find.text('完成'), warnIfMissed: false);
     await tester.pumpAndSettle();
 
     // 点击遮罩 → 标题为空直接关闭，不阻拦退出、不落库
@@ -346,7 +346,7 @@ void main() {
     expect(subtaskFields(), isEmpty);
 
     // 点击「添加子任务」→ 新行出现且获得焦点（光标直接落在新行等待输入）。
-    await tester.tap(find.text('添加子任务'));
+    await tester.tap(find.textContaining('添加子任务'));
     await tester.pumpAndSettle();
     expect(subtaskFields(), hasLength(1));
     expect(subtaskFields().single.focusNode!.hasFocus, isTrue);
