@@ -474,4 +474,46 @@ void main() {
     expect(find.byType(TaskCreateSheet), findsNothing);
     expect(await repo.tasks.getAllByProject('inbox'), isEmpty);
   });
+
+  testWidgets('月视图下上滑任务列表区域优先转换为周视图；当前已为周视图时上滑正常滚动任务列表', (tester) async {
+    final db = openTestDatabase();
+    final repo = TodoRepository(database: db);
+    final tasks = List.generate(
+      20,
+      (i) => _task(
+        'Task_$i',
+        startAt: _ms(2026, 8, 11, 9),
+        endAt: _ms(2026, 8, 11, 10),
+      ),
+    );
+    final state = _fixedState(CalendarMode.month);
+
+    final controller = await _pump(
+      tester,
+      repo: repo,
+      state: state,
+      tasks: tasks,
+    );
+    controller.add(buildCalendarBuckets(tasks, state));
+    await tester.pumpAndSettle();
+
+    // 1. 当前为月视图：顶栏显示「2026年8月」
+    expect(find.text('2026年8月'), findsOneWidget);
+    expect(find.text('Task_0'), findsOneWidget);
+
+    // 在任务列表区域上滑
+    await tester.drag(find.text('Task_0'), const Offset(0, -100));
+    await tester.pumpAndSettle();
+
+    // 优先收起为周视图，顶栏显示「8月10日 – 8月16日」
+    expect(find.text('8月10日 – 8月16日'), findsOneWidget);
+    expect(find.text('Task_0'), findsOneWidget);
+
+    // 2. 当前已是周视图：再次在任务列表区域上滑 -> 任务列表正常滚动
+    await tester.drag(find.text('Task_0'), const Offset(0, -300));
+    await tester.pumpAndSettle();
+
+    // 周视图保持不变，任务列表正常向下滚动
+    expect(find.text('8月10日 – 8月16日'), findsOneWidget);
+  });
 }

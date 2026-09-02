@@ -798,36 +798,46 @@ class _CalendarAgendaList extends ConsumerStatefulWidget {
 }
 
 class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
-  static const double _kMinTriggerOverscroll = 25.0;
-  static const double _kFlingVelocityThreshold = 120.0;
+  static const double _kMinTriggerOverscroll = 20.0;
+  static const double _kFlingVelocityThreshold = 100.0;
   static const double _kFlingMinOverscroll = 5.0;
 
+  final ScrollController _scrollController = ScrollController();
   double _overscrollTop = 0;
-  double _overscrollBottom = 0;
   bool _isDragging = false;
+  double _monthDragDelta = 0;
 
-  void _checkAndTriggerModeSwitch({double velocity = 0}) {
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant _CalendarAgendaList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.state.mode != widget.state.mode &&
+        widget.state.mode == CalendarMode.month) {
+      if (_scrollController.hasClients && _scrollController.offset > 0) {
+        _scrollController.jumpTo(0);
+      }
+    }
+  }
+
+  void _checkAndTriggerExpandMonth({double velocity = 0}) {
     if (!_isDragging) return;
     _isDragging = false;
 
     final currentOverscrollTop = _overscrollTop;
-    final currentOverscrollBottom = _overscrollBottom;
     _overscrollTop = 0;
-    _overscrollBottom = 0;
 
     final shouldExpandMonth =
         currentOverscrollTop > _kMinTriggerOverscroll ||
         (velocity > _kFlingVelocityThreshold &&
             currentOverscrollTop > _kFlingMinOverscroll);
-    final shouldCollapseWeek =
-        currentOverscrollBottom > _kMinTriggerOverscroll ||
-        (velocity < -_kFlingVelocityThreshold &&
-            currentOverscrollBottom > _kFlingMinOverscroll);
 
-    if (shouldExpandMonth && widget.state.mode != CalendarMode.month) {
+    if (shouldExpandMonth && widget.state.mode == CalendarMode.week) {
       ref.read(calendarStateProvider.notifier).setMode(CalendarMode.month);
-    } else if (shouldCollapseWeek && widget.state.mode != CalendarMode.week) {
-      ref.read(calendarStateProvider.notifier).setMode(CalendarMode.week);
     }
   }
 
@@ -877,21 +887,21 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
             selected.year == now.year && selected.month == now.month;
     }
     final isDark = theme.brightness == Brightness.dark;
+    final isNarrow = AppBreakpoints.isNarrow(context);
+    final isMonthMode = isNarrow && widget.state.mode == CalendarMode.month;
 
-    return NotificationListener<ScrollNotification>(
+    final Widget listContent = NotificationListener<ScrollNotification>(
       onNotification: (notification) {
+        if (isMonthMode) return false;
         if (notification is ScrollStartNotification) {
           if (notification.dragDetails != null) {
             _isDragging = true;
             _overscrollTop = 0;
-            _overscrollBottom = 0;
           }
         } else if (notification is OverscrollNotification) {
           if (notification.dragDetails != null) {
             if (notification.overscroll < 0) {
               _overscrollTop += -notification.overscroll;
-            } else if (notification.overscroll > 0) {
-              _overscrollBottom += notification.overscroll;
             }
           }
         } else if (notification is ScrollUpdateNotification) {
@@ -901,32 +911,29 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
               _overscrollTop =
                   notification.metrics.minScrollExtent -
                   notification.metrics.pixels;
-            } else if (notification.metrics.pixels >
-                notification.metrics.maxScrollExtent) {
-              _overscrollBottom =
-                  notification.metrics.pixels -
-                  notification.metrics.maxScrollExtent;
             }
           } else if (_isDragging) {
-            // 用户松手瞬间（dragDetails 变为 null），在回弹起始时立即与日历动画协同触发
-            _checkAndTriggerModeSwitch();
+            _checkAndTriggerExpandMonth();
           }
         } else if (notification is UserScrollNotification) {
           if (notification.direction == ScrollDirection.idle && _isDragging) {
-            _checkAndTriggerModeSwitch();
+            _checkAndTriggerExpandMonth();
           }
         } else if (notification is ScrollEndNotification) {
           if (_isDragging) {
             final velocity = notification.dragDetails?.primaryVelocity ?? 0;
-            _checkAndTriggerModeSwitch(velocity: velocity);
+            _checkAndTriggerExpandMonth(velocity: velocity);
           }
         }
         return false;
       },
       child: CustomScrollView(
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: ClampingScrollPhysics(),
-        ),
+        controller: _scrollController,
+        physics: isMonthMode
+            ? const NeverScrollableScrollPhysics()
+            : const AlwaysScrollableScrollPhysics(
+                parent: ClampingScrollPhysics(),
+              ),
         slivers: [
           // 概览 Sticky / Header 栏
           SliverToBoxAdapter(
@@ -1047,6 +1054,29 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
         ],
       ),
     );
+
+    if (isMonthMode) {
+      return GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onVerticalDragStart: (_) {
+          _monthDragDelta = 0;
+        },
+        onVerticalDragUpdate: (details) {
+          _monthDragDelta += details.primaryDelta ?? 0;
+        },
+        onVerticalDragEnd: (details) {
+          final velocity = details.primaryVelocity ?? 0;
+          if (velocity < -_kFlingVelocityThreshold ||
+              _monthDragDelta < -_kMinTriggerOverscroll) {
+            ref.read(calendarStateProvider.notifier).setMode(CalendarMode.week);
+          }
+          _monthDragDelta = 0;
+        },
+        child: listContent,
+      );
+    }
+
+    return listContent;
   }
 
   Widget _buildScopeChip(
