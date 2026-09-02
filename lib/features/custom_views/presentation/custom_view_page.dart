@@ -10,6 +10,7 @@ import '../../../core/utils/custom_view_models.dart';
 import '../../../shared/widgets/app_menu_item.dart';
 import '../../../shared/widgets/page_hero_header.dart';
 import '../../../shared/widgets/scope_switcher_sheet.dart';
+import '../../tasks/widgets/task_create_sheet.dart';
 import '../providers/custom_view_providers.dart';
 import '../widgets/panel_column.dart';
 import 'custom_view_action_handler.dart';
@@ -234,12 +235,29 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
         if (panels.length == 1) {
           final panel = panels.first;
           return Scaffold(
+            floatingActionButton: FloatingActionButton.extended(
+              onPressed: () {
+                TaskCreateSheet.show(
+                  context,
+                  projectId: panel.filter.projectIds.length == 1
+                      ? panel.filter.projectIds.first
+                      : null,
+                  initialPriority: panel.filter.priorities.length == 1
+                      ? panel.filter.priorities.first
+                      : null,
+                  initialTagIds: panel.filter.tagIds.isNotEmpty
+                      ? panel.filter.tagIds
+                      : null,
+                );
+              },
+              icon: const Icon(Icons.add),
+              label: Text(l10n.newTask),
+            ),
             body: SafeArea(
               bottom: false,
               child: Column(
                 children: [
                   header,
-                  const Divider(height: 1, indent: 20, endIndent: 20),
                   Expanded(
                     child: PanelColumn(
                       key: ValueKey(panel.id),
@@ -267,6 +285,13 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
         return DefaultTabController(
           length: panels.length,
           child: Scaffold(
+            floatingActionButton: FloatingActionButton.extended(
+              onPressed: () {
+                TaskCreateSheet.show(context);
+              },
+              icon: const Icon(Icons.add),
+              label: Text(l10n.newTask),
+            ),
             body: SafeArea(
               bottom: false,
               child: Column(
@@ -274,18 +299,29 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
                   header,
                   Container(
                     alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.fromLTRB(20, 2, 20, 0),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: isDark
+                              ? AppTokens.borderSubtleDark
+                              : AppTokens.borderSubtleLight,
+                          width: 1,
+                        ),
+                      ),
+                    ),
                     child: TabBar(
                       isScrollable: panels.length > 3,
                       tabAlignment: panels.length > 3
                           ? TabAlignment.start
                           : TabAlignment.fill,
                       dividerColor: Colors.transparent,
+                      indicatorColor: theme.colorScheme.onSurface,
+                      indicatorWeight: 2.5,
                       indicatorSize: TabBarIndicatorSize.tab,
                       tabs: panels.map((p) => _PanelTabItem(panel: p)).toList(),
                     ),
                   ),
-                  const Divider(height: 1, indent: 20, endIndent: 20),
                   Expanded(
                     child: TabBarView(
                       children: panels.asMap().entries.map((entry) {

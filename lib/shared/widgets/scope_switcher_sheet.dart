@@ -521,63 +521,65 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 1),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: Material(
         color: isSelected
             ? colorScheme.primary.withValues(alpha: 0.08)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(10),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-          child: Row(
-            children: [
-              Container(
-                width: 26,
-                height: 26,
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: iconColor, size: 15),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected
-                        ? colorScheme.primary
-                        : colorScheme.onSurface,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            child: Row(
+              children: [
+                Container(
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  overflow: TextOverflow.ellipsis,
+                  child: Icon(icon, color: iconColor, size: 15),
                 ),
-              ),
-              if (badgeCount != null && badgeCount > 0)
-                Text(
-                  '$badgeCount',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontFeatures: AppTokens.fontTabular,
-                    color: colorScheme.onSurfaceVariant,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w500,
+                      color: isSelected
+                          ? colorScheme.primary
+                          : colorScheme.onSurface,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-              if (isSelected)
-                Padding(
-                  padding: const EdgeInsets.only(left: 6),
-                  child: Icon(
-                    Icons.check,
-                    size: 16,
-                    color: colorScheme.primary,
+                if (badgeCount != null && badgeCount > 0)
+                  Text(
+                    '$badgeCount',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontFeatures: AppTokens.fontTabular,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                ),
-            ],
+                if (isSelected)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 6),
+                    child: Icon(
+                      Icons.check,
+                      size: 16,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -666,66 +668,69 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
       },
       builder: (context, candidateData, rejectedData) {
         final isHovered = candidateData.isNotEmpty;
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 1),
-          decoration: BoxDecoration(
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 1),
+          child: Material(
             color: isHovered
                 ? colorScheme.primary.withValues(alpha: 0.12)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
-          ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(10),
-            onTap: onToggleCollapse,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-              child: Row(
-                children: [
-                  Container(
-                    width: 26,
-                    height: 26,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.folder_outlined,
-                      color: colorScheme.primary,
-                      size: 15,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      folder.name,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        color: colorScheme.onSurface,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: onToggleCollapse,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      overflow: TextOverflow.ellipsis,
+                      child: Icon(
+                        Icons.folder_outlined,
+                        color: colorScheme.primary,
+                        size: 15,
+                      ),
                     ),
-                  ),
-                  if (uncompletedCount > 0)
-                    Text(
-                      '$uncompletedCount',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontFeatures: AppTokens.fontTabular,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        folder.name,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: colorScheme.onSurface,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (uncompletedCount > 0)
+                      Text(
+                        '$uncompletedCount',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontFeatures: AppTokens.fontTabular,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    const SizedBox(width: 4),
+                    AnimatedRotation(
+                      turns: isCollapsed ? -0.25 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(
+                        Icons.keyboard_arrow_down,
+                        size: 18,
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
-                  const SizedBox(width: 4),
-                  AnimatedRotation(
-                    turns: isCollapsed ? -0.25 : 0,
-                    duration: const Duration(milliseconds: 200),
-                    child: Icon(
-                      Icons.keyboard_arrow_down,
-                      size: 18,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -753,63 +758,65 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
     final summary = ref.watch(projectSummaryProvider(project.id));
     final uncompleted = summary.uncompletedCount;
 
-    final tileContent = Container(
-      margin: EdgeInsets.only(left: isIndented ? 16 : 0, top: 1, bottom: 1),
-      decoration: BoxDecoration(
+    final tileContent = Padding(
+      padding: EdgeInsets.only(left: isIndented ? 16 : 0, top: 1, bottom: 1),
+      child: Material(
         color: isSelected
             ? colorScheme.primary.withValues(alpha: 0.08)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(10),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          child: Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                decoration: BoxDecoration(
-                  color: projectColor,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  project.name,
-                  style: TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected
-                        ? colorScheme.primary
-                        : colorScheme.onSurface,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (uncompleted > 0)
-                Text(
-                  '$uncompleted',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontFeatures: AppTokens.fontTabular,
-                    color: colorScheme.onSurfaceVariant,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: projectColor,
+                    shape: BoxShape.circle,
                   ),
                 ),
-              if (isSelected)
-                Padding(
-                  padding: const EdgeInsets.only(left: 6),
-                  child: Icon(
-                    Icons.check,
-                    size: 16,
-                    color: colorScheme.primary,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    project.name,
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w500,
+                      color: isSelected
+                          ? colorScheme.primary
+                          : colorScheme.onSurface,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-            ],
+                if (uncompleted > 0)
+                  Text(
+                    '$uncompleted',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontFeatures: AppTokens.fontTabular,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                if (isSelected)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 6),
+                    child: Icon(
+                      Icons.check,
+                      size: 16,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -992,73 +999,81 @@ class _SlidableActionTileState extends State<_SlidableActionTile>
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Stack(
-      children: [
-        // 背景操作区
-        Positioned.fill(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                InkWell(
-                  onTap: () {
-                    _close();
-                    widget.onEdit();
-                  },
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    width: 42,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    alignment: Alignment.center,
-                    child: Icon(
-                      Icons.edit_outlined,
-                      size: 17,
-                      color: colorScheme.primary,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                InkWell(
-                  onTap: () {
-                    _close();
-                    widget.onDelete();
-                  },
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    width: 42,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: colorScheme.error.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    alignment: Alignment.center,
-                    child: Icon(
-                      Icons.delete_outline,
-                      size: 17,
-                      color: colorScheme.error,
-                    ),
-                  ),
-                ),
-              ],
+    return ClipRect(
+      child: Stack(
+        children: [
+          // 前景滑动内容
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onHorizontalDragUpdate: _onHorizontalDragUpdate,
+            onHorizontalDragEnd: _onHorizontalDragEnd,
+            child: Transform.translate(
+              offset: Offset(_dragExtent, 0),
+              child: Container(color: colorScheme.surface, child: widget.child),
             ),
           ),
-        ),
-        // 前景滑动内容
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onHorizontalDragUpdate: _onHorizontalDragUpdate,
-          onHorizontalDragEnd: _onHorizontalDragEnd,
-          child: Transform.translate(
-            offset: Offset(_dragExtent, 0),
-            child: Container(color: colorScheme.surface, child: widget.child),
-          ),
-        ),
-      ],
+
+          // 右侧露出的操作按钮（仅在左滑时置于顶层，确保可直接点击交互）
+          if (_dragExtent < 0)
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              width: _actionWidth,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        _close();
+                        widget.onEdit();
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        width: 42,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.edit_outlined,
+                          size: 17,
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    InkWell(
+                      onTap: () {
+                        _close();
+                        widget.onDelete();
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        width: 42,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: colorScheme.error.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.delete_outline,
+                          size: 17,
+                          color: colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

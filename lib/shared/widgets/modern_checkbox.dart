@@ -107,8 +107,19 @@ class _ModernCheckboxState extends State<ModernCheckbox>
 
     final content = CheckboxBounce(isDone: widget.checked, child: box);
 
+    final wrappedBox = SizedBox(
+      width: widget.tapTargetSize,
+      height: widget.tapTargetSize,
+      child: Center(child: content),
+    );
+
     if (widget.onChanged == null) {
-      return content;
+      return Semantics(
+        label: widget.semanticLabel,
+        checked: widget.checked,
+        enabled: false,
+        child: wrappedBox,
+      );
     }
 
     return Semantics(
@@ -120,11 +131,7 @@ class _ModernCheckboxState extends State<ModernCheckbox>
         borderRadius: BorderRadius.circular(widget.borderRadius + 2),
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
-        child: SizedBox(
-          width: widget.tapTargetSize,
-          height: widget.tapTargetSize,
-          child: Center(child: content),
-        ),
+        child: wrappedBox,
       ),
     );
   }

@@ -76,6 +76,7 @@ class _SubtaskRowTileState extends State<SubtaskRowTile> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final isDone = widget.row.status == TaskStatus.done;
     final isEditing =
         _mode == SubtaskTileDisplayMode.editing || widget.row.isNew;
@@ -136,8 +137,17 @@ class _SubtaskRowTileState extends State<SubtaskRowTile> {
                                 : theme.textTheme.bodyMedium,
                             decoration: InputDecoration(
                               hintText: l10n.subtaskHint,
+                              hintStyle: TextStyle(
+                                color: colorScheme.onSurfaceVariant.withValues(
+                                  alpha: 0.45,
+                                ),
+                                fontSize: 14,
+                              ),
                               border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
                               filled: false,
+                              fillColor: Colors.transparent,
                               isDense: true,
                               contentPadding: const EdgeInsets.symmetric(
                                 vertical: 8.0,

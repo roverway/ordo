@@ -52,8 +52,9 @@ class TaskEditorController extends ChangeNotifier {
 
   final TaskEditorMode mode;
 
-  /// 标题输入框焦点节点（支持容器受控聚焦，避免入场动画中途唤起软键盘导致弹窗上跳）。
+  /// 标题与描述输入框焦点节点（支持按需编辑与受控聚焦）。
   final FocusNode titleFocusNode = FocusNode();
+  final FocusNode descriptionFocusNode = FocusNode();
 
   /// 表单文本控制器（编辑器 ↔ taskFormProvider 的双向桥）。
   final TextEditingController titleController = TextEditingController();
@@ -192,6 +193,7 @@ class TaskEditorController extends ChangeNotifier {
   @override
   void dispose() {
     titleFocusNode.dispose();
+    descriptionFocusNode.dispose();
     titleController.dispose();
     descriptionController.dispose();
     notesController.dispose();

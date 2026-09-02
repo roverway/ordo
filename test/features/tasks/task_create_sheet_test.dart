@@ -337,7 +337,9 @@ void main() {
               w.focusNode != null &&
               w.decoration?.hintText != '任务标题' &&
               w.decoration?.labelText != '任务描述' &&
-              w.decoration?.labelText != '任务备注',
+              w.decoration?.labelText != '任务备注' &&
+              w.decoration?.hintText != '添加备注…' &&
+              w.decoration?.hintText != '添加描述或要点…',
         )
         .toList();
 

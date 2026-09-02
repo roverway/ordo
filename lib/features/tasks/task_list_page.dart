@@ -318,6 +318,7 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
         InlineSearchBar(
           isOpen: _isSearchOpen,
           controller: _searchController,
+          matchCount: overdueList.length + todayList.length,
           onChanged: (val) => setState(() => _searchQuery = val.trim()),
           onClear: () => setState(() => _searchQuery = ''),
         ),

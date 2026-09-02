@@ -325,7 +325,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 1. 标题输入框（按需编辑 + 摇晃动画与错误提示）
+                // 1. 标题输入框（无边框无背景，按需编辑）
                 AnimatedBuilder(
                   animation: _shakeAnimation,
                   builder: (context, child) {
@@ -336,53 +336,43 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                       child: child,
                     );
                   },
-                  child:
-                      (_titleFocusNode.hasFocus ||
-                          _titleController.text.isEmpty)
-                      ? TextField(
-                          controller: _titleController,
-                          focusNode: _titleFocusNode,
-                          autofocus: true,
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: -0.2,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: l10n.taskTitle,
-                            hintStyle: TextStyle(
-                              color: colorScheme.onSurfaceVariant.withValues(
-                                alpha: 0.5,
-                              ),
-                              fontWeight: FontWeight.w600,
-                            ),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 6,
-                            ),
-                          ),
-                          onChanged: (v) {
-                            if (_titleError != null) {
-                              setState(() => _titleError = null);
-                            }
-                            ref.read(taskFormProvider.notifier).updateTitle(v);
-                          },
-                        )
-                      : GestureDetector(
-                          onTap: () => _titleFocusNode.requestFocus(),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            child: Text(
-                              _titleController.text,
-                              style: theme.textTheme.headlineSmall?.copyWith(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: -0.2,
-                              ),
-                            ),
-                          ),
+                  child: TextField(
+                    controller: _titleController,
+                    focusNode: _titleFocusNode,
+                    autofocus: true,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.2,
+                      color: colorScheme.onSurface,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: l10n.taskTitle,
+                      hintStyle: TextStyle(
+                        color: colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.5,
                         ),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
+                      filled: false,
+                      fillColor: Colors.transparent,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 6),
+                    ),
+                    onChanged: (v) {
+                      if (_titleError != null) {
+                        setState(() => _titleError = null);
+                      }
+                      ref.read(taskFormProvider.notifier).updateTitle(v);
+                    },
+                  ),
                 ),
 
                 if (_titleError != null)
@@ -408,52 +398,40 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                     ),
                   ),
 
-                // 2. 备注/描述输入框（按需编辑）
+                // 2. 备注/描述输入框（无边框无背景）
                 const SizedBox(height: 8),
-                (_descriptionFocusNode.hasFocus ||
-                        _descriptionController.text.isNotEmpty)
-                    ? TextField(
-                        controller: _descriptionController,
-                        focusNode: _descriptionFocusNode,
-                        maxLines: 3,
-                        minLines: 1,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontSize: 14,
-                          height: 1.5,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: '添加备注…',
-                          hintStyle: TextStyle(
-                            color: colorScheme.onSurfaceVariant.withValues(
-                              alpha: 0.45,
-                            ),
-                          ),
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 4,
-                          ),
-                        ),
-                        onChanged: (v) => ref
-                            .read(taskFormProvider.notifier)
-                            .updateDescription(v),
-                      )
-                    : GestureDetector(
-                        onTap: () => _descriptionFocusNode.requestFocus(),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Text(
-                            '添加备注…',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontSize: 14,
-                              height: 1.5,
-                              color: colorScheme.onSurfaceVariant.withValues(
-                                alpha: 0.45,
-                              ),
-                            ),
-                          ),
-                        ),
+                TextField(
+                  controller: _descriptionController,
+                  focusNode: _descriptionFocusNode,
+                  maxLines: 3,
+                  minLines: 1,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 14,
+                    height: 1.5,
+                    color: colorScheme.onSurface,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: '添加备注…',
+                    hintStyle: TextStyle(
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.45,
                       ),
+                      fontSize: 14,
+                    ),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    filled: false,
+                    fillColor: Colors.transparent,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                  ),
+                  onChanged: (v) =>
+                      ref.read(taskFormProvider.notifier).updateDescription(v),
+                ),
 
                 const SizedBox(height: 16),
 
@@ -764,8 +742,8 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                               _subtaskRows[i].isDone = !_subtaskRows[i].isDone;
                             }),
                             child: Container(
-                              width: 20,
-                              height: 20,
+                              width: 22,
+                              height: 22,
                               decoration: BoxDecoration(
                                 color: _subtaskRows[i].isDone
                                     ? colorScheme.onSurface
@@ -783,7 +761,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                               child: _subtaskRows[i].isDone
                                   ? Icon(
                                       Icons.check,
-                                      size: 12,
+                                      size: 13,
                                       color: colorScheme.surface,
                                     )
                                   : null,
@@ -792,32 +770,10 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                           const SizedBox(width: 10),
                           Expanded(
                             child:
-                                (_subtaskRows[i].focusNode.hasFocus ||
-                                    _subtaskRows[i].controller.text.isEmpty)
-                                ? TextField(
-                                    controller: _subtaskRows[i].controller,
-                                    focusNode: _subtaskRows[i].focusNode,
-                                    style: TextStyle(
-                                      fontSize: 14.5,
-                                      decoration: _subtaskRows[i].isDone
-                                          ? TextDecoration.lineThrough
-                                          : null,
-                                      color: _subtaskRows[i].isDone
-                                          ? colorScheme.onSurfaceVariant
-                                                .withValues(alpha: 0.6)
-                                          : colorScheme.onSurface,
-                                    ),
-                                    decoration: const InputDecoration(
-                                      hintText: '子任务标题',
-                                      border: InputBorder.none,
-                                      isDense: true,
-                                      contentPadding: EdgeInsets.symmetric(
-                                        vertical: 6,
-                                      ),
-                                    ),
-                                    onSubmitted: (_) => _addSubtaskAndFocus(),
-                                  )
-                                : GestureDetector(
+                                _subtaskRows[i].controller.text.isNotEmpty &&
+                                    !_subtaskRows[i].focusNode.hasFocus
+                                ? GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
                                     onTap: () {
                                       _subtaskRows[i].focusNode.requestFocus();
                                     },
@@ -839,6 +795,42 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                         ),
                                       ),
                                     ),
+                                  )
+                                : TextField(
+                                    controller: _subtaskRows[i].controller,
+                                    focusNode: _subtaskRows[i].focusNode,
+                                    style: TextStyle(
+                                      fontSize: 14.5,
+                                      decoration: _subtaskRows[i].isDone
+                                          ? TextDecoration.lineThrough
+                                          : null,
+                                      color: _subtaskRows[i].isDone
+                                          ? colorScheme.onSurfaceVariant
+                                                .withValues(alpha: 0.6)
+                                          : colorScheme.onSurface,
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: '子任务标题',
+                                      hintStyle: TextStyle(
+                                        color: colorScheme.onSurfaceVariant
+                                            .withValues(alpha: 0.45),
+                                        fontSize: 14.5,
+                                      ),
+                                      border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      disabledBorder: InputBorder.none,
+                                      errorBorder: InputBorder.none,
+                                      focusedErrorBorder: InputBorder.none,
+                                      filled: false,
+                                      fillColor: Colors.transparent,
+                                      isDense: true,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            vertical: 6,
+                                          ),
+                                    ),
+                                    onSubmitted: (_) => _addSubtaskAndFocus(),
                                   ),
                           ),
                           IconButton(
@@ -861,7 +853,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                       ),
                     ),
 
-                  // 添加子任务按钮 / 行（与子任务复选框 20x20 对齐）
+                  // 添加子任务按钮 / 行（与子任务复选框 22x22 对齐）
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: InkWell(
@@ -875,8 +867,8 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                         child: Row(
                           children: [
                             Container(
-                              width: 20,
-                              height: 20,
+                              width: 22,
+                              height: 22,
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(6),
                                 border: Border.all(
@@ -887,7 +879,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                               ),
                               child: Icon(
                                 Icons.add,
-                                size: 13,
+                                size: 14,
                                 color: colorScheme.onSurfaceVariant.withValues(
                                   alpha: 0.7,
                                 ),

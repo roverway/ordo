@@ -114,13 +114,11 @@ Future<TodayViewData> buildTodayView({
     final matches = view_rules.matchesToday(task, todayStart, todayEnd);
     // 注意传 effectiveStatus（不是 task.status），有子任务的任务按派生状态判逾期。
     final isOverdue = view_rules.isOverdue(task, effectiveStatus, todayStart);
-    // 今天已完成任务：必须本身属于今天（matchesToday），或者在今天创建并完成。
-    // 避免把以前已经完成、但在今天由于其他操作（例如修改备注或标签）更新了 updatedAt 的历史任务也错误带入今天。
+    // 今天完成的任务：在今天标记完成（updatedAt落在今天）或在今天创建并完成。
+    // 对于原本今天到期或原本逾期但在今天完成的任务，均能正常显示在今天列表中。
     final completedToday =
         effectiveStatus == TaskStatus.done &&
-        ((matches &&
-                task.updatedAt >= todayStartMs &&
-                task.updatedAt <= todayEndMs) ||
+        ((task.updatedAt >= todayStartMs && task.updatedAt <= todayEndMs) ||
             (task.createdAt >= todayStartMs && task.createdAt <= todayEndMs));
 
     if (!matches && !isOverdue && !completedToday) continue;

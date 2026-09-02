@@ -365,7 +365,7 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
           ),
           if (hasGrandChildren)
             Padding(
-              padding: const EdgeInsets.only(left: 20, top: 2, bottom: 6),
+              padding: const EdgeInsets.only(left: 26, top: 2, bottom: 6),
               child: Container(
                 padding: const EdgeInsets.only(left: 8),
                 decoration: BoxDecoration(

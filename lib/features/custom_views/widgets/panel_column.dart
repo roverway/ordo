@@ -8,8 +8,10 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/custom_view_models.dart';
 import '../../../shared/widgets/animated_strikethrough.dart';
 import '../../../shared/widgets/app_menu_item.dart';
+import '../../../shared/widgets/simple_task_tile.dart';
 import '../../projects/project_providers.dart';
 import '../../tasks/task_edit_page.dart';
+import '../../tasks/task_providers.dart';
 import '../../tasks/widgets/task_create_sheet.dart';
 import '../providers/custom_view_providers.dart';
 import 'filter_criteria_sheet.dart';
@@ -132,6 +134,35 @@ class PanelColumn extends ConsumerWidget {
                         ),
                       );
                     }
+                    if (isNarrow) {
+                      return ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
+                        itemCount: data.tasks.length,
+                        itemBuilder: (context, index) {
+                          final task = data.tasks[index];
+                          final project = projectsMap[task.projectId];
+                          final tags =
+                              ref.watch(taskTagsProvider(task.id)).value ??
+                              const <Tag>[];
+                          return SimpleTaskTile(
+                            task: task,
+                            hasChildren: false,
+                            isDone: task.status == TaskStatus.done,
+                            tags: tags,
+                            projectName: project?.name,
+                            projectColor: project?.color,
+                            onTap: () => openTaskEdit(context, taskId: task.id),
+                            onToggleDone: (value) async {
+                              final repo = ref.read(todoRepositoryProvider);
+                              final newStatus = value == true
+                                  ? TaskStatus.done
+                                  : TaskStatus.todo;
+                              await repo.updateTask(task.id, status: newStatus);
+                            },
+                          );
+                        },
+                      );
+                    }
                     return ListView.separated(
                       padding: const EdgeInsets.symmetric(
                         horizontal: AppTokens.spaceSm,
@@ -151,7 +182,7 @@ class PanelColumn extends ConsumerWidget {
               ),
 
               // ── 底部快速新建任务按钮 ──
-              _buildQuickAddButton(context, theme, l10n),
+              if (isKanban) _buildQuickAddButton(context, theme, l10n),
             ],
           ),
         );
@@ -171,10 +202,7 @@ class PanelColumn extends ConsumerWidget {
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-      child: content,
-    );
+    return content;
   }
 
   /// 窄屏单 Tab 模式工具栏：高度紧凑，展示当前排序状态并提供快捷排序/筛选/面板菜单，不重复显示标题。
@@ -187,10 +215,7 @@ class PanelColumn extends ConsumerWidget {
     final hasActiveFilter = panel.filter.hasActiveFilter;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTokens.spaceSm,
-        vertical: AppTokens.spaceXs,
-      ),
+      padding: const EdgeInsets.fromLTRB(20, 6, 20, 4),
       child: Row(
         children: [
           // 左侧：排序快捷切换 Chip（文字+方向箭头）

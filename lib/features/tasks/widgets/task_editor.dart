@@ -92,6 +92,24 @@ class TaskEditor extends ConsumerStatefulWidget {
 }
 
 class _TaskEditorState extends ConsumerState<TaskEditor> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.titleFocusNode.addListener(_onFocusChange);
+    widget.controller.descriptionFocusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.titleFocusNode.removeListener(_onFocusChange);
+    widget.controller.descriptionFocusNode.removeListener(_onFocusChange);
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    if (mounted) setState(() {});
+  }
+
   /// 外部同步：loadTask / resetForNew 完成后把表单值同步进本地控制器。
   void _syncControllers(TaskFormState formState) {
     if (widget.controller.titleController.text != formState.title) {
@@ -142,7 +160,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 标题输入框 (31px 加粗，复刻 editor.html 原型)
+          // 标题输入框 (31px 加粗按需编辑，复刻 editor.html 原型)
           TextField(
             controller: widget.controller.titleController,
             focusNode: widget.controller.titleFocusNode,
@@ -163,6 +181,13 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                 fontSize: 31,
               ),
               border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              focusedErrorBorder: InputBorder.none,
+              filled: false,
+              fillColor: Colors.transparent,
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(vertical: 4),
             ),
@@ -254,9 +279,10 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
             ),
           ),
 
-          // 描述/备注输入框 (15px)
+          // 描述/备注输入框 (15px 按需编辑)
           TextField(
             controller: widget.controller.descriptionController,
+            focusNode: widget.controller.descriptionFocusNode,
             maxLines: null,
             minLines: 2,
             style: theme.textTheme.bodyMedium?.copyWith(
@@ -271,6 +297,13 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                 fontSize: 15,
               ),
               border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              focusedErrorBorder: InputBorder.none,
+              filled: false,
+              fillColor: Colors.transparent,
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(vertical: 4),
             ),
@@ -309,32 +342,94 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                 ),
                 Divider(height: 1, color: borderColor),
 
-                // 2. 优先级行
-                _DetailsRow(
-                  icon: Icons.flag_outlined,
-                  label: '优先级',
-                  value: Row(
-                    mainAxisSize: MainAxisSize.min,
+                // 2. 优先级行 (直接展示所有优先级选项供用户点击选择)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Row(
                     children: [
-                      Container(
-                        width: 7,
-                        height: 7,
-                        decoration: BoxDecoration(
-                          color: priorityColor(priority),
-                          shape: BoxShape.circle,
+                      Icon(
+                        Icons.flag_outlined,
+                        size: 18,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        '优先级',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          color: colorScheme.onSurface,
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        priorityLabel(l10n, priority),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurface,
-                          fontSize: 13.5,
+                      const Spacer(),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? colorScheme.surfaceContainerHighest.withValues(
+                                  alpha: 0.5,
+                                )
+                              : colorScheme.onSurface.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.all(2),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (final p in [
+                              TaskPriority.none,
+                              TaskPriority.low,
+                              TaskPriority.medium,
+                              TaskPriority.high,
+                            ])
+                              InkWell(
+                                onTap: () => ref
+                                    .read(taskFormProvider.notifier)
+                                    .updatePriority(p),
+                                borderRadius: BorderRadius.circular(6),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: priority == p
+                                        ? (p == TaskPriority.none
+                                              ? colorScheme.surface
+                                              : priorityColor(
+                                                  p,
+                                                ).withValues(alpha: 0.15))
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border:
+                                        priority == p && p != TaskPriority.none
+                                        ? Border.all(
+                                            color: priorityColor(
+                                              p,
+                                            ).withValues(alpha: 0.4),
+                                            width: 1,
+                                          )
+                                        : null,
+                                  ),
+                                  child: Text(
+                                    priorityLabel(l10n, p),
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: priority == p
+                                          ? FontWeight.w600
+                                          : FontWeight.normal,
+                                      color: priority == p
+                                          ? (p == TaskPriority.none
+                                                ? colorScheme.onSurface
+                                                : priorityColor(p))
+                                          : colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                  onTap: () => showTaskPriorityPicker(context, ref),
                 ),
                 Divider(height: 1, color: borderColor),
 

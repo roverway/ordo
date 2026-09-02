@@ -61,7 +61,7 @@ class FilterChipsBar extends StatelessWidget {
           // 搜索按钮
           InkWell(
             onTap: onToggleSearch,
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: BorderRadius.circular(11),
             child: AnimatedContainer(
               duration: AppTokens.motionFast,
               width: 36,
@@ -70,11 +70,11 @@ class FilterChipsBar extends StatelessWidget {
                 color: isSearchOpen
                     ? colorScheme.onSurface
                     : Colors.transparent,
-                borderRadius: BorderRadius.circular(999),
+                borderRadius: BorderRadius.circular(11),
               ),
               child: Icon(
                 Icons.search_rounded,
-                size: 18,
+                size: 17,
                 color: isSearchOpen
                     ? colorScheme.surface
                     : colorScheme.onSurfaceVariant,
