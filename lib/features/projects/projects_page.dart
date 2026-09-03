@@ -205,8 +205,8 @@ class ProjectsPage extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showNewProjectDialog(context, ref),
         tooltip: l10n.newProject,
-        backgroundColor: isDark ? Colors.white : Colors.black,
-        foregroundColor: isDark ? Colors.black : Colors.white,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
         icon: const Icon(Icons.add_rounded, size: 20),
         label: Text(

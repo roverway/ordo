@@ -184,38 +184,52 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 标题输入框 (31px 加粗按需编辑，复刻 editor.html 原型)
-        TextField(
-          controller: widget.controller.titleController,
-          focusNode: widget.controller.titleFocusNode,
-          autofocus: widget.autofocus,
-          maxLines: null,
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontSize: 31,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.5,
-            height: 1.25,
-            color: colorScheme.onSurface,
-          ),
-          decoration: InputDecoration(
-            hintText: '准备做什么？',
-            hintStyle: TextStyle(
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-              fontWeight: FontWeight.w700,
-              fontSize: 31,
+        // 标题输入框 (31px 加粗按需编辑，无背景，仅保留浅色下边距横线)
+        Container(
+          padding: const EdgeInsets.only(bottom: 6),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: isDark
+                    ? const Color(0xFF262830)
+                    : const Color(0xFFE2E8F0),
+                width: 1.0,
+              ),
             ),
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            disabledBorder: InputBorder.none,
-            errorBorder: InputBorder.none,
-            focusedErrorBorder: InputBorder.none,
-            filled: false,
-            fillColor: Colors.transparent,
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(vertical: 4),
           ),
-          onChanged: (v) => ref.read(taskFormProvider.notifier).updateTitle(v),
+          child: TextField(
+            controller: widget.controller.titleController,
+            focusNode: widget.controller.titleFocusNode,
+            autofocus: widget.autofocus,
+            maxLines: null,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontSize: 31,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.5,
+              height: 1.25,
+              color: colorScheme.onSurface,
+            ),
+            decoration: InputDecoration(
+              hintText: '准备做什么？',
+              hintStyle: TextStyle(
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                fontWeight: FontWeight.w700,
+                fontSize: 31,
+              ),
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              focusedErrorBorder: InputBorder.none,
+              filled: false,
+              fillColor: Colors.transparent,
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(vertical: 4),
+            ),
+            onChanged: (v) =>
+                ref.read(taskFormProvider.notifier).updateTitle(v),
+          ),
         ),
         const SizedBox(height: 6),
 
@@ -718,6 +732,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
         hintText: l10n.taskTitle,
         border: InputBorder.none,
         filled: false,
+        fillColor: Colors.transparent,
         isDense: true,
         contentPadding: EdgeInsets.zero,
       ),

@@ -101,7 +101,6 @@ class TaskListPage extends ConsumerWidget {
   Widget _buildFab(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return FloatingActionButton.extended(
       tooltip: l10n.newTask,
@@ -116,8 +115,8 @@ class TaskListPage extends ConsumerWidget {
           projectId: projectId,
         ),
       },
-      backgroundColor: isDark ? Colors.white : Colors.black,
-      foregroundColor: isDark ? Colors.black : Colors.white,
+      backgroundColor: theme.colorScheme.primary,
+      foregroundColor: theme.colorScheme.onPrimary,
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
       icon: const Icon(Icons.add, size: 20),

@@ -1335,6 +1335,8 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                           : const Color(0xFF9CA3AF),
                     ),
                     isDense: true,
+                    filled: false,
+                    fillColor: Colors.transparent,
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,

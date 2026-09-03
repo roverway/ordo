@@ -87,44 +87,59 @@ class _FolderNameDialogState extends State<_FolderNameDialog> {
               style: theme.textTheme.titleLarge,
             ),
             const SizedBox(height: AppTokens.spaceLg),
-            // 名称输入：[图标] 行内无边框输入，hint 即字段名（对齐项目表单）。
-            Row(
-              children: [
-                Icon(
-                  Icons.edit_outlined,
-                  size: 22,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: AppTokens.spaceSm),
-                Expanded(
-                  child: TextFormField(
-                    controller: _nameController,
-                    autofocus: true,
-                    maxLength: _nameMaxLength,
-                    // 紧凑行内不展示字符计数器（评审 #2 同款取舍）。
-                    buildCounter: _hideCounter,
-                    style: theme.textTheme.bodyLarge,
-                    decoration: InputDecoration(
-                      hintText: l10n.folderName,
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    validator: (value) {
-                      final v = value?.trim() ?? '';
-                      if (v.isEmpty) return l10n.titleRequired;
-                      // 防御：maxLength 已拦截输入，但预填/程序赋值仍可能超长，
-                      // 避免落库时抛未捕获 RepositoryException（name 上限 50）。
-                      if (v.length > _nameMaxLength) {
-                        return l10n.nameTooLong(_nameMaxLength);
-                      }
-                      return null;
-                    },
-                    textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) => _save(),
+            // 名称输入：无背景，仅保留浅色下边距横线
+            Container(
+              padding: const EdgeInsets.only(bottom: 6),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF262830)
+                        : const Color(0xFFE2E8F0),
+                    width: 1.0,
                   ),
                 ),
-              ],
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.edit_outlined,
+                    size: 22,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: AppTokens.spaceSm),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _nameController,
+                      autofocus: true,
+                      maxLength: _nameMaxLength,
+                      // 紧凑行内不展示字符计数器（评审 #2 同款取舍）。
+                      buildCounter: _hideCounter,
+                      style: theme.textTheme.bodyLarge,
+                      decoration: InputDecoration(
+                        hintText: l10n.folderName,
+                        border: InputBorder.none,
+                        filled: false,
+                        fillColor: Colors.transparent,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      validator: (value) {
+                        final v = value?.trim() ?? '';
+                        if (v.isEmpty) return l10n.titleRequired;
+                        // 防御：maxLength 已拦截输入，但预填/程序赋值仍可能超长，
+                        // 避免落库时抛未捕获 RepositoryException（name 上限 50）。
+                        if (v.length > _nameMaxLength) {
+                          return l10n.nameTooLong(_nameMaxLength);
+                        }
+                        return null;
+                      },
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _save(),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: AppTokens.spaceMd),
             // 操作区：取消 + 保存（D4 显式保存风格）。

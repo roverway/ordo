@@ -189,9 +189,19 @@ class _ProjectFormState extends State<_ProjectForm> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ── 名称（必填）：[图标] 行内无边框输入，hint 即字段名 ──
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppTokens.spaceSm),
+        // ── 名称（必填）：无背景，仅保留浅色下边距横线 ──
+        Container(
+          padding: const EdgeInsets.only(bottom: 6),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF262830)
+                    : const Color(0xFFE2E8F0),
+                width: 1.0,
+              ),
+            ),
+          ),
           child: Row(
             children: [
               Icon(
@@ -211,6 +221,8 @@ class _ProjectFormState extends State<_ProjectForm> {
                   decoration: InputDecoration(
                     hintText: l10n.projectName,
                     border: InputBorder.none,
+                    filled: false,
+                    fillColor: Colors.transparent,
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
                   ),
@@ -290,6 +302,8 @@ class _ProjectFormState extends State<_ProjectForm> {
                   decoration: InputDecoration(
                     hintText: l10n.projectDescription,
                     border: InputBorder.none,
+                    filled: false,
+                    fillColor: Colors.transparent,
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
                   ),

@@ -43,11 +43,52 @@ abstract final class AppTheme {
   /// App layer calls this twice (brightness light + dark) and passes both
   /// to MaterialApp.router's `theme` / `darkTheme` along with `themeMode`.
   static ThemeData build(Brightness brightness, {Color? seedColor}) {
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: seedColor ?? AppTokens.seedColor,
+    final isDark = brightness == Brightness.dark;
+    final activeSeed = seedColor ?? AppTokens.seedColor;
+
+    // 匹配预设主题色
+    final palette = AppTokens.themePalettes
+        .where((p) => p.color.toARGB32() == activeSeed.toARGB32())
+        .firstOrNull;
+
+    Color primaryColor;
+    Color onPrimaryColor;
+
+    if (palette?.id == 'black' ||
+        activeSeed.toARGB32() == const Color(0xFF111827).toARGB32()) {
+      // 曜石黑特别处理：浅色纯黑极简质感，深色纯白高对比
+      primaryColor = isDark ? const Color(0xFFF3F4F6) : const Color(0xFF111827);
+      onPrimaryColor = isDark ? const Color(0xFF111827) : Colors.white;
+    } else {
+      // 个性主题色：浅色模式使用原色，深色模式使用明度校准的高亮色
+      if (isDark) {
+        primaryColor = switch (palette?.id) {
+          'blue' => const Color(0xFF60A5FA),
+          'emerald' => const Color(0xFF34D399),
+          'amber' => const Color(0xFFFBBF24),
+          'purple' => const Color(0xFFA78BFA),
+          'rose' => const Color(0xFFFB7185),
+          'teal' => const Color(0xFF22D3EE),
+          'slate' => const Color(0xFF94A3B8),
+          _ => Color.lerp(activeSeed, Colors.white, 0.35)!,
+        };
+        onPrimaryColor = const Color(0xFF111827);
+      } else {
+        primaryColor = activeSeed;
+        onPrimaryColor = Colors.white;
+      }
+    }
+
+    final rawColorScheme = ColorScheme.fromSeed(
+      seedColor: activeSeed,
       brightness: brightness,
     );
-    final isDark = brightness == Brightness.dark;
+
+    final colorScheme = rawColorScheme.copyWith(
+      primary: primaryColor,
+      onPrimary: onPrimaryColor,
+    );
+
     final base = ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
@@ -144,11 +185,8 @@ abstract final class AppTheme {
 
       // ── Input Decoration ──
       inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        // 输入井 = 凹陷面：比页面底更沉一档的内嵌区域（66 §3）。
-        fillColor: isDark
-            ? AppTokens.surfaceSunkenDark
-            : AppTokens.surfaceSunkenLight,
+        filled: false,
+        fillColor: Colors.transparent,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppTokens.radiusButton),
           borderSide: BorderSide(
@@ -299,7 +337,7 @@ abstract final class AppTheme {
         elevation: 2,
         highlightElevation: 4,
         backgroundColor: colorScheme.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: colorScheme.onPrimary,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTokens.radiusButton),
         ),
@@ -357,9 +395,7 @@ abstract final class AppTheme {
         }),
         checkColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
-              ? (isDark && colorScheme.primary == const Color(0xFF111827)
-                    ? Colors.black87
-                    : Colors.white)
+              ? colorScheme.onPrimary
               : Colors.transparent,
         ),
       ),

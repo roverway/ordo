@@ -96,9 +96,9 @@ class _ModernCheckboxState extends State<ModernCheckbox>
               ? CustomPaint(
                   painter: _CheckmarkPainter(
                     progress: t,
-                    color: (isDark && fgColor == const Color(0xFF111827))
-                        ? Colors.black87
-                        : Colors.white,
+                    color: widget.fillColor != null
+                        ? Colors.white
+                        : theme.colorScheme.onPrimary,
                     strokeWidth: 2.2,
                   ),
                 )

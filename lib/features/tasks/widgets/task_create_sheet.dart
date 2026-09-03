@@ -294,7 +294,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                   child: Text(
                     l10n.save,
                     style: TextStyle(
-                      color: colorScheme.onSurface,
+                      color: colorScheme.primary,
                       fontWeight: FontWeight.w700,
                       fontSize: 15.5,
                     ),
@@ -312,53 +312,66 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 1. 标题输入框（无边框无背景，按需编辑）
-                AnimatedBuilder(
-                  animation: _shakeAnimation,
-                  builder: (context, child) {
-                    final offset =
-                        math.sin(_shakeAnimation.value * math.pi * 4) * 6;
-                    return Transform.translate(
-                      offset: Offset(offset, 0),
-                      child: child,
-                    );
-                  },
-                  child: TextField(
-                    controller: _titleController,
-                    focusNode: _titleFocusNode,
-                    autofocus: true,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.2,
-                      color: colorScheme.onSurface,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: l10n.taskTitle,
-                      hintStyle: TextStyle(
-                        color: colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.5,
-                        ),
-                        fontWeight: FontWeight.w600,
-                        fontSize: 20,
+                // 1. 标题输入框（无背景，仅保留浅色下边距横线）
+                Container(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: isDark
+                            ? const Color(0xFF262830)
+                            : const Color(0xFFE2E8F0),
+                        width: 1.0,
                       ),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      disabledBorder: InputBorder.none,
-                      errorBorder: InputBorder.none,
-                      focusedErrorBorder: InputBorder.none,
-                      filled: false,
-                      fillColor: Colors.transparent,
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 6),
                     ),
-                    onChanged: (v) {
-                      if (_titleError != null) {
-                        setState(() => _titleError = null);
-                      }
-                      ref.read(taskFormProvider.notifier).updateTitle(v);
+                  ),
+                  child: AnimatedBuilder(
+                    animation: _shakeAnimation,
+                    builder: (context, child) {
+                      final offset =
+                          math.sin(_shakeAnimation.value * math.pi * 4) * 6;
+                      return Transform.translate(
+                        offset: Offset(offset, 0),
+                        child: child,
+                      );
                     },
+                    child: TextField(
+                      controller: _titleController,
+                      focusNode: _titleFocusNode,
+                      autofocus: true,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.2,
+                        color: colorScheme.onSurface,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: l10n.taskTitle,
+                        hintStyle: TextStyle(
+                          color: colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.5,
+                          ),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 20,
+                        ),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
+                        filled: false,
+                        fillColor: Colors.transparent,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 6),
+                      ),
+                      onChanged: (v) {
+                        if (_titleError != null) {
+                          setState(() => _titleError = null);
+                        }
+                        ref.read(taskFormProvider.notifier).updateTitle(v);
+                      },
+                    ),
                   ),
                 ),
 

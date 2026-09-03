@@ -84,12 +84,8 @@ class CalendarPage extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         tooltip: l10n.newTask,
         onPressed: () => _createTaskOnDay(context, ref, state.selectedDate),
-        backgroundColor: Theme.of(context).brightness == Brightness.dark
-            ? Colors.white
-            : Colors.black,
-        foregroundColor: Theme.of(context).brightness == Brightness.dark
-            ? Colors.black
-            : Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
         icon: const Icon(Icons.add, size: 20),

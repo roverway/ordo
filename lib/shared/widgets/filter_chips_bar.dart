@@ -67,16 +67,14 @@ class FilterChipsBar extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: isSearchOpen
-                    ? colorScheme.onSurface
-                    : Colors.transparent,
+                color: isSearchOpen ? colorScheme.primary : Colors.transparent,
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Icon(
                 Icons.search_rounded,
                 size: 17,
                 color: isSearchOpen
-                    ? colorScheme.surface
+                    ? colorScheme.onPrimary
                     : colorScheme.onSurfaceVariant,
               ),
             ),
@@ -104,11 +102,11 @@ class FilterChipsBar extends StatelessWidget {
         height: 34,
         padding: const EdgeInsets.symmetric(horizontal: 13),
         decoration: BoxDecoration(
-          color: isSelected ? colorScheme.onSurface : Colors.transparent,
+          color: isSelected ? colorScheme.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: isSelected
-                ? colorScheme.onSurface
+                ? colorScheme.primary
                 : colorScheme.onSurface.withValues(alpha: 0.12),
             width: 1,
           ),
@@ -123,7 +121,7 @@ class FilterChipsBar extends StatelessWidget {
                   fontSize: 13,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color: isSelected
-                      ? colorScheme.surface
+                      ? colorScheme.onPrimary
                       : colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -136,7 +134,7 @@ class FilterChipsBar extends StatelessWidget {
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,
                   color: isSelected
-                      ? colorScheme.surface.withValues(alpha: 0.8)
+                      ? colorScheme.onPrimary.withValues(alpha: 0.85)
                       : colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                 ),
               ),

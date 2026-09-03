@@ -251,8 +251,8 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
                       : null,
                 );
               },
-              backgroundColor: isDark ? Colors.white : Colors.black,
-              foregroundColor: isDark ? Colors.black : Colors.white,
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
               elevation: 4,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(100),
@@ -303,8 +303,8 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
               onPressed: () {
                 TaskCreateSheet.show(context);
               },
-              backgroundColor: isDark ? Colors.white : Colors.black,
-              foregroundColor: isDark ? Colors.black : Colors.white,
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
               elevation: 4,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(100),
