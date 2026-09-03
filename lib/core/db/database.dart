@@ -28,7 +28,7 @@ class AppDatabase extends _$AppDatabase {
       AppDatabase(executor ?? NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -61,6 +61,10 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(folders, folders.icon);
           await m.addColumn(folders, folders.color);
         }
+      }
+      // v6 → v7：tasks 新增 completedAt 列（UTC 毫秒完成时间戳）。
+      if (from < 7) {
+        await m.addColumn(tasks, tasks.completedAt);
       }
     },
     beforeOpen: (details) async {

@@ -601,6 +601,9 @@ class TodoRepository {
         startAt: Value(startAt),
         endAt: Value(endAt),
         status: status,
+        completedAt: status == TaskStatus.done
+            ? Value(now)
+            : const Value.absent(),
         priority: Value(priority),
         sortOrder: siblings.length,
         createdAt: now,
@@ -622,6 +625,9 @@ class TodoRepository {
       startAt: Value(startAt),
       endAt: Value(endAt),
       status: status,
+      completedAt: status == TaskStatus.done
+          ? Value(now)
+          : const Value.absent(),
       priority: Value(priority),
       sortOrder: roots.length,
       createdAt: now,
@@ -641,10 +647,11 @@ class TodoRepository {
     String? title,
     String? description,
     String? notes,
-    int? startAt,
-    int? endAt,
+    Value<int?> startAt = const Value.absent(),
+    Value<int?> endAt = const Value.absent(),
     TaskStatus? status,
     TaskPriority? priority,
+    Value<int?> completedAt = const Value.absent(),
   }) async {
     final existing = await tasks.getActiveById(id);
     if (existing == null) throw RepositoryException('任务不存在：$id');
@@ -656,9 +663,21 @@ class TodoRepository {
         throw RepositoryException('有子任务的任务状态由子任务派生，不可手动修改');
       }
     }
-    final effectiveStart = startAt ?? existing.startAt;
-    final effectiveEnd = endAt ?? existing.endAt;
+    final effectiveStart = startAt.present ? startAt.value : existing.startAt;
+    final effectiveEnd = endAt.present ? endAt.value : existing.endAt;
     _checkTimeRange(effectiveStart, effectiveEnd);
+
+    // 自动维护 completedAt：如果 status 变更为 done 且未显式传入 completedAt，则设为当前时间；
+    // 如果 status 变更为非 done，则清空 completedAt 为 null。
+    Value<int?> effectiveCompletedAt = completedAt;
+    if (!effectiveCompletedAt.present && status != null) {
+      if (status == TaskStatus.done && existing.status != TaskStatus.done) {
+        effectiveCompletedAt = Value(_nowMs());
+      } else if (status != TaskStatus.done &&
+          existing.status == TaskStatus.done) {
+        effectiveCompletedAt = const Value(null);
+      }
+    }
 
     final entry = TasksCompanion(
       title: title != null ? Value(title) : const Value.absent(),
@@ -666,10 +685,11 @@ class TodoRepository {
           ? Value(description)
           : const Value.absent(),
       notes: notes != null ? Value(notes) : const Value.absent(),
-      startAt: Value(startAt),
-      endAt: Value(endAt),
+      startAt: startAt,
+      endAt: endAt,
       status: status != null ? Value(status) : const Value.absent(),
       priority: priority != null ? Value(priority) : const Value.absent(),
+      completedAt: effectiveCompletedAt,
       updatedAt: Value(_nowMs()),
     );
     await tasks.updateById(id, entry);

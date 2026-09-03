@@ -140,6 +140,9 @@ class Tasks extends Table {
   /// 状态枚举 0–3（§3.1）。有子任务的任务此字段被忽略（状态由子任务派生）。
   IntColumn get status => integer().map(const TaskStatusConverter())();
 
+  /// 完成时间（UTC 毫秒，可选；任务状态变为 done 时记录）。
+  IntColumn get completedAt => integer().nullable()();
+
   /// 优先级枚举 0–3（§3.2，滴答式 4 档：无/低/中/高）。
   IntColumn get priority => integer()
       .map(const TaskPriorityConverter())

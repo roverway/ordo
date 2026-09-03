@@ -15,9 +15,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/db/database.dart';
 import '../../core/db/tables.dart';
+import '../../core/utils/custom_view_models.dart';
 import '../../core/utils/derived.dart';
+import '../../core/utils/task_query_engine.dart';
 import '../../core/utils/tree.dart';
-import '../../core/utils/view_rules.dart';
 import '../projects/project_providers.dart';
 
 /// 时间段筛选选项（FR-VIEW-06）。
@@ -170,43 +171,58 @@ Map<String, TaskStatus> computeEffectiveStatuses(List<Task> tasks) {
   };
 }
 
-/// 搜索结果流（FR-VIEW-05/06）：`watchAllActive` → `matchesSearch` →
-/// `applyTaskFilter` 组合筛选（状态/时间段/标签，多条件 AND 叠加）。
-///
-/// - 空/空白查询 → 空列表（matchesSearch 语义），页面显示提示；
-/// - 状态筛选按派生状态匹配（有子任务的任务由子任务派生）；
-/// - 时间段筛选由 [TimeRange] 基于 `DateTime.now()` 计算本地边界；
-/// - 标签筛选由 tagId 解析为 taskId 白名单（tasksForTag）。
 final searchResultsProvider = StreamProvider<List<Task>>((ref) async* {
   final repo = ref.watch(todoRepositoryProvider);
   final allAsync = ref.watch(allActiveTasksProvider);
   final query = ref.watch(searchQueryProvider);
   final filter = ref.watch(searchFilterProvider);
 
-  final all = allAsync.value ?? const <Task>[];
-  final effectiveStatuses = computeEffectiveStatuses(all);
-
-  // FR-VIEW-05：大小写不敏感 substring 匹配 title/description/notes；
-  // 空查询 → 空结果（页面显示提示）。
-  final matched = all.where((t) => matchesSearch(t, query)).toList();
-
-  // FR-VIEW-06：时间段边界（本地时区）。
-  final bounds = timeRangeBounds(filter.range, DateTime.now());
-
-  // FR-VIEW-06：标签筛选 → taskId 白名单。
-  Set<String>? allowedTaskIds;
-  final tagId = filter.tagId;
-  if (tagId != null) {
-    final tagged = await repo.tags.tasksForTag(tagId);
-    allowedTaskIds = {for (final t in tagged) t.id};
+  if (query.trim().isEmpty) {
+    yield const [];
+    return;
   }
 
-  yield applyTaskFilter(
-    matched,
-    effectiveStatuses,
-    status: filter.status,
-    rangeStart: bounds.start,
-    rangeEnd: bounds.end,
-    allowedTaskIds: allowedTaskIds,
+  final all = allAsync.value ?? const <Task>[];
+  final projects = ref.watch(projectsStreamProvider).value ?? const <Project>[];
+  final projectsMap = {for (final p in projects) p.id: p};
+
+  final taskTagIdsMap = <String, Set<String>>{};
+  if (filter.tagId != null) {
+    final tagged = await repo.tags.tasksForTag(filter.tagId!);
+    for (final t in tagged) {
+      taskTagIdsMap.putIfAbsent(t.id, () => {}).add(filter.tagId!);
+    }
+  }
+
+  final dateScope = switch (filter.range) {
+    TimeRange.all => DateScopeEnum.all,
+    TimeRange.today => DateScopeEnum.today,
+    TimeRange.week => DateScopeEnum.thisWeek,
+    TimeRange.month => DateScopeEnum.customRange,
+  };
+
+  int? customStart;
+  int? customEnd;
+  if (filter.range == TimeRange.month) {
+    final bounds = timeRangeBounds(TimeRange.month, DateTime.now());
+    customStart = bounds.start?.millisecondsSinceEpoch;
+    customEnd = bounds.end?.millisecondsSinceEpoch;
+  }
+
+  final criteria = FilterCriteria(
+    statuses: filter.status != null ? [filter.status!] : const [],
+    tagIds: filter.tagId != null ? [filter.tagId!] : const [],
+    dateScope: dateScope,
+    customDateStart: customStart,
+    customDateEnd: customEnd,
+    searchQuery: query,
+  );
+
+  yield TaskQueryEngine.filterFlat(
+    tasks: all,
+    criteria: criteria,
+    projectsById: projectsMap,
+    taskTagIdsMap: taskTagIdsMap,
+    nowUtcMs: DateTime.now().toUtc().millisecondsSinceEpoch,
   );
 });

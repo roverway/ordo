@@ -75,12 +75,12 @@ void main() {
     await db.close();
   });
 
-  test('schemaVersion = 6', () {
-    expect(db.schemaVersion, 6);
+  test('schemaVersion = 7', () {
+    expect(db.schemaVersion, 7);
   });
 
   test(
-    'onCreate 建出全部 7 张表（含 tasks.priority / projects.description / folders / custom_views）',
+    'onCreate 建出全部 7 张表（含 tasks.priority / tasks.completed_at / projects.description / folders / custom_views）',
     () async {
       final rows = await db
           .customSelect('SELECT name FROM sqlite_master WHERE type = \'table\'')
@@ -105,6 +105,9 @@ void main() {
           .get();
       final taskColumnNames = taskColumns.map((r) => r.data['name']).toSet();
       expect(taskColumnNames, contains('priority'));
+
+      // v7 新增列（tasks.completed_at）。
+      expect(taskColumnNames, contains('completed_at'));
 
       // v3 新增列（projects.description）。
       final projectColumns = await db
@@ -599,5 +602,104 @@ void main() {
     final updatedFolder = await migratedRepo.folders.getById('f1');
     expect(updatedFolder?.color, 0xFF2563EB);
     expect(updatedFolder?.icon, 'folder');
+  });
+
+  test('v6 → v7 真实迁移：tasks 新增 completed_at 列，旧行默认 NULL', () async {
+    // 1. 手工用 sqlite3 创建 v6 数据库并写入真实数据。
+    final dbDir = Directory.systemTemp.createTempSync('migration_v6_v7_');
+    addTearDown(() => dbDir.deleteSync(recursive: true));
+    final dbPath = '${dbDir.path}/v6.sqlite';
+
+    final raw = sqlite3.open(dbPath);
+    raw.execute(
+      'CREATE TABLE folders ('
+      'id TEXT NOT NULL PRIMARY KEY,'
+      'name TEXT NOT NULL,'
+      'color INTEGER,'
+      'icon TEXT,'
+      'sort_order INTEGER NOT NULL,'
+      'created_at INTEGER NOT NULL,'
+      'updated_at INTEGER NOT NULL,'
+      'deleted INTEGER NOT NULL DEFAULT 0)',
+    );
+    raw.execute(
+      'CREATE TABLE projects ('
+      'id TEXT NOT NULL PRIMARY KEY,'
+      'name TEXT NOT NULL,'
+      'color INTEGER NOT NULL,'
+      'description TEXT NOT NULL DEFAULT \'\','
+      'icon TEXT,'
+      'folder_id TEXT REFERENCES folders (id),'
+      'sort_order INTEGER NOT NULL,'
+      'created_at INTEGER NOT NULL,'
+      'updated_at INTEGER NOT NULL,'
+      'deleted INTEGER NOT NULL DEFAULT 0)',
+    );
+    raw.execute(_v2TasksDdl);
+    raw.execute(
+      'CREATE TABLE tags ('
+      'id TEXT NOT NULL PRIMARY KEY,'
+      'name TEXT NOT NULL,'
+      'color INTEGER NOT NULL,'
+      'sort_order INTEGER NOT NULL,'
+      'created_at INTEGER NOT NULL,'
+      'updated_at INTEGER NOT NULL,'
+      'deleted INTEGER NOT NULL DEFAULT 0)',
+    );
+    raw.execute(
+      'CREATE TABLE task_tags ('
+      'task_id TEXT NOT NULL REFERENCES tasks (id),'
+      'tag_id TEXT NOT NULL REFERENCES tags (id),'
+      'PRIMARY KEY (task_id, tag_id))',
+    );
+    raw.execute(
+      'CREATE TABLE settings ('
+      'key TEXT NOT NULL PRIMARY KEY,'
+      'value TEXT NOT NULL)',
+    );
+    raw.execute(
+      'CREATE TABLE custom_views ('
+      'id TEXT NOT NULL PRIMARY KEY,'
+      'name TEXT NOT NULL,'
+      'icon TEXT,'
+      'color INTEGER,'
+      'panels_json TEXT NOT NULL DEFAULT \'[]\','
+      'sort_order INTEGER NOT NULL,'
+      'created_at INTEGER NOT NULL,'
+      'updated_at INTEGER NOT NULL,'
+      'deleted INTEGER NOT NULL DEFAULT 0)',
+    );
+    raw.execute(
+      'INSERT INTO projects VALUES (\'p1\', \'旧项目\', 4283215696, \'旧描述\', NULL, NULL, 0, 1000, 1000, 0)',
+    );
+    raw.execute(
+      'INSERT INTO tasks (id, project_id, parent_id, title, description, notes, '
+      'start_at, end_at, status, priority, sort_order, created_at, updated_at, deleted) '
+      'VALUES (\'t1\', \'p1\', NULL, \'旧任务\', \'\', \'\', NULL, NULL, 0, 0, 0, 1000, 1000, 0)',
+    );
+    raw.execute('PRAGMA user_version = 6');
+    raw.dispose();
+
+    // 2. 用 AppDatabase 打开同一文件（触发 onUpgrade 6 → 7）。
+    final migrated = AppDatabase(NativeDatabase(File(dbPath)));
+    addTearDown(() => migrated.close());
+
+    // 3. 断言：tasks.completed_at 列存在；旧行默认 NULL；数据完整。
+    final columns = await migrated
+        .customSelect('PRAGMA table_info(tasks)')
+        .get();
+    expect(columns.map((r) => r.data['name']), contains('completed_at'));
+
+    final migratedRepo = TodoRepository(database: migrated);
+    final legacyTask = await migratedRepo.tasks.getById('t1');
+    expect(legacyTask, isNotNull);
+    expect(legacyTask!.title, '旧任务');
+    expect(legacyTask.completedAt, isNull);
+
+    // 4. 新 schema 可正常更新 status 并记录 completedAt。
+    await migratedRepo.updateTask('t1', status: TaskStatus.done);
+    final updated = await migratedRepo.tasks.getById('t1');
+    expect(updated?.status, TaskStatus.done);
+    expect(updated?.completedAt, isNotNull);
   });
 }

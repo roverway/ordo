@@ -275,6 +275,7 @@ class TaskRecord {
     this.notes = '',
     this.startAt,
     this.endAt,
+    this.completedAt,
     this.status = 0,
     this.priority = 0,
     this.tagIds = const [],
@@ -303,6 +304,9 @@ class TaskRecord {
 
   /// 截止时间（UTC 毫秒，可选）。
   final int? endAt;
+
+  /// 完成时间（UTC 毫秒，可选）。
+  final int? completedAt;
 
   /// 状态枚举 index 0–3（§3.1）。
   final int status;
@@ -335,6 +339,7 @@ class TaskRecord {
       notes: _readString(json, 'notes', fallback: ''),
       startAt: _readNullableInt(json, 'startAt'),
       endAt: _readNullableInt(json, 'endAt'),
+      completedAt: _readNullableInt(json, 'completedAt'),
       status: _readStatus(json),
       priority: _readPriority(json),
       sortOrder: _readInt(json, 'sortOrder', fallback: 0),
@@ -355,6 +360,7 @@ class TaskRecord {
       'notes': notes,
       'startAt': startAt,
       'endAt': endAt,
+      if (completedAt != null) 'completedAt': completedAt,
       'status': status,
       'priority': priority,
       'sortOrder': sortOrder,

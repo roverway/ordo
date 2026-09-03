@@ -52,24 +52,31 @@ Task _task(
   TaskStatus status = TaskStatus.todo,
   int? startAt,
   int? endAt,
+  int? completedAt,
   int sortOrder = 0,
-  int updatedAt = 0,
-}) => Task(
-  id: id,
-  projectId: inboxProjectId,
-  parentId: parentId,
-  title: title ?? id,
-  description: '',
-  notes: '',
-  status: status,
-  sortOrder: sortOrder,
-  startAt: startAt,
-  endAt: endAt,
-  priority: TaskPriority.none,
-  createdAt: 0,
-  updatedAt: updatedAt,
-  deleted: 0,
-);
+  int? updatedAt,
+}) {
+  final now = DateTime.now().millisecondsSinceEpoch;
+  final effectiveUpdated = updatedAt ?? now;
+  return Task(
+    id: id,
+    projectId: inboxProjectId,
+    parentId: parentId,
+    title: title ?? id,
+    description: '',
+    notes: '',
+    status: status,
+    sortOrder: sortOrder,
+    startAt: startAt,
+    endAt: endAt,
+    completedAt:
+        completedAt ?? (status == TaskStatus.done ? effectiveUpdated : null),
+    priority: TaskPriority.none,
+    createdAt: now,
+    updatedAt: effectiveUpdated,
+    deleted: 0,
+  );
+}
 
 /// 构造测试用 Tag。
 Tag _tag(String id, String name, {int color = 0xFF3482FF}) => Tag(
@@ -427,6 +434,8 @@ void main() {
           title: '昨天完成',
           status: TaskStatus.done,
           endAt: yesterday,
+          completedAt: yesterday,
+          updatedAt: yesterday,
           sortOrder: 0,
         ),
         _task('o1', title: '昨天逾期', endAt: yesterday, sortOrder: 1),
@@ -575,5 +584,59 @@ void main() {
     // 验证在 SimpleTaskTile 内存在 TaskProgressRing
     final progressFinder = find.byType(TaskProgressRing);
     expect(progressFinder, findsOneWidget);
+  });
+
+  group('今日视图已完成匹配精度（问题 1 修复）', () {
+    test('昨天完成的任务（即使截止日是今天或今天被修改），不进入今日视图', () async {
+      final now = DateTime(2026, 9, 3, 12, 0, 0);
+      final todayStart = DateTime(2026, 9, 3, 0, 0, 0);
+      final todayEnd = DateTime(2026, 9, 3, 23, 59, 59, 999);
+      final yesterday = DateTime(2026, 9, 2, 12, 0, 0);
+
+      final tasks = [
+        Task(
+          id: 't_done_yesterday',
+          projectId: inboxProjectId,
+          title: '昨天完成的任务（截止今天）',
+          description: '',
+          notes: '',
+          startAt: todayStart.millisecondsSinceEpoch,
+          endAt: todayEnd.millisecondsSinceEpoch,
+          completedAt: yesterday.millisecondsSinceEpoch,
+          status: TaskStatus.done,
+          sortOrder: 0,
+          createdAt: yesterday.millisecondsSinceEpoch,
+          updatedAt: now.millisecondsSinceEpoch, // 今天被更新过其他属性
+          deleted: 0,
+          priority: TaskPriority.none,
+        ),
+        Task(
+          id: 't_done_today',
+          projectId: inboxProjectId,
+          title: '今天完成的任务',
+          description: '',
+          notes: '',
+          startAt: todayStart.millisecondsSinceEpoch,
+          endAt: todayEnd.millisecondsSinceEpoch,
+          completedAt: now.millisecondsSinceEpoch,
+          status: TaskStatus.done,
+          sortOrder: 1,
+          createdAt: yesterday.millisecondsSinceEpoch,
+          updatedAt: now.millisecondsSinceEpoch,
+          deleted: 0,
+          priority: TaskPriority.none,
+        ),
+      ];
+
+      final viewData = await buildTodayView(
+        tasks: tasks,
+        now: now,
+        tagsForTask: (_) async => const [],
+      );
+
+      final todayIds = viewData.today.map((v) => v.task.id).toList();
+      expect(todayIds, contains('t_done_today'));
+      expect(todayIds, isNot(contains('t_done_yesterday')));
+    });
   });
 }

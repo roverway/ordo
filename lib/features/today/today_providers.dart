@@ -111,17 +111,24 @@ Future<TodayViewData> buildTodayView({
     // 复用现有派生纯函数（derived.dart）：无子任务时返回 task.status。
     final effectiveStatus = derivedStatus(task, directChildren);
 
-    final matches = view_rules.matchesToday(task, todayStart, todayEnd);
-    // 注意传 effectiveStatus（不是 task.status），有子任务的任务按派生状态判逾期。
     final isOverdue = view_rules.isOverdue(task, effectiveStatus, todayStart);
-    // 今天完成的任务：在今天标记完成（updatedAt落在今天）或在今天创建并完成。
-    // 对于原本今天到期或原本逾期但在今天完成的任务，均能正常显示在今天列表中。
+    final isOpenToday =
+        effectiveStatus != TaskStatus.done &&
+        effectiveStatus != TaskStatus.cancelled &&
+        view_rules.matchesToday(task, todayStart, todayEnd);
+
+    // 今天完成的任务：有效完成时间（completedAt 或父级派生完成时间）落在今天区间内。
+    // 如果旧数据缺少 completedAt，回退使用 updatedAt。
+    final compAt = directChildren.isNotEmpty
+        ? _getEffectiveCompletedAt(task, directChildren)
+        : (task.completedAt ?? task.updatedAt);
     final completedToday =
         effectiveStatus == TaskStatus.done &&
-        ((task.updatedAt >= todayStartMs && task.updatedAt <= todayEndMs) ||
-            (task.createdAt >= todayStartMs && task.createdAt <= todayEndMs));
+        compAt != null &&
+        compAt >= todayStartMs &&
+        compAt <= todayEndMs;
 
-    if (!matches && !isOverdue && !completedToday) continue;
+    if (!isOpenToday && !isOverdue && !completedToday) continue;
 
     final tags = await tagsForTask(task.id);
     final project = projectsMap[task.projectId];
@@ -183,3 +190,17 @@ final todayViewProvider = StreamProvider<TodayViewData>((ref) async* {
     ),
   );
 });
+
+int? _getEffectiveCompletedAt(Task task, List<Task> directChildren) {
+  if (directChildren.isEmpty) {
+    return task.completedAt ?? task.updatedAt;
+  }
+  int? maxTime;
+  for (final child in directChildren) {
+    final t = child.completedAt ?? child.updatedAt;
+    if (maxTime == null || t > maxTime) {
+      maxTime = t;
+    }
+  }
+  return maxTime;
+}

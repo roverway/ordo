@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -292,8 +293,8 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
           title: state.title.trim(),
           description: state.description,
           notes: state.notes,
-          startAt: state.startAt,
-          endAt: state.endAt,
+          startAt: Value(state.startAt),
+          endAt: Value(state.endAt),
           status: children.isEmpty ? state.status : null,
           priority: state.priority,
         );

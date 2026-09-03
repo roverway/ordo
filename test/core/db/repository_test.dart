@@ -65,10 +65,21 @@ void main() {
       final updated = (await repo.tasks.getById(t.id))!;
       expect(updated.title, '任务A2');
       expect(updated.status, TaskStatus.done);
+      expect(updated.startAt, 1000, reason: '更新状态不能丢失 startAt');
+      expect(updated.endAt, 2000, reason: '更新状态不能丢失 endAt');
+      expect(
+        updated.completedAt,
+        isNotNull,
+        reason: '标记为 done 应记录 completedAt',
+      );
 
       // endAt < startAt 拒绝。
       expect(
-        () => repo.updateTask(t.id, startAt: 3000, endAt: 1000),
+        () => repo.updateTask(
+          t.id,
+          startAt: const Value(3000),
+          endAt: const Value(1000),
+        ),
         throwsA(isA<RepositoryException>()),
       );
 

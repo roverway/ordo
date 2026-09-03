@@ -15,6 +15,7 @@ enum DateScopeEnum {
   thisWeek,
   noDate,
   customRange,
+  completedToday,
 }
 
 /// 层级筛选范围枚举。
@@ -537,6 +538,13 @@ bool matchesFilter(
           if (task.startAt! > filter.customDateEnd!) return false;
         }
         break;
+      case DateScopeEnum.completedToday:
+        final effectiveStatus = derivedStatus(task, directChildren);
+        if (effectiveStatus != TaskStatus.done) return false;
+        final compAt = _getEffectiveCompletedAt(task, directChildren, byId);
+        if (compAt == null) return false;
+        if (compAt < todayStartUtcMs || compAt > todayEndUtcMs) return false;
+        break;
       case DateScopeEnum.all:
         break;
     }
@@ -586,4 +594,26 @@ List<Task> sortPanelTasks(
   });
 
   return result;
+}
+
+/// 计算任务的有效完成时间（UTC 毫秒）。
+///
+/// - 有直接子任务的任务：取所有子任务有效完成时间的最大值；
+/// - 无子任务任务：优先使用 [task.completedAt]，缺失时回退 [task.updatedAt]。
+int? _getEffectiveCompletedAt(
+  Task task,
+  List<Task> directChildren,
+  Map<String, Task> byId,
+) {
+  if (directChildren.isEmpty) {
+    return task.completedAt ?? task.updatedAt;
+  }
+  int? maxTime;
+  for (final child in directChildren) {
+    final t = child.completedAt ?? child.updatedAt;
+    if (maxTime == null || t > maxTime) {
+      maxTime = t;
+    }
+  }
+  return maxTime;
 }

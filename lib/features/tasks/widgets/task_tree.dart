@@ -5,8 +5,10 @@ import '../../../core/db/database.dart';
 import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../core/utils/custom_view_models.dart';
 import '../../../core/utils/derived.dart';
 import '../../../core/utils/motion.dart';
+import '../../../core/utils/task_query_engine.dart';
 import '../../../core/utils/tree.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/empty_state.dart';
@@ -80,30 +82,35 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
         final childrenIndexAll = indexChildrenByParent(tasks);
         final byIdAll = indexTasksById(tasks);
 
-        var filteredTasks = tasks;
-        if (widget.filterMode == TaskFilterChipMode.open) {
-          filteredTasks = _filterDoneTasks(tasks, childrenIndexAll);
-        } else if (widget.filterMode == TaskFilterChipMode.done) {
-          filteredTasks = tasks
-              .where((t) => t.status == TaskStatus.done)
-              .toList();
-        }
-
-        if (widget.searchQuery.isNotEmpty) {
-          filteredTasks = _filterBySearch(
-            filteredTasks,
-            widget.searchQuery,
-            byIdAll,
-          );
-        }
-
+        final projects =
+            ref.watch(projectsStreamProvider).value ?? const <Project>[];
+        final projectsMap = {for (final p in projects) p.id: p};
         final hideDone = ref.watch(hideCompletedTasksProvider);
-        final visibleTasks =
+
+        List<TaskStatus>? filterStatuses;
+        if (widget.filterMode == TaskFilterChipMode.open ||
             (hideDone &&
                 widget.filterMode == TaskFilterChipMode.all &&
-                widget.searchQuery.isEmpty)
-            ? _filterDoneTasks(filteredTasks, childrenIndexAll)
-            : filteredTasks;
+                widget.searchQuery.isEmpty)) {
+          filterStatuses = const [TaskStatus.todo, TaskStatus.inProgress];
+        } else if (widget.filterMode == TaskFilterChipMode.done) {
+          filterStatuses = const [TaskStatus.done];
+        }
+
+        final criteria = FilterCriteria(
+          statuses: filterStatuses ?? const [],
+          searchQuery: widget.searchQuery.isNotEmpty
+              ? widget.searchQuery
+              : null,
+        );
+
+        final visibleTasks = TaskQueryEngine.filterTree(
+          tasks: tasks,
+          criteria: criteria,
+          projectsById: projectsMap,
+          taskTagIdsMap: const {},
+          nowUtcMs: DateTime.now().toUtc().millisecondsSinceEpoch,
+        );
 
         if (visibleTasks.isEmpty) {
           _rowKeys.clear();
@@ -121,7 +128,9 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
         final visibleIds = {for (final t in visibleTasks) t.id};
         _rowKeys.removeWhere((id, _) => !visibleIds.contains(id));
 
-        final effectiveExpandState = widget.searchQuery.isNotEmpty
+        final effectiveExpandState =
+            (widget.searchQuery.isNotEmpty ||
+                widget.filterMode == TaskFilterChipMode.done)
             ? {for (final t in visibleTasks) t.id: true}
             : expandState;
 
@@ -177,57 +186,6 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
         );
       },
     );
-  }
-
-  /// 过滤出未完成任务的可见集合（用户要求：隐藏已完成任务）。
-  ///
-  /// **递归**判定（F1 修复）：叶子按自身 status；有子任务的**整棵子树**全部
-  /// 递归 done 才视为 done 并隐藏——避免「A 存储 done 但后来新增了未完成
-  /// 子任务 C（createTask 不重置父级存储状态）」时 A 被隐藏、其可见子树
-  /// 悬空成一级任务。cancelled ≠ done，保持可见。[childrenIndex] 为调用方
-  /// 预构建的全量任务集索引（复用，避免重复 O(n) 扫描）。
-  List<Task> _filterDoneTasks(
-    List<Task> tasks,
-    Map<String?, List<Task>> childrenIndex,
-  ) {
-    final doneMap = <String, bool>{};
-    bool isDoneRecursive(Task t) {
-      final cached = doneMap[t.id];
-      if (cached != null) return cached;
-      final children = childrenIndex[t.id] ?? const <Task>[];
-      final done = children.isEmpty
-          ? t.status == TaskStatus.done
-          : children.every(isDoneRecursive);
-      doneMap[t.id] = done;
-      return done;
-    }
-
-    return tasks.where((t) => !isDoneRecursive(t)).toList();
-  }
-
-  /// 搜索过滤：保留所有匹配任务及其完整祖先链（确保树形结构完整）
-  List<Task> _filterBySearch(
-    List<Task> tasks,
-    String query,
-    Map<String, Task> byId,
-  ) {
-    final q = query.toLowerCase();
-    final matchedIds = <String>{};
-    for (final t in tasks) {
-      if (t.title.toLowerCase().contains(q) ||
-          t.description.toLowerCase().contains(q)) {
-        matchedIds.add(t.id);
-      }
-    }
-    final visibleIds = <String>{...matchedIds};
-    for (final id in matchedIds) {
-      var current = byId[id];
-      while (current?.parentId != null) {
-        visibleIds.add(current!.parentId!);
-        current = byId[current.parentId];
-      }
-    }
-    return tasks.where((t) => visibleIds.contains(t.id)).toList();
   }
 
   /// 将扁平先序 [treeNodes] 分组成「父任务 id → 直接子节点列表」。

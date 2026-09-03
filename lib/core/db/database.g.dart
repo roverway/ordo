@@ -1241,6 +1241,17 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _completedAtMeta = const VerificationMeta(
+    'completedAt',
+  );
+  @override
+  late final GeneratedColumn<int> completedAt = GeneratedColumn<int>(
+    'completed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   late final GeneratedColumnWithTypeConverter<TaskStatus, int> status =
       GeneratedColumn<int>(
@@ -1315,6 +1326,7 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     notes,
     startAt,
     endAt,
+    completedAt,
     status,
     priority,
     sortOrder,
@@ -1388,6 +1400,15 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         endAt.isAcceptableOrUnknown(data['end_at']!, _endAtMeta),
       );
     }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+        _completedAtMeta,
+        completedAt.isAcceptableOrUnknown(
+          data['completed_at']!,
+          _completedAtMeta,
+        ),
+      );
+    }
     if (data.containsKey('sort_order')) {
       context.handle(
         _sortOrderMeta,
@@ -1459,6 +1480,10 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         DriftSqlType.int,
         data['${effectivePrefix}end_at'],
       ),
+      completedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}completed_at'],
+      ),
       status: $TasksTable.$converterstatus.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.int,
@@ -1515,6 +1540,9 @@ class Task extends DataClass implements Insertable<Task> {
   /// 截止时间（UTC 毫秒，可选；设置时要求 endAt >= startAt）。
   final int? endAt;
 
+  /// 完成时间（UTC 毫秒，可选；任务状态变为 done 时记录）。
+  final int? completedAt;
+
   /// 状态枚举 0–3（§3.1）。有子任务的任务此字段被忽略（状态由子任务派生）。
   final TaskStatus status;
 
@@ -1541,6 +1569,7 @@ class Task extends DataClass implements Insertable<Task> {
     required this.notes,
     this.startAt,
     this.endAt,
+    this.completedAt,
     required this.status,
     required this.priority,
     required this.sortOrder,
@@ -1564,6 +1593,9 @@ class Task extends DataClass implements Insertable<Task> {
     }
     if (!nullToAbsent || endAt != null) {
       map['end_at'] = Variable<int>(endAt);
+    }
+    if (!nullToAbsent || completedAt != null) {
+      map['completed_at'] = Variable<int>(completedAt);
     }
     {
       map['status'] = Variable<int>($TasksTable.$converterstatus.toSql(status));
@@ -1596,6 +1628,9 @@ class Task extends DataClass implements Insertable<Task> {
       endAt: endAt == null && nullToAbsent
           ? const Value.absent()
           : Value(endAt),
+      completedAt: completedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAt),
       status: Value(status),
       priority: Value(priority),
       sortOrder: Value(sortOrder),
@@ -1619,6 +1654,7 @@ class Task extends DataClass implements Insertable<Task> {
       notes: serializer.fromJson<String>(json['notes']),
       startAt: serializer.fromJson<int?>(json['startAt']),
       endAt: serializer.fromJson<int?>(json['endAt']),
+      completedAt: serializer.fromJson<int?>(json['completedAt']),
       status: serializer.fromJson<TaskStatus>(json['status']),
       priority: serializer.fromJson<TaskPriority>(json['priority']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
@@ -1639,6 +1675,7 @@ class Task extends DataClass implements Insertable<Task> {
       'notes': serializer.toJson<String>(notes),
       'startAt': serializer.toJson<int?>(startAt),
       'endAt': serializer.toJson<int?>(endAt),
+      'completedAt': serializer.toJson<int?>(completedAt),
       'status': serializer.toJson<TaskStatus>(status),
       'priority': serializer.toJson<TaskPriority>(priority),
       'sortOrder': serializer.toJson<int>(sortOrder),
@@ -1657,6 +1694,7 @@ class Task extends DataClass implements Insertable<Task> {
     String? notes,
     Value<int?> startAt = const Value.absent(),
     Value<int?> endAt = const Value.absent(),
+    Value<int?> completedAt = const Value.absent(),
     TaskStatus? status,
     TaskPriority? priority,
     int? sortOrder,
@@ -1672,6 +1710,7 @@ class Task extends DataClass implements Insertable<Task> {
     notes: notes ?? this.notes,
     startAt: startAt.present ? startAt.value : this.startAt,
     endAt: endAt.present ? endAt.value : this.endAt,
+    completedAt: completedAt.present ? completedAt.value : this.completedAt,
     status: status ?? this.status,
     priority: priority ?? this.priority,
     sortOrder: sortOrder ?? this.sortOrder,
@@ -1691,6 +1730,9 @@ class Task extends DataClass implements Insertable<Task> {
       notes: data.notes.present ? data.notes.value : this.notes,
       startAt: data.startAt.present ? data.startAt.value : this.startAt,
       endAt: data.endAt.present ? data.endAt.value : this.endAt,
+      completedAt: data.completedAt.present
+          ? data.completedAt.value
+          : this.completedAt,
       status: data.status.present ? data.status.value : this.status,
       priority: data.priority.present ? data.priority.value : this.priority,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
@@ -1711,6 +1753,7 @@ class Task extends DataClass implements Insertable<Task> {
           ..write('notes: $notes, ')
           ..write('startAt: $startAt, ')
           ..write('endAt: $endAt, ')
+          ..write('completedAt: $completedAt, ')
           ..write('status: $status, ')
           ..write('priority: $priority, ')
           ..write('sortOrder: $sortOrder, ')
@@ -1731,6 +1774,7 @@ class Task extends DataClass implements Insertable<Task> {
     notes,
     startAt,
     endAt,
+    completedAt,
     status,
     priority,
     sortOrder,
@@ -1750,6 +1794,7 @@ class Task extends DataClass implements Insertable<Task> {
           other.notes == this.notes &&
           other.startAt == this.startAt &&
           other.endAt == this.endAt &&
+          other.completedAt == this.completedAt &&
           other.status == this.status &&
           other.priority == this.priority &&
           other.sortOrder == this.sortOrder &&
@@ -1767,6 +1812,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
   final Value<String> notes;
   final Value<int?> startAt;
   final Value<int?> endAt;
+  final Value<int?> completedAt;
   final Value<TaskStatus> status;
   final Value<TaskPriority> priority;
   final Value<int> sortOrder;
@@ -1783,6 +1829,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.notes = const Value.absent(),
     this.startAt = const Value.absent(),
     this.endAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
     this.status = const Value.absent(),
     this.priority = const Value.absent(),
     this.sortOrder = const Value.absent(),
@@ -1800,6 +1847,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.notes = const Value.absent(),
     this.startAt = const Value.absent(),
     this.endAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
     required TaskStatus status,
     this.priority = const Value.absent(),
     required int sortOrder,
@@ -1823,6 +1871,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Expression<String>? notes,
     Expression<int>? startAt,
     Expression<int>? endAt,
+    Expression<int>? completedAt,
     Expression<int>? status,
     Expression<int>? priority,
     Expression<int>? sortOrder,
@@ -1840,6 +1889,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
       if (notes != null) 'notes': notes,
       if (startAt != null) 'start_at': startAt,
       if (endAt != null) 'end_at': endAt,
+      if (completedAt != null) 'completed_at': completedAt,
       if (status != null) 'status': status,
       if (priority != null) 'priority': priority,
       if (sortOrder != null) 'sort_order': sortOrder,
@@ -1859,6 +1909,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Value<String>? notes,
     Value<int?>? startAt,
     Value<int?>? endAt,
+    Value<int?>? completedAt,
     Value<TaskStatus>? status,
     Value<TaskPriority>? priority,
     Value<int>? sortOrder,
@@ -1876,6 +1927,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
       notes: notes ?? this.notes,
       startAt: startAt ?? this.startAt,
       endAt: endAt ?? this.endAt,
+      completedAt: completedAt ?? this.completedAt,
       status: status ?? this.status,
       priority: priority ?? this.priority,
       sortOrder: sortOrder ?? this.sortOrder,
@@ -1912,6 +1964,9 @@ class TasksCompanion extends UpdateCompanion<Task> {
     }
     if (endAt.present) {
       map['end_at'] = Variable<int>(endAt.value);
+    }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<int>(completedAt.value);
     }
     if (status.present) {
       map['status'] = Variable<int>(
@@ -1952,6 +2007,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
           ..write('notes: $notes, ')
           ..write('startAt: $startAt, ')
           ..write('endAt: $endAt, ')
+          ..write('completedAt: $completedAt, ')
           ..write('status: $status, ')
           ..write('priority: $priority, ')
           ..write('sortOrder: $sortOrder, ')

@@ -60,6 +60,7 @@ folders  1 ──── N projects  （folderId，可空 = 未分组，62-folder
 | notes | TEXT | NOT NULL DEFAULT '' | 备注（纯文本 v1） |
 | startAt | INTEGER | NULL | 开始时间（UTC 毫秒） |
 | endAt | INTEGER | NULL | 截止时间（UTC 毫秒） |
+| completedAt | INTEGER | NULL | 完成时间（UTC 毫秒，任务变为 done 时记录，v7 新增） |
 | status | INTEGER | NOT NULL, 0–3 | 状态枚举（见 §3.1） |
 | priority | INTEGER | NOT NULL DEFAULT 0, 0–3 | 优先级枚举（见 §3.2，滴答式 4 档：无/低/中/高） |
 | sortOrder | INTEGER | NOT NULL | 同级内排序 |
@@ -217,6 +218,9 @@ double progress(Task root, List<Task> subtree, {bool includeSelf = true}):
 | 2 | `tasks.priority` | 新增优先级列（INTEGER NOT NULL DEFAULT 0），`m.addColumn(tasks, tasks.priority)`；旧行默认 `none` |
 | 3 | `projects.description` | 新增描述列（TEXT NOT NULL DEFAULT ''），`m.addColumn(projects, projects.description)`；旧行默认 `''` |
 | 4 | `folders` 表 + `projects.folderId` | 新增 folders 表（`m.createTable(folders)`）+ folderId 列（TEXT NULL，`m.addColumn(projects, projects.folderId)`）；旧行默认未分组（62-folder-nav.md §7.1） |
+| 5 | `custom_views` 表 | 新增 custom_views 表（`m.createTable(customViews)`），支持自定义看板视图与过滤面板 |
+| 6 | `projects.icon`, `folders.color/icon` | 新增 projects.icon、folders.color/icon 列，支持图标与强调色个性化配置 |
+| 7 | `tasks.completedAt` | 新增 tasks.completed_at 列（INTEGER NULL，`m.addColumn(tasks, tasks.completedAt)`），在任务标记完成时记录真实时间戳，支持今日完成精确筛选 |
 
 ## 9. 数据量假设
 

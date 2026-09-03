@@ -21,6 +21,7 @@ import 'package:todo/features/settings/settings_providers.dart';
 import 'package:todo/features/tasks/task_providers.dart';
 import 'package:todo/features/tasks/widgets/task_row.dart';
 import 'package:todo/features/tasks/widgets/task_tree.dart';
+import 'package:todo/shared/widgets/filter_chips_bar.dart';
 import 'package:todo/shared/widgets/modern_checkbox.dart';
 import '../../helpers/db_test_setup.dart';
 
@@ -75,6 +76,7 @@ Future<void> _pumpTree(
   Map<String, List<Tag>> taskTags = const {},
   bool hideCompleted = false,
   String searchQuery = '',
+  TaskFilterChipMode filterMode = TaskFilterChipMode.all,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
@@ -133,6 +135,7 @@ Future<void> _pumpTree(
           body: TaskTree(
             projectId: state.pathParameters['id']!,
             searchQuery: searchQuery,
+            filterMode: filterMode,
           ),
         ),
       ),
@@ -1223,6 +1226,40 @@ void main() {
       ], searchQuery: 'NonExistentWord');
       expect(find.text('未搜索到相关任务'), findsOneWidget);
       expect(find.text('ParentProject'), findsNothing);
+    });
+  });
+
+  group('已完成 Chip 筛选（问题 2 修复）', () {
+    testWidgets('单独已完成任务正常展示', (tester) async {
+      await _pumpTree(tester, [
+        _task('open1', title: '未完成任务A', status: TaskStatus.todo),
+        _task('done1', title: '已完成任务B', status: TaskStatus.done),
+      ], filterMode: TaskFilterChipMode.done);
+
+      expect(find.text('已完成任务B'), findsOneWidget);
+      expect(find.text('未完成任务A'), findsNothing);
+    });
+
+    testWidgets('属于父任务下的已完成子任务，自动保留父任务骨架并展开展示子任务', (tester) async {
+      await _pumpTree(tester, [
+        _task('root', title: '父任务容器', status: TaskStatus.todo),
+        _task(
+          'c_open',
+          parentId: 'root',
+          title: '进行中子任务',
+          status: TaskStatus.inProgress,
+        ),
+        _task(
+          'c_done',
+          parentId: 'root',
+          title: '已完成子任务C',
+          status: TaskStatus.done,
+        ),
+      ], filterMode: TaskFilterChipMode.done);
+
+      expect(find.text('父任务容器'), findsOneWidget);
+      expect(find.text('已完成子任务C'), findsOneWidget);
+      expect(find.text('进行中子任务'), findsNothing);
     });
   });
 }
