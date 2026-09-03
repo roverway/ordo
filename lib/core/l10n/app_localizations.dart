@@ -434,6 +434,12 @@ abstract class AppLocalizations {
   /// **'编辑'**
   String get edit;
 
+  /// No description provided for @create.
+  ///
+  /// In zh, this message translates to:
+  /// **'新建'**
+  String get create;
+
   /// No description provided for @showCompletedTasks.
   ///
   /// In zh, this message translates to:

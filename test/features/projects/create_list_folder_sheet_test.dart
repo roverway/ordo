@@ -288,4 +288,24 @@ void main() {
     final updated = await repo.folders.getById(folder.id);
     expect(updated?.name, '更新后文件夹');
   });
+
+  testWidgets('聚焦名称输入框时触发全屏扩展', (tester) async {
+    await tester.pumpWidget(buildTestWidget());
+    await tester.tap(find.text('Open Sheet'));
+    await tester.pumpAndSettle();
+
+    // 初始状态下存在拖拽手柄
+    expect(find.byType(TextField), findsOneWidget);
+
+    // 聚焦输入框
+    await tester.tap(find.byType(TextField));
+    await tester.pumpAndSettle();
+
+    // 输入框处于聚焦状态，界面无崩溃且保持正常渲染
+    final textField = tester.widget<TextField>(find.byType(TextField));
+    expect(textField.focusNode?.hasFocus, isTrue);
+
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+  });
 }

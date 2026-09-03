@@ -358,7 +358,7 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                 children: [
                   _buildBottomActionButton(
                     icon: Icons.add,
-                    label: l10n.newProject,
+                    label: l10n.create,
                     onTap: () async {
                       await showCreateListFolderSheet(
                         context: context,

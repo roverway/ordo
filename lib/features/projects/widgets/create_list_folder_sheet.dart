@@ -719,9 +719,11 @@ Future<T?> showCreateListFolderSheet<T>({
   String? initialFolderId,
   Project? editingProject,
   Folder? editingFolder,
+  bool useRootNavigator = true,
 }) {
   return showModalBottomSheet<T>(
     context: context,
+    useRootNavigator: useRootNavigator,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     builder: (ctx) => KeyboardInsetBuilder(
@@ -809,6 +811,13 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
     _nameController = TextEditingController(text: initialName);
     _nameFocusNode = FocusNode();
 
+    // 监听聚焦变化以动态全屏与避让状态栏
+    _nameFocusNode.addListener(() {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+
     // 监听名称变化以更新完成按钮及字数统计
     _nameController.addListener(() {
       setState(() {});
@@ -881,14 +890,22 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
     final name = _nameController.text.trim();
     if (name.isEmpty || _isSubmitting) return;
 
+    _nameFocusNode.unfocus();
+
     setState(() {
       _isSubmitting = true;
     });
 
     final repo = ref.read(todoRepositoryProvider);
     final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.maybeOf(context);
 
     try {
+      final normalizedFolderId =
+          (_selectedFolderId != null && _selectedFolderId!.trim().isNotEmpty)
+          ? _selectedFolderId!.trim()
+          : null;
+
       if (widget.editingProject != null) {
         // ── 编辑清单 ──
         final targetProject = widget.editingProject!;
@@ -897,17 +914,17 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
           name: name,
           color: _selectedColor.color.toARGB32(),
           icon: _selectedIcon.id,
-          folderId: Value(_selectedFolderId),
+          folderId: Value(normalizedFolderId),
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          Navigator.of(context).pop(true);
+          messenger?.showSnackBar(
             SnackBar(
               content: Text(l10n.editListSuccess(name)),
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 2),
             ),
           );
-          Navigator.of(context).pop(true);
         }
       } else if (widget.editingFolder != null) {
         // ── 编辑文件夹 ──
@@ -919,14 +936,14 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
           icon: _selectedIcon.id,
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          Navigator.of(context).pop(true);
+          messenger?.showSnackBar(
             SnackBar(
               content: Text(l10n.editFolderSuccess(name)),
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 2),
             ),
           );
-          Navigator.of(context).pop(true);
         }
       } else if (_createType == CreateType.list) {
         // ── 新建清单 ──
@@ -934,17 +951,17 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
           name: name,
           color: _selectedColor.color.toARGB32(),
           icon: _selectedIcon.id,
-          folderId: _selectedFolderId,
+          folderId: normalizedFolderId,
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          Navigator.of(context).pop(newProject);
+          messenger?.showSnackBar(
             SnackBar(
               content: Text(l10n.createListSuccess(name)),
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 2),
             ),
           );
-          Navigator.of(context).pop(newProject);
         }
       } else {
         // ── 新建文件夹 ──
@@ -954,19 +971,19 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
           icon: _selectedIcon.id,
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          Navigator.of(context).pop(newFolder);
+          messenger?.showSnackBar(
             SnackBar(
               content: Text(l10n.createFolderSuccess(name)),
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 2),
             ),
           );
-          Navigator.of(context).pop(newFolder);
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger?.showSnackBar(
           SnackBar(
             content: Text(e.toString()),
             backgroundColor: Colors.red.shade700,
@@ -993,17 +1010,25 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
     final isList = _createType == CreateType.list;
     final isNameValid = _nameController.text.trim().isNotEmpty;
     final activeAccent = _selectedColor.color;
+    final isFocused = _nameFocusNode.hasFocus;
 
     final groupingAsync = ref.watch(projectsByFolderProvider);
 
-    return Container(
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final targetMaxHeight = isFocused ? screenHeight : screenHeight * 0.85;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutCubic,
       constraints: BoxConstraints(
-        // 最大高度对齐导航弹窗（0.85），不触及屏幕顶部
-        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+        // 聚焦后全屏，非聚焦时对齐导航弹窗（0.85）
+        maxHeight: targetMaxHeight,
       ),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF18191D) : const Color(0xFFFFFFFF),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(isFocused ? 16 : 24),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.2),
@@ -1013,23 +1038,28 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
         ],
       ),
       child: SafeArea(
-        top: false,
+        // 聚焦全屏时开启顶部 SafeArea，为手机顶部状态栏留出充足空间
+        top: isFocused,
+        bottom: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ── 拖拽手柄 ──
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 10, bottom: 6),
-                width: 36,
-                height: 4.5,
-                decoration: BoxDecoration(
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(3),
+            // ── 拖拽手柄 / 顶部空白 ──
+            if (!isFocused)
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 10, bottom: 6),
+                  width: 36,
+                  height: 4.5,
+                  decoration: BoxDecoration(
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
                 ),
-              ),
-            ),
+              )
+            else
+              const SizedBox(height: 8),
 
             // ── 顶栏导航 ──
             Padding(
@@ -1283,17 +1313,8 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
           ],
         ),
         const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E2025) : const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-            // 无突兀边框变换，聚焦仅光标闪烁
-            border: Border.all(
-              color: isDark ? const Color(0xFF262830) : const Color(0xFFE2E8F0),
-              width: 1.0,
-            ),
-          ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(
             children: [
               // 选中的图标与色彩预览徽章
@@ -1323,7 +1344,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
               ),
               const SizedBox(width: 12),
 
-              // 输入框：按需编辑，聚焦不显示任何输入边框，仅光标闪烁
+              // 输入框：无任何背景色或边框
               Expanded(
                 child: TextField(
                   controller: _nameController,
@@ -1362,7 +1383,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                     disabledBorder: InputBorder.none,
                     errorBorder: InputBorder.none,
                     focusedErrorBorder: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
                   ),
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _submit(),

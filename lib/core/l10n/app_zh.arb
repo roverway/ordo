@@ -56,6 +56,7 @@
   "save": "保存",
   "delete": "删除",
   "edit": "编辑",
+  "create": "新建",
   "showCompletedTasks": "显示已完成任务",
   "hideCompletedTasks": "隐藏已完成任务",
   "allTasksCompleted": "全部任务已完成",

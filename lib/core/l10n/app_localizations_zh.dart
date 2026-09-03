@@ -179,6 +179,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get edit => '编辑';
 
   @override
+  String get create => '新建';
+
+  @override
   String get showCompletedTasks => '显示已完成任务';
 
   @override

@@ -56,6 +56,7 @@
   "save": "Save",
   "delete": "Delete",
   "edit": "Edit",
+  "create": "New",
   "showCompletedTasks": "Show completed tasks",
   "hideCompletedTasks": "Hide completed tasks",
   "allTasksCompleted": "All tasks completed",

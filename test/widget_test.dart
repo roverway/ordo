@@ -638,11 +638,11 @@ void main() {
 
     expect(find.byType(ScopeSwitcherSheet), findsOneWidget);
 
-    // 底部「新建项目」
+    // 底部「新建」
     await tester.tap(
       find.descendant(
         of: find.byType(ScopeSwitcherSheet),
-        matching: find.text('新建项目'),
+        matching: find.text('新建'),
       ),
     );
     await _settle(tester);

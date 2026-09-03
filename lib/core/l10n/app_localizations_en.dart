@@ -182,6 +182,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get edit => 'Edit';
 
   @override
+  String get create => 'New';
+
+  @override
   String get showCompletedTasks => 'Show completed tasks';
 
   @override
