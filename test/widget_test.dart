@@ -13,6 +13,7 @@ import 'package:todo/core/theme/app_theme.dart';
 import 'package:todo/features/calendar/calendar_providers.dart';
 import 'package:todo/features/custom_views/providers/custom_view_providers.dart';
 import 'package:todo/features/projects/project_providers.dart';
+import 'package:todo/features/projects/widgets/create_list_folder_sheet.dart';
 import 'package:todo/features/settings/settings_providers.dart';
 import 'package:todo/features/sync_setup/sync_setup_providers.dart';
 import 'package:todo/features/tags/tag_providers.dart';
@@ -645,38 +646,47 @@ void main() {
       ),
     );
     await _settle(tester);
-    expect(find.byType(Dialog), findsOneWidget);
+    expect(find.byType(CreateListFolderSheet), findsOneWidget);
 
     await tester.tap(find.text('取消'));
     await _settle(tester);
-    expect(find.byType(Dialog), findsNothing);
+    expect(find.byType(CreateListFolderSheet), findsNothing);
   });
 
-  testWidgets('ScopeSwitcherSheet: add folder opens the folder name dialog', (
-    tester,
-  ) async {
-    final repo = await pumpScopeSwitcherSheet(tester);
+  testWidgets(
+    'ScopeSwitcherSheet: add folder opens create sheet in folder mode',
+    (tester) async {
+      final repo = await pumpScopeSwitcherSheet(tester);
 
-    expect(find.byType(ScopeSwitcherSheet), findsOneWidget);
+      expect(find.byType(ScopeSwitcherSheet), findsOneWidget);
 
-    // 底部「新文件夹」
-    await tester.tap(
-      find.descendant(
-        of: find.byType(ScopeSwitcherSheet),
-        matching: find.text('新文件夹'),
-      ),
-    );
-    await _settle(tester);
-    expect(find.byType(Dialog), findsOneWidget);
+      // 底部「新文件夹」
+      await tester.tap(
+        find.descendant(
+          of: find.byType(ScopeSwitcherSheet),
+          matching: find.text('新文件夹'),
+        ),
+      );
+      await _settle(tester);
+      expect(find.byType(CreateListFolderSheet), findsOneWidget);
+      expect(find.text('文件夹名称'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextFormField), '新文件夹');
-    await tester.tap(find.text('保存'));
-    await _settle(tester);
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(CreateListFolderSheet),
+          matching: find.byType(TextField),
+        ),
+        '新文件夹',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('完成'));
+      await _settle(tester);
 
-    final folders = await repo.folders.getAll();
-    expect(folders.length, 1);
-    expect(folders.single.name, '新文件夹');
-  });
+      final folders = await repo.folders.getAll();
+      expect(folders.length, 1);
+      expect(folders.single.name, '新文件夹');
+    },
+  );
 
   testWidgets('ScopeSwitcherSheet: 文件夹分组显示 + 折叠/展开 + 未分组区', (tester) async {
     final folder = _folder('f1', '工作夹');

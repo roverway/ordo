@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/db/database.dart';
-import '../../../../core/db/repositories/todo_repository.dart';
 import '../../../../core/l10n/app_localizations.dart';
 import '../../../../core/platform/keyboard_inset_bridge.dart';
 import '../../../../core/theme/app_tokens.dart';
 import '../../../projects/project_providers.dart';
-import '../../../projects/widgets/project_form_dialog.dart';
+import '../../../projects/widgets/create_list_folder_sheet.dart';
 import '../../task_providers.dart';
 
 /// 顶部栏项目切换：[项目图标] 项目名 [下拉双箭头]（编辑中直接切换所属项目）。
@@ -231,24 +230,14 @@ class _ProjectPickerSheetState extends ConsumerState<ProjectPickerSheet> {
     );
   }
 
-  /// 「+ 添加项目」：复用项目表单弹窗，创建后自动选中。
+  /// 「+ 添加项目」：使用新建清单/文件夹模态，创建后自动选中。
   Future<void> _createProject() async {
-    final data = await showProjectFormDialog(context: context);
-    if (data == null || !mounted) return;
-    final repo = ref.read(todoRepositoryProvider);
-    try {
-      final project = await repo.createProject(
-        name: data.name,
-        color: data.color,
-        description: data.description,
-      );
-      if (!mounted) return;
-      Navigator.of(context).pop(project.id);
-    } on RepositoryException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+    final created = await showCreateListFolderSheet(
+      context: context,
+      initialType: CreateType.list,
+    );
+    if (created is Project && mounted) {
+      Navigator.of(context).pop(created.id);
     }
   }
 }

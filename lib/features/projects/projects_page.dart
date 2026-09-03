@@ -15,8 +15,8 @@ import '../../shared/widgets/scope_switcher_sheet.dart';
 import '../../shared/widgets/staggered_fade_slide.dart';
 import '../tasks/task_providers.dart';
 import 'project_providers.dart';
+import 'widgets/create_list_folder_sheet.dart';
 import 'widgets/project_card.dart';
-import 'widgets/project_form_dialog.dart';
 
 /// 项目概览页（对齐原型 overview.html：概览 Hero + 周进度条 + 文件夹分组项目卡片）。
 class ProjectsPage extends ConsumerWidget {
@@ -221,15 +221,10 @@ class ProjectsPage extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
   ) async {
-    final result = await showProjectFormDialog(context: context);
-    if (result != null && context.mounted) {
-      final repo = ref.read(todoRepositoryProvider);
-      await repo.createProject(
-        name: result.name,
-        color: result.color,
-        description: result.description,
-      );
-    }
+    await showCreateListFolderSheet(
+      context: context,
+      initialType: CreateType.list,
+    );
   }
 }
 

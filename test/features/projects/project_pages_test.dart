@@ -229,15 +229,15 @@ void main() {
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
-      // 对话框模式（居中 Dialog）。
-      expect(find.byType(Dialog), findsOneWidget);
-      expect(find.byType(TextFormField), findsOneWidget);
-      // 描述字段（可选，D2）+ 颜色选项行。
-      expect(find.text('项目描述'), findsOneWidget);
-      expect(find.text('项目颜色'), findsOneWidget);
+      // 模态底栏模式 (CreateListFolderSheet)
+      expect(find.text('新建清单'), findsOneWidget);
+      expect(find.text('新建文件夹'), findsOneWidget);
+      expect(find.text('主题颜色'), findsOneWidget);
+      expect(find.text('选择图标'), findsOneWidget);
+      expect(find.text('所属文件夹'), findsOneWidget);
     });
 
-    testWidgets('新建对话框：空名称验证失败', (tester) async {
+    testWidgets('新建模态：空名称时完成按钮不可点击', (tester) async {
       await _pump(
         tester,
         initialLocation: '/projects',
@@ -251,14 +251,14 @@ void main() {
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
-      // 不输入名称，直接点保存。
-      await tester.tap(find.text('保存'));
+      // 未输入名称时点完成，不会关闭
+      await tester.tap(find.text('完成'));
       await tester.pumpAndSettle();
 
-      expect(find.text('标题不能为空'), findsOneWidget);
+      expect(find.text('新建清单'), findsOneWidget);
     });
 
-    testWidgets('新建对话框：空格名称验证失败', (tester) async {
+    testWidgets('新建模态：有效名称保存后关闭并创建项目', (tester) async {
       await _pump(
         tester,
         initialLocation: '/projects',
@@ -272,36 +272,17 @@ void main() {
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextFormField), '   ');
-      await tester.tap(find.text('保存'));
+      await tester.enterText(find.byType(TextField), '新项目');
       await tester.pumpAndSettle();
+      await tester.tap(find.text('完成'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 3));
 
-      expect(find.text('标题不能为空'), findsOneWidget);
+      // 模态已关闭
+      expect(find.text('所属文件夹'), findsNothing);
     });
 
-    testWidgets('新建对话框：有效名称保存后关闭', (tester) async {
-      await _pump(
-        tester,
-        initialLocation: '/projects',
-        routes: [
-          GoRoute(path: '/projects', builder: (_, _) => const ProjectsPage()),
-          GoRoute(path: '/projects/:id', builder: (_, _) => const Scaffold()),
-        ],
-        projects: [_project('p1', '工作')],
-      );
-
-      await tester.tap(find.byType(FloatingActionButton));
-      await tester.pumpAndSettle();
-
-      await tester.enterText(find.byType(TextFormField), '新项目');
-      await tester.tap(find.text('保存'));
-      await tester.pumpAndSettle();
-
-      // 对话框已关闭（pop 返回数据）。
-      expect(find.byType(Dialog), findsNothing);
-    });
-
-    testWidgets('新建对话框：取消关闭不返回数据', (tester) async {
+    testWidgets('新建模态：取消关闭不保存', (tester) async {
       await _pump(
         tester,
         initialLocation: '/projects',
@@ -318,10 +299,10 @@ void main() {
       await tester.tap(find.text('取消'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(Dialog), findsNothing);
+      expect(find.text('所属文件夹'), findsNothing);
     });
 
-    testWidgets('新建弹窗：颜色选项行弹出底部颜色选择器并选中', (tester) async {
+    testWidgets('新建模态：切换新建清单与新建文件夹', (tester) async {
       await _pump(
         tester,
         initialLocation: '/projects',
@@ -335,48 +316,16 @@ void main() {
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
-      // 点击颜色选项行 → 弹出颜色选择器（D3）。
-      await tester.tap(find.text('项目颜色'));
+      // 默认清单模式有所属文件夹
+      expect(find.text('所属文件夹'), findsOneWidget);
+
+      // 切换到新建文件夹
+      await tester.tap(find.text('新建文件夹'));
       await tester.pumpAndSettle();
 
-      // 选择器顶栏标题 + 8 个预设色点；表单对话框仍保留在下层。
-      expect(find.byType(BottomSheet), findsOneWidget);
-      expect(find.byType(Dialog), findsOneWidget);
-      expect(find.text('项目颜色'), findsNWidgets(2));
-
-      // 点击某个色点 → 选择器关闭，表单对话框仍在。
-      await tester.tap(find.byIcon(Icons.check).first);
-      await tester.pumpAndSettle();
-      expect(find.byType(BottomSheet), findsNothing);
-      expect(find.byType(Dialog), findsOneWidget);
-    });
-
-    testWidgets('桌面端（≥600dp）新建项目为居中对话框（D5）', (tester) async {
-      await _pump(
-        tester,
-        initialLocation: '/projects',
-        routes: [
-          GoRoute(path: '/projects', builder: (_, _) => const ProjectsPage()),
-          GoRoute(path: '/projects/:id', builder: (_, _) => const Scaffold()),
-        ],
-        projects: [_project('p1', '工作')],
-        size: const Size(800, 900),
-      );
-
-      await tester.tap(find.byType(FloatingActionButton));
-      await tester.pumpAndSettle();
-
-      // 宽屏走居中 Dialog，选项行结构一致。
-      expect(find.byType(Dialog), findsOneWidget);
-      expect(find.text('项目名称'), findsOneWidget);
-      expect(find.text('项目颜色'), findsOneWidget);
-      expect(find.text('项目描述'), findsOneWidget);
-
-      // 有效名称 → 保存关闭。
-      await tester.enterText(find.byType(TextFormField), '桌面项目');
-      await tester.tap(find.text('保存'));
-      await tester.pumpAndSettle();
-      expect(find.byType(Dialog), findsNothing);
+      // 文件夹模式下隐藏所属文件夹
+      expect(find.text('所属文件夹'), findsNothing);
+      expect(find.text('文件夹名称'), findsOneWidget);
     });
 
     testWidgets('编辑模式：预填超长名称时保存显示长度校验文案（评审 #2）', (tester) async {

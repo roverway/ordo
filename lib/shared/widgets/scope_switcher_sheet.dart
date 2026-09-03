@@ -10,6 +10,7 @@ import '../../core/theme/app_tokens.dart';
 import '../../features/custom_views/providers/custom_view_providers.dart';
 import '../../features/custom_views/widgets/icon_picker_dialog.dart';
 import '../../features/projects/project_providers.dart';
+import '../../features/projects/widgets/create_list_folder_sheet.dart';
 import '../../features/projects/widgets/folder_name_dialog.dart';
 import '../../features/projects/widgets/project_form_dialog.dart';
 import '../../features/sync_setup/sync_setup_providers.dart';
@@ -365,18 +366,10 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                     icon: Icons.add,
                     label: l10n.newProject,
                     onTap: () async {
-                      final result = await showProjectFormDialog(
+                      await showCreateListFolderSheet(
                         context: context,
+                        initialType: CreateType.list,
                       );
-                      if (result != null && context.mounted) {
-                        await ref
-                            .read(todoRepositoryProvider)
-                            .createProject(
-                              name: result.name,
-                              color: result.color,
-                              description: result.description,
-                            );
-                      }
                     },
                   ),
                   const SizedBox(width: 8),
@@ -384,14 +377,10 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                     icon: Icons.create_new_folder_outlined,
                     label: '新文件夹',
                     onTap: () async {
-                      final name = await showFolderNameDialog(context: context);
-                      if (name != null &&
-                          name.trim().isNotEmpty &&
-                          context.mounted) {
-                        await ref
-                            .read(todoRepositoryProvider)
-                            .createFolder(name: name.trim());
-                      }
+                      await showCreateListFolderSheet(
+                        context: context,
+                        initialType: CreateType.folder,
+                      );
                     },
                   ),
                   const Spacer(),

@@ -202,21 +202,31 @@ class TodoRepository {
 
   // ─────────────────────────── Projects ───────────────────────────
 
-  /// 新建项目（name 1–100 字符；description 最多 500 字符；sortOrder 自动追加到末尾）。
+  /// 新建项目（name 1–100 字符；description 最多 500 字符；可指定所属 folderId；sortOrder 自动追加到组末尾）。
   Future<Project> createProject({
     required String name,
     required int color,
     String description = '',
+    String? folderId,
   }) async {
     _checkTextLength(name, 1, 100, '项目名');
     _checkTextLength(description, 0, 500, '项目描述');
+    if (folderId != null) {
+      final f = await folders.getById(folderId);
+      if (f == null || f.deleted == 1) {
+        throw RepositoryException('文件夹不存在：$folderId');
+      }
+    }
     final now = _nowMs();
+    final group = await projects.getAllInFolder(folderId);
+    final sortOrder = group.isEmpty ? 0 : (group.last.sortOrder + 1);
     final project = ProjectsCompanion.insert(
       id: newUuid(),
       name: name,
       color: color,
       description: Value(description),
-      sortOrder: await _nextProjectSortOrder(),
+      folderId: Value(folderId),
+      sortOrder: sortOrder,
       createdAt: now,
       updatedAt: now,
     );
@@ -1302,11 +1312,6 @@ class TodoRepository {
     if (startAt != null && endAt != null && endAt < startAt) {
       throw RepositoryException('截止时间不能早于开始时间');
     }
-  }
-
-  Future<int> _nextProjectSortOrder() async {
-    final all = await projects.getAll();
-    return all.isEmpty ? 0 : (all.last.sortOrder + 1);
   }
 
   /// 下一个文件夹 sortOrder（当前活跃文件夹数，追加到末尾）。

@@ -348,5 +348,57 @@
     "description": "任务分组三点菜单：打开项目总览页"
   },
   "autoSaveOnClose": "关闭时自动保存",
-  "taskDetails": "任务详情"
+  "taskDetails": "任务详情",
+  "createList": "新建清单",
+  "createFolder": "新建文件夹",
+  "listName": "清单名称",
+  "listNameHint": "输入清单名称...",
+  "folderNameHint": "输入文件夹名称...",
+  "selectIcon": "选择图标",
+  "instantApply": "点击即时应用",
+  "belongingFolder": "所属文件夹",
+  "singleChoiceBelonging": "单选归属",
+  "noFolderRoot": "无 (顶层清单)",
+  "listsCount": "{count} 个清单",
+  "@listsCount": {
+    "description": "文件夹下清单数量",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "createListSuccess": "清单「{name}」创建成功",
+  "@createListSuccess": {
+    "description": "新建清单成功提示",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "createFolderSuccess": "文件夹「{name}」创建成功",
+  "@createFolderSuccess": {
+    "description": "新建文件夹成功提示",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "catCommon": "常用",
+  "catWork": "工作",
+  "catLife": "生活",
+  "catStudy": "学习",
+  "catHealth": "健康",
+  "catFinance": "财务",
+  "colorObsidianBlack": "曜石黑",
+  "colorKleinBlue": "克莱因蓝",
+  "colorEmeraldGreen": "翡翠绿",
+  "colorAmberOrange": "琥珀橙",
+  "colorVioletPurple": "罗兰紫",
+  "colorRoseRed": "玫瑰红",
+  "colorTurquoiseTeal": "松石青",
+  "colorMistySlate": "烟雨灰",
+  "modalThemeColor": "主题颜色"
 }

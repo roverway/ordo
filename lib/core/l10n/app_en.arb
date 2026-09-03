@@ -348,5 +348,57 @@
     "description": "Task groups menu: open projects overview page"
   },
   "autoSaveOnClose": "Auto-save on close",
-  "taskDetails": "Task Details"
+  "taskDetails": "Task Details",
+  "createList": "New List",
+  "createFolder": "New Folder",
+  "listName": "List Name",
+  "listNameHint": "Enter list name...",
+  "folderNameHint": "Enter folder name...",
+  "selectIcon": "Select Icon",
+  "instantApply": "Tap to apply",
+  "belongingFolder": "Folder",
+  "singleChoiceBelonging": "Single selection",
+  "noFolderRoot": "None (Top level)",
+  "listsCount": "{count, plural, =1 {1 list} other {{count} lists}}",
+  "@listsCount": {
+    "description": "Number of lists in folder",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "createListSuccess": "List \"{name}\" created",
+  "@createListSuccess": {
+    "description": "Create list success message",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "createFolderSuccess": "Folder \"{name}\" created",
+  "@createFolderSuccess": {
+    "description": "Create folder success message",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "catCommon": "Common",
+  "catWork": "Work",
+  "catLife": "Life",
+  "catStudy": "Study",
+  "catHealth": "Health",
+  "catFinance": "Finance",
+  "colorObsidianBlack": "Obsidian Black",
+  "colorKleinBlue": "Klein Blue",
+  "colorEmeraldGreen": "Emerald Green",
+  "colorAmberOrange": "Amber Orange",
+  "colorVioletPurple": "Violet Purple",
+  "colorRoseRed": "Rose Red",
+  "colorTurquoiseTeal": "Turquoise Teal",
+  "colorMistySlate": "Misty Slate",
+  "modalThemeColor": "Theme Color"
 }

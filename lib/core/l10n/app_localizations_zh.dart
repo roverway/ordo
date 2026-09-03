@@ -946,4 +946,94 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get taskDetails => '任务详情';
+
+  @override
+  String get createList => '新建清单';
+
+  @override
+  String get createFolder => '新建文件夹';
+
+  @override
+  String get listName => '清单名称';
+
+  @override
+  String get listNameHint => '输入清单名称...';
+
+  @override
+  String get folderNameHint => '输入文件夹名称...';
+
+  @override
+  String get selectIcon => '选择图标';
+
+  @override
+  String get instantApply => '点击即时应用';
+
+  @override
+  String get belongingFolder => '所属文件夹';
+
+  @override
+  String get singleChoiceBelonging => '单选归属';
+
+  @override
+  String get noFolderRoot => '无 (顶层清单)';
+
+  @override
+  String listsCount(int count) {
+    return '$count 个清单';
+  }
+
+  @override
+  String createListSuccess(String name) {
+    return '清单「$name」创建成功';
+  }
+
+  @override
+  String createFolderSuccess(String name) {
+    return '文件夹「$name」创建成功';
+  }
+
+  @override
+  String get catCommon => '常用';
+
+  @override
+  String get catWork => '工作';
+
+  @override
+  String get catLife => '生活';
+
+  @override
+  String get catStudy => '学习';
+
+  @override
+  String get catHealth => '健康';
+
+  @override
+  String get catFinance => '财务';
+
+  @override
+  String get colorObsidianBlack => '曜石黑';
+
+  @override
+  String get colorKleinBlue => '克莱因蓝';
+
+  @override
+  String get colorEmeraldGreen => '翡翠绿';
+
+  @override
+  String get colorAmberOrange => '琥珀橙';
+
+  @override
+  String get colorVioletPurple => '罗兰紫';
+
+  @override
+  String get colorRoseRed => '玫瑰红';
+
+  @override
+  String get colorTurquoiseTeal => '松石青';
+
+  @override
+  String get colorMistySlate => '烟雨灰';
+
+  @override
+  String get modalThemeColor => '主题颜色';
 }

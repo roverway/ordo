@@ -1891,6 +1891,174 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'任务详情'**
   String get taskDetails;
+
+  /// No description provided for @createList.
+  ///
+  /// In zh, this message translates to:
+  /// **'新建清单'**
+  String get createList;
+
+  /// No description provided for @createFolder.
+  ///
+  /// In zh, this message translates to:
+  /// **'新建文件夹'**
+  String get createFolder;
+
+  /// No description provided for @listName.
+  ///
+  /// In zh, this message translates to:
+  /// **'清单名称'**
+  String get listName;
+
+  /// No description provided for @listNameHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'输入清单名称...'**
+  String get listNameHint;
+
+  /// No description provided for @folderNameHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'输入文件夹名称...'**
+  String get folderNameHint;
+
+  /// No description provided for @selectIcon.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择图标'**
+  String get selectIcon;
+
+  /// No description provided for @instantApply.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击即时应用'**
+  String get instantApply;
+
+  /// No description provided for @belongingFolder.
+  ///
+  /// In zh, this message translates to:
+  /// **'所属文件夹'**
+  String get belongingFolder;
+
+  /// No description provided for @singleChoiceBelonging.
+  ///
+  /// In zh, this message translates to:
+  /// **'单选归属'**
+  String get singleChoiceBelonging;
+
+  /// No description provided for @noFolderRoot.
+  ///
+  /// In zh, this message translates to:
+  /// **'无 (顶层清单)'**
+  String get noFolderRoot;
+
+  /// 文件夹下清单数量
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 个清单'**
+  String listsCount(int count);
+
+  /// 新建清单成功提示
+  ///
+  /// In zh, this message translates to:
+  /// **'清单「{name}」创建成功'**
+  String createListSuccess(String name);
+
+  /// 新建文件夹成功提示
+  ///
+  /// In zh, this message translates to:
+  /// **'文件夹「{name}」创建成功'**
+  String createFolderSuccess(String name);
+
+  /// No description provided for @catCommon.
+  ///
+  /// In zh, this message translates to:
+  /// **'常用'**
+  String get catCommon;
+
+  /// No description provided for @catWork.
+  ///
+  /// In zh, this message translates to:
+  /// **'工作'**
+  String get catWork;
+
+  /// No description provided for @catLife.
+  ///
+  /// In zh, this message translates to:
+  /// **'生活'**
+  String get catLife;
+
+  /// No description provided for @catStudy.
+  ///
+  /// In zh, this message translates to:
+  /// **'学习'**
+  String get catStudy;
+
+  /// No description provided for @catHealth.
+  ///
+  /// In zh, this message translates to:
+  /// **'健康'**
+  String get catHealth;
+
+  /// No description provided for @catFinance.
+  ///
+  /// In zh, this message translates to:
+  /// **'财务'**
+  String get catFinance;
+
+  /// No description provided for @colorObsidianBlack.
+  ///
+  /// In zh, this message translates to:
+  /// **'曜石黑'**
+  String get colorObsidianBlack;
+
+  /// No description provided for @colorKleinBlue.
+  ///
+  /// In zh, this message translates to:
+  /// **'克莱因蓝'**
+  String get colorKleinBlue;
+
+  /// No description provided for @colorEmeraldGreen.
+  ///
+  /// In zh, this message translates to:
+  /// **'翡翠绿'**
+  String get colorEmeraldGreen;
+
+  /// No description provided for @colorAmberOrange.
+  ///
+  /// In zh, this message translates to:
+  /// **'琥珀橙'**
+  String get colorAmberOrange;
+
+  /// No description provided for @colorVioletPurple.
+  ///
+  /// In zh, this message translates to:
+  /// **'罗兰紫'**
+  String get colorVioletPurple;
+
+  /// No description provided for @colorRoseRed.
+  ///
+  /// In zh, this message translates to:
+  /// **'玫瑰红'**
+  String get colorRoseRed;
+
+  /// No description provided for @colorTurquoiseTeal.
+  ///
+  /// In zh, this message translates to:
+  /// **'松石青'**
+  String get colorTurquoiseTeal;
+
+  /// No description provided for @colorMistySlate.
+  ///
+  /// In zh, this message translates to:
+  /// **'烟雨灰'**
+  String get colorMistySlate;
+
+  /// No description provided for @modalThemeColor.
+  ///
+  /// In zh, this message translates to:
+  /// **'主题颜色'**
+  String get modalThemeColor;
 }
 
 class _AppLocalizationsDelegate

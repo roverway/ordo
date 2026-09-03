@@ -13,8 +13,8 @@ import '../../features/custom_views/presentation/custom_view_editor_page.dart';
 import '../../features/custom_views/providers/custom_view_providers.dart';
 import '../../features/custom_views/widgets/icon_picker_dialog.dart';
 import '../../features/projects/project_providers.dart';
+import '../../features/projects/widgets/create_list_folder_sheet.dart';
 import '../../features/projects/widgets/folder_name_dialog.dart';
-import '../../features/projects/widgets/project_form_dialog.dart';
 import '../../features/settings/widgets/settings_side_sheet.dart';
 import '../../features/sync_setup/sync_setup_providers.dart';
 import '../../features/tasks/task_providers.dart';
@@ -1187,27 +1187,17 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     BuildContext context,
     WidgetRef ref,
   ) async {
-    final result = await showProjectFormDialog(context: context);
-    if (result != null && context.mounted) {
-      await ref
-          .read(todoRepositoryProvider)
-          .createProject(
-            name: result.name,
-            color: result.color,
-            description: result.description,
-          );
-    }
+    await showCreateListFolderSheet(
+      context: context,
+      initialType: CreateType.list,
+    );
   }
 
   Future<void> _showNewFolderDialog(BuildContext context, WidgetRef ref) async {
-    final name = await showFolderNameDialog(context: context);
-    if (name != null && context.mounted) {
-      try {
-        await ref.read(todoRepositoryProvider).createFolder(name: name);
-      } catch (e) {
-        if (context.mounted) _showRepoError(context, e);
-      }
-    }
+    await showCreateListFolderSheet(
+      context: context,
+      initialType: CreateType.folder,
+    );
   }
 }
 

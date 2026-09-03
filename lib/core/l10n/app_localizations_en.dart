@@ -963,4 +963,100 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get taskDetails => 'Task Details';
+
+  @override
+  String get createList => 'New List';
+
+  @override
+  String get createFolder => 'New Folder';
+
+  @override
+  String get listName => 'List Name';
+
+  @override
+  String get listNameHint => 'Enter list name...';
+
+  @override
+  String get folderNameHint => 'Enter folder name...';
+
+  @override
+  String get selectIcon => 'Select Icon';
+
+  @override
+  String get instantApply => 'Tap to apply';
+
+  @override
+  String get belongingFolder => 'Folder';
+
+  @override
+  String get singleChoiceBelonging => 'Single selection';
+
+  @override
+  String get noFolderRoot => 'None (Top level)';
+
+  @override
+  String listsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count lists',
+      one: '1 list',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String createListSuccess(String name) {
+    return 'List \"$name\" created';
+  }
+
+  @override
+  String createFolderSuccess(String name) {
+    return 'Folder \"$name\" created';
+  }
+
+  @override
+  String get catCommon => 'Common';
+
+  @override
+  String get catWork => 'Work';
+
+  @override
+  String get catLife => 'Life';
+
+  @override
+  String get catStudy => 'Study';
+
+  @override
+  String get catHealth => 'Health';
+
+  @override
+  String get catFinance => 'Finance';
+
+  @override
+  String get colorObsidianBlack => 'Obsidian Black';
+
+  @override
+  String get colorKleinBlue => 'Klein Blue';
+
+  @override
+  String get colorEmeraldGreen => 'Emerald Green';
+
+  @override
+  String get colorAmberOrange => 'Amber Orange';
+
+  @override
+  String get colorVioletPurple => 'Violet Purple';
+
+  @override
+  String get colorRoseRed => 'Rose Red';
+
+  @override
+  String get colorTurquoiseTeal => 'Turquoise Teal';
+
+  @override
+  String get colorMistySlate => 'Misty Slate';
+
+  @override
+  String get modalThemeColor => 'Theme Color';
 }
