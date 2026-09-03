@@ -599,19 +599,19 @@ List<Task> sortPanelTasks(
 /// 计算任务的有效完成时间（UTC 毫秒）。
 ///
 /// - 有直接子任务的任务：取所有子任务有效完成时间的最大值；
-/// - 无子任务任务：优先使用 [task.completedAt]，缺失时回退 [task.updatedAt]。
+/// - 无子任务任务：严格使用 [task.completedAt]（旧数据 NULL 不误作今日完成）。
 int? _getEffectiveCompletedAt(
   Task task,
   List<Task> directChildren,
   Map<String, Task> byId,
 ) {
   if (directChildren.isEmpty) {
-    return task.completedAt ?? task.updatedAt;
+    return task.completedAt;
   }
   int? maxTime;
   for (final child in directChildren) {
-    final t = child.completedAt ?? child.updatedAt;
-    if (maxTime == null || t > maxTime) {
+    final t = child.completedAt;
+    if (t != null && (maxTime == null || t > maxTime)) {
       maxTime = t;
     }
   }

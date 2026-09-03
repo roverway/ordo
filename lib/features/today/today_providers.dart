@@ -118,10 +118,10 @@ Future<TodayViewData> buildTodayView({
         view_rules.matchesToday(task, todayStart, todayEnd);
 
     // 今天完成的任务：有效完成时间（completedAt 或父级派生完成时间）落在今天区间内。
-    // 如果旧数据缺少 completedAt，回退使用 updatedAt。
+    // 严格依赖 completedAt，历史 NULL 任务不误作为今日完成。
     final compAt = directChildren.isNotEmpty
         ? _getEffectiveCompletedAt(task, directChildren)
-        : (task.completedAt ?? task.updatedAt);
+        : task.completedAt;
     final completedToday =
         effectiveStatus == TaskStatus.done &&
         compAt != null &&
@@ -193,12 +193,12 @@ final todayViewProvider = StreamProvider<TodayViewData>((ref) async* {
 
 int? _getEffectiveCompletedAt(Task task, List<Task> directChildren) {
   if (directChildren.isEmpty) {
-    return task.completedAt ?? task.updatedAt;
+    return task.completedAt;
   }
   int? maxTime;
   for (final child in directChildren) {
-    final t = child.completedAt ?? child.updatedAt;
-    if (maxTime == null || t > maxTime) {
+    final t = child.completedAt;
+    if (t != null && (maxTime == null || t > maxTime)) {
       maxTime = t;
     }
   }
