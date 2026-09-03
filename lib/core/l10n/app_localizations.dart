@@ -2059,6 +2059,30 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'主题颜色'**
   String get modalThemeColor;
+
+  /// No description provided for @editList.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑清单'**
+  String get editList;
+
+  /// No description provided for @editFolder.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑文件夹'**
+  String get editFolder;
+
+  /// 编辑清单成功提示
+  ///
+  /// In zh, this message translates to:
+  /// **'清单「{name}」已更新'**
+  String editListSuccess(String name);
+
+  /// 编辑文件夹成功提示
+  ///
+  /// In zh, this message translates to:
+  /// **'文件夹「{name}」已更新'**
+  String editFolderSuccess(String name);
 }
 
 class _AppLocalizationsDelegate

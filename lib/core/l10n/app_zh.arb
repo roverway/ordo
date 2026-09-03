@@ -400,5 +400,25 @@
   "colorRoseRed": "玫瑰红",
   "colorTurquoiseTeal": "松石青",
   "colorMistySlate": "烟雨灰",
-  "modalThemeColor": "主题颜色"
+  "modalThemeColor": "主题颜色",
+  "editList": "编辑清单",
+  "editFolder": "编辑文件夹",
+  "editListSuccess": "清单「{name}」已更新",
+  "@editListSuccess": {
+    "description": "编辑清单成功提示",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "editFolderSuccess": "文件夹「{name}」已更新",
+  "@editFolderSuccess": {
+    "description": "编辑文件夹成功提示",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  }
 }

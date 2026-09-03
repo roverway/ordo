@@ -14,7 +14,6 @@ import '../../features/custom_views/providers/custom_view_providers.dart';
 import '../../features/custom_views/widgets/icon_picker_dialog.dart';
 import '../../features/projects/project_providers.dart';
 import '../../features/projects/widgets/create_list_folder_sheet.dart';
-import '../../features/projects/widgets/folder_name_dialog.dart';
 import '../../features/settings/widgets/settings_side_sheet.dart';
 import '../../features/sync_setup/sync_setup_providers.dart';
 import '../../features/tasks/task_providers.dart';
@@ -782,11 +781,18 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final highlight = _targetColor(context, isDragTarget, isInvalidDragTarget);
+    final folderColor = folder.color != null
+        ? Color(folder.color!)
+        : colorScheme.primary;
+    final folderIcon = getIconDataById(
+      folder.icon,
+      fallback: Icons.folder_outlined,
+    );
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTokens.spaceXs,
-        vertical: 1.5,
+    return Container(
+      margin: const EdgeInsets.only(
+        top: AppTokens.drawerRowSpacing,
+        bottom: AppTokens.drawerRowSpacing,
       ),
       child: Material(
         color: highlight ?? Colors.transparent,
@@ -802,11 +808,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.folder_outlined,
-                  size: 18,
-                  color: colorScheme.primary,
-                ),
+                Icon(folderIcon, size: 18, color: folderColor),
                 const SizedBox(width: AppTokens.spaceSm),
                 Expanded(
                   child: Text(
@@ -1117,17 +1119,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     final repo = ref.read(todoRepositoryProvider);
     switch (action) {
       case 'rename':
-        final name = await showFolderNameDialog(
-          context: context,
-          initialName: folder.name,
-        );
-        if (name != null && context.mounted) {
-          try {
-            await repo.renameFolder(folder.id, name: name);
-          } catch (e) {
-            if (context.mounted) _showRepoError(context, e);
-          }
-        }
+        await showEditFolderSheet(context, folder);
       case 'delete':
         final confirmed = await showConfirmDialog(
           context: context,

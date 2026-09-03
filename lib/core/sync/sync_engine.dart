@@ -687,6 +687,7 @@ class SyncEngine {
           name: p.name,
           color: p.color,
           description: p.description,
+          icon: p.icon,
           folderId: p.folderId,
           sortOrder: p.sortOrder,
           createdAt: p.createdAt,
@@ -731,6 +732,8 @@ class SyncEngine {
         FolderRecord(
           id: f.id,
           name: f.name,
+          color: f.color,
+          icon: f.icon,
           sortOrder: f.sortOrder,
           createdAt: f.createdAt,
           updatedAt: f.updatedAt,
@@ -946,6 +949,7 @@ class SyncEngine {
     name: r.name,
     color: r.color,
     description: r.description,
+    icon: r.icon,
     folderId: r.folderId,
     sortOrder: r.sortOrder,
     createdAt: r.createdAt,
@@ -983,6 +987,8 @@ class SyncEngine {
   Folder _folderFromRecord(FolderRecord r) => Folder(
     id: r.id,
     name: r.name,
+    color: r.color,
+    icon: r.icon,
     sortOrder: r.sortOrder,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,

@@ -400,5 +400,25 @@
   "colorRoseRed": "Rose Red",
   "colorTurquoiseTeal": "Turquoise Teal",
   "colorMistySlate": "Misty Slate",
-  "modalThemeColor": "Theme Color"
+  "modalThemeColor": "Theme Color",
+  "editList": "Edit List",
+  "editFolder": "Edit Folder",
+  "editListSuccess": "List \"{name}\" updated",
+  "@editListSuccess": {
+    "description": "Edit list success message",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "editFolderSuccess": "Folder \"{name}\" updated",
+  "@editFolderSuccess": {
+    "description": "Edit folder success message",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  }
 }

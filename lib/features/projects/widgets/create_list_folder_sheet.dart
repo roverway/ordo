@@ -1,12 +1,14 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/db/database.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/platform/keyboard_inset_bridge.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../project_providers.dart';
 
-/// 创建模式：新建清单 vs 新建文件夹
+/// 模式：清单 vs 文件夹
 enum CreateType { list, folder }
 
 /// 图标分类
@@ -47,7 +49,7 @@ class PresetModalColor {
   }
 }
 
-/// 8 款精选主题色（与原型完全一致）
+/// 8 款精选主题色
 const List<PresetModalColor> kPresetModalColors = [
   PresetModalColor(
     id: 'black',
@@ -99,7 +101,7 @@ const List<PresetModalColor> kPresetModalColors = [
   ),
 ];
 
-/// 6 大分类矢量图标库（与原型完全一致）
+/// 丰富预置图标库（每类 16 个语义图标）
 const Map<PresetIconCategory, List<PresetIconItem>> kPresetModalIcons = {
   PresetIconCategory.common: [
     PresetIconItem(
@@ -174,6 +176,30 @@ const Map<PresetIconCategory, List<PresetIconItem>> kPresetModalIcons = {
       nameZh: '想法',
       nameEn: 'Idea',
     ),
+    PresetIconItem(
+      id: 'pin',
+      icon: Icons.push_pin_outlined,
+      nameZh: '置顶',
+      nameEn: 'Pin',
+    ),
+    PresetIconItem(
+      id: 'bookmark',
+      icon: Icons.bookmark_outline_rounded,
+      nameZh: '书签',
+      nameEn: 'Bookmark',
+    ),
+    PresetIconItem(
+      id: 'bolt',
+      icon: Icons.bolt_rounded,
+      nameZh: '闪念',
+      nameEn: 'Quick',
+    ),
+    PresetIconItem(
+      id: 'check-circle',
+      icon: Icons.check_circle_outline_rounded,
+      nameZh: '完成',
+      nameEn: 'Done',
+    ),
   ],
   PresetIconCategory.work: [
     PresetIconItem(
@@ -211,6 +237,66 @@ const Map<PresetIconCategory, List<PresetIconItem>> kPresetModalIcons = {
       icon: Icons.rocket_launch_outlined,
       nameZh: '项目',
       nameEn: 'Rocket',
+    ),
+    PresetIconItem(
+      id: 'terminal',
+      icon: Icons.terminal_rounded,
+      nameZh: '终端',
+      nameEn: 'Terminal',
+    ),
+    PresetIconItem(
+      id: 'code',
+      icon: Icons.code_rounded,
+      nameZh: '编程',
+      nameEn: 'Code',
+    ),
+    PresetIconItem(
+      id: 'bug',
+      icon: Icons.bug_report_outlined,
+      nameZh: '缺陷',
+      nameEn: 'Bug',
+    ),
+    PresetIconItem(
+      id: 'build',
+      icon: Icons.build_outlined,
+      nameZh: '工具',
+      nameEn: 'Build',
+    ),
+    PresetIconItem(
+      id: 'design',
+      icon: Icons.design_services_outlined,
+      nameZh: '设计',
+      nameEn: 'Design',
+    ),
+    PresetIconItem(
+      id: 'assessment',
+      icon: Icons.assessment_outlined,
+      nameZh: '报告',
+      nameEn: 'Report',
+    ),
+    PresetIconItem(
+      id: 'meeting',
+      icon: Icons.meeting_room_outlined,
+      nameZh: '会议',
+      nameEn: 'Meeting',
+    ),
+    PresetIconItem(
+      id: 'campaign',
+      icon: Icons.campaign_outlined,
+      nameZh: '推广',
+      nameEn: 'Campaign',
+    ),
+    PresetIconItem(
+      id: 'architecture',
+      icon: Icons.architecture_rounded,
+      nameZh: '架构',
+      nameEn: 'Architecture',
+    ),
+    PresetIconItem(
+      id: 'handshake',
+      icon: Icons.handshake_outlined,
+      nameZh: '合作',
+      nameEn: 'Collaboration',
     ),
   ],
   PresetIconCategory.life: [
@@ -250,6 +336,66 @@ const Map<PresetIconCategory, List<PresetIconItem>> kPresetModalIcons = {
       nameZh: '娱乐',
       nameEn: 'Music',
     ),
+    PresetIconItem(
+      id: 'flight',
+      icon: Icons.flight_takeoff_rounded,
+      nameZh: '旅行',
+      nameEn: 'Travel',
+    ),
+    PresetIconItem(
+      id: 'car',
+      icon: Icons.directions_car_outlined,
+      nameZh: '出行',
+      nameEn: 'Transport',
+    ),
+    PresetIconItem(
+      id: 'florist',
+      icon: Icons.local_florist_outlined,
+      nameZh: '绿植',
+      nameEn: 'Plant',
+    ),
+    PresetIconItem(
+      id: 'pets',
+      icon: Icons.pets_rounded,
+      nameZh: '宠物',
+      nameEn: 'Pets',
+    ),
+    PresetIconItem(
+      id: 'movie',
+      icon: Icons.movie_outlined,
+      nameZh: '电影',
+      nameEn: 'Movie',
+    ),
+    PresetIconItem(
+      id: 'weekend',
+      icon: Icons.weekend_outlined,
+      nameZh: '假期',
+      nameEn: 'Weekend',
+    ),
+    PresetIconItem(
+      id: 'child',
+      icon: Icons.child_friendly_rounded,
+      nameZh: '亲子',
+      nameEn: 'Family',
+    ),
+    PresetIconItem(
+      id: 'cleaning',
+      icon: Icons.cleaning_services_outlined,
+      nameZh: '家务',
+      nameEn: 'Cleaning',
+    ),
+    PresetIconItem(
+      id: 'umbrella',
+      icon: Icons.beach_access_rounded,
+      nameZh: '度假',
+      nameEn: 'Resort',
+    ),
+    PresetIconItem(
+      id: 'camera',
+      icon: Icons.camera_alt_outlined,
+      nameZh: '摄影',
+      nameEn: 'Photo',
+    ),
   ],
   PresetIconCategory.study: [
     PresetIconItem(
@@ -287,6 +433,66 @@ const Map<PresetIconCategory, List<PresetIconItem>> kPresetModalIcons = {
       icon: Icons.emoji_events_outlined,
       nameZh: '目标',
       nameEn: 'Goal',
+    ),
+    PresetIconItem(
+      id: 'auto-stories',
+      icon: Icons.auto_stories_rounded,
+      nameZh: '书籍',
+      nameEn: 'Books',
+    ),
+    PresetIconItem(
+      id: 'psychology',
+      icon: Icons.psychology_outlined,
+      nameZh: '思维',
+      nameEn: 'Mind',
+    ),
+    PresetIconItem(
+      id: 'science',
+      icon: Icons.science_outlined,
+      nameZh: '科学',
+      nameEn: 'Science',
+    ),
+    PresetIconItem(
+      id: 'calculate',
+      icon: Icons.calculate_outlined,
+      nameZh: '数学',
+      nameEn: 'Math',
+    ),
+    PresetIconItem(
+      id: 'translate',
+      icon: Icons.translate_rounded,
+      nameZh: '语言',
+      nameEn: 'Language',
+    ),
+    PresetIconItem(
+      id: 'quiz',
+      icon: Icons.quiz_outlined,
+      nameZh: '测验',
+      nameEn: 'Quiz',
+    ),
+    PresetIconItem(
+      id: 'draw',
+      icon: Icons.draw_outlined,
+      nameZh: '写作',
+      nameEn: 'Writing',
+    ),
+    PresetIconItem(
+      id: 'history',
+      icon: Icons.history_edu_rounded,
+      nameZh: '历史',
+      nameEn: 'History',
+    ),
+    PresetIconItem(
+      id: 'history-toggle',
+      icon: Icons.history_toggle_off_rounded,
+      nameZh: '复习',
+      nameEn: 'Review',
+    ),
+    PresetIconItem(
+      id: 'spellcheck',
+      icon: Icons.spellcheck_rounded,
+      nameZh: '语法',
+      nameEn: 'Grammar',
     ),
   ],
   PresetIconCategory.health: [
@@ -326,6 +532,66 @@ const Map<PresetIconCategory, List<PresetIconItem>> kPresetModalIcons = {
       nameZh: '心情',
       nameEn: 'Mood',
     ),
+    PresetIconItem(
+      id: 'hospital',
+      icon: Icons.local_hospital_outlined,
+      nameZh: '医疗',
+      nameEn: 'Hospital',
+    ),
+    PresetIconItem(
+      id: 'run',
+      icon: Icons.directions_run_rounded,
+      nameZh: '跑步',
+      nameEn: 'Running',
+    ),
+    PresetIconItem(
+      id: 'walk',
+      icon: Icons.directions_walk_rounded,
+      nameZh: '步行',
+      nameEn: 'Walking',
+    ),
+    PresetIconItem(
+      id: 'meditation',
+      icon: Icons.self_improvement_rounded,
+      nameZh: '冥想',
+      nameEn: 'Meditation',
+    ),
+    PresetIconItem(
+      id: 'monitor-heart',
+      icon: Icons.monitor_heart_outlined,
+      nameZh: '心率',
+      nameEn: 'Heart Rate',
+    ),
+    PresetIconItem(
+      id: 'pool',
+      icon: Icons.pool_rounded,
+      nameZh: '游泳',
+      nameEn: 'Swimming',
+    ),
+    PresetIconItem(
+      id: 'spa',
+      icon: Icons.spa_outlined,
+      nameZh: '水疗',
+      nameEn: 'Spa',
+    ),
+    PresetIconItem(
+      id: 'pharmacy',
+      icon: Icons.local_pharmacy_outlined,
+      nameZh: '用药',
+      nameEn: 'Medicine',
+    ),
+    PresetIconItem(
+      id: 'nature',
+      icon: Icons.nature_people_outlined,
+      nameZh: '户外',
+      nameEn: 'Outdoor',
+    ),
+    PresetIconItem(
+      id: 'blind',
+      icon: Icons.blind_rounded,
+      nameZh: '视力',
+      nameEn: 'Eye Care',
+    ),
   ],
   PresetIconCategory.finance: [
     PresetIconItem(
@@ -349,8 +615,8 @@ const Map<PresetIconCategory, List<PresetIconItem>> kPresetModalIcons = {
     PresetIconItem(
       id: 'trending-up',
       icon: Icons.trending_up_rounded,
-      nameZh: '理财',
-      nameEn: 'Finance',
+      nameZh: '投资',
+      nameEn: 'Invest',
     ),
     PresetIconItem(
       id: 'receipt',
@@ -361,47 +627,149 @@ const Map<PresetIconCategory, List<PresetIconItem>> kPresetModalIcons = {
     PresetIconItem(
       id: 'shopping-bag',
       icon: Icons.shopping_bag_outlined,
-      nameZh: '支出',
+      nameZh: '消费',
       nameEn: 'Expense',
+    ),
+    PresetIconItem(
+      id: 'savings',
+      icon: Icons.savings_outlined,
+      nameZh: '储蓄',
+      nameEn: 'Savings',
+    ),
+    PresetIconItem(
+      id: 'bank',
+      icon: Icons.account_balance_outlined,
+      nameZh: '银行',
+      nameEn: 'Bank',
+    ),
+    PresetIconItem(
+      id: 'payments',
+      icon: Icons.payments_outlined,
+      nameZh: '支付',
+      nameEn: 'Payments',
+    ),
+    PresetIconItem(
+      id: 'monetization',
+      icon: Icons.monetization_on_outlined,
+      nameZh: '收入',
+      nameEn: 'Income',
+    ),
+    PresetIconItem(
+      id: 'point-of-sale',
+      icon: Icons.point_of_sale_rounded,
+      nameZh: '结算',
+      nameEn: 'POS',
+    ),
+    PresetIconItem(
+      id: 'price-change',
+      icon: Icons.price_change_outlined,
+      nameZh: '行情',
+      nameEn: 'Market',
+    ),
+    PresetIconItem(
+      id: 'currency-exchange',
+      icon: Icons.currency_exchange_rounded,
+      nameZh: '外汇',
+      nameEn: 'Exchange',
+    ),
+    PresetIconItem(
+      id: 'pie-chart',
+      icon: Icons.pie_chart_outline_rounded,
+      nameZh: '预算',
+      nameEn: 'Budget',
+    ),
+    PresetIconItem(
+      id: 'bar-chart',
+      icon: Icons.bar_chart_rounded,
+      nameZh: '报表',
+      nameEn: 'Analytics',
+    ),
+    PresetIconItem(
+      id: 'qr-code',
+      icon: Icons.qr_code_rounded,
+      nameZh: '扫码',
+      nameEn: 'QR Pay',
     ),
   ],
 };
 
-/// 呼出移动端新建清单与新建文件夹抽屉模态
+/// 根据 iconId 查找预置图标项
+PresetIconItem? getPresetIconById(String? id) {
+  if (id == null || id.isEmpty) return null;
+  for (final list in kPresetModalIcons.values) {
+    for (final item in list) {
+      if (item.id == id) return item;
+    }
+  }
+  return null;
+}
+
+/// 根据 iconId 查找 IconData
+IconData getIconDataById(
+  String? id, {
+  IconData fallback = Icons.format_list_bulleted_rounded,
+}) {
+  return getPresetIconById(id)?.icon ?? fallback;
+}
+
+/// 底部弹出模态：新建/编辑清单与文件夹
 Future<T?> showCreateListFolderSheet<T>({
   required BuildContext context,
   CreateType initialType = CreateType.list,
   String? initialFolderId,
+  Project? editingProject,
+  Folder? editingFolder,
 }) {
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     builder: (ctx) => KeyboardInsetBuilder(
-      child: RepaintBoundary(
+      builder: (context, keyboardHeight, bottomInset, child) => Padding(
+        padding: EdgeInsets.only(bottom: keyboardHeight),
         child: CreateListFolderSheet(
           initialType: initialType,
           initialFolderId: initialFolderId,
+          editingProject: editingProject,
+          editingFolder: editingFolder,
         ),
-      ),
-      builder: (context, effectiveInset, _, child) => Padding(
-        padding: EdgeInsets.only(bottom: effectiveInset),
-        child: child!,
       ),
     ),
   );
 }
 
-/// 移动端新建清单与新建文件夹底部抽屉模态（对齐原型 mobile-create-list-folder-modal-2-2.html）
+/// 快速打开「编辑清单」
+Future<Project?> showEditListSheet(BuildContext context, Project project) {
+  return showCreateListFolderSheet<Project>(
+    context: context,
+    initialType: CreateType.list,
+    editingProject: project,
+  );
+}
+
+/// 快速打开「编辑文件夹」
+Future<Folder?> showEditFolderSheet(BuildContext context, Folder folder) {
+  return showCreateListFolderSheet<Folder>(
+    context: context,
+    initialType: CreateType.folder,
+    editingFolder: folder,
+  );
+}
+
+/// 新建/编辑清单与文件夹的底部模态组件
 class CreateListFolderSheet extends ConsumerStatefulWidget {
   const CreateListFolderSheet({
     super.key,
     this.initialType = CreateType.list,
     this.initialFolderId,
+    this.editingProject,
+    this.editingFolder,
   });
 
   final CreateType initialType;
   final String? initialFolderId;
+  final Project? editingProject;
+  final Folder? editingFolder;
 
   @override
   ConsumerState<CreateListFolderSheet> createState() =>
@@ -409,37 +777,81 @@ class CreateListFolderSheet extends ConsumerStatefulWidget {
 }
 
 class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
+  static const int _maxNameLength = 24;
+
   late CreateType _createType;
   late final TextEditingController _nameController;
   late final FocusNode _nameFocusNode;
 
   late PresetModalColor _selectedColor;
+  late PresetIconCategory _selectedCategory;
   late PresetIconItem _selectedIcon;
-  PresetIconCategory _selectedCategory = PresetIconCategory.common;
-  String? _selectedFolderId; // null = 无 (顶层清单)
+  String? _selectedFolderId;
+  bool _isSubmitting = false;
 
-  static const int _maxNameLength = 24;
+  bool get _isEditing =>
+      widget.editingProject != null || widget.editingFolder != null;
 
   @override
   void initState() {
     super.initState();
-    _createType = widget.initialType;
-    _selectedFolderId = widget.initialFolderId;
-    _nameController = TextEditingController();
-    _nameFocusNode = FocusNode();
 
-    _selectedColor = kPresetModalColors.first;
-    if (_createType == CreateType.folder) {
-      _selectedIcon = kPresetModalIcons[PresetIconCategory.common]!.firstWhere(
-        (i) => i.id == 'folder',
-      );
+    if (widget.editingProject != null) {
+      _createType = CreateType.list;
+    } else if (widget.editingFolder != null) {
+      _createType = CreateType.folder;
     } else {
-      _selectedIcon = kPresetModalIcons[PresetIconCategory.common]!.first;
+      _createType = widget.initialType;
     }
 
+    final initialName =
+        widget.editingProject?.name ?? widget.editingFolder?.name ?? '';
+    _nameController = TextEditingController(text: initialName);
+    _nameFocusNode = FocusNode();
+
+    // 监听名称变化以更新完成按钮及字数统计
     _nameController.addListener(() {
       setState(() {});
     });
+
+    // 初始化颜色
+    final initialColorInt =
+        widget.editingProject?.color ?? widget.editingFolder?.color;
+    if (initialColorInt != null) {
+      final found = kPresetModalColors.where(
+        (c) => c.color.toARGB32() == initialColorInt,
+      );
+      _selectedColor = found.isNotEmpty ? found.first : kPresetModalColors[1];
+    } else {
+      _selectedColor = _createType == CreateType.list
+          ? kPresetModalColors[1] // 克莱因蓝
+          : kPresetModalColors[3]; // 琥珀橙
+    }
+
+    // 初始化图标
+    final initialIconId =
+        widget.editingProject?.icon ?? widget.editingFolder?.icon;
+    final presetIcon = getPresetIconById(initialIconId);
+    if (presetIcon != null) {
+      _selectedIcon = presetIcon;
+      // 反查 category
+      PresetIconCategory? foundCat;
+      for (final entry in kPresetModalIcons.entries) {
+        if (entry.value.any((item) => item.id == presetIcon.id)) {
+          foundCat = entry.key;
+          break;
+        }
+      }
+      _selectedCategory = foundCat ?? PresetIconCategory.common;
+    } else {
+      _selectedCategory = PresetIconCategory.common;
+      _selectedIcon = _createType == CreateType.list
+          ? kPresetModalIcons[PresetIconCategory.common]![0]
+          : kPresetModalIcons[PresetIconCategory.common]![9]; // folder
+    }
+
+    _selectedFolderId =
+        widget.editingProject?.folderId ?? widget.initialFolderId;
   }
 
   @override
@@ -449,79 +861,124 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
     super.dispose();
   }
 
-  void _switchCreateType(CreateType type) {
-    if (_createType == type) return;
+  void _switchType(CreateType type) {
+    if (_isEditing || _createType == type) return;
     setState(() {
       _createType = type;
       if (type == CreateType.folder) {
-        if (_selectedIcon.id == 'list') {
-          _selectedIcon = kPresetModalIcons[PresetIconCategory.common]!
-              .firstWhere((i) => i.id == 'folder');
-        }
+        _selectedIcon =
+            kPresetModalIcons[PresetIconCategory.common]![9]; // 文件夹图标
+        _selectedColor = kPresetModalColors[3]; // 琥珀橙
+      } else {
+        _selectedIcon =
+            kPresetModalIcons[PresetIconCategory.common]![0]; // 清单图标
+        _selectedColor = kPresetModalColors[1]; // 克莱因蓝
       }
     });
   }
 
   Future<void> _submit() async {
     final name = _nameController.text.trim();
-    if (name.isEmpty) return;
+    if (name.isEmpty || _isSubmitting) return;
+
+    setState(() {
+      _isSubmitting = true;
+    });
 
     final repo = ref.read(todoRepositoryProvider);
     final l10n = AppLocalizations.of(context);
-    final isList = _createType == CreateType.list;
 
     try {
-      dynamic createdItem;
-      if (isList) {
-        createdItem = await repo.createProject(
+      if (widget.editingProject != null) {
+        // ── 编辑清单 ──
+        final targetProject = widget.editingProject!;
+        await repo.updateProject(
+          targetProject.id,
           name: name,
           color: _selectedColor.color.toARGB32(),
+          icon: _selectedIcon.id,
+          folderId: Value(_selectedFolderId),
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.editListSuccess(name)),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+          Navigator.of(context).pop(true);
+        }
+      } else if (widget.editingFolder != null) {
+        // ── 编辑文件夹 ──
+        final targetFolder = widget.editingFolder!;
+        await repo.updateFolder(
+          targetFolder.id,
+          name: name,
+          color: _selectedColor.color.toARGB32(),
+          icon: _selectedIcon.id,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.editFolderSuccess(name)),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+          Navigator.of(context).pop(true);
+        }
+      } else if (_createType == CreateType.list) {
+        // ── 新建清单 ──
+        final newProject = await repo.createProject(
+          name: name,
+          color: _selectedColor.color.toARGB32(),
+          icon: _selectedIcon.id,
           folderId: _selectedFolderId,
         );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.createListSuccess(name)),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+          Navigator.of(context).pop(newProject);
+        }
       } else {
-        createdItem = await repo.createFolder(name: name);
-      }
-
-      if (mounted) {
-        Navigator.of(context).pop(createdItem);
-        final message = isList
-            ? l10n.createListSuccess(name)
-            : l10n.createFolderSuccess(name);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(
-                  Icons.check_circle_outline_rounded,
-                  color: AppTokens.colorDone,
-                  size: 20,
-                ),
-                const SizedBox(width: AppTokens.spaceSm),
-                Expanded(
-                  child: Text(
-                    message,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-            ),
-            duration: const Duration(seconds: 2),
-          ),
+        // ── 新建文件夹 ──
+        final newFolder = await repo.createFolder(
+          name: name,
+          color: _selectedColor.color.toARGB32(),
+          icon: _selectedIcon.id,
         );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.createFolderSuccess(name)),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+          Navigator.of(context).pop(newFolder);
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString()),
+            backgroundColor: Colors.red.shade700,
             behavior: SnackBarBehavior.floating,
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
       }
     }
   }
@@ -541,7 +998,8 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
 
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.sizeOf(context).height * 0.92,
+        // 最大高度对齐导航弹窗（0.85），不触及屏幕顶部
+        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
       ),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF18191D) : const Color(0xFFFFFFFF),
@@ -573,84 +1031,129 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
               ),
             ),
 
-            // ── 抽屉顶栏导航 ──
+            // ── 顶栏导航 ──
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 2, 16, 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // 取消
+                  // 左侧取消
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
                     style: TextButton.styleFrom(
-                      foregroundColor: colorScheme.onSurfaceVariant,
-                      textStyle: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      foregroundColor: isDark
+                          ? const Color(0xFF9CA3AF)
+                          : const Color(0xFF6B7280),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                        horizontal: 10,
+                        vertical: 6,
                       ),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                    child: Text(l10n.cancel),
+                    child: Text(
+                      l10n.cancel,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
                   ),
 
-                  // 清单 / 文件夹 Segmented Picker
-                  _buildSegmentedPicker(isDark),
+                  // 中间：分段切换器（新建模式）或 标题（编辑模式）
+                  if (_isEditing)
+                    Text(
+                      widget.editingProject != null
+                          ? l10n.editList
+                          : l10n.editFolder,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? const Color(0xFFF3F4F6)
+                            : const Color(0xFF111827),
+                      ),
+                    )
+                  else
+                    _buildSegmentedControl(l10n, isDark),
 
-                  // 完成
+                  // 右侧完成
                   TextButton(
-                    onPressed: isNameValid ? _submit : null,
+                    onPressed: isNameValid && !_isSubmitting ? _submit : null,
                     style: TextButton.styleFrom(
                       foregroundColor: activeAccent,
-                      disabledForegroundColor: colorScheme.onSurfaceVariant
-                          .withValues(alpha: 0.35),
-                      textStyle: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      disabledForegroundColor: isDark
+                          ? const Color(0xFF4B5563)
+                          : const Color(0xFFD1D5DB),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                        horizontal: 14,
+                        vertical: 6,
                       ),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      backgroundColor: isNameValid
+                          ? activeAccent.withValues(alpha: 0.12)
+                          : Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
-                    child: Text(l10n.done),
+                    child: _isSubmitting
+                        ? SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: activeAccent,
+                            ),
+                          )
+                        : Text(
+                            l10n.done,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: isNameValid
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            ),
+                          ),
                   ),
                 ],
               ),
             ),
 
-            const Divider(height: 1),
+            const Divider(height: 1, thickness: 0.5),
 
-            // ── 抽屉可滚动内容区 ──
-            Flexible(
+            // ── 可滚动表单区域 ──
+            Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // 1. 名称与图标前缀输入卡片
                     _buildNameInputCard(l10n, isDark, activeAccent, isList),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
 
-                    // 2. 主题颜色调色板
-                    _buildThemeColorSection(l10n, isDark),
+                    // 2. 主题颜色选择
+                    _buildColorPalette(l10n, isDark),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
 
-                    // 3. 多分类图标选择区
-                    _buildIconLibrarySection(l10n, isDark, activeAccent),
+                    // 3. 图标库选择
+                    _buildIconPicker(l10n, isDark, activeAccent),
 
-                    // 4. 所属文件夹单选列表 (仅在新建清单模式展示)
+                    // 4. 所属文件夹（仅在清单模式展示）
                     if (isList) ...[
-                      const SizedBox(height: 20),
-                      _buildFolderSelectionSection(
+                      const SizedBox(height: 24),
+                      _buildFolderSelector(
                         l10n,
                         isDark,
                         activeAccent,
@@ -658,7 +1161,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                       ),
                     ],
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
@@ -669,62 +1172,55 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
     );
   }
 
-  /// 顶栏 Segmented Control
-  Widget _buildSegmentedPicker(bool isDark) {
-    final isList = _createType == CreateType.list;
-    final l10n = AppLocalizations.of(context);
-
+  /// 顶部分段切换器
+  Widget _buildSegmentedControl(AppLocalizations l10n, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF262830) : const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDark ? const Color(0xFF32353F) : const Color(0xFFE2E8F0),
-          width: 0.8,
-        ),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildSegmentedItem(
-            title: l10n.createList,
-            isActive: isList,
+          _buildSegmentItem(
+            label: l10n.createList,
+            type: CreateType.list,
+            isSelected: _createType == CreateType.list,
             isDark: isDark,
-            onTap: () => _switchCreateType(CreateType.list),
           ),
-          _buildSegmentedItem(
-            title: l10n.createFolder,
-            isActive: !isList,
+          _buildSegmentItem(
+            label: l10n.createFolder,
+            type: CreateType.folder,
+            isSelected: _createType == CreateType.folder,
             isDark: isDark,
-            onTap: () => _switchCreateType(CreateType.folder),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSegmentedItem({
-    required String title,
-    required bool isActive,
+  Widget _buildSegmentItem({
+    required String label,
+    required CreateType type,
+    required bool isSelected,
     required bool isDark,
-    required VoidCallback onTap,
   }) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => _switchType(type),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: isActive
-              ? (isDark ? const Color(0xFF18191D) : Colors.white)
+          color: isSelected
+              ? (isDark ? const Color(0xFF374151) : const Color(0xFFFFFFFF))
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
-          boxShadow: isActive
+          borderRadius: BorderRadius.circular(9),
+          boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
+                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
                     blurRadius: 4,
                     offset: const Offset(0, 1),
                   ),
@@ -732,20 +1228,20 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
               : null,
         ),
         child: Text(
-          title,
+          label,
           style: TextStyle(
-            fontSize: 13,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-            color: isActive
-                ? (isDark ? const Color(0xFFF3F4F6) : const Color(0xFF111827))
-                : (isDark ? const Color(0xFF9CA3AF) : const Color(0xFF4B5563)),
+            fontSize: 13.5,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            color: isSelected
+                ? (isDark ? const Color(0xFFF9FAFB) : const Color(0xFF111827))
+                : (isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
           ),
         ),
       ),
     );
   }
 
-  /// 1. 名称与图标前缀输入卡片
+  /// 1. 名称与图标前缀输入卡片（按需编辑，聚焦无边框，仅光标闪烁）
   Widget _buildNameInputCard(
     AppLocalizations l10n,
     bool isDark,
@@ -788,17 +1284,14 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
         ),
         const SizedBox(height: 8),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF1E2025) : const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+            // 无突兀边框变换，聚焦仅光标闪烁
             border: Border.all(
-              color: _nameFocusNode.hasFocus
-                  ? (isDark ? const Color(0xFFF3F4F6) : const Color(0xFF111827))
-                  : (isDark
-                        ? const Color(0xFF262830)
-                        : const Color(0xFFE2E8F0)),
-              width: _nameFocusNode.hasFocus ? 1.5 : 1.0,
+              color: isDark ? const Color(0xFF262830) : const Color(0xFFE2E8F0),
+              width: 1.0,
             ),
           ),
           child: Row(
@@ -830,13 +1323,15 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
               ),
               const SizedBox(width: 12),
 
-              // 输入框
+              // 输入框：按需编辑，聚焦不显示任何输入边框，仅光标闪烁
               Expanded(
                 child: TextField(
                   controller: _nameController,
                   focusNode: _nameFocusNode,
-                  autofocus: true,
+                  autofocus: false,
                   maxLength: _maxNameLength,
+                  cursorColor: activeAccent,
+                  cursorWidth: 2.0,
                   buildCounter:
                       (
                         context, {
@@ -858,10 +1353,15 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                       fontWeight: FontWeight.w400,
                       color: isDark
                           ? const Color(0xFF4B5563)
-                          : const Color(0xFFD1D5DB),
+                          : const Color(0xFF9CA3AF),
                     ),
                     isDense: true,
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
                     contentPadding: EdgeInsets.zero,
                   ),
                   textInputAction: TextInputAction.done,
@@ -881,8 +1381,8 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                     height: 22,
                     decoration: BoxDecoration(
                       color: isDark
-                          ? const Color(0xFF32353F)
-                          : const Color(0xFFE2E8F0),
+                          ? const Color(0xFF374151)
+                          : const Color(0xFFE5E7EB),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -901,8 +1401,8 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
     );
   }
 
-  /// 2. 主题颜色调色板
-  Widget _buildThemeColorSection(AppLocalizations l10n, bool isDark) {
+  /// 2. 主题颜色选择调色板
+  Widget _buildColorPalette(AppLocalizations l10n, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -925,89 +1425,71 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: isDark
-                    ? const Color(0xFF9CA3AF)
-                    : const Color(0xFF6B7280),
+                color: _selectedColor.color,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: kPresetModalColors.map((colorPreset) {
-              final isSelected = colorPreset.id == _selectedColor.id;
-              return Padding(
-                padding: const EdgeInsets.only(right: 10, top: 4, bottom: 4),
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() => _selectedColor = colorPreset);
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    curve: Curves.easeOutCubic,
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: colorPreset.color,
-                      shape: BoxShape.circle,
-                      border: isSelected
-                          ? Border.all(
-                              color: isDark
-                                  ? const Color(0xFFF3F4F6)
-                                  : const Color(0xFF111827),
-                              width: 2.5,
-                            )
-                          : null,
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: colorPreset.color.withValues(
-                                  alpha: 0.35,
-                                ),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ]
-                          : null,
-                    ),
-                    child: isSelected
-                        ? const Center(
-                            child: Icon(
-                              Icons.check_rounded,
-                              size: 18,
-                              color: Colors.white,
-                            ),
-                          )
-                        : null,
-                  ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: kPresetModalColors.map((item) {
+            final isSelected = _selectedColor.id == item.id;
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedColor = item;
+                });
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: item.color,
+                  shape: BoxShape.circle,
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: item.color.withValues(alpha: 0.45),
+                            blurRadius: 8,
+                            spreadRadius: 2,
+                          ),
+                        ]
+                      : null,
+                  border: isSelected
+                      ? Border.all(
+                          color: isDark
+                              ? const Color(0xFF18191D)
+                              : Colors.white,
+                          width: 2.5,
+                        )
+                      : null,
                 ),
-              );
-            }).toList(),
-          ),
+                child: isSelected
+                    ? const Center(
+                        child: Icon(
+                          Icons.check_rounded,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                      )
+                    : null,
+              ),
+            );
+          }).toList(),
         ),
       ],
     );
   }
 
-  /// 3. 多分类图标选择区
-  Widget _buildIconLibrarySection(
+  /// 3. 图标库选择
+  Widget _buildIconPicker(
     AppLocalizations l10n,
     bool isDark,
     Color activeAccent,
   ) {
-    final categories = [
-      (PresetIconCategory.common, l10n.catCommon),
-      (PresetIconCategory.work, l10n.catWork),
-      (PresetIconCategory.life, l10n.catLife),
-      (PresetIconCategory.study, l10n.catStudy),
-      (PresetIconCategory.health, l10n.catHealth),
-      (PresetIconCategory.finance, l10n.catFinance),
-    ];
-
-    final currentIcons = kPresetModalIcons[_selectedCategory] ?? [];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1029,7 +1511,6 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
               l10n.instantApply,
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w400,
                 color: isDark
                     ? const Color(0xFF6B7280)
                     : const Color(0xFF9CA3AF),
@@ -1037,60 +1518,50 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
 
-        // 分类胶囊标签
+        // 分类横向切换胶囊
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
           child: Row(
-            children: categories.map((cat) {
-              final isCatActive = cat.$1 == _selectedCategory;
+            children: PresetIconCategory.values.map((cat) {
+              final isSelected = _selectedCategory == cat;
               return Padding(
-                padding: const EdgeInsets.only(right: 6, bottom: 8),
+                padding: const EdgeInsets.only(right: 8),
                 child: GestureDetector(
                   onTap: () {
-                    setState(() => _selectedCategory = cat.$1);
+                    setState(() {
+                      _selectedCategory = cat;
+                    });
                   },
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOutCubic,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
-                      vertical: 5,
+                      vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: isCatActive
-                          ? (isDark
-                                ? const Color(0xFFF3F4F6)
-                                : const Color(0xFF111827))
+                      color: isSelected
+                          ? activeAccent
                           : (isDark
                                 ? const Color(0xFF262830)
                                 : const Color(0xFFF1F5F9)),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: isCatActive
-                            ? (isDark
-                                  ? const Color(0xFFF3F4F6)
-                                  : const Color(0xFF111827))
-                            : (isDark
-                                  ? const Color(0xFF32353F)
-                                  : const Color(0xFFE2E8F0)),
-                        width: 0.8,
-                      ),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
-                      cat.$2,
+                      _getCategoryName(cat, l10n),
                       style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: isCatActive
+                        fontSize: 13,
+                        fontWeight: isSelected
                             ? FontWeight.w600
                             : FontWeight.w500,
-                        color: isCatActive
-                            ? (isDark
-                                  ? const Color(0xFF111827)
-                                  : const Color(0xFFFFFFFF))
+                        color: isSelected
+                            ? Colors.white
                             : (isDark
                                   ? const Color(0xFF9CA3AF)
-                                  : const Color(0xFF4B5563)),
+                                  : const Color(0xFF6B7280)),
                       ),
                     ),
                   ),
@@ -1100,75 +1571,72 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
           ),
         ),
 
+        const SizedBox(height: 12),
+
         // 图标网格
         Container(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF1E2025) : const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(AppTokens.radiusCard),
             border: Border.all(
               color: isDark ? const Color(0xFF262830) : const Color(0xFFE2E8F0),
-              width: 1,
+              width: 1.0,
             ),
           ),
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 6,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: 1,
-            ),
-            itemCount: currentIcons.length,
-            itemBuilder: (context, index) {
-              final iconItem = currentIcons[index];
-              final isIconActive = iconItem.id == _selectedIcon.id;
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final icons = kPresetModalIcons[_selectedCategory] ?? [];
+              const int columns = 6;
+              final double itemWidth =
+                  (constraints.maxWidth - (columns - 1) * 8) / columns;
 
-              return InkWell(
-                onTap: () {
-                  setState(() => _selectedIcon = iconItem);
-                },
-                borderRadius: BorderRadius.circular(AppTokens.radiusChip),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  decoration: BoxDecoration(
-                    color: isIconActive
-                        ? (isDark
-                              ? const Color(0xFF18191D)
-                              : const Color(0xFFFFFFFF))
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(AppTokens.radiusChip),
-                    border: Border.all(
-                      color: isIconActive
-                          ? (isDark
-                                ? const Color(0xFF32353F)
-                                : const Color(0xFFE2E8F0))
-                          : Colors.transparent,
-                      width: 1,
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: icons.map((item) {
+                  final isSelected = _selectedIcon.id == item.id;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedIcon = item;
+                      });
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOutCubic,
+                      width: itemWidth,
+                      height: itemWidth,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? activeAccent.withValues(alpha: 0.14)
+                            : (isDark
+                                  ? const Color(0xFF262830)
+                                  : const Color(0xFFFFFFFF)),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isSelected
+                              ? activeAccent
+                              : (isDark
+                                    ? const Color(0xFF333640)
+                                    : const Color(0xFFE5E7EB)),
+                          width: isSelected ? 1.5 : 1.0,
+                        ),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          item.icon,
+                          size: 22,
+                          color: isSelected
+                              ? activeAccent
+                              : (isDark
+                                    ? const Color(0xFFD1D5DB)
+                                    : const Color(0xFF4B5563)),
+                        ),
+                      ),
                     ),
-                    boxShadow: isIconActive
-                        ? [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.08),
-                              blurRadius: 4,
-                              offset: const Offset(0, 1),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Center(
-                    child: Icon(
-                      iconItem.icon,
-                      size: 20,
-                      color: isIconActive
-                          ? activeAccent
-                          : (isDark
-                                ? const Color(0xFF9CA3AF)
-                                : const Color(0xFF4B5563)),
-                    ),
-                  ),
-                ),
+                  );
+                }).toList(),
               );
             },
           ),
@@ -1177,8 +1645,25 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
     );
   }
 
-  /// 4. 所属文件夹单选列表
-  Widget _buildFolderSelectionSection(
+  String _getCategoryName(PresetIconCategory cat, AppLocalizations l10n) {
+    switch (cat) {
+      case PresetIconCategory.common:
+        return l10n.catCommon;
+      case PresetIconCategory.work:
+        return l10n.catWork;
+      case PresetIconCategory.life:
+        return l10n.catLife;
+      case PresetIconCategory.study:
+        return l10n.catStudy;
+      case PresetIconCategory.health:
+        return l10n.catHealth;
+      case PresetIconCategory.finance:
+        return l10n.catFinance;
+    }
+  }
+
+  /// 4. 所属文件夹单选器（仅清单模式）
+  Widget _buildFolderSelector(
     AppLocalizations l10n,
     bool isDark,
     Color activeAccent,
@@ -1205,7 +1690,6 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
               l10n.singleChoiceBelonging,
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w400,
                 color: isDark
                     ? const Color(0xFF6B7280)
                     : const Color(0xFF9CA3AF),
@@ -1213,64 +1697,74 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
             ),
           ],
         ),
-        const SizedBox(height: 8),
-
+        const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF1E2025) : const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(AppTokens.radiusCard),
             border: Border.all(
               color: isDark ? const Color(0xFF262830) : const Color(0xFFE2E8F0),
-              width: 1,
+              width: 1.0,
             ),
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppTokens.radiusCard - 1),
-            child: groupingAsync.maybeWhen(
+            borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+            child: groupingAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              ),
+              error: (err, _) => Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  err.toString(),
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
               data: (grouping) {
                 final folders = grouping.folders;
                 return Column(
                   children: [
-                    // 无 (顶层清单)
-                    _buildFolderRowItem(
+                    // 顶层选项：无（顶层清单）
+                    _buildFolderOptionTile(
                       id: null,
                       name: l10n.noFolderRoot,
-                      icon: Icons.do_not_disturb_alt_rounded,
-                      count: null,
+                      icon: Icons.layers_outlined,
                       isSelected: _selectedFolderId == null,
                       isDark: isDark,
                       activeAccent: activeAccent,
-                      isLast: folders.isEmpty,
+                      l10n: l10n,
                     ),
 
                     // 已有文件夹列表
-                    for (var i = 0; i < folders.length; i++) ...[
-                      const Divider(height: 1),
-                      _buildFolderRowItem(
+                    for (int i = 0; i < folders.length; i++) ...[
+                      const Divider(height: 1, thickness: 0.5),
+                      _buildFolderOptionTile(
                         id: folders[i].id,
                         name: folders[i].name,
-                        icon: Icons.folder_outlined,
-                        count:
-                            grouping.folderProjects[folders[i].id]?.length ?? 0,
+                        icon: getIconDataById(
+                          folders[i].icon,
+                          fallback: Icons.folder_outlined,
+                        ),
+                        folderColor: folders[i].color != null
+                            ? Color(folders[i].color!)
+                            : null,
+                        count: grouping.countInFolder(folders[i].id),
                         isSelected: _selectedFolderId == folders[i].id,
                         isDark: isDark,
                         activeAccent: activeAccent,
-                        isLast: i == folders.length - 1,
+                        l10n: l10n,
                       ),
                     ],
                   ],
                 );
               },
-              orElse: () => _buildFolderRowItem(
-                id: null,
-                name: l10n.noFolderRoot,
-                icon: Icons.do_not_disturb_alt_rounded,
-                count: null,
-                isSelected: true,
-                isDark: isDark,
-                activeAccent: activeAccent,
-                isLast: true,
-              ),
             ),
           ),
         ),
@@ -1278,31 +1772,34 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
     );
   }
 
-  Widget _buildFolderRowItem({
+  Widget _buildFolderOptionTile({
     required String? id,
     required String name,
     required IconData icon,
-    required int? count,
+    Color? folderColor,
+    int? count,
     required bool isSelected,
     required bool isDark,
     required Color activeAccent,
-    required bool isLast,
+    required AppLocalizations l10n,
   }) {
-    final l10n = AppLocalizations.of(context);
-
+    final iconColor =
+        folderColor ??
+        (isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280));
     return InkWell(
       onTap: () {
-        setState(() => _selectedFolderId = id);
+        setState(() {
+          _selectedFolderId = id;
+        });
       },
-      child: Padding(
+      child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        color: isSelected
+            ? activeAccent.withValues(alpha: 0.08)
+            : Colors.transparent,
         child: Row(
           children: [
-            Icon(
-              icon,
-              size: 18,
-              color: isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280),
-            ),
+            Icon(icon, size: 18, color: iconColor),
             const SizedBox(width: 10),
             Expanded(
               child: Text(

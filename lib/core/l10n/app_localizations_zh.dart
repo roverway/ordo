@@ -1036,4 +1036,20 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get modalThemeColor => '主题颜色';
+
+  @override
+  String get editList => '编辑清单';
+
+  @override
+  String get editFolder => '编辑文件夹';
+
+  @override
+  String editListSuccess(String name) {
+    return '清单「$name」已更新';
+  }
+
+  @override
+  String editFolderSuccess(String name) {
+    return '文件夹「$name」已更新';
+  }
 }

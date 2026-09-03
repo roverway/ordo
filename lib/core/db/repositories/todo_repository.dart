@@ -202,12 +202,13 @@ class TodoRepository {
 
   // ─────────────────────────── Projects ───────────────────────────
 
-  /// 新建项目（name 1–100 字符；description 最多 500 字符；可指定所属 folderId；sortOrder 自动追加到组末尾）。
+  /// 新建项目（name 1–100 字符；description 最多 500 字符；可指定所属 folderId 与 icon；sortOrder 自动追加到组末尾）。
   Future<Project> createProject({
     required String name,
     required int color,
     String description = '',
     String? folderId,
+    String? icon,
   }) async {
     _checkTextLength(name, 1, 100, '项目名');
     _checkTextLength(description, 0, 500, '项目描述');
@@ -225,6 +226,7 @@ class TodoRepository {
       name: name,
       color: color,
       description: Value(description),
+      icon: Value(icon),
       folderId: Value(folderId),
       sortOrder: sortOrder,
       createdAt: now,
@@ -235,15 +237,23 @@ class TodoRepository {
     return (await projects.getById(project.id.value))!;
   }
 
-  /// 更新项目（name/color/description），统一刷新 updatedAt。
+  /// 更新项目（name/color/description/icon/folderId），统一刷新 updatedAt。
   Future<void> updateProject(
     String id, {
     String? name,
     int? color,
     String? description,
+    String? icon,
+    Value<String?>? folderId,
   }) async {
     final existing = await projects.getById(id);
     if (existing == null) throw RepositoryException('项目不存在：$id');
+    if (folderId != null && folderId.present && folderId.value != null) {
+      final f = await folders.getById(folderId.value!);
+      if (f == null || f.deleted == 1) {
+        throw RepositoryException('文件夹不存在：${folderId.value}');
+      }
+    }
     final entry = ProjectsCompanion(
       name: name != null
           ? Value(_checkTextLength(name, 1, 100, '项目名'))
@@ -252,6 +262,8 @@ class TodoRepository {
       description: description != null
           ? Value(_checkTextLength(description, 0, 500, '项目描述'))
           : const Value.absent(),
+      icon: icon != null ? Value(icon) : const Value.absent(),
+      folderId: folderId ?? const Value.absent(),
       updatedAt: Value(_nowMs()),
     );
     await projects.updateById(id, entry);
@@ -348,13 +360,19 @@ class TodoRepository {
 
   // ──────────────────────────── Folders ────────────────────────────
 
-  /// 新建文件夹（name 1–50 字符；sortOrder 自动追加到末尾，docs/62-folder-nav.md §7.1）。
-  Future<Folder> createFolder({required String name}) async {
+  /// 新建文件夹（name 1–50 字符；可指定 color 与 icon；sortOrder 自动追加到末尾，docs/62-folder-nav.md §7.1）。
+  Future<Folder> createFolder({
+    required String name,
+    int? color,
+    String? icon,
+  }) async {
     _checkTextLength(name, 1, 50, '文件夹名');
     final now = _nowMs();
     final folder = FoldersCompanion.insert(
       id: newUuid(),
       name: name,
+      color: Value(color),
+      icon: Value(icon),
       sortOrder: await _nextFolderSortOrder(),
       createdAt: now,
       updatedAt: now,
@@ -364,17 +382,33 @@ class TodoRepository {
     return (await folders.getById(folder.id.value))!;
   }
 
-  /// 重命名文件夹（name 1–50 字符；不存在抛 [RepositoryException]），刷新 updatedAt。
-  Future<void> renameFolder(String id, {required String name}) async {
+  /// 更新文件夹（name/color/icon），统一刷新 updatedAt。
+  Future<void> updateFolder(
+    String id, {
+    String? name,
+    int? color,
+    String? icon,
+  }) async {
     final existing = await folders.getById(id);
     if (existing == null) throw RepositoryException('文件夹不存在：$id');
-    _checkTextLength(name, 1, 50, '文件夹名');
+    if (name != null) {
+      _checkTextLength(name, 1, 50, '文件夹名');
+    }
     await folders.updateById(
       id,
-      FoldersCompanion(name: Value(name), updatedAt: Value(_nowMs())),
+      FoldersCompanion(
+        name: name != null ? Value(name) : const Value.absent(),
+        color: color != null ? Value(color) : const Value.absent(),
+        icon: icon != null ? Value(icon) : const Value.absent(),
+        updatedAt: Value(_nowMs()),
+      ),
     );
     await onDataChanged?.call();
   }
+
+  /// 重命名文件夹（name 1–50 字符；不存在抛 [RepositoryException]），刷新 updatedAt。
+  Future<void> renameFolder(String id, {required String name}) =>
+      updateFolder(id, name: name);
 
   /// 删除文件夹：**仅解除收纳**（D3，不级联删项目）。
   ///

@@ -11,8 +11,6 @@ import '../../features/custom_views/providers/custom_view_providers.dart';
 import '../../features/custom_views/widgets/icon_picker_dialog.dart';
 import '../../features/projects/project_providers.dart';
 import '../../features/projects/widgets/create_list_folder_sheet.dart';
-import '../../features/projects/widgets/folder_name_dialog.dart';
-import '../../features/projects/widgets/project_form_dialog.dart';
 import '../../features/sync_setup/sync_setup_providers.dart';
 import '../../features/tasks/task_providers.dart';
 import '../../features/today/today_providers.dart';
@@ -218,14 +216,10 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                     title: '清单',
                     tooltip: '新建文件夹',
                     onAdd: () async {
-                      final name = await showFolderNameDialog(context: context);
-                      if (name != null &&
-                          name.trim().isNotEmpty &&
-                          context.mounted) {
-                        await ref
-                            .read(todoRepositoryProvider)
-                            .createFolder(name: name.trim());
-                      }
+                      await showCreateListFolderSheet(
+                        context: context,
+                        initialType: CreateType.folder,
+                      );
                     },
                   ),
                   groupingAsync.maybeWhen(
@@ -369,17 +363,6 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                       await showCreateListFolderSheet(
                         context: context,
                         initialType: CreateType.list,
-                      );
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  _buildBottomActionButton(
-                    icon: Icons.create_new_folder_outlined,
-                    label: '新文件夹',
-                    onTap: () async {
-                      await showCreateListFolderSheet(
-                        context: context,
-                        initialType: CreateType.folder,
                       );
                     },
                   ),
@@ -573,15 +556,7 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
   }
 
   Future<void> _editFolder(Folder folder) async {
-    final name = await showFolderNameDialog(
-      context: context,
-      initialName: folder.name,
-    );
-    if (name != null && name.trim().isNotEmpty && mounted) {
-      await ref
-          .read(todoRepositoryProvider)
-          .renameFolder(folder.id, name: name.trim());
-    }
+    await showEditFolderSheet(context, folder);
   }
 
   Future<void> _deleteFolder(Folder folder) async {
@@ -600,22 +575,7 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
   }
 
   Future<void> _editProject(Project project) async {
-    final result = await showProjectFormDialog(
-      context: context,
-      initialName: project.name,
-      initialColor: project.color,
-      initialDescription: project.description,
-    );
-    if (result != null && mounted) {
-      await ref
-          .read(todoRepositoryProvider)
-          .updateProject(
-            project.id,
-            name: result.name,
-            color: result.color,
-            description: result.description,
-          );
-    }
+    await showEditListSheet(context, project);
   }
 
   Future<void> _deleteProject(Project project) async {
@@ -641,6 +601,14 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
   }) {
     final colorScheme = Theme.of(context).colorScheme;
 
+    final folderColor = folder.color != null
+        ? Color(folder.color!)
+        : colorScheme.primary;
+    final folderIcon = getIconDataById(
+      folder.icon,
+      fallback: Icons.folder_outlined,
+    );
+
     final headerTile = DragTarget<Project>(
       onWillAcceptWithDetails: (details) => details.data.folderId != folder.id,
       onAcceptWithDetails: (details) async {
@@ -655,10 +623,10 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
       builder: (context, candidateData, rejectedData) {
         final isHovered = candidateData.isNotEmpty;
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 1),
+          padding: const EdgeInsets.symmetric(vertical: 2),
           child: Material(
             color: isHovered
-                ? colorScheme.primary.withValues(alpha: 0.12)
+                ? folderColor.withValues(alpha: 0.12)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             child: InkWell(
@@ -675,14 +643,10 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                       width: 26,
                       height: 26,
                       decoration: BoxDecoration(
-                        color: colorScheme.primary.withValues(alpha: 0.12),
+                        color: folderColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(
-                        Icons.folder_outlined,
-                        color: colorScheme.primary,
-                        size: 15,
-                      ),
+                      child: Icon(folderIcon, color: folderColor, size: 15),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -740,6 +704,10 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final projectColor = Color(project.color);
+    final projectIcon = getIconDataById(
+      project.icon,
+      fallback: Icons.format_list_bulleted_rounded,
+    );
 
     final summary = ref.watch(projectSummaryProvider(project.id));
     final uncompleted = summary.uncompletedCount;
@@ -759,15 +727,15 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
             child: Row(
               children: [
                 Container(
-                  width: 8,
-                  height: 8,
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: 22,
+                  height: 22,
+                  margin: const EdgeInsets.only(right: 10),
                   decoration: BoxDecoration(
-                    color: projectColor,
-                    shape: BoxShape.circle,
+                    color: projectColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
                   ),
+                  child: Icon(projectIcon, color: projectColor, size: 13),
                 ),
-                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     project.name,

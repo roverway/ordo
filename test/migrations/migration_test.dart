@@ -75,8 +75,8 @@ void main() {
     await db.close();
   });
 
-  test('schemaVersion = 5', () {
-    expect(db.schemaVersion, 5);
+  test('schemaVersion = 6', () {
+    expect(db.schemaVersion, 6);
   });
 
   test(
@@ -500,5 +500,104 @@ void main() {
     expect(created.name, '我的看板');
     expect(created.panelsJson, '[]');
     expect(created.sortOrder, 0);
+  });
+
+  test('v5 → v6 真实迁移：projects 新增 icon 列；folders 新增 color 与 icon 列', () async {
+    // 1. 手工用 sqlite3 创建 v5 数据库并写入真实数据。
+    final dbDir = Directory.systemTemp.createTempSync('migration_v5_v6_');
+    addTearDown(() => dbDir.deleteSync(recursive: true));
+    final dbPath = '${dbDir.path}/v5.sqlite';
+
+    final raw = sqlite3.open(dbPath);
+    raw.execute(
+      'CREATE TABLE folders ('
+      'id TEXT NOT NULL PRIMARY KEY,'
+      'name TEXT NOT NULL,'
+      'sort_order INTEGER NOT NULL,'
+      'created_at INTEGER NOT NULL,'
+      'updated_at INTEGER NOT NULL,'
+      'deleted INTEGER NOT NULL DEFAULT 0)',
+    );
+    raw.execute(
+      'CREATE TABLE projects ('
+      'id TEXT NOT NULL PRIMARY KEY,'
+      'name TEXT NOT NULL,'
+      'color INTEGER NOT NULL,'
+      'description TEXT NOT NULL DEFAULT \'\','
+      'folder_id TEXT REFERENCES folders (id),'
+      'sort_order INTEGER NOT NULL,'
+      'created_at INTEGER NOT NULL,'
+      'updated_at INTEGER NOT NULL,'
+      'deleted INTEGER NOT NULL DEFAULT 0)',
+    );
+    raw.execute(_v2TasksDdl);
+    raw.execute(
+      'CREATE TABLE tags ('
+      'id TEXT NOT NULL PRIMARY KEY,'
+      'name TEXT NOT NULL,'
+      'color INTEGER NOT NULL,'
+      'sort_order INTEGER NOT NULL,'
+      'created_at INTEGER NOT NULL,'
+      'updated_at INTEGER NOT NULL,'
+      'deleted INTEGER NOT NULL DEFAULT 0)',
+    );
+    raw.execute(
+      'CREATE TABLE task_tags ('
+      'task_id TEXT NOT NULL REFERENCES tasks (id),'
+      'tag_id TEXT NOT NULL REFERENCES tags (id),'
+      'PRIMARY KEY (task_id, tag_id))',
+    );
+    raw.execute(
+      'CREATE TABLE settings ('
+      'key TEXT NOT NULL PRIMARY KEY,'
+      'value TEXT NOT NULL)',
+    );
+    raw.execute(
+      'CREATE TABLE custom_views ('
+      'id TEXT NOT NULL PRIMARY KEY,'
+      'name TEXT NOT NULL,'
+      'icon TEXT,'
+      'color INTEGER,'
+      'panels_json TEXT NOT NULL DEFAULT \'[]\','
+      'sort_order INTEGER NOT NULL,'
+      'created_at INTEGER NOT NULL,'
+      'updated_at INTEGER NOT NULL,'
+      'deleted INTEGER NOT NULL DEFAULT 0)',
+    );
+    raw.execute(
+      'INSERT INTO folders VALUES (\'f1\', \'旧文件夹\', 0, 1000, 1000, 0)',
+    );
+    raw.execute(
+      'INSERT INTO projects VALUES (\'p1\', \'旧项目\', 4283215696, \'旧描述\', \'f1\', 0, 1000, 1000, 0)',
+    );
+    raw.execute('PRAGMA user_version = 5');
+    raw.dispose();
+
+    // 2. 用 AppDatabase 打开同一文件（触发 onUpgrade 5 → 6）。
+    final migrated = AppDatabase(NativeDatabase(File(dbPath)));
+    addTearDown(() => migrated.close());
+
+    // 3. 断言：旧数据完整，新增字段默认 null。
+    final migratedRepo = TodoRepository(database: migrated);
+    final legacyFolder = await migratedRepo.folders.getById('f1');
+    expect(legacyFolder, isNotNull);
+    expect(legacyFolder!.name, '旧文件夹');
+    expect(legacyFolder.color, isNull);
+    expect(legacyFolder.icon, isNull);
+
+    final legacyProject = await migratedRepo.projects.getById('p1');
+    expect(legacyProject, isNotNull);
+    expect(legacyProject!.name, '旧项目');
+    expect(legacyProject.icon, isNull);
+
+    // 4. 新 schema 可正常写入 color 和 icon。
+    await migratedRepo.updateProject('p1', icon: 'star');
+    final updatedProject = await migratedRepo.projects.getById('p1');
+    expect(updatedProject?.icon, 'star');
+
+    await migratedRepo.updateFolder('f1', color: 0xFF2563EB, icon: 'folder');
+    final updatedFolder = await migratedRepo.folders.getById('f1');
+    expect(updatedFolder?.color, 0xFF2563EB);
+    expect(updatedFolder?.icon, 'folder');
   });
 }

@@ -26,6 +26,7 @@ folders  1 ──── N projects  （folderId，可空 = 未分组，62-folder
 | name | TEXT | NOT NULL, 1–100 字符 | 项目名 |
 | color | INTEGER | NOT NULL | ARGB 颜色值 |
 | description | TEXT | NOT NULL DEFAULT '' | 描述（可选，纯文本） |
+| icon | TEXT | NULL | 图标标识（可选，如 'list', 'work' 等，v6 新增） |
 | folderId | TEXT | NULL, FK→folders.id | 所属文件夹；NULL = 未分组（v4 起，62-folder-nav.md §4） |
 | sortOrder | INTEGER | NOT NULL | **文件夹组内**排序（v4 起语义：同 folderId 组内排序，NULL 为未分组组） |
 | createdAt | INTEGER | NOT NULL | UTC 毫秒 |
@@ -38,6 +39,8 @@ folders  1 ──── N projects  （folderId，可空 = 未分组，62-folder
 |---|---|---|---|
 | id | TEXT | PK | UUID v4 |
 | name | TEXT | NOT NULL, 1–50 字符 | 文件夹名 |
+| color | INTEGER | NULL | 文件夹强调颜色（ARGB 32位整数，v6 新增） |
+| icon | TEXT | NULL | 图标标识（可选，如 'folder', 'work' 等，v6 新增） |
 | sortOrder | INTEGER | NOT NULL | 文件夹间排序（0..n-1 连续） |
 | createdAt | INTEGER | NOT NULL | UTC 毫秒 |
 | updatedAt | INTEGER | NOT NULL | UTC 毫秒（同步字段） |

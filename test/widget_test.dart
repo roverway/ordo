@@ -654,19 +654,14 @@ void main() {
   });
 
   testWidgets(
-    'ScopeSwitcherSheet: add folder opens create sheet in folder mode',
+    'ScopeSwitcherSheet: add folder via section header opens create sheet in folder mode',
     (tester) async {
       final repo = await pumpScopeSwitcherSheet(tester);
 
       expect(find.byType(ScopeSwitcherSheet), findsOneWidget);
 
-      // 底部「新文件夹」
-      await tester.tap(
-        find.descendant(
-          of: find.byType(ScopeSwitcherSheet),
-          matching: find.text('新文件夹'),
-        ),
-      );
+      // 清单分组头的「+」按钮
+      await tester.tap(find.byTooltip('新建文件夹'));
       await _settle(tester);
       expect(find.byType(CreateListFolderSheet), findsOneWidget);
       expect(find.text('文件夹名称'), findsOneWidget);

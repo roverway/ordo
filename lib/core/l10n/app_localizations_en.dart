@@ -1059,4 +1059,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get modalThemeColor => 'Theme Color';
+
+  @override
+  String get editList => 'Edit List';
+
+  @override
+  String get editFolder => 'Edit Folder';
+
+  @override
+  String editListSuccess(String name) {
+    return 'List \"$name\" updated';
+  }
+
+  @override
+  String editFolderSuccess(String name) {
+    return 'Folder \"$name\" updated';
+  }
 }

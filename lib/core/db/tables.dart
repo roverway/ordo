@@ -69,6 +69,9 @@ class Projects extends Table {
   TextColumn get description =>
       text().withLength(max: 500).withDefault(const Constant(''))();
 
+  /// 图标标识（可选，如 'list', 'work', 'star' 等）。
+  TextColumn get icon => text().nullable()();
+
   /// 所属文件夹（NULL = 未分组），FK → folders.id（docs/62-folder-nav.md §4.2）。
   TextColumn get folderId => text().nullable().references(Folders, #id)();
   IntColumn get sortOrder => integer()();
@@ -93,6 +96,12 @@ class Projects extends Table {
 class Folders extends Table {
   TextColumn get id => text()();
   TextColumn get name => text().withLength(min: 1, max: 50)();
+
+  /// 文件夹强调颜色（ARGB 32位整数，可选）。
+  IntColumn get color => integer().nullable()();
+
+  /// 图标标识（可选，如 'folder', 'work' 等）。
+  TextColumn get icon => text().nullable()();
 
   /// 文件夹间排序（0..n-1 连续，docs/62-folder-nav.md §4.3）。
   IntColumn get sortOrder => integer()();

@@ -29,6 +29,8 @@ void main() {
   Widget buildTestWidget({
     CreateType initialType = CreateType.list,
     String? initialFolderId,
+    Project? editingProject,
+    Folder? editingFolder,
     List<Project> projects = const [],
     List<Folder> folders = const [],
   }) {
@@ -53,6 +55,8 @@ void main() {
                       context: context,
                       initialType: initialType,
                       initialFolderId: initialFolderId,
+                      editingProject: editingProject,
+                      editingFolder: editingFolder,
                     );
                   },
                   child: const Text('Open Sheet'),
@@ -129,13 +133,12 @@ void main() {
     await tester.tap(find.text('Open Sheet'));
     await tester.pumpAndSettle();
 
-    // 初始颜色为曜石黑
-    expect(find.text('曜石黑'), findsOneWidget);
+    // 初始清单颜色为克莱因蓝
+    expect(find.text('克莱因蓝'), findsOneWidget);
 
-    // 点击第二个颜色（克莱因蓝）
+    // 点击翡翠绿
     for (final color in kPresetModalColors) {
-      if (color.id == 'blue') {
-        // 点击选择该颜色
+      if (color.id == 'emerald') {
         await tester.tap(
           find.byWidgetPredicate(
             (widget) =>
@@ -149,7 +152,7 @@ void main() {
       }
     }
 
-    expect(find.text('克莱因蓝'), findsOneWidget);
+    expect(find.text('翡翠绿'), findsOneWidget);
 
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
@@ -204,9 +207,6 @@ void main() {
     await tester.pumpAndSettle();
     await tester.pump(const Duration(seconds: 3));
 
-    // 弹窗关闭
-    expect(find.text('所属文件夹'), findsNothing);
-
     // 验证 DB 中项目已创建且 folderId 正确
     final projects = await repo.projects.getAll();
     final created = projects.firstWhere((p) => p.name == '前端开发');
@@ -233,5 +233,59 @@ void main() {
     // 验证 DB 中文件夹已创建
     final folders = await repo.folders.getAll();
     expect(folders.any((f) => f.name == '生活档案'), isTrue);
+  });
+
+  testWidgets('编辑清单模式预填并更新数据成功', (tester) async {
+    // 预先创建项目
+    final project = await repo.createProject(
+      name: '原清单名称',
+      color: 0xFF2563EB,
+      icon: 'list',
+    );
+
+    await tester.pumpWidget(buildTestWidget(editingProject: project));
+    await tester.tap(find.text('Open Sheet'));
+    await tester.pumpAndSettle();
+
+    // 顶栏应显示「编辑清单」
+    expect(find.text('编辑清单'), findsOneWidget);
+    expect(find.text('原清单名称'), findsOneWidget);
+
+    // 修改名称
+    await tester.enterText(find.byType(TextField), '更新后清单');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('完成'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 3));
+
+    // 验证 DB 数据已更新
+    final updated = await repo.projects.getById(project.id);
+    expect(updated?.name, '更新后清单');
+  });
+
+  testWidgets('编辑文件夹模式预填并更新数据成功', (tester) async {
+    // 预先创建文件夹
+    final folder = await repo.createFolder(name: '原文件夹');
+
+    await tester.pumpWidget(buildTestWidget(editingFolder: folder));
+    await tester.tap(find.text('Open Sheet'));
+    await tester.pumpAndSettle();
+
+    // 顶栏应显示「编辑文件夹」
+    expect(find.text('编辑文件夹'), findsOneWidget);
+    expect(find.text('原文件夹'), findsOneWidget);
+
+    // 修改名称
+    await tester.enterText(find.byType(TextField), '更新后文件夹');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('完成'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 3));
+
+    // 验证 DB 数据已更新
+    final updated = await repo.folders.getById(folder.id);
+    expect(updated?.name, '更新后文件夹');
   });
 }

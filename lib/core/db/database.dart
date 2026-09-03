@@ -8,11 +8,12 @@ part 'database.g.dart';
 
 /// 应用数据库（docs/30-architecture.md §2）。
 ///
-/// schemaVersion = 5；迁移用 `MigrationStrategy.onUpgrade` 逐步执行
+/// schemaVersion = 6；迁移用 `MigrationStrategy.onUpgrade` 逐步执行
 /// （docs/40-data-model.md §8）。v2：tasks 新增 priority 列；
 /// v3：projects 新增 description 列（默认 ''）；
 /// v4：新增 folders 表 + projects 新增 folderId 列（NULL = 未分组）；
-/// v5：新增 custom_views 表（docs/65-custom-views-and-panels.md §4.3）。
+/// v5：新增 custom_views 表（docs/65-custom-views-and-panels.md §4.3）；
+/// v6：projects 新增 icon 列，folders 新增 icon 与 color 列。
 @DriftDatabase(
   tables: [Projects, Folders, Tasks, Tags, TaskTags, Settings, CustomViews],
 )
@@ -27,7 +28,7 @@ class AppDatabase extends _$AppDatabase {
       AppDatabase(executor ?? NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -52,6 +53,14 @@ class AppDatabase extends _$AppDatabase {
       // v4 → v5（65-custom-views-and-panels.md §4.3）：新增 custom_views 表。
       if (from < 5) {
         await m.createTable(customViews);
+      }
+      // v5 → v6：projects 新增 icon 列；folders 新增 icon 与 color 列。
+      if (from < 6) {
+        await m.addColumn(projects, projects.icon);
+        if (from >= 4) {
+          await m.addColumn(folders, folders.icon);
+          await m.addColumn(folders, folders.color);
+        }
       }
     },
     beforeOpen: (details) async {

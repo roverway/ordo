@@ -190,6 +190,7 @@ class ProjectRecord {
     required this.updatedAt,
     required this.deleted,
     this.description = '',
+    this.icon,
     this.folderId,
   });
 
@@ -204,6 +205,9 @@ class ProjectRecord {
 
   /// 描述（可选，DB 默认 ''）。
   final String description;
+
+  /// 图标标识（可选，如 'list', 'work' 等）。
+  final String? icon;
 
   /// 所属文件夹 ID（NULL = 未分组，docs/62-folder-nav.md §4.2）。
   ///
@@ -229,6 +233,7 @@ class ProjectRecord {
       name: _readString(json, 'name', fallback: ''),
       color: _readInt(json, 'color', fallback: 0),
       description: _readString(json, 'description', fallback: ''),
+      icon: _readNullableString(json, 'icon'),
       folderId: _readNullableString(json, 'folderId'),
       sortOrder: _readInt(json, 'sortOrder', fallback: 0),
       createdAt: _readInt(json, 'createdAt', fallback: 0),
@@ -243,6 +248,7 @@ class ProjectRecord {
       'name': name,
       'color': color,
       'description': description,
+      'icon': icon,
       'folderId': folderId,
       'sortOrder': sortOrder,
       'createdAt': createdAt,
@@ -427,6 +433,8 @@ class FolderRecord {
     required this.createdAt,
     required this.updatedAt,
     required this.deleted,
+    this.color,
+    this.icon,
   });
 
   /// UUID。
@@ -434,6 +442,12 @@ class FolderRecord {
 
   /// 文件夹名（1–50 字符）。
   final String name;
+
+  /// 文件夹强调颜色（ARGB 32位整数，可选）。
+  final int? color;
+
+  /// 图标标识（可选，如 'folder', 'work' 等）。
+  final String? icon;
 
   /// 文件夹间排序（0..n-1 连续）。
   final int sortOrder;
@@ -451,6 +465,8 @@ class FolderRecord {
     return FolderRecord(
       id: _readString(json, 'id', fallback: ''),
       name: _readString(json, 'name', fallback: ''),
+      color: _readNullableInt(json, 'color'),
+      icon: _readNullableString(json, 'icon'),
       sortOrder: _readInt(json, 'sortOrder', fallback: 0),
       createdAt: _readInt(json, 'createdAt', fallback: 0),
       updatedAt: _readInt(json, 'updatedAt', fallback: 0),
@@ -462,6 +478,8 @@ class FolderRecord {
     return {
       'id': id,
       'name': name,
+      'color': color,
+      'icon': icon,
       'sortOrder': sortOrder,
       'createdAt': createdAt,
       'updatedAt': updatedAt,

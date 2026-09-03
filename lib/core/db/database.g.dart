@@ -30,6 +30,24 @@ class $FoldersTable extends Folders with TableInfo<$FoldersTable, Folder> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<int> color = GeneratedColumn<int>(
+    'color',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
+  @override
+  late final GeneratedColumn<String> icon = GeneratedColumn<String>(
+    'icon',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _sortOrderMeta = const VerificationMeta(
     'sortOrder',
   );
@@ -79,6 +97,8 @@ class $FoldersTable extends Folders with TableInfo<$FoldersTable, Folder> {
   List<GeneratedColumn> get $columns => [
     id,
     name,
+    color,
+    icon,
     sortOrder,
     createdAt,
     updatedAt,
@@ -108,6 +128,18 @@ class $FoldersTable extends Folders with TableInfo<$FoldersTable, Folder> {
       );
     } else if (isInserting) {
       context.missing(_nameMeta);
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    }
+    if (data.containsKey('icon')) {
+      context.handle(
+        _iconMeta,
+        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
+      );
     }
     if (data.containsKey('sort_order')) {
       context.handle(
@@ -156,6 +188,14 @@ class $FoldersTable extends Folders with TableInfo<$FoldersTable, Folder> {
         DriftSqlType.string,
         data['${effectivePrefix}name'],
       )!,
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}color'],
+      ),
+      icon: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon'],
+      ),
       sortOrder: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
@@ -185,6 +225,12 @@ class Folder extends DataClass implements Insertable<Folder> {
   final String id;
   final String name;
 
+  /// 文件夹强调颜色（ARGB 32位整数，可选）。
+  final int? color;
+
+  /// 图标标识（可选，如 'folder', 'work' 等）。
+  final String? icon;
+
   /// 文件夹间排序（0..n-1 连续，docs/62-folder-nav.md §4.3）。
   final int sortOrder;
 
@@ -199,6 +245,8 @@ class Folder extends DataClass implements Insertable<Folder> {
   const Folder({
     required this.id,
     required this.name,
+    this.color,
+    this.icon,
     required this.sortOrder,
     required this.createdAt,
     required this.updatedAt,
@@ -209,6 +257,12 @@ class Folder extends DataClass implements Insertable<Folder> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
+    if (!nullToAbsent || color != null) {
+      map['color'] = Variable<int>(color);
+    }
+    if (!nullToAbsent || icon != null) {
+      map['icon'] = Variable<String>(icon);
+    }
     map['sort_order'] = Variable<int>(sortOrder);
     map['created_at'] = Variable<int>(createdAt);
     map['updated_at'] = Variable<int>(updatedAt);
@@ -220,6 +274,10 @@ class Folder extends DataClass implements Insertable<Folder> {
     return FoldersCompanion(
       id: Value(id),
       name: Value(name),
+      color: color == null && nullToAbsent
+          ? const Value.absent()
+          : Value(color),
+      icon: icon == null && nullToAbsent ? const Value.absent() : Value(icon),
       sortOrder: Value(sortOrder),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -235,6 +293,8 @@ class Folder extends DataClass implements Insertable<Folder> {
     return Folder(
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
+      color: serializer.fromJson<int?>(json['color']),
+      icon: serializer.fromJson<String?>(json['icon']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
@@ -247,6 +307,8 @@ class Folder extends DataClass implements Insertable<Folder> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
+      'color': serializer.toJson<int?>(color),
+      'icon': serializer.toJson<String?>(icon),
       'sortOrder': serializer.toJson<int>(sortOrder),
       'createdAt': serializer.toJson<int>(createdAt),
       'updatedAt': serializer.toJson<int>(updatedAt),
@@ -257,6 +319,8 @@ class Folder extends DataClass implements Insertable<Folder> {
   Folder copyWith({
     String? id,
     String? name,
+    Value<int?> color = const Value.absent(),
+    Value<String?> icon = const Value.absent(),
     int? sortOrder,
     int? createdAt,
     int? updatedAt,
@@ -264,6 +328,8 @@ class Folder extends DataClass implements Insertable<Folder> {
   }) => Folder(
     id: id ?? this.id,
     name: name ?? this.name,
+    color: color.present ? color.value : this.color,
+    icon: icon.present ? icon.value : this.icon,
     sortOrder: sortOrder ?? this.sortOrder,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -273,6 +339,8 @@ class Folder extends DataClass implements Insertable<Folder> {
     return Folder(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
+      color: data.color.present ? data.color.value : this.color,
+      icon: data.icon.present ? data.icon.value : this.icon,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -285,6 +353,8 @@ class Folder extends DataClass implements Insertable<Folder> {
     return (StringBuffer('Folder(')
           ..write('id: $id, ')
           ..write('name: $name, ')
+          ..write('color: $color, ')
+          ..write('icon: $icon, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -294,14 +364,24 @@ class Folder extends DataClass implements Insertable<Folder> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, sortOrder, createdAt, updatedAt, deleted);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    color,
+    icon,
+    sortOrder,
+    createdAt,
+    updatedAt,
+    deleted,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Folder &&
           other.id == this.id &&
           other.name == this.name &&
+          other.color == this.color &&
+          other.icon == this.icon &&
           other.sortOrder == this.sortOrder &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -311,6 +391,8 @@ class Folder extends DataClass implements Insertable<Folder> {
 class FoldersCompanion extends UpdateCompanion<Folder> {
   final Value<String> id;
   final Value<String> name;
+  final Value<int?> color;
+  final Value<String?> icon;
   final Value<int> sortOrder;
   final Value<int> createdAt;
   final Value<int> updatedAt;
@@ -319,6 +401,8 @@ class FoldersCompanion extends UpdateCompanion<Folder> {
   const FoldersCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
+    this.color = const Value.absent(),
+    this.icon = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -328,6 +412,8 @@ class FoldersCompanion extends UpdateCompanion<Folder> {
   FoldersCompanion.insert({
     required String id,
     required String name,
+    this.color = const Value.absent(),
+    this.icon = const Value.absent(),
     required int sortOrder,
     required int createdAt,
     required int updatedAt,
@@ -341,6 +427,8 @@ class FoldersCompanion extends UpdateCompanion<Folder> {
   static Insertable<Folder> custom({
     Expression<String>? id,
     Expression<String>? name,
+    Expression<int>? color,
+    Expression<String>? icon,
     Expression<int>? sortOrder,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
@@ -350,6 +438,8 @@ class FoldersCompanion extends UpdateCompanion<Folder> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
+      if (color != null) 'color': color,
+      if (icon != null) 'icon': icon,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -361,6 +451,8 @@ class FoldersCompanion extends UpdateCompanion<Folder> {
   FoldersCompanion copyWith({
     Value<String>? id,
     Value<String>? name,
+    Value<int?>? color,
+    Value<String?>? icon,
     Value<int>? sortOrder,
     Value<int>? createdAt,
     Value<int>? updatedAt,
@@ -370,6 +462,8 @@ class FoldersCompanion extends UpdateCompanion<Folder> {
     return FoldersCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
+      color: color ?? this.color,
+      icon: icon ?? this.icon,
       sortOrder: sortOrder ?? this.sortOrder,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -386,6 +480,12 @@ class FoldersCompanion extends UpdateCompanion<Folder> {
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<int>(color.value);
+    }
+    if (icon.present) {
+      map['icon'] = Variable<String>(icon.value);
     }
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
@@ -410,6 +510,8 @@ class FoldersCompanion extends UpdateCompanion<Folder> {
     return (StringBuffer('FoldersCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
+          ..write('color: $color, ')
+          ..write('icon: $icon, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -468,6 +570,15 @@ class $ProjectsTable extends Projects with TableInfo<$ProjectsTable, Project> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
+  @override
+  late final GeneratedColumn<String> icon = GeneratedColumn<String>(
+    'icon',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _folderIdMeta = const VerificationMeta(
     'folderId',
@@ -534,6 +645,7 @@ class $ProjectsTable extends Projects with TableInfo<$ProjectsTable, Project> {
     name,
     color,
     description,
+    icon,
     folderId,
     sortOrder,
     createdAt,
@@ -580,6 +692,12 @@ class $ProjectsTable extends Projects with TableInfo<$ProjectsTable, Project> {
           data['description']!,
           _descriptionMeta,
         ),
+      );
+    }
+    if (data.containsKey('icon')) {
+      context.handle(
+        _iconMeta,
+        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
       );
     }
     if (data.containsKey('folder_id')) {
@@ -643,6 +761,10 @@ class $ProjectsTable extends Projects with TableInfo<$ProjectsTable, Project> {
         DriftSqlType.string,
         data['${effectivePrefix}description'],
       )!,
+      icon: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon'],
+      ),
       folderId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}folder_id'],
@@ -680,6 +802,9 @@ class Project extends DataClass implements Insertable<Project> {
   /// 描述（可选，纯文本，最多 500 字符）。
   final String description;
 
+  /// 图标标识（可选，如 'list', 'work', 'star' 等）。
+  final String? icon;
+
   /// 所属文件夹（NULL = 未分组），FK → folders.id（docs/62-folder-nav.md §4.2）。
   final String? folderId;
   final int sortOrder;
@@ -697,6 +822,7 @@ class Project extends DataClass implements Insertable<Project> {
     required this.name,
     required this.color,
     required this.description,
+    this.icon,
     this.folderId,
     required this.sortOrder,
     required this.createdAt,
@@ -710,6 +836,9 @@ class Project extends DataClass implements Insertable<Project> {
     map['name'] = Variable<String>(name);
     map['color'] = Variable<int>(color);
     map['description'] = Variable<String>(description);
+    if (!nullToAbsent || icon != null) {
+      map['icon'] = Variable<String>(icon);
+    }
     if (!nullToAbsent || folderId != null) {
       map['folder_id'] = Variable<String>(folderId);
     }
@@ -726,6 +855,7 @@ class Project extends DataClass implements Insertable<Project> {
       name: Value(name),
       color: Value(color),
       description: Value(description),
+      icon: icon == null && nullToAbsent ? const Value.absent() : Value(icon),
       folderId: folderId == null && nullToAbsent
           ? const Value.absent()
           : Value(folderId),
@@ -746,6 +876,7 @@ class Project extends DataClass implements Insertable<Project> {
       name: serializer.fromJson<String>(json['name']),
       color: serializer.fromJson<int>(json['color']),
       description: serializer.fromJson<String>(json['description']),
+      icon: serializer.fromJson<String?>(json['icon']),
       folderId: serializer.fromJson<String?>(json['folderId']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
@@ -761,6 +892,7 @@ class Project extends DataClass implements Insertable<Project> {
       'name': serializer.toJson<String>(name),
       'color': serializer.toJson<int>(color),
       'description': serializer.toJson<String>(description),
+      'icon': serializer.toJson<String?>(icon),
       'folderId': serializer.toJson<String?>(folderId),
       'sortOrder': serializer.toJson<int>(sortOrder),
       'createdAt': serializer.toJson<int>(createdAt),
@@ -774,6 +906,7 @@ class Project extends DataClass implements Insertable<Project> {
     String? name,
     int? color,
     String? description,
+    Value<String?> icon = const Value.absent(),
     Value<String?> folderId = const Value.absent(),
     int? sortOrder,
     int? createdAt,
@@ -784,6 +917,7 @@ class Project extends DataClass implements Insertable<Project> {
     name: name ?? this.name,
     color: color ?? this.color,
     description: description ?? this.description,
+    icon: icon.present ? icon.value : this.icon,
     folderId: folderId.present ? folderId.value : this.folderId,
     sortOrder: sortOrder ?? this.sortOrder,
     createdAt: createdAt ?? this.createdAt,
@@ -798,6 +932,7 @@ class Project extends DataClass implements Insertable<Project> {
       description: data.description.present
           ? data.description.value
           : this.description,
+      icon: data.icon.present ? data.icon.value : this.icon,
       folderId: data.folderId.present ? data.folderId.value : this.folderId,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -813,6 +948,7 @@ class Project extends DataClass implements Insertable<Project> {
           ..write('name: $name, ')
           ..write('color: $color, ')
           ..write('description: $description, ')
+          ..write('icon: $icon, ')
           ..write('folderId: $folderId, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
@@ -828,6 +964,7 @@ class Project extends DataClass implements Insertable<Project> {
     name,
     color,
     description,
+    icon,
     folderId,
     sortOrder,
     createdAt,
@@ -842,6 +979,7 @@ class Project extends DataClass implements Insertable<Project> {
           other.name == this.name &&
           other.color == this.color &&
           other.description == this.description &&
+          other.icon == this.icon &&
           other.folderId == this.folderId &&
           other.sortOrder == this.sortOrder &&
           other.createdAt == this.createdAt &&
@@ -854,6 +992,7 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
   final Value<String> name;
   final Value<int> color;
   final Value<String> description;
+  final Value<String?> icon;
   final Value<String?> folderId;
   final Value<int> sortOrder;
   final Value<int> createdAt;
@@ -865,6 +1004,7 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
     this.name = const Value.absent(),
     this.color = const Value.absent(),
     this.description = const Value.absent(),
+    this.icon = const Value.absent(),
     this.folderId = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -877,6 +1017,7 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
     required String name,
     required int color,
     this.description = const Value.absent(),
+    this.icon = const Value.absent(),
     this.folderId = const Value.absent(),
     required int sortOrder,
     required int createdAt,
@@ -894,6 +1035,7 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
     Expression<String>? name,
     Expression<int>? color,
     Expression<String>? description,
+    Expression<String>? icon,
     Expression<String>? folderId,
     Expression<int>? sortOrder,
     Expression<int>? createdAt,
@@ -906,6 +1048,7 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
       if (name != null) 'name': name,
       if (color != null) 'color': color,
       if (description != null) 'description': description,
+      if (icon != null) 'icon': icon,
       if (folderId != null) 'folder_id': folderId,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (createdAt != null) 'created_at': createdAt,
@@ -920,6 +1063,7 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
     Value<String>? name,
     Value<int>? color,
     Value<String>? description,
+    Value<String?>? icon,
     Value<String?>? folderId,
     Value<int>? sortOrder,
     Value<int>? createdAt,
@@ -932,6 +1076,7 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
       name: name ?? this.name,
       color: color ?? this.color,
       description: description ?? this.description,
+      icon: icon ?? this.icon,
       folderId: folderId ?? this.folderId,
       sortOrder: sortOrder ?? this.sortOrder,
       createdAt: createdAt ?? this.createdAt,
@@ -955,6 +1100,9 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
     }
     if (description.present) {
       map['description'] = Variable<String>(description.value);
+    }
+    if (icon.present) {
+      map['icon'] = Variable<String>(icon.value);
     }
     if (folderId.present) {
       map['folder_id'] = Variable<String>(folderId.value);
@@ -984,6 +1132,7 @@ class ProjectsCompanion extends UpdateCompanion<Project> {
           ..write('name: $name, ')
           ..write('color: $color, ')
           ..write('description: $description, ')
+          ..write('icon: $icon, ')
           ..write('folderId: $folderId, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
@@ -3335,6 +3484,8 @@ typedef $$FoldersTableCreateCompanionBuilder =
     FoldersCompanion Function({
       required String id,
       required String name,
+      Value<int?> color,
+      Value<String?> icon,
       required int sortOrder,
       required int createdAt,
       required int updatedAt,
@@ -3345,6 +3496,8 @@ typedef $$FoldersTableUpdateCompanionBuilder =
     FoldersCompanion Function({
       Value<String> id,
       Value<String> name,
+      Value<int?> color,
+      Value<String?> icon,
       Value<int> sortOrder,
       Value<int> createdAt,
       Value<int> updatedAt,
@@ -3392,6 +3545,16 @@ class $$FoldersTableFilterComposer
 
   ColumnFilters<String> get name => $composableBuilder(
     column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get icon => $composableBuilder(
+    column: $table.icon,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3460,6 +3623,16 @@ class $$FoldersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
@@ -3495,6 +3668,12 @@ class $$FoldersTableAnnotationComposer
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<String> get icon =>
+      $composableBuilder(column: $table.icon, builder: (column) => column);
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
@@ -3564,6 +3743,8 @@ class $$FoldersTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
+                Value<int?> color = const Value.absent(),
+                Value<String?> icon = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
@@ -3572,6 +3753,8 @@ class $$FoldersTableTableManager
               }) => FoldersCompanion(
                 id: id,
                 name: name,
+                color: color,
+                icon: icon,
                 sortOrder: sortOrder,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -3582,6 +3765,8 @@ class $$FoldersTableTableManager
               ({
                 required String id,
                 required String name,
+                Value<int?> color = const Value.absent(),
+                Value<String?> icon = const Value.absent(),
                 required int sortOrder,
                 required int createdAt,
                 required int updatedAt,
@@ -3590,6 +3775,8 @@ class $$FoldersTableTableManager
               }) => FoldersCompanion.insert(
                 id: id,
                 name: name,
+                color: color,
+                icon: icon,
                 sortOrder: sortOrder,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -3650,6 +3837,7 @@ typedef $$ProjectsTableCreateCompanionBuilder =
       required String name,
       required int color,
       Value<String> description,
+      Value<String?> icon,
       Value<String?> folderId,
       required int sortOrder,
       required int createdAt,
@@ -3663,6 +3851,7 @@ typedef $$ProjectsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<int> color,
       Value<String> description,
+      Value<String?> icon,
       Value<String?> folderId,
       Value<int> sortOrder,
       Value<int> createdAt,
@@ -3738,6 +3927,11 @@ class $$ProjectsTableFilterComposer
 
   ColumnFilters<String> get description => $composableBuilder(
     column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get icon => $composableBuilder(
+    column: $table.icon,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3839,6 +4033,11 @@ class $$ProjectsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
@@ -3905,6 +4104,9 @@ class $$ProjectsTableAnnotationComposer
     column: $table.description,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get icon =>
+      $composableBuilder(column: $table.icon, builder: (column) => column);
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
@@ -3999,6 +4201,7 @@ class $$ProjectsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<int> color = const Value.absent(),
                 Value<String> description = const Value.absent(),
+                Value<String?> icon = const Value.absent(),
                 Value<String?> folderId = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
@@ -4010,6 +4213,7 @@ class $$ProjectsTableTableManager
                 name: name,
                 color: color,
                 description: description,
+                icon: icon,
                 folderId: folderId,
                 sortOrder: sortOrder,
                 createdAt: createdAt,
@@ -4023,6 +4227,7 @@ class $$ProjectsTableTableManager
                 required String name,
                 required int color,
                 Value<String> description = const Value.absent(),
+                Value<String?> icon = const Value.absent(),
                 Value<String?> folderId = const Value.absent(),
                 required int sortOrder,
                 required int createdAt,
@@ -4034,6 +4239,7 @@ class $$ProjectsTableTableManager
                 name: name,
                 color: color,
                 description: description,
+                icon: icon,
                 folderId: folderId,
                 sortOrder: sortOrder,
                 createdAt: createdAt,

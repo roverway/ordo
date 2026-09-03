@@ -7,6 +7,7 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/motion.dart';
 import '../../../shared/widgets/desktop_hover_container.dart';
 import '../../tasks/task_providers.dart';
+import 'create_list_folder_sheet.dart';
 
 /// Project card — clean, minimal card with color dot, name, progress.
 ///
@@ -77,7 +78,10 @@ class _ProjectCardState extends ConsumerState<ProjectCard> {
                   ),
                   child: Center(
                     child: Icon(
-                      Icons.folder_outlined,
+                      getIconDataById(
+                        widget.project.icon,
+                        fallback: Icons.format_list_bulleted_rounded,
+                      ),
                       size: 20,
                       color: projectColor,
                     ),
