@@ -427,9 +427,13 @@ bool matchesFilter(
     if (!filter.priorities.contains(task.priority)) return false;
   }
 
-  // 5. 状态筛选（派生状态口径）
+  // 5. 状态筛选（派生状态口径，递归子树）
+  final effectiveStatus = _getRecursiveDerivedStatus(
+    task,
+    directChildren,
+    byId,
+  );
   if (filter.statuses.isNotEmpty) {
-    final effectiveStatus = derivedStatus(task, directChildren);
     if (!filter.statuses.contains(effectiveStatus)) return false;
   }
 
@@ -596,9 +600,37 @@ List<Task> sortPanelTasks(
   return result;
 }
 
+TaskStatus _getRecursiveDerivedStatus(
+  Task task,
+  List<Task> directChildren,
+  Map<String, Task> byId,
+) {
+  final children = directChildren.where((c) => c.deleted == 0).toList();
+  if (children.isEmpty) return task.status;
+
+  TaskStatus effectiveChildStatus(Task c) {
+    final subChildren = byId.values.where((t) => t.parentId == c.id).toList();
+    if (subChildren.isNotEmpty) {
+      return _getRecursiveDerivedStatus(c, subChildren, byId);
+    }
+    return c.status;
+  }
+
+  if (children.every((c) => effectiveChildStatus(c) == TaskStatus.done)) {
+    return TaskStatus.done;
+  }
+  if (children.any((c) => effectiveChildStatus(c) == TaskStatus.inProgress)) {
+    return TaskStatus.inProgress;
+  }
+  if (children.every((c) => effectiveChildStatus(c) == TaskStatus.cancelled)) {
+    return TaskStatus.cancelled;
+  }
+  return TaskStatus.todo;
+}
+
 /// 计算任务的有效完成时间（UTC 毫秒）。
 ///
-/// - 有直接子任务的任务：取所有子任务有效完成时间的最大值；
+/// - 有直接子任务的任务：递归遍历整棵子树取有效完成时间的最大值；
 /// - 无子任务任务：严格使用 [task.completedAt]（旧数据 NULL 不误作今日完成）。
 int? _getEffectiveCompletedAt(
   Task task,
@@ -610,7 +642,10 @@ int? _getEffectiveCompletedAt(
   }
   int? maxTime;
   for (final child in directChildren) {
-    final t = child.completedAt;
+    final subChildren = byId.values
+        .where((t) => t.parentId == child.id)
+        .toList();
+    final t = _getEffectiveCompletedAt(child, subChildren, byId);
     if (t != null && (maxTime == null || t > maxTime)) {
       maxTime = t;
     }

@@ -392,11 +392,58 @@ void main() {
       );
     });
 
-    test('无子任务的任务可修改状态', () async {
+    test('无子任务的任务可修改状态，且自动维护 completedAt', () async {
       final p = await repo.createProject(name: 'P', color: 0);
       final leaf = await repo.createTask(projectId: p.id, title: 'leaf');
+      expect((await repo.tasks.getById(leaf.id))!.completedAt, isNull);
+
       await repo.updateTask(leaf.id, status: TaskStatus.done);
-      expect((await repo.tasks.getById(leaf.id))!.status, TaskStatus.done);
+      final doneTask = (await repo.tasks.getById(leaf.id))!;
+      expect(doneTask.status, TaskStatus.done);
+      expect(doneTask.completedAt, isNotNull);
+
+      // 取消完成
+      await repo.updateTask(leaf.id, status: TaskStatus.todo);
+      final todoTask = (await repo.tasks.getById(leaf.id))!;
+      expect(todoTask.status, TaskStatus.todo);
+      expect(todoTask.completedAt, isNull);
+    });
+
+    test('syncSubtasks 自动维护新建与更新子任务的 completedAt', () async {
+      final p = await repo.createProject(name: 'P', color: 0);
+      final root = await repo.createTask(projectId: p.id, title: 'root');
+
+      // 新建包含已完成子任务
+      await repo.syncSubtasks(
+        parentId: root.id,
+        deleteSubtaskIds: const [],
+        items: [
+          (id: null, title: 'sub1', status: TaskStatus.done),
+          (id: null, title: 'sub2', status: TaskStatus.todo),
+        ],
+      );
+
+      final children = await repo.tasks.getDirectChildren(p.id, root.id);
+      expect(children.length, 2);
+      final sub1 = children.firstWhere((c) => c.title == 'sub1');
+      final sub2 = children.firstWhere((c) => c.title == 'sub2');
+      expect(sub1.completedAt, isNotNull);
+      expect(sub2.completedAt, isNull);
+
+      // 更新现有子任务状态
+      await repo.syncSubtasks(
+        parentId: root.id,
+        deleteSubtaskIds: const [],
+        items: [
+          (id: sub1.id, title: 'sub1', status: TaskStatus.todo),
+          (id: sub2.id, title: 'sub2', status: TaskStatus.done),
+        ],
+      );
+
+      final updatedSub1 = (await repo.tasks.getById(sub1.id))!;
+      final updatedSub2 = (await repo.tasks.getById(sub2.id))!;
+      expect(updatedSub1.completedAt, isNull);
+      expect(updatedSub2.completedAt, isNotNull);
     });
   });
 

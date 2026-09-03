@@ -638,5 +638,71 @@ void main() {
       expect(todayIds, contains('t_done_today'));
       expect(todayIds, isNot(contains('t_done_yesterday')));
     });
+
+    test('3级任务全部完成时，父任务递归获取有效完成时间并进入今日视图', () async {
+      final now = DateTime(2026, 9, 3, 12, 0, 0);
+      final tasks = [
+        Task(
+          id: 'root',
+          projectId: inboxProjectId,
+          title: '一级父任务',
+          description: '',
+          notes: '',
+          startAt: null,
+          endAt: null,
+          completedAt: null,
+          status: TaskStatus.todo,
+          sortOrder: 0,
+          createdAt: now.millisecondsSinceEpoch,
+          updatedAt: now.millisecondsSinceEpoch,
+          deleted: 0,
+          priority: TaskPriority.none,
+        ),
+        Task(
+          id: 'child',
+          projectId: inboxProjectId,
+          parentId: 'root',
+          title: '二级子任务',
+          description: '',
+          notes: '',
+          startAt: null,
+          endAt: null,
+          completedAt: null,
+          status: TaskStatus.todo,
+          sortOrder: 0,
+          createdAt: now.millisecondsSinceEpoch,
+          updatedAt: now.millisecondsSinceEpoch,
+          deleted: 0,
+          priority: TaskPriority.none,
+        ),
+        Task(
+          id: 'grand',
+          projectId: inboxProjectId,
+          parentId: 'child',
+          title: '三级孙任务',
+          description: '',
+          notes: '',
+          startAt: null,
+          endAt: null,
+          completedAt: now.millisecondsSinceEpoch,
+          status: TaskStatus.done,
+          sortOrder: 0,
+          createdAt: now.millisecondsSinceEpoch,
+          updatedAt: now.millisecondsSinceEpoch,
+          deleted: 0,
+          priority: TaskPriority.none,
+        ),
+      ];
+
+      final viewData = await buildTodayView(
+        tasks: tasks,
+        now: now,
+        tagsForTask: (_) async => const [],
+      );
+
+      final todayIds = viewData.today.map((v) => v.task.id).toList();
+      expect(todayIds, contains('root'));
+      expect(viewData.completedCount, 3);
+    });
   });
 }

@@ -18,16 +18,30 @@ import 'tree.dart';
 /// 3. 存在 inProgress → inProgress；
 /// 4. 全部 cancelled → cancelled；
 /// 5. 其余 → todo。
-TaskStatus derivedStatus(Task parent, List<Task> directChildren) {
+TaskStatus derivedStatus(
+  Task parent,
+  List<Task> directChildren, [
+  Map<String?, List<Task>>? childrenIndex,
+]) {
   final children = directChildren.where((c) => c.deleted == 0).toList();
   if (children.isEmpty) return parent.status;
-  if (children.every((c) => c.status == TaskStatus.done)) {
+
+  TaskStatus effectiveChildStatus(Task c) {
+    if (childrenIndex != null &&
+        childrenIndex.containsKey(c.id) &&
+        childrenIndex[c.id]!.isNotEmpty) {
+      return derivedStatus(c, childrenIndex[c.id]!, childrenIndex);
+    }
+    return c.status;
+  }
+
+  if (children.every((c) => effectiveChildStatus(c) == TaskStatus.done)) {
     return TaskStatus.done;
   }
-  if (children.any((c) => c.status == TaskStatus.inProgress)) {
+  if (children.any((c) => effectiveChildStatus(c) == TaskStatus.inProgress)) {
     return TaskStatus.inProgress;
   }
-  if (children.every((c) => c.status == TaskStatus.cancelled)) {
+  if (children.every((c) => effectiveChildStatus(c) == TaskStatus.cancelled)) {
     return TaskStatus.cancelled;
   }
   return TaskStatus.todo;

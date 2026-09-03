@@ -108,8 +108,8 @@ Future<TodayViewData> buildTodayView({
   final views = <TodayTaskView>[];
   for (final task in tasks) {
     final directChildren = childrenIndex[task.id] ?? const <Task>[];
-    // 复用现有派生纯函数（derived.dart）：无子任务时返回 task.status。
-    final effectiveStatus = derivedStatus(task, directChildren);
+    // 复用现有派生纯函数（derived.dart）：无子任务时返回 task.status，多级递归派生。
+    final effectiveStatus = derivedStatus(task, directChildren, childrenIndex);
 
     final isOverdue = view_rules.isOverdue(task, effectiveStatus, todayStart);
     final isOpenToday =
@@ -120,7 +120,7 @@ Future<TodayViewData> buildTodayView({
     // 今天完成的任务：有效完成时间（completedAt 或父级派生完成时间）落在今天区间内。
     // 严格依赖 completedAt，历史 NULL 任务不误作为今日完成。
     final compAt = directChildren.isNotEmpty
-        ? _getEffectiveCompletedAt(task, directChildren)
+        ? _getEffectiveCompletedAt(task, childrenIndex)
         : task.completedAt;
     final completedToday =
         effectiveStatus == TaskStatus.done &&
@@ -191,13 +191,17 @@ final todayViewProvider = StreamProvider<TodayViewData>((ref) async* {
   );
 });
 
-int? _getEffectiveCompletedAt(Task task, List<Task> directChildren) {
+int? _getEffectiveCompletedAt(
+  Task task,
+  Map<String?, List<Task>> childrenIndex,
+) {
+  final directChildren = childrenIndex[task.id] ?? const <Task>[];
   if (directChildren.isEmpty) {
     return task.completedAt;
   }
   int? maxTime;
   for (final child in directChildren) {
-    final t = child.completedAt;
+    final t = _getEffectiveCompletedAt(child, childrenIndex);
     if (t != null && (maxTime == null || t > maxTime)) {
       maxTime = t;
     }

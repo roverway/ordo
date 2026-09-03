@@ -671,7 +671,9 @@ class TodoRepository {
     // 如果 status 变更为非 done，则清空 completedAt 为 null。
     Value<int?> effectiveCompletedAt = completedAt;
     if (!effectiveCompletedAt.present && status != null) {
-      if (status == TaskStatus.done && existing.status != TaskStatus.done) {
+      if (status == TaskStatus.done &&
+          (existing.status != TaskStatus.done ||
+              existing.completedAt == null)) {
         effectiveCompletedAt = Value(_nowMs());
       } else if (status != TaskStatus.done &&
           existing.status == TaskStatus.done) {
@@ -913,12 +915,16 @@ class TodoRepository {
         if (item.id == null) {
           _checkTextLength(title, 1, 200, '任务标题');
           final newId = newUuid();
+          final st = item.status ?? TaskStatus.todo;
           final companion = TasksCompanion.insert(
             id: newId,
             projectId: parent.projectId,
             parentId: Value(parentId),
             title: title,
-            status: item.status ?? TaskStatus.todo,
+            status: st,
+            completedAt: st == TaskStatus.done
+                ? Value(now)
+                : const Value.absent(),
             sortOrder: order,
             createdAt: now,
             updatedAt: now,
@@ -928,6 +934,16 @@ class TodoRepository {
           final existingTask = await tasks.getActiveById(item.id!);
           if (existingTask != null) {
             _checkTextLength(title, 1, 200, '任务标题');
+            final newStatus = item.status ?? existingTask.status;
+            Value<int?> effectiveCompletedAt = const Value.absent();
+            if (newStatus == TaskStatus.done &&
+                (existingTask.status != TaskStatus.done ||
+                    existingTask.completedAt == null)) {
+              effectiveCompletedAt = Value(now);
+            } else if (newStatus != TaskStatus.done &&
+                existingTask.status == TaskStatus.done) {
+              effectiveCompletedAt = const Value(null);
+            }
             final companion = TasksCompanion(
               title: title != existingTask.title
                   ? Value(title)
@@ -935,6 +951,7 @@ class TodoRepository {
               status: item.status != null && item.status != existingTask.status
                   ? Value(item.status!)
                   : const Value.absent(),
+              completedAt: effectiveCompletedAt,
               sortOrder: Value(order),
               updatedAt: Value(now),
             );
