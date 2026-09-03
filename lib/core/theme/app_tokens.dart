@@ -9,8 +9,8 @@ import 'package:flutter/material.dart';
 abstract final class AppTokens {
   // ── Color ──
 
-  /// Seed color: refined Electric Indigo / Iris.
-  static const Color seedColor = Color(0xFF4F46E5);
+  /// Seed color: Obsidian Black (refined modern minimal base).
+  static const Color seedColor = Color(0xFF111827);
 
   /// Done — refined Emerald green.
   static const Color colorDone = Color(0xFF059669);
@@ -471,35 +471,87 @@ abstract final class AppTokens {
 
   /// Refined palette for project colors (Tailwind/Radix inspired).
   static const List<Color> presetColors = [
-    Color(0xFF4F46E5), // indigo
-    Color(0xFF059669), // emerald
-    Color(0xFFD97706), // warm amber
-    Color(0xFFE11D48), // rose
-    Color(0xFF8B5CF6), // violet
-    Color(0xFF0284C7), // sky
-    Color(0xFFDB2777), // pink
-    Color(0xFF6B7280), // slate
+    Color(0xFF111827), // obsidian black
+    Color(0xFF2563EB), // klein blue
+    Color(0xFF059669), // emerald green
+    Color(0xFFD97706), // amber orange
+    Color(0xFF7C3AED), // violet purple
+    Color(0xFFE11D48), // rose red
+    Color(0xFF0891B2), // turquoise teal
+    Color(0xFF64748B), // misty slate
   ];
 
   // ── Theme Palettes (App Theme Presets) ──
 
-  /// 8 款经过明度与对比度校准的精选现代调色盘预设。
+  /// 8 款经过明度与对比度校准的精选现代调色盘预设（全应用统一主题色体系）。
   static const List<ThemePalettePreset> themePalettes = [
-    ThemePalettePreset(id: 'classic', color: Color(0xFF4F46E5)), // 经典靛蓝
-    ThemePalettePreset(id: 'ocean', color: Color(0xFF0284C7)), // 晴空碧蓝
-    ThemePalettePreset(id: 'pine', color: Color(0xFF059669)), // 翡翠森林
-    ThemePalettePreset(id: 'amber', color: Color(0xFFD97706)), // 暖阳落日
-    ThemePalettePreset(id: 'rose', color: Color(0xFFE11D48)), // 典雅冷红
-    ThemePalettePreset(id: 'lavender', color: Color(0xFF7C3AED)), // 薰衣草紫
-    ThemePalettePreset(id: 'pink', color: Color(0xFFDB2777)), // 甜桃莓粉
-    ThemePalettePreset(id: 'slate', color: Color(0xFF475569)), // 暗岩曜石
+    ThemePalettePreset(
+      id: 'black',
+      color: Color(0xFF111827),
+      nameZh: '曜石黑',
+      nameEn: 'Obsidian Black',
+    ),
+    ThemePalettePreset(
+      id: 'blue',
+      color: Color(0xFF2563EB),
+      nameZh: '克莱因蓝',
+      nameEn: 'Klein Blue',
+    ),
+    ThemePalettePreset(
+      id: 'emerald',
+      color: Color(0xFF059669),
+      nameZh: '翡翠绿',
+      nameEn: 'Emerald Green',
+    ),
+    ThemePalettePreset(
+      id: 'amber',
+      color: Color(0xFFD97706),
+      nameZh: '琥珀橙',
+      nameEn: 'Amber Orange',
+    ),
+    ThemePalettePreset(
+      id: 'purple',
+      color: Color(0xFF7C3AED),
+      nameZh: '罗兰紫',
+      nameEn: 'Violet Purple',
+    ),
+    ThemePalettePreset(
+      id: 'rose',
+      color: Color(0xFFE11D48),
+      nameZh: '玫瑰红',
+      nameEn: 'Rose Red',
+    ),
+    ThemePalettePreset(
+      id: 'teal',
+      color: Color(0xFF0891B2),
+      nameZh: '松石青',
+      nameEn: 'Turquoise Teal',
+    ),
+    ThemePalettePreset(
+      id: 'slate',
+      color: Color(0xFF64748B),
+      nameZh: '烟雨灰',
+      nameEn: 'Misty Slate',
+    ),
   ];
 }
 
 /// 主题调色盘预设模型。
 class ThemePalettePreset {
-  const ThemePalettePreset({required this.id, required this.color});
+  const ThemePalettePreset({
+    required this.id,
+    required this.color,
+    required this.nameZh,
+    required this.nameEn,
+  });
 
   final String id;
   final Color color;
+  final String nameZh;
+  final String nameEn;
+
+  String localizedName(BuildContext context) {
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    return isZh ? nameZh : nameEn;
+  }
 }

@@ -60,28 +60,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeColor => 'Theme Color';
 
   @override
-  String get themeColorClassic => 'Classic Iris';
+  String get themeColorBlack => 'Obsidian Black';
 
   @override
-  String get themeColorOcean => 'Ocean Sky';
+  String get themeColorBlue => 'Klein Blue';
 
   @override
-  String get themeColorPine => 'Emerald Pine';
+  String get themeColorEmerald => 'Emerald Green';
 
   @override
-  String get themeColorAmber => 'Warm Amber';
+  String get themeColorAmber => 'Amber Orange';
 
   @override
-  String get themeColorRose => 'Crimson Rose';
+  String get themeColorPurple => 'Violet Purple';
 
   @override
-  String get themeColorLavender => 'Lavender Violet';
+  String get themeColorRose => 'Rose Red';
 
   @override
-  String get themeColorPink => 'Berry Pink';
+  String get themeColorTeal => 'Turquoise Teal';
 
   @override
-  String get themeColorSlate => 'Slate Obsidian';
+  String get themeColorSlate => 'Misty Slate';
 
   @override
   String get language => 'Language';

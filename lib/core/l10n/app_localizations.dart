@@ -200,52 +200,52 @@ abstract class AppLocalizations {
   /// **'主题色彩'**
   String get themeColor;
 
-  /// No description provided for @themeColorClassic.
+  /// No description provided for @themeColorBlack.
   ///
   /// In zh, this message translates to:
-  /// **'经典靛蓝'**
-  String get themeColorClassic;
+  /// **'曜石黑'**
+  String get themeColorBlack;
 
-  /// No description provided for @themeColorOcean.
+  /// No description provided for @themeColorBlue.
   ///
   /// In zh, this message translates to:
-  /// **'晴空碧蓝'**
-  String get themeColorOcean;
+  /// **'克莱因蓝'**
+  String get themeColorBlue;
 
-  /// No description provided for @themeColorPine.
+  /// No description provided for @themeColorEmerald.
   ///
   /// In zh, this message translates to:
-  /// **'翡翠森林'**
-  String get themeColorPine;
+  /// **'翡翠绿'**
+  String get themeColorEmerald;
 
   /// No description provided for @themeColorAmber.
   ///
   /// In zh, this message translates to:
-  /// **'暖阳落日'**
+  /// **'琥珀橙'**
   String get themeColorAmber;
+
+  /// No description provided for @themeColorPurple.
+  ///
+  /// In zh, this message translates to:
+  /// **'罗兰紫'**
+  String get themeColorPurple;
 
   /// No description provided for @themeColorRose.
   ///
   /// In zh, this message translates to:
-  /// **'典雅冷红'**
+  /// **'玫瑰红'**
   String get themeColorRose;
 
-  /// No description provided for @themeColorLavender.
+  /// No description provided for @themeColorTeal.
   ///
   /// In zh, this message translates to:
-  /// **'薰衣草紫'**
-  String get themeColorLavender;
-
-  /// No description provided for @themeColorPink.
-  ///
-  /// In zh, this message translates to:
-  /// **'甜桃莓粉'**
-  String get themeColorPink;
+  /// **'松石青'**
+  String get themeColorTeal;
 
   /// No description provided for @themeColorSlate.
   ///
   /// In zh, this message translates to:
-  /// **'暗岩曜石'**
+  /// **'烟雨灰'**
   String get themeColorSlate;
 
   /// No description provided for @language.

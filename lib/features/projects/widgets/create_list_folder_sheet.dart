@@ -29,77 +29,11 @@ class PresetIconItem {
   final String nameEn;
 }
 
-/// 预设主题色
-class PresetModalColor {
-  const PresetModalColor({
-    required this.id,
-    required this.color,
-    required this.nameZh,
-    required this.nameEn,
-  });
-
-  final String id;
-  final Color color;
-  final String nameZh;
-  final String nameEn;
-
-  String localizedName(BuildContext context) {
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
-    return isZh ? nameZh : nameEn;
-  }
-}
+/// 预设主题色（全应用统一主题色体系）
+typedef PresetModalColor = ThemePalettePreset;
 
 /// 8 款精选主题色
-const List<PresetModalColor> kPresetModalColors = [
-  PresetModalColor(
-    id: 'black',
-    color: Color(0xFF111827),
-    nameZh: '曜石黑',
-    nameEn: 'Obsidian Black',
-  ),
-  PresetModalColor(
-    id: 'blue',
-    color: Color(0xFF2563EB),
-    nameZh: '克莱因蓝',
-    nameEn: 'Klein Blue',
-  ),
-  PresetModalColor(
-    id: 'emerald',
-    color: Color(0xFF059669),
-    nameZh: '翡翠绿',
-    nameEn: 'Emerald Green',
-  ),
-  PresetModalColor(
-    id: 'amber',
-    color: Color(0xFFD97706),
-    nameZh: '琥珀橙',
-    nameEn: 'Amber Orange',
-  ),
-  PresetModalColor(
-    id: 'purple',
-    color: Color(0xFF7C3AED),
-    nameZh: '罗兰紫',
-    nameEn: 'Violet Purple',
-  ),
-  PresetModalColor(
-    id: 'rose',
-    color: Color(0xFFE11D48),
-    nameZh: '玫瑰红',
-    nameEn: 'Rose Red',
-  ),
-  PresetModalColor(
-    id: 'teal',
-    color: Color(0xFF0891B2),
-    nameZh: '松石青',
-    nameEn: 'Turquoise Teal',
-  ),
-  PresetModalColor(
-    id: 'slate',
-    color: Color(0xFF64748B),
-    nameZh: '烟雨灰',
-    nameEn: 'Misty Slate',
-  ),
-];
+const List<PresetModalColor> kPresetModalColors = AppTokens.themePalettes;
 
 /// 丰富预置图标库（每类 16 个语义图标）
 const Map<PresetIconCategory, List<PresetIconItem>> kPresetModalIcons = {
@@ -1327,8 +1261,18 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
           ],
         ),
         const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
+        Container(
+          padding: const EdgeInsets.only(bottom: 6),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: isDark
+                    ? const Color(0xFF262830)
+                    : const Color(0xFFE2E8F0),
+                width: 1.0,
+              ),
+            ),
+          ),
           child: Row(
             children: [
               // 选中的图标与色彩预览徽章
@@ -1358,7 +1302,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
               ),
               const SizedBox(width: 12),
 
-              // 输入框：无任何背景色或边框
+              // 输入框：无任何背景色，保留浅色下边距横线
               Expanded(
                 child: TextField(
                   controller: _nameController,

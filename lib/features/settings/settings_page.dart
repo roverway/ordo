@@ -516,20 +516,6 @@ class _BrandMeaningItem extends StatelessWidget {
 class _ThemeColorPicker extends ConsumerWidget {
   const _ThemeColorPicker();
 
-  String _paletteName(String id, AppLocalizations l10n) {
-    return switch (id) {
-      'classic' => l10n.themeColorClassic,
-      'ocean' => l10n.themeColorOcean,
-      'pine' => l10n.themeColorPine,
-      'amber' => l10n.themeColorAmber,
-      'rose' => l10n.themeColorRose,
-      'lavender' => l10n.themeColorLavender,
-      'pink' => l10n.themeColorPink,
-      'slate' => l10n.themeColorSlate,
-      _ => id,
-    };
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
@@ -557,7 +543,7 @@ class _ThemeColorPicker extends ConsumerWidget {
           children: AppTokens.themePalettes.map((palette) {
             final isSelected =
                 palette.color.toARGB32() == currentSeed.toARGB32();
-            final name = _paletteName(palette.id, l10n);
+            final name = palette.localizedName(context);
 
             return Tooltip(
               message: name,

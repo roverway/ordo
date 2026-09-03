@@ -31,9 +31,9 @@ class HeroProgressRing extends StatelessWidget {
     final targetValue = total > 0 ? (completed / total).clamp(0.0, 1.0) : 0.0;
     final labelText = customCenterText ?? '$completed/$total';
 
-    final trackColor = isDark
-        ? Colors.white.withValues(alpha: 0.10)
-        : Colors.black.withValues(alpha: 0.08);
+    final trackColor = colorScheme.primary.withValues(
+      alpha: isDark ? 0.16 : 0.10,
+    );
 
     final barColor = colorScheme.primary;
 

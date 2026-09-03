@@ -331,13 +331,13 @@ abstract final class AppTheme {
       ),
 
       // ── Checkbox ──
-      // Linear / Things 风格圆形复选框：完成 = onSurfaceVariant 中性灰填充 + 白勾；
+      // Linear / Things 风格圆形复选框：完成 = 当前全局主题色（primary）填充 + 白勾；
       // 禁用（有子任务，状态派生）= 浅灰填充。shape 走 AppTokens。
       checkboxTheme: CheckboxThemeData(
         shape: AppTokens.checkboxShape,
         side: WidgetStateBorderSide.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return BorderSide(color: colorScheme.onSurfaceVariant, width: 1.5);
+            return BorderSide(color: colorScheme.primary, width: 1.5);
           }
           return BorderSide(
             color: isDark
@@ -348,9 +348,7 @@ abstract final class AppTheme {
         }),
         fillColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            // 完成 = 中性灰填充（onSurfaceVariant，与完成态标题文字同色，
-            // 用户评审 2026-08：不再用主题色填充）+ 白勾。
-            return colorScheme.onSurfaceVariant;
+            return colorScheme.primary;
           }
           if (states.contains(WidgetState.disabled)) {
             return colorScheme.onSurface.withValues(alpha: 0.15);
@@ -359,7 +357,9 @@ abstract final class AppTheme {
         }),
         checkColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
-              ? AppTokens.colorOnCheck
+              ? (isDark && colorScheme.primary == const Color(0xFF111827)
+                    ? Colors.black87
+                    : Colors.white)
               : Colors.transparent,
         ),
       ),

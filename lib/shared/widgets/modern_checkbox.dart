@@ -71,7 +71,7 @@ class _ModernCheckboxState extends State<ModernCheckbox>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final fgColor = widget.fillColor ?? theme.colorScheme.onSurface;
+    final fgColor = widget.fillColor ?? theme.colorScheme.primary;
     final uncheckedBorderColor = theme.colorScheme.onSurface.withValues(
       alpha: isDark ? 0.38 : 0.34,
     );
@@ -96,7 +96,9 @@ class _ModernCheckboxState extends State<ModernCheckbox>
               ? CustomPaint(
                   painter: _CheckmarkPainter(
                     progress: t,
-                    color: isDark ? theme.colorScheme.surface : Colors.white,
+                    color: (isDark && fgColor == const Color(0xFF111827))
+                        ? Colors.black87
+                        : Colors.white,
                     strokeWidth: 2.2,
                   ),
                 )

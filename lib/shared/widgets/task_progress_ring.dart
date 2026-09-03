@@ -52,12 +52,12 @@ class TaskProgressRing extends StatelessWidget {
                   child: CircularProgressIndicator(
                     value: animatedValue,
                     strokeWidth: AppTokens.progressRingWidth,
-                    backgroundColor: colorScheme.surfaceContainerHighest,
+                    backgroundColor: colorScheme.primary.withValues(
+                      alpha: 0.12,
+                    ),
                     // 颜色按**最终**完成度切换（不随动画闪烁）。
                     valueColor: AlwaysStoppedAnimation(
-                      value >= 1.0
-                          ? AppTokens.colorDone
-                          : AppTokens.colorInProgress,
+                      value >= 1.0 ? AppTokens.colorDone : colorScheme.primary,
                     ),
                   ),
                 ),

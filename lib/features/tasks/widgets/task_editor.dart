@@ -638,8 +638,21 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
           const _ParentTaskSection(),
           const SizedBox(height: AppTokens.spaceSm),
         ],
-        // ① 任务标题：大号加粗（titleLarge）、无边框、自动聚焦。
-        _buildTitleField(context, l10n),
+        // ① 任务标题：大号加粗（titleLarge）、无背景色、带浅色下边距横线、自动聚焦。
+        Container(
+          padding: const EdgeInsets.only(bottom: 6),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF262830)
+                    : const Color(0xFFE2E8F0),
+                width: 1.0,
+              ),
+            ),
+          ),
+          child: _buildTitleField(context, l10n),
+        ),
         // ② 描述：默认内联展示（59 讨论定稿，替代 ⋯ 菜单开关）；备注仍由 ⋯ 菜单开关（D8）。
         const SizedBox(height: AppTokens.spaceSm),
         TaskDescriptionNotesSection(controller: widget.controller),
