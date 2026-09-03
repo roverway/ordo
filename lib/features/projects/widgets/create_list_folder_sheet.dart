@@ -916,8 +916,10 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
           icon: _selectedIcon.id,
           folderId: Value(normalizedFolderId),
         );
+        final updatedProject =
+            (await repo.projects.getById(targetProject.id)) ?? targetProject;
         if (mounted) {
-          Navigator.of(context).pop(true);
+          Navigator.of(context).pop(updatedProject);
           messenger?.showSnackBar(
             SnackBar(
               content: Text(l10n.editListSuccess(name)),
@@ -935,8 +937,10 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
           color: _selectedColor.color.toARGB32(),
           icon: _selectedIcon.id,
         );
+        final updatedFolder =
+            (await repo.folders.getById(targetFolder.id)) ?? targetFolder;
         if (mounted) {
-          Navigator.of(context).pop(true);
+          Navigator.of(context).pop(updatedFolder);
           messenger?.showSnackBar(
             SnackBar(
               content: Text(l10n.editFolderSuccess(name)),
@@ -1017,6 +1021,23 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
     final screenHeight = MediaQuery.sizeOf(context).height;
     final targetMaxHeight = isFocused ? screenHeight : screenHeight * 0.85;
 
+    // 状态栏高度真实检测：在 showModalBottomSheet 内部，MediaQuery.padding.top 会被路由剔除为 0
+    // 因此优先从 MediaQuery.viewPadding.top 或 FlutterView 的 viewPadding 读取真实硬件顶栏避让高度
+    final rawTopInset = MediaQuery.viewPaddingOf(context).top;
+    final view = View.maybeOf(context);
+    final engineTopInset = view != null
+        ? (view.viewPadding.top / view.devicePixelRatio)
+        : 0.0;
+    final physicalTopInset = rawTopInset > 0 ? rawTopInset : engineTopInset;
+    final isMobile =
+        theme.platform == TargetPlatform.android ||
+        theme.platform == TargetPlatform.iOS;
+    final effectiveStatusBarHeight = physicalTopInset > 0
+        ? physicalTopInset
+        : (isMobile ? 36.0 : 0.0);
+
+    final topClearance = isFocused ? (effectiveStatusBarHeight + 10.0) : 0.0;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOutCubic,
@@ -1037,167 +1058,160 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
           ),
         ],
       ),
-      child: SafeArea(
-        // 聚焦全屏时开启顶部 SafeArea，为手机顶部状态栏留出充足空间
-        top: isFocused,
-        bottom: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ── 拖拽手柄 / 顶部空白 ──
-            if (!isFocused)
-              Center(
-                child: Container(
-                  margin: const EdgeInsets.only(top: 10, bottom: 6),
-                  width: 36,
-                  height: 4.5,
-                  decoration: BoxDecoration(
-                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(3),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── 顶部状态栏安全距离（聚焦全屏时生效） ──
+          if (isFocused)
+            SizedBox(height: topClearance)
+          else
+            // ── 拖拽手柄（非全屏时显示） ──
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 10, bottom: 6),
+                width: 36,
+                height: 4.5,
+                decoration: BoxDecoration(
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+
+          // ── 顶栏导航 ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 2, 16, 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // 左侧取消
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: isDark
+                        ? const Color(0xFF9CA3AF)
+                        : const Color(0xFF6B7280),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(
+                    l10n.cancel,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                 ),
-              )
-            else
-              const SizedBox(height: 8),
 
-            // ── 顶栏导航 ──
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 2, 16, 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // 左侧取消
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: TextButton.styleFrom(
-                      foregroundColor: isDark
-                          ? const Color(0xFF9CA3AF)
-                          : const Color(0xFF6B7280),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                // 中间：分段切换器（新建模式）或 标题（编辑模式）
+                if (_isEditing)
+                  Text(
+                    widget.editingProject != null
+                        ? l10n.editList
+                        : l10n.editFolder,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? const Color(0xFFF3F4F6)
+                          : const Color(0xFF111827),
                     ),
-                    child: Text(
-                      l10n.cancel,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w400,
-                      ),
+                  )
+                else
+                  _buildSegmentedControl(l10n, isDark),
+
+                // 右侧完成
+                TextButton(
+                  onPressed: isNameValid && !_isSubmitting ? _submit : null,
+                  style: TextButton.styleFrom(
+                    foregroundColor: activeAccent,
+                    disabledForegroundColor: isDark
+                        ? const Color(0xFF4B5563)
+                        : const Color(0xFFD1D5DB),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 6,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    backgroundColor: isNameValid
+                        ? activeAccent.withValues(alpha: 0.12)
+                        : Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-
-                  // 中间：分段切换器（新建模式）或 标题（编辑模式）
-                  if (_isEditing)
-                    Text(
-                      widget.editingProject != null
-                          ? l10n.editList
-                          : l10n.editFolder,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: isDark
-                            ? const Color(0xFFF3F4F6)
-                            : const Color(0xFF111827),
-                      ),
-                    )
-                  else
-                    _buildSegmentedControl(l10n, isDark),
-
-                  // 右侧完成
-                  TextButton(
-                    onPressed: isNameValid && !_isSubmitting ? _submit : null,
-                    style: TextButton.styleFrom(
-                      foregroundColor: activeAccent,
-                      disabledForegroundColor: isDark
-                          ? const Color(0xFF4B5563)
-                          : const Color(0xFFD1D5DB),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 6,
-                      ),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      backgroundColor: isNameValid
-                          ? activeAccent.withValues(alpha: 0.12)
-                          : Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: _isSubmitting
-                        ? SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: activeAccent,
-                            ),
-                          )
-                        : Text(
-                            l10n.done,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: isNameValid
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
-                            ),
+                  child: _isSubmitting
+                      ? SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: activeAccent,
                           ),
-                  ),
+                        )
+                      : Text(
+                          l10n.done,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: isNameValid
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                          ),
+                        ),
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(height: 1, thickness: 0.5),
+
+          // ── 可滚动表单区域 ──
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // 1. 名称与图标前缀输入卡片
+                  _buildNameInputCard(l10n, isDark, activeAccent, isList),
+
+                  const SizedBox(height: 24),
+
+                  // 2. 主题颜色选择
+                  _buildColorPalette(l10n, isDark),
+
+                  const SizedBox(height: 24),
+
+                  // 3. 图标库选择
+                  _buildIconPicker(l10n, isDark, activeAccent),
+
+                  // 4. 所属文件夹（仅在清单模式展示）
+                  if (isList) ...[
+                    const SizedBox(height: 24),
+                    _buildFolderSelector(
+                      l10n,
+                      isDark,
+                      activeAccent,
+                      groupingAsync,
+                    ),
+                  ],
+
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
-
-            const Divider(height: 1, thickness: 0.5),
-
-            // ── 可滚动表单区域 ──
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // 1. 名称与图标前缀输入卡片
-                    _buildNameInputCard(l10n, isDark, activeAccent, isList),
-
-                    const SizedBox(height: 24),
-
-                    // 2. 主题颜色选择
-                    _buildColorPalette(l10n, isDark),
-
-                    const SizedBox(height: 24),
-
-                    // 3. 图标库选择
-                    _buildIconPicker(l10n, isDark, activeAccent),
-
-                    // 4. 所属文件夹（仅在清单模式展示）
-                    if (isList) ...[
-                      const SizedBox(height: 24),
-                      _buildFolderSelector(
-                        l10n,
-                        isDark,
-                        activeAccent,
-                        groupingAsync,
-                      ),
-                    ],
-
-                    const SizedBox(height: 24),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
