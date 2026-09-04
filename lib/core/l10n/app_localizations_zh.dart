@@ -1055,4 +1055,30 @@ class AppLocalizationsZh extends AppLocalizations {
   String editFolderSuccess(String name) {
     return '文件夹「$name」已更新';
   }
+
+  @override
+  String get addSubtaskHint => '添加子任务，回车确认';
+
+  @override
+  String get noTimeSet => '未设置时间';
+
+  @override
+  String get titleCannotBeEmpty => '标题不能为空';
+
+  @override
+  String saveTaskFailed(String error) {
+    return '保存任务失败：$error';
+  }
+
+  @override
+  String get overdueSubtitle => '逾期';
+
+  @override
+  String get completedSubtitle => '已完成';
+
+  @override
+  String get startTime => '开始时间';
+
+  @override
+  String get endTime => '结束时间';
 }

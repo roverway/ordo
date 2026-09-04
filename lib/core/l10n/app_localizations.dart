@@ -2089,6 +2089,54 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'文件夹「{name}」已更新'**
   String editFolderSuccess(String name);
+
+  /// No description provided for @addSubtaskHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加子任务，回车确认'**
+  String get addSubtaskHint;
+
+  /// No description provided for @noTimeSet.
+  ///
+  /// In zh, this message translates to:
+  /// **'未设置时间'**
+  String get noTimeSet;
+
+  /// No description provided for @titleCannotBeEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'标题不能为空'**
+  String get titleCannotBeEmpty;
+
+  /// 保存任务失败提示
+  ///
+  /// In zh, this message translates to:
+  /// **'保存任务失败：{error}'**
+  String saveTaskFailed(String error);
+
+  /// No description provided for @overdueSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'逾期'**
+  String get overdueSubtitle;
+
+  /// No description provided for @completedSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'已完成'**
+  String get completedSubtitle;
+
+  /// No description provided for @startTime.
+  ///
+  /// In zh, this message translates to:
+  /// **'开始时间'**
+  String get startTime;
+
+  /// No description provided for @endTime.
+  ///
+  /// In zh, this message translates to:
+  /// **'结束时间'**
+  String get endTime;
 }
 
 class _AppLocalizationsDelegate

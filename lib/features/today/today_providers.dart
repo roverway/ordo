@@ -96,10 +96,9 @@ Future<TodayViewData> buildTodayView({
   final todayStartMs = todayStart.millisecondsSinceEpoch;
   final todayEndMs = todayEnd.millisecondsSinceEpoch;
 
-  final resolvedProjects = projects ??
-      (getAllProjects != null
-          ? await getAllProjects()
-          : const <Project>[]);
+  final resolvedProjects =
+      projects ??
+      (getAllProjects != null ? await getAllProjects() : const <Project>[]);
   final projectsMap = {for (final p in resolvedProjects) p.id: p};
 
   final parentIds = <String>{
@@ -118,9 +117,7 @@ Future<TodayViewData> buildTodayView({
     if (effectiveStatus == TaskStatus.cancelled) continue;
 
     final isDone = effectiveStatus == TaskStatus.done;
-    final compAt = directChildren.isNotEmpty
-        ? _getEffectiveCompletedAt(task, childrenIndex)
-        : task.completedAt;
+    final compAt = derivedCompletedAt(task, childrenIndex);
 
     final isScheduledToday = view_rules.matchesToday(
       task,
@@ -245,21 +242,3 @@ final todayViewProvider = StreamProvider<TodayViewData>((ref) async* {
     );
   });
 });
-
-int? _getEffectiveCompletedAt(
-  Task task,
-  Map<String?, List<Task>> childrenIndex,
-) {
-  final directChildren = childrenIndex[task.id] ?? const <Task>[];
-  if (directChildren.isEmpty) {
-    return task.completedAt;
-  }
-  int? maxTime;
-  for (final child in directChildren) {
-    final t = _getEffectiveCompletedAt(child, childrenIndex);
-    if (t != null && (maxTime == null || t > maxTime)) {
-      maxTime = t;
-    }
-  }
-  return maxTime;
-}

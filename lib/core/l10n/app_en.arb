@@ -421,5 +421,22 @@
         "type": "String"
       }
     }
-  }
+  },
+  "autoSaveOnClose": "Auto-save on close",
+  "addSubtaskHint": "Add subtask, press enter to confirm",
+  "noTimeSet": "No time set",
+  "titleCannotBeEmpty": "Title cannot be empty",
+  "saveTaskFailed": "Failed to save task: {error}",
+  "@saveTaskFailed": {
+    "description": "Failed to save task message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "overdueSubtitle": "Overdue",
+  "completedSubtitle": "Completed",
+  "startTime": "Start time",
+  "endTime": "End time"
 }

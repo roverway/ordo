@@ -421,5 +421,22 @@
         "type": "String"
       }
     }
-  }
+  },
+  "autoSaveOnClose": "关闭时自动保存",
+  "addSubtaskHint": "添加子任务，回车确认",
+  "noTimeSet": "未设置时间",
+  "titleCannotBeEmpty": "标题不能为空",
+  "saveTaskFailed": "保存任务失败：{error}",
+  "@saveTaskFailed": {
+    "description": "保存任务失败提示",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "overdueSubtitle": "逾期",
+  "completedSubtitle": "已完成",
+  "startTime": "开始时间",
+  "endTime": "结束时间"
 }

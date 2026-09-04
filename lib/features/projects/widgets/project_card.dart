@@ -7,7 +7,7 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/motion.dart';
 import '../../../shared/widgets/desktop_hover_container.dart';
 import '../../tasks/task_providers.dart';
-import 'create_list_folder_sheet.dart';
+import '../../../core/theme/preset_icons.dart';
 
 /// Project card — clean, minimal card with color dot, name, progress.
 ///

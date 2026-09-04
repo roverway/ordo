@@ -476,7 +476,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                               currentValue: startAt,
                               label: startAt != null
                                   ? '开始 ${formatTaskTimeDisplay(startAt, null, l10n)}'
-                                  : '开始时间',
+                                  : l10n.startTime,
                               icon: Icons.calendar_today_outlined,
                             ),
 
@@ -488,7 +488,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                               currentValue: endAt,
                               label: endAt != null
                                   ? '截止 ${formatTaskTimeDisplay(null, endAt, l10n)}'
-                                  : '结束时间',
+                                  : l10n.endTime,
                               icon: Icons.flag_outlined,
                             ),
                           ],
@@ -847,7 +847,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                                 : colorScheme.onSurface,
                                           ),
                                           decoration: InputDecoration(
-                                            hintText: '子任务标题',
+                                            hintText: l10n.subtasks,
                                             hintStyle: TextStyle(
                                               color: colorScheme
                                                   .onSurfaceVariant
@@ -930,7 +930,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
-                                      '添加子任务，回车确认',
+                                      l10n.addSubtaskHint,
                                       style: TextStyle(
                                         fontSize: 14.5,
                                         color: colorScheme.onSurfaceVariant
@@ -958,7 +958,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
               child: Row(
                 children: [
                   Text(
-                    '关闭时自动保存',
+                    l10n.autoSaveOnClose,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                       fontSize: 12.5,
@@ -976,7 +976,12 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                   // 当前摘要信息
                   Flexible(
                     child: Text(
-                      _buildSummaryText(currentProject?.name, startAt, endAt),
+                      _buildSummaryText(
+                        currentProject?.name,
+                        startAt,
+                        endAt,
+                        l10n,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
@@ -996,7 +1001,12 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
     );
   }
 
-  String _buildSummaryText(String? projectName, int? startAt, int? endAt) {
+  String _buildSummaryText(
+    String? projectName,
+    int? startAt,
+    int? endAt,
+    AppLocalizations l10n,
+  ) {
     final parts = <String>[];
     if (startAt != null) {
       final dt = DateTime.fromMillisecondsSinceEpoch(
@@ -1016,7 +1026,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
         '截止 ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}',
       );
     }
-    if (parts.isEmpty) return '未设置时间';
+    if (parts.isEmpty) return l10n.noTimeSet;
     return parts.join(' · ');
   }
 
@@ -1144,13 +1154,14 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
         ? _titleController.text.trim()
         : formState.title.trim();
 
+    final l10n = AppLocalizations.of(context);
     if (title.isEmpty) {
       if (!isExplicit) {
         setState(() => _allowPop = true);
         Navigator.of(context).pop();
         return;
       }
-      setState(() => _titleError = '标题不能为空');
+      setState(() => _titleError = l10n.titleCannotBeEmpty);
       _triggerShake();
       _titleFocusNode.requestFocus();
       return;
@@ -1171,7 +1182,6 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
       final errorKey = await notifier.save();
       if (!mounted) return;
       if (errorKey != null) {
-        final l10n = AppLocalizations.of(context);
         final message = switch (errorKey) {
           'title_required' => l10n.titleRequired,
           'end_time_before_start' => l10n.endTimeBeforeStart,
@@ -1191,9 +1201,9 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('保存任务失败: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.saveTaskFailed(e.toString()))),
+        );
         setState(() => _isSaving = false);
       }
     }
@@ -1203,17 +1213,25 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
     final repo = ref.read(todoRepositoryProvider);
     final formState = ref.read(taskFormProvider);
     final parentId = formState.id;
-    if (parentId == null) return;
+    if (parentId == null || _subtaskRows.isEmpty) return;
+
+    final items = <({String? id, String title, TaskStatus? status})>[];
     for (final st in _subtaskRows) {
       final title = st.controller.text.trim();
       if (title.isNotEmpty) {
-        await repo.createTask(
-          projectId: formState.projectId,
-          parentId: parentId,
+        items.add((
+          id: null,
           title: title,
           status: st.isDone ? TaskStatus.done : TaskStatus.todo,
-        );
+        ));
       }
+    }
+    if (items.isNotEmpty) {
+      await repo.syncSubtasks(
+        parentId: parentId,
+        deleteSubtaskIds: const [],
+        items: items,
+      );
     }
   }
 }

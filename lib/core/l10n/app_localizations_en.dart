@@ -1078,4 +1078,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String editFolderSuccess(String name) {
     return 'Folder \"$name\" updated';
   }
+
+  @override
+  String get addSubtaskHint => 'Add subtask, press enter to confirm';
+
+  @override
+  String get noTimeSet => 'No time set';
+
+  @override
+  String get titleCannotBeEmpty => 'Title cannot be empty';
+
+  @override
+  String saveTaskFailed(String error) {
+    return 'Failed to save task: $error';
+  }
+
+  @override
+  String get overdueSubtitle => 'Overdue';
+
+  @override
+  String get completedSubtitle => 'Completed';
+
+  @override
+  String get startTime => 'Start time';
+
+  @override
+  String get endTime => 'End time';
 }

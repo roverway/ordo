@@ -39,6 +39,7 @@ class TaskQueryEngine {
         projectsById: projectsById,
         taskTagIds: tagIds,
         nowUtcMs: nowUtcMs,
+        childrenIndex: childrenIndex,
       );
     }).toList();
   }
@@ -71,6 +72,7 @@ class TaskQueryEngine {
         projectsById: projectsById,
         taskTagIds: tagIds,
         nowUtcMs: nowUtcMs,
+        childrenIndex: childrenIndex,
       )) {
         matchedIds.add(task.id);
       }

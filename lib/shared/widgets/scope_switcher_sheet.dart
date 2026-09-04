@@ -7,6 +7,7 @@ import '../../core/db/tables.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/sync/sync_engine.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/preset_icons.dart';
 import '../../features/custom_views/providers/custom_view_providers.dart';
 import '../../features/custom_views/widgets/icon_picker_dialog.dart';
 import '../../features/projects/project_providers.dart';

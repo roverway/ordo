@@ -168,12 +168,10 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    // 统计数量
-    final totalCount = view.overdue.length + view.today.length;
-    final completedCount = (view.overdue + view.today)
-        .where((v) => v.effectiveStatus == TaskStatus.done)
-        .length;
-    final openCount = totalCount - completedCount;
+    // 统计数量（直接使用 TodayViewData 高性能聚合属性）
+    final totalCount = view.totalCount;
+    final completedCount = view.completedCount;
+    final openCount = view.uncompletedCount;
 
     // 日期格式化
     final now = DateTime.now();
@@ -245,7 +243,7 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                 ),
               ),
               Text(
-                ' · 逾期 ',
+                ' · ${l10n.overdueSubtitle} ',
                 style: TextStyle(
                   fontSize: 12,
                   color: colorScheme.onSurfaceVariant,
@@ -262,7 +260,7 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                 ),
               ),
               Text(
-                ' · 已完成 ',
+                ' · ${l10n.completedSubtitle} ',
                 style: TextStyle(
                   fontSize: 12,
                   color: colorScheme.onSurfaceVariant,
@@ -285,6 +283,7 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
               ),
             ],
           ),
+
           trailing: HeroProgressRing(
             completed: completedCount,
             total: totalCount,
