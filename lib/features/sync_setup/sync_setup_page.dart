@@ -256,15 +256,53 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
   }
 
   Future<void> _syncNow() async {
-    final triggers = ref.read(syncTriggersProvider);
-    final result = await triggers.runNow();
-    if (result.ok || result.skipped) {
-      if (mounted) setState(() => _lastErrorRetryable = false);
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    if (!_hasRequiredConnection) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.syncConfigIncomplete)),
+      );
       return;
     }
-    // §12：失败 → 记录是否可重试；可重试错误交给触发层指数退避调度
-    // （不再立即重跑，按 1/2/4/8/16s 退避，最多 5 次）。
-    if (mounted) setState(() => _lastErrorRetryable = result.retryable);
+
+    // 用户在配置页主动触发「立即同步」：若未开启同步则自动开启，并先保存表单最新配置
+    if (!_enabled) {
+      setState(() => _enabled = true);
+    }
+    setState(() => _saving = true);
+    try {
+      await saveSyncConfig(ref, _buildConfig());
+      ref.invalidate(syncConfigProvider);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _saving = false);
+        messenger.showSnackBar(SnackBar(content: Text(l10n.syncSaveFail)));
+      }
+      return;
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+
+    final triggers = ref.read(syncTriggersProvider);
+    final result = await triggers.runNow();
+    if (!mounted) return;
+
+    if (result.ok) {
+      setState(() => _lastErrorRetryable = false);
+      messenger.showSnackBar(SnackBar(content: Text(l10n.syncStatusSuccess)));
+      return;
+    }
+    if (result.skipped) {
+      setState(() => _lastErrorRetryable = false);
+      messenger.showSnackBar(SnackBar(content: Text(l10n.syncNotConfigured)));
+      return;
+    }
+
+    // §12：失败 → 记录是否可重试；展示错误提示；可重试错误交给触发层指数退避调度
+    setState(() => _lastErrorRetryable = result.retryable);
+    messenger.showSnackBar(
+      SnackBar(content: Text(_syncErrorText(l10n, result.errorCode))),
+    );
     if (result.retryable) {
       unawaited(triggers.scheduleRetryIfNeeded(result));
     }
@@ -443,10 +481,13 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
                 const SizedBox(width: AppTokens.spaceSm),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: syncState.status == SyncStateStatus.syncing
+                    onPressed:
+                        (syncState.status == SyncStateStatus.syncing || _saving)
                         ? null
                         : _syncNow,
-                    icon: const Icon(Icons.sync),
+                    icon: syncState.status == SyncStateStatus.syncing
+                        ? const _ButtonSpinner()
+                        : const Icon(Icons.sync),
                     label: Text(l10n.syncNow),
                   ),
                 ),

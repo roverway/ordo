@@ -68,6 +68,7 @@ class TaskFormState {
     this.startAt,
     this.endAt,
     this.createdAt = 0,
+    this.completedAt,
     this.status = TaskStatus.todo,
     this.priority = TaskPriority.none,
     this.existingTagIds = const [],
@@ -85,6 +86,7 @@ class TaskFormState {
   final int? startAt;
   final int? endAt;
   final int createdAt;
+  final int? completedAt;
   final TaskStatus status;
   final TaskPriority priority;
   final List<String> existingTagIds;
@@ -109,6 +111,7 @@ class TaskFormState {
     Object? startAt = _unset,
     Object? endAt = _unset,
     Object? createdAt = _unset,
+    Object? completedAt = _unset,
     Object? status = _unset,
     Object? priority = _unset,
     Object? existingTagIds = _unset,
@@ -134,6 +137,9 @@ class TaskFormState {
       createdAt: identical(createdAt, _unset)
           ? this.createdAt
           : createdAt as int,
+      completedAt: identical(completedAt, _unset)
+          ? this.completedAt
+          : completedAt as int?,
       status: identical(status, _unset) ? this.status : status as TaskStatus,
       priority: identical(priority, _unset)
           ? this.priority
@@ -185,6 +191,7 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
       startAt: task.startAt,
       endAt: task.endAt,
       createdAt: task.createdAt,
+      completedAt: task.completedAt,
       status: task.status,
       priority: task.priority,
       existingTagIds: tagIds,
@@ -206,6 +213,8 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
       notes: state.notes,
       startAt: state.startAt,
       endAt: state.endAt,
+      createdAt: state.createdAt,
+      completedAt: state.completedAt,
       status: state.status,
       priority: state.priority,
       existingTagIds: state.existingTagIds,
@@ -337,7 +346,12 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
   void updateNotes(String value) => state = state.copyWith(notes: value);
   void updateStartAt(int? value) => state = state.copyWith(startAt: value);
   void updateEndAt(int? value) => state = state.copyWith(endAt: value);
-  void updateStatus(TaskStatus value) => state = state.copyWith(status: value);
+  void updateStatus(TaskStatus value) => state = state.copyWith(
+    status: value,
+    completedAt: value == TaskStatus.done
+        ? (state.completedAt ?? DateTime.now().millisecondsSinceEpoch)
+        : null,
+  );
   void updatePriority(TaskPriority value) =>
       state = state.copyWith(priority: value);
 

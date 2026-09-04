@@ -574,7 +574,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncServerUrl => 'Server URL';
 
   @override
-  String get syncServerUrlHint => 'e.g. https://dav.jianguoyun.com/dav/';
+  String get syncServerUrlHint => 'e.g. https://dav.jianguoyun.com/dav/todo/';
 
   @override
   String get syncEndpoint => 'Endpoint';
@@ -1104,4 +1104,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get endTime => 'End time';
+
+  @override
+  String taskCreatedOn(String date) {
+    return 'Created on $date';
+  }
+
+  @override
+  String taskCompletedOn(String date) {
+    return 'Completed on $date';
+  }
 }

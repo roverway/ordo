@@ -1163,7 +1163,7 @@ abstract class AppLocalizations {
   /// No description provided for @syncServerUrlHint.
   ///
   /// In zh, this message translates to:
-  /// **'如 https://dav.jianguoyun.com/dav/'**
+  /// **'如 https://dav.jianguoyun.com/dav/todo/'**
   String get syncServerUrlHint;
 
   /// No description provided for @syncEndpoint.
@@ -2137,6 +2137,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'结束时间'**
   String get endTime;
+
+  /// 任务创建时间展示
+  ///
+  /// In zh, this message translates to:
+  /// **'创建于 {date}'**
+  String taskCreatedOn(String date);
+
+  /// 任务完成时间展示
+  ///
+  /// In zh, this message translates to:
+  /// **'完成于 {date}'**
+  String taskCompletedOn(String date);
 }
 
 class _AppLocalizationsDelegate

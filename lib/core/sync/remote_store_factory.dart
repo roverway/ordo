@@ -29,6 +29,8 @@ class RemoteStoreFactory {
   ///
   /// - webdav：要求 serverUrl 非空（凭据缺失允许匿名/公开只读场景，
   ///   由调用方决定是否校验 username/secret）；否则抛 [SyncConfigException]；
+  ///   针对坚果云等 WebDAV 根路径（如 `https://dav.jianguoyun.com/dav/`），
+  ///   由于服务器禁止在 /dav/ 根目录下直接存放文件，若用户未指定子目录则自动补全 `/todo/`；
   /// - s3：要求 serverUrl（endpoint）与 bucket 非空，否则抛
   ///   [SyncConfigException]；region 可为 null（由客户端探测），
   ///   prefix 默认 `todo/`（§9.2）。
@@ -40,7 +42,7 @@ class RemoteStoreFactory {
           throw const SyncConfigException('WebDAV 配置缺少服务器地址');
         }
         return WebDavRemoteStore(
-          baseUrl: serverUrl,
+          baseUrl: _normalizeWebDavUrl(serverUrl),
           username: config.username ?? '',
           password: config.secret ?? '',
         );
@@ -58,5 +60,27 @@ class RemoteStoreFactory {
           prefix: config.prefix ?? 'todo/',
         );
     }
+  }
+
+  /// 规整 WebDAV 服务器地址。
+  ///
+  /// 坚果云 WebDAV 根路径适配：
+  /// 坚果云帮助中心给出的服务器地址为 `https://dav.jianguoyun.com/dav/`，
+  /// 但坚果云 `/dav/` 根目录属于系统 collection，禁止在根下直接创建文件
+  /// （PUT 会返回 403 Forbidden）。若用户输入的是坚果云根地址，自动补充
+  /// `/todo/` 子目录（`https://dav.jianguoyun.com/dav/todo/`），
+  /// 适配器在首次上传时会自动通过 MKCOL 创建该目录。
+  static String _normalizeWebDavUrl(String url) {
+    final trimmed = url.trim();
+    final uri = Uri.tryParse(trimmed);
+    if (uri != null && uri.host.contains('jianguoyun.com')) {
+      final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
+      if (segments.isEmpty ||
+          (segments.length == 1 && segments.first == 'dav')) {
+        final origin = '${uri.scheme}://${uri.authority}';
+        return '$origin/dav/todo/';
+      }
+    }
+    return trimmed;
   }
 }

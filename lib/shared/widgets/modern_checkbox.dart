@@ -71,11 +71,17 @@ class _ModernCheckboxState extends State<ModernCheckbox>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final fgColor = widget.fillColor ?? theme.colorScheme.primary;
-    final uncheckedBorderColor = theme.colorScheme.onSurface.withValues(
-      alpha: isDark ? 0.38 : 0.34,
-    );
-    final surfaceColor = theme.colorScheme.surface;
+    final isEnabled = widget.onChanged != null;
+
+    final fgColor = isEnabled
+        ? (widget.fillColor ?? theme.colorScheme.primary)
+        : (isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF));
+    final uncheckedBorderColor = isEnabled
+        ? theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.38 : 0.34)
+        : (isDark ? const Color(0xFF4B5563) : const Color(0xFFD1D5DB));
+    final surfaceColor = isEnabled
+        ? theme.colorScheme.surface
+        : (isDark ? const Color(0xFF1E2026) : const Color(0xFFF3F4F6));
 
     final box = AnimatedBuilder(
       animation: _progress,
@@ -96,9 +102,11 @@ class _ModernCheckboxState extends State<ModernCheckbox>
               ? CustomPaint(
                   painter: _CheckmarkPainter(
                     progress: t,
-                    color: widget.fillColor != null
+                    color: !isEnabled
                         ? Colors.white
-                        : theme.colorScheme.onPrimary,
+                        : (widget.fillColor != null
+                              ? Colors.white
+                              : theme.colorScheme.onPrimary),
                     strokeWidth: 2.2,
                   ),
                 )

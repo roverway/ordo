@@ -362,6 +362,38 @@ void main() {
       );
     });
 
+    test('坚果云根路径（/dav/ 或 /dav）自动补全 /todo/ 子目录', () {
+      final store1 = RemoteStoreFactory.fromConfig(
+        const SyncConfig(
+          type: RemoteType.webdav,
+          serverUrl: 'https://dav.jianguoyun.com/dav/',
+          username: 'user',
+          secret: 'pass',
+        ),
+      );
+      expect(store1, isA<WebDavRemoteStore>());
+
+      final store2 = RemoteStoreFactory.fromConfig(
+        const SyncConfig(
+          type: RemoteType.webdav,
+          serverUrl: 'https://dav.jianguoyun.com/dav',
+          username: 'user',
+          secret: 'pass',
+        ),
+      );
+      expect(store2, isA<WebDavRemoteStore>());
+
+      final store3 = RemoteStoreFactory.fromConfig(
+        const SyncConfig(
+          type: RemoteType.webdav,
+          serverUrl: 'https://dav.jianguoyun.com/dav/custom_dir/',
+          username: 'user',
+          secret: 'pass',
+        ),
+      );
+      expect(store3, isA<WebDavRemoteStore>());
+    });
+
     test('s3 分支已实现 → 返回 S3RemoteStore（详见 remote_store_s3_test.dart）', () {
       final store = RemoteStoreFactory.fromConfig(
         const SyncConfig(

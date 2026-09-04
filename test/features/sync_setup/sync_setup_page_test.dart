@@ -6,6 +6,8 @@
 // 注入：内存 DB（AppDatabase.forTesting）+ 内存 SecureKeyValueStore，
 // 不依赖真实网络与平台存储（flutter_secure_storage 平台通道）。
 
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,6 +15,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:todo/core/db/database.dart';
 import 'package:todo/core/l10n/app_localizations.dart';
 import 'package:todo/core/security/secure_store.dart';
+import 'package:todo/core/sync/remote_store.dart';
+import 'package:todo/core/sync/remote_store_factory.dart';
 import 'package:todo/core/sync/sync_config.dart';
 import 'package:todo/core/sync/sync_engine.dart';
 import 'package:todo/features/projects/project_providers.dart';
@@ -33,6 +37,37 @@ class _MemorySecureBackend implements SecureKeyValueStore {
 
   @override
   Future<void> delete(String key) async => _store.remove(key);
+}
+
+/// 内存 Fake RemoteStore（供测试连接 / 立即同步测试）。
+class _FakeRemoteStore implements RemoteStore {
+  Uint8List? remoteBytes;
+
+  @override
+  Future<bool> exists() async => remoteBytes != null;
+
+  @override
+  Future<Uint8List?> download() async => remoteBytes;
+
+  @override
+  Future<void> upload(Uint8List bytes) async {
+    remoteBytes = bytes;
+  }
+
+  @override
+  Future<DateTime?> lastModified() async => DateTime.now().toUtc();
+
+  @override
+  Future<DateTime?> serverNow() async => DateTime.now().toUtc();
+}
+
+class _FakeRemoteStoreFactory implements RemoteStoreFactory {
+  const _FakeRemoteStoreFactory(this.store);
+
+  final _FakeRemoteStore store;
+
+  @override
+  RemoteStore create(SyncConfig config) => store;
 }
 
 /// 写操作抛 [SecureStoreException] 的后端（模拟安全存储故障，验证保存顺序）。
@@ -63,6 +98,7 @@ Future<void> _pumpSyncPage(
   WidgetTester tester, {
   required TodoRepository repo,
   required SecureStore secureStore,
+  RemoteStoreFactory? remoteStoreFactory,
   SyncStateNotifier Function()? stateOverride,
 }) async {
   // 高画布（400×1400）：窄屏全宽 + 全部卡片可见（保存按钮在列表底部，
@@ -76,6 +112,8 @@ Future<void> _pumpSyncPage(
       overrides: [
         todoRepositoryProvider.overrideWithValue(repo),
         secureStoreProvider.overrideWithValue(secureStore),
+        if (remoteStoreFactory != null)
+          remoteStoreFactoryProvider.overrideWithValue(remoteStoreFactory),
         if (stateOverride != null)
           syncStateProvider.overrideWith(stateOverride),
       ],
@@ -301,5 +339,78 @@ void main() {
     // 标题为通用「同步失败」，副标题为 ARB 网络错误文案（不展示原始 message）。
     expect(find.text('同步失败'), findsOneWidget);
     expect(find.text('网络连接失败或超时'), findsOneWidget);
+  });
+
+  testWidgets('测试连接：配置不完整提示「请填写完整的连接信息」', (tester) async {
+    final db = AppDatabase.forTesting();
+    addTearDown(db.close);
+    final repo = TodoRepository(database: db);
+    final secureStore = SecureStore(backend: _MemorySecureBackend());
+    await _pumpSyncPage(tester, repo: repo, secureStore: secureStore);
+
+    // 地址为空时点击测试连接
+    await tester.tap(find.text('测试连接'));
+    await tester.pumpAndSettle();
+    expect(find.text('请填写完整的连接信息'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('测试连接：配置完整提示「连接成功」', (tester) async {
+    final db = AppDatabase.forTesting();
+    addTearDown(db.close);
+    final repo = TodoRepository(database: db);
+    final secureStore = SecureStore(backend: _MemorySecureBackend());
+    final fakeStore = _FakeRemoteStore();
+    await _pumpSyncPage(
+      tester,
+      repo: repo,
+      secureStore: secureStore,
+      remoteStoreFactory: _FakeRemoteStoreFactory(fakeStore),
+    );
+
+    await tester.enterText(
+      find.byType(TextField).first,
+      'https://dav.jianguoyun.com/dav/todo/',
+    );
+    await tester.tap(find.text('测试连接'));
+    await tester.pumpAndSettle();
+    expect(find.text('连接成功'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('立即同步：配置完整但未开同步时，点击立即同步自动启用并同步成功', (tester) async {
+    final db = AppDatabase.forTesting();
+    addTearDown(db.close);
+    final repo = TodoRepository(database: db);
+    final secureStore = SecureStore(backend: _MemorySecureBackend());
+    final fakeStore = _FakeRemoteStore();
+    await _pumpSyncPage(
+      tester,
+      repo: repo,
+      secureStore: secureStore,
+      remoteStoreFactory: _FakeRemoteStoreFactory(fakeStore),
+    );
+
+    await tester.enterText(
+      find.byType(TextField).first,
+      'https://dav.jianguoyun.com/dav/todo/',
+    );
+    // 直接点击「立即同步」（开关仍为关闭态，也未先点保存）
+    await tester.tap(find.text('立即同步'));
+    await tester.pumpAndSettle();
+
+    // 应自动保存并同步成功，弹出「已同步」提示
+    expect(find.text('已同步'), findsWidgets);
+    // 开关已自动变为开启态
+    final settings = await repo.settings.getAll();
+    expect(settings['sync_enabled'], '1');
+    expect(fakeStore.remoteBytes, isNotNull);
+
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
   });
 }

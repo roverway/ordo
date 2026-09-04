@@ -75,49 +75,27 @@ class TaskCreateSheet extends ConsumerStatefulWidget {
       notifier.setSelectedTags(initialTagIds);
     }
 
-    final sheetTheme = Theme.of(context).bottomSheetTheme;
-
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      useSafeArea: true,
+      backgroundColor: Colors.transparent,
       sheetAnimationStyle: AnimationStyle(
         duration: motionSlow(context),
         reverseDuration: motionSlow(context),
       ),
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      elevation:
-          sheetTheme.modalElevation ??
-          sheetTheme.elevation ??
-          AppTokens.elevationCard,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppTokens.radiusDialog),
-        ),
-      ),
-      clipBehavior: Clip.antiAlias,
       builder: (sheetContext) {
         return KeyboardInsetBuilder(
-          child: RepaintBoundary(
-            child: MediaQuery.removeViewInsets(
-              removeBottom: true,
-              context: sheetContext,
-              child: TaskCreateSheet(
-                projectId: projectId,
-                parentId: parentId,
-                initialStartAt: initialStartAt,
-                initialEndAt: initialEndAt,
-                initialPriority: initialPriority,
-                initialTagIds: initialTagIds,
-              ),
+          builder: (context, keyboardHeight, bottomInset, child) => Padding(
+            padding: EdgeInsets.only(bottom: keyboardHeight),
+            child: TaskCreateSheet(
+              projectId: projectId,
+              parentId: parentId,
+              initialStartAt: initialStartAt,
+              initialEndAt: initialEndAt,
+              initialPriority: initialPriority,
+              initialTagIds: initialTagIds,
             ),
           ),
-          builder: (context, effectiveInset, bottomGap, sheetChild) {
-            return Padding(
-              padding: EdgeInsets.only(bottom: effectiveInset + bottomGap),
-              child: sheetChild!,
-            );
-          },
         );
       },
     );
@@ -247,30 +225,71 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
         ? AppTokens.borderSubtleDark
         : AppTokens.borderSubtleLight;
 
+    final isFocused =
+        _titleFocusNode.hasFocus ||
+        _descriptionFocusNode.hasFocus ||
+        _subtaskRows.any((r) => r.focusNode.hasFocus);
+
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final targetMaxHeight = isFocused ? screenHeight : screenHeight * 0.85;
+
+    final rawTopInset = MediaQuery.viewPaddingOf(context).top;
+    final view = View.maybeOf(context);
+    final engineTopInset = view != null
+        ? (view.viewPadding.top / view.devicePixelRatio)
+        : 0.0;
+    final physicalTopInset = rawTopInset > 0 ? rawTopInset : engineTopInset;
+    final isMobile =
+        theme.platform == TargetPlatform.android ||
+        theme.platform == TargetPlatform.iOS;
+    final effectiveStatusBarHeight = physicalTopInset > 0
+        ? physicalTopInset
+        : (isMobile ? 36.0 : 0.0);
+
+    final topClearance = isFocused ? (effectiveStatusBarHeight + 10.0) : 0.0;
+
     return PopScope(
       canPop: _allowPop,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _saveAndClose();
       },
-      child: SafeArea(
-        top: false,
-        bottom: false,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        constraints: BoxConstraints(maxHeight: targetMaxHeight),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF18191D) : const Color(0xFFFFFFFF),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(isFocused ? 16 : 24),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 40,
+              offset: const Offset(0, -10),
+            ),
+          ],
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ── 顶部拖拽手柄 ──
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 8, bottom: 4),
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: colorScheme.onSurface.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(2),
+            // ── 顶部状态栏安全距离（聚焦全屏时生效） ──
+            if (isFocused)
+              SizedBox(height: topClearance)
+            else
+              // ── 拖拽手柄（非全屏时显示） ──
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 10, bottom: 6),
+                  width: 36,
+                  height: 4.5,
+                  decoration: BoxDecoration(
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
                 ),
               ),
-            ),
 
             // ── 顶部栏：关闭 X / 标题 / 保存 ──
             Padding(

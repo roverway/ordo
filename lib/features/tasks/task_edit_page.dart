@@ -20,7 +20,6 @@ import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_breakpoints.dart';
 import '../../core/utils/tree.dart';
-import '../../shared/widgets/app_menu_item.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import '../../shared/widgets/modal_side_sheet.dart';
 import '../../shared/widgets/window_insets_boundary.dart';
@@ -277,30 +276,6 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
               onPressed: _save,
               icon: const Icon(Icons.check, size: 18),
               label: Text(l10n.save),
-            ),
-            PopupMenuButton<String>(
-              icon: Icon(
-                _isEditing ? Icons.more_horiz : Icons.more_vert,
-                size: 20,
-              ),
-              tooltip: l10n.rowActions,
-              onSelected: (value) {
-                if (value == 'delete' && _isEditing) {
-                  _confirmDeleteTask();
-                } else if (value == 'notes') {
-                  _editorController.toggleNotes();
-                }
-              },
-              itemBuilder: (context) => [
-                if (!_isEditing)
-                  AppMenuItem(value: 'notes', label: l10n.taskNotes),
-                if (_isEditing)
-                  AppMenuItem(
-                    value: 'delete',
-                    label: l10n.delete,
-                    destructive: true,
-                  ),
-              ],
             ),
           ],
         ),

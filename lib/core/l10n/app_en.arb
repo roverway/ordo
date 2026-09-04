@@ -177,7 +177,7 @@
   "syncTypeS3": "S3-compatible bucket",
   "syncEnabled": "Enable sync",
   "syncServerUrl": "Server URL",
-  "syncServerUrlHint": "e.g. https://dav.jianguoyun.com/dav/",
+  "syncServerUrlHint": "e.g. https://dav.jianguoyun.com/dav/todo/",
   "syncEndpoint": "Endpoint",
   "syncEndpointHint": "e.g. https://<bucket>.r2.cloudflarestorage.com",
   "syncUsername": "Username",
@@ -438,5 +438,23 @@
   "overdueSubtitle": "Overdue",
   "completedSubtitle": "Completed",
   "startTime": "Start time",
-  "endTime": "End time"
+  "endTime": "End time",
+  "taskCreatedOn": "Created on {date}",
+  "@taskCreatedOn": {
+    "description": "Task creation date display",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "taskCompletedOn": "Completed on {date}",
+  "@taskCompletedOn": {
+    "description": "Task completion date display",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  }
 }

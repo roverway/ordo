@@ -177,7 +177,7 @@
   "syncTypeS3": "S3 兼容桶",
   "syncEnabled": "启用同步",
   "syncServerUrl": "服务器地址",
-  "syncServerUrlHint": "如 https://dav.jianguoyun.com/dav/",
+  "syncServerUrlHint": "如 https://dav.jianguoyun.com/dav/todo/",
   "syncEndpoint": "Endpoint",
   "syncEndpointHint": "如 https://<bucket>.r2.cloudflarestorage.com",
   "syncUsername": "用户名",
@@ -438,5 +438,23 @@
   "overdueSubtitle": "逾期",
   "completedSubtitle": "已完成",
   "startTime": "开始时间",
-  "endTime": "结束时间"
+  "endTime": "结束时间",
+  "taskCreatedOn": "创建于 {date}",
+  "@taskCreatedOn": {
+    "description": "任务创建时间展示",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "taskCompletedOn": "完成于 {date}",
+  "@taskCompletedOn": {
+    "description": "任务完成时间展示",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  }
 }

@@ -601,7 +601,11 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               if (ref.watch(taskFormProvider.select((s) => s.id)) != null)
-                TaskMetadataFooter(taskId: ref.read(taskFormProvider).id!),
+                Expanded(
+                  child: TaskMetadataFooter(
+                    taskId: ref.read(taskFormProvider).id!,
+                  ),
+                ),
               if (widget.onDeleteRequested != null)
                 TextButton.icon(
                   onPressed: widget.onDeleteRequested,
@@ -932,21 +936,49 @@ class TaskMetadataFooter extends ConsumerWidget {
     final createdAt = ref.watch(taskFormProvider.select((s) => s.createdAt));
     if (createdAt <= 0) return const SizedBox.shrink();
 
+    final completedAt = ref.watch(
+      taskFormProvider.select((s) => s.completedAt),
+    );
+    final status = ref.watch(taskFormProvider.select((s) => s.status));
+
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context);
 
-    final date = DateTime.fromMillisecondsSinceEpoch(
+    final createdDate = DateTime.fromMillisecondsSinceEpoch(
       createdAt,
       isUtc: true,
     ).toLocal();
     final isZh = l10n.localeName.startsWith('zh');
-    final formattedDate = isZh
-        ? intl.DateFormat('M月d日').format(date)
-        : intl.DateFormat('MMM d').format(date);
+    final formattedCreatedDate = isZh
+        ? intl.DateFormat('M月d日').format(createdDate)
+        : intl.DateFormat('MMM d').format(createdDate);
+
+    final isCompleted =
+        status == TaskStatus.done || (completedAt != null && completedAt > 0);
+
+    final String text;
+    if (isCompleted) {
+      final compDate = (completedAt != null && completedAt > 0)
+          ? DateTime.fromMillisecondsSinceEpoch(
+              completedAt,
+              isUtc: true,
+            ).toLocal()
+          : DateTime.now();
+      final formattedCompletedDate = isZh
+          ? intl.DateFormat('M月d日').format(compDate)
+          : intl.DateFormat('MMM d').format(compDate);
+      text =
+          '${l10n.taskCreatedOn(formattedCreatedDate)} · ${l10n.taskCompletedOn(formattedCompletedDate)} · ${l10n.syncStatusSuccess}';
+    } else {
+      text =
+          '${l10n.taskCreatedOn(formattedCreatedDate)} · ${l10n.syncStatusSuccess}';
+    }
 
     return Text(
-      '创建于 $formattedDate · 已同步',
+      text,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
       style: theme.textTheme.bodySmall?.copyWith(
         color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
         fontSize: 12,

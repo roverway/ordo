@@ -566,7 +566,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncServerUrl => '服务器地址';
 
   @override
-  String get syncServerUrlHint => '如 https://dav.jianguoyun.com/dav/';
+  String get syncServerUrlHint => '如 https://dav.jianguoyun.com/dav/todo/';
 
   @override
   String get syncEndpoint => 'Endpoint';
@@ -1081,4 +1081,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get endTime => '结束时间';
+
+  @override
+  String taskCreatedOn(String date) {
+    return '创建于 $date';
+  }
+
+  @override
+  String taskCompletedOn(String date) {
+    return '完成于 $date';
+  }
 }

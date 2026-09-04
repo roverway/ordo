@@ -33,6 +33,8 @@ Task _task(
   int sortOrder = 0,
   int startAt = 0,
   int endAt = 0,
+  int createdAt = 0,
+  int? completedAt,
 }) => Task(
   id: id,
   projectId: projectId,
@@ -45,7 +47,8 @@ Task _task(
   startAt: startAt,
   endAt: endAt,
   priority: TaskPriority.none,
-  createdAt: 0,
+  createdAt: createdAt,
+  completedAt: completedAt,
   updatedAt: 0,
   deleted: 0,
 );
@@ -1140,6 +1143,50 @@ void main() {
 
       final textWidget = tester.widget<Text>(find.text('已完成的子任务'));
       expect(textWidget.style?.decoration, TextDecoration.lineThrough);
+    });
+
+    testWidgets('编辑页 AppBar 右上角不再包含三点横向菜单', (tester) async {
+      final task = _task('t1', title: '独立任务');
+      await _pumpEdit(tester, taskId: 't1', existingTasks: [task]);
+
+      expect(find.byIcon(Icons.more_horiz), findsNothing);
+      expect(find.byType(PopupMenuButton<String>), findsNothing);
+    });
+
+    testWidgets('TaskMetadataFooter: 未完成任务仅展示创建于', (tester) async {
+      final task = _task('t1', title: '未完成任务', createdAt: 1700000000000);
+      await _pumpEdit(tester, taskId: 't1', existingTasks: [task]);
+
+      expect(find.byType(TaskMetadataFooter), findsOneWidget);
+      final footer = tester.widget<Text>(
+        find.descendant(
+          of: find.byType(TaskMetadataFooter),
+          matching: find.byType(Text),
+        ),
+      );
+      expect(footer.data, contains('创建于'));
+      expect(footer.data, isNot(contains('完成于')));
+    });
+
+    testWidgets('TaskMetadataFooter: 已完成任务展示创建于与完成于', (tester) async {
+      final task = _task(
+        't1',
+        title: '已完成任务',
+        status: TaskStatus.done,
+        createdAt: 1700000000000,
+        completedAt: 1700000000000,
+      );
+      await _pumpEdit(tester, taskId: 't1', existingTasks: [task]);
+
+      expect(find.byType(TaskMetadataFooter), findsOneWidget);
+      final footer = tester.widget<Text>(
+        find.descendant(
+          of: find.byType(TaskMetadataFooter),
+          matching: find.byType(Text),
+        ),
+      );
+      expect(footer.data, contains('创建于'));
+      expect(footer.data, contains('完成于'));
     });
   });
 }
