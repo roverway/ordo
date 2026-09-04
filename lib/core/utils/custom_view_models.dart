@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 
 import '../db/database.dart';
 import '../db/tables.dart';
-import 'derived.dart';
 import 'uuid.dart';
 
 /// 日期筛选范围枚举。
@@ -471,7 +470,6 @@ bool matchesFilter(
         break;
       case DateScopeEnum.overdue:
         // 截止时间早于今天开始且未完成
-        final effectiveStatus = derivedStatus(task, directChildren);
         if (effectiveStatus == TaskStatus.done ||
             effectiveStatus == TaskStatus.cancelled) {
           return false;
@@ -479,7 +477,7 @@ bool matchesFilter(
         if (task.endAt == null || task.endAt! >= todayStartUtcMs) return false;
         break;
       case DateScopeEnum.today:
-        // 今天截止或今天开始
+        // 今天截止或今天开始，或跨越今天，或今天完成
         final hasStartToday =
             task.startAt != null &&
             task.startAt! >= todayStartUtcMs &&
@@ -493,7 +491,21 @@ bool matchesFilter(
             task.endAt != null &&
             task.startAt! < todayStartUtcMs &&
             task.endAt! > todayEndUtcMs;
-        if (!hasStartToday && !hasEndToday && !spansToday) return false;
+        final isScheduledToday = hasStartToday || hasEndToday || spansToday;
+        final compAt = _getEffectiveCompletedAt(task, directChildren, byId);
+        if (effectiveStatus == TaskStatus.done) {
+          if (compAt != null) {
+            if (compAt < todayStartUtcMs || compAt > todayEndUtcMs) {
+              return false;
+            }
+          } else {
+            if (!isScheduledToday) return false;
+          }
+        } else if (effectiveStatus == TaskStatus.cancelled) {
+          return false;
+        } else {
+          if (!isScheduledToday) return false;
+        }
         break;
       case DateScopeEnum.tomorrow:
         final tomorrowStart = todayStart.add(const Duration(days: 1));
@@ -555,7 +567,6 @@ bool matchesFilter(
         }
         break;
       case DateScopeEnum.completedToday:
-        final effectiveStatus = derivedStatus(task, directChildren);
         if (effectiveStatus != TaskStatus.done) return false;
         final compAt = _getEffectiveCompletedAt(task, directChildren, byId);
         if (compAt == null) return false;

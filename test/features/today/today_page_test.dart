@@ -704,5 +704,119 @@ void main() {
       expect(todayIds, contains('root'));
       expect(viewData.completedCount, 3);
     });
+
+    test('逾期任务在今日完成：保留在逾期组中（已完成状态），不移入今天组', () async {
+      final now = DateTime(2026, 9, 3, 12, 0, 0);
+      final yesterday = DateTime(2026, 9, 2, 12, 0, 0);
+
+      final tasks = [
+        Task(
+          id: 'overdue_done_today',
+          projectId: inboxProjectId,
+          title: '逾期且今日完成的任务',
+          description: '',
+          notes: '',
+          startAt: null,
+          endAt: yesterday.millisecondsSinceEpoch,
+          completedAt: now.millisecondsSinceEpoch,
+          status: TaskStatus.done,
+          sortOrder: 0,
+          createdAt: yesterday.millisecondsSinceEpoch,
+          updatedAt: now.millisecondsSinceEpoch,
+          deleted: 0,
+          priority: TaskPriority.none,
+        ),
+      ];
+
+      final viewData = await buildTodayView(
+        tasks: tasks,
+        now: now,
+        tagsForTask: (_) async => const [],
+      );
+
+      // 应在逾期组，不在今天组
+      expect(
+        viewData.overdue.map((v) => v.task.id),
+        contains('overdue_done_today'),
+      );
+      expect(viewData.today, isEmpty);
+      expect(viewData.overdue.single.isOverdue, isTrue);
+      expect(viewData.overdue.single.effectiveStatus, TaskStatus.done);
+      expect(viewData.completedCount, 1);
+      expect(viewData.uncompletedCount, 0);
+    });
+
+    test('无排期任务在今日完成：进入今天组（已完成状态）', () async {
+      final now = DateTime(2026, 9, 3, 12, 0, 0);
+
+      final tasks = [
+        Task(
+          id: 'inbox_done_today',
+          projectId: inboxProjectId,
+          title: '无排期收件箱任务今日完成',
+          description: '',
+          notes: '',
+          startAt: null,
+          endAt: null,
+          completedAt: now.millisecondsSinceEpoch,
+          status: TaskStatus.done,
+          sortOrder: 0,
+          createdAt: now.millisecondsSinceEpoch,
+          updatedAt: now.millisecondsSinceEpoch,
+          deleted: 0,
+          priority: TaskPriority.none,
+        ),
+      ];
+
+      final viewData = await buildTodayView(
+        tasks: tasks,
+        now: now,
+        tagsForTask: (_) async => const [],
+      );
+
+      expect(
+        viewData.today.map((v) => v.task.id),
+        contains('inbox_done_today'),
+      );
+      expect(viewData.overdue, isEmpty);
+      expect(viewData.today.single.isOverdue, isFalse);
+      expect(viewData.today.single.effectiveStatus, TaskStatus.done);
+      expect(viewData.completedCount, 1);
+    });
+
+    test('排期跨过今天但昨天已完成的任务：今日页面不显示', () async {
+      final now = DateTime(2026, 9, 3, 12, 0, 0);
+      final spanStart = DateTime(2026, 9, 1, 10, 0, 0);
+      final spanEnd = DateTime(2026, 9, 5, 18, 0, 0);
+      final yesterday = DateTime(2026, 9, 2, 15, 0, 0);
+
+      final tasks = [
+        Task(
+          id: 'span_done_yesterday',
+          projectId: inboxProjectId,
+          title: '跨越今天但昨天已完成',
+          description: '',
+          notes: '',
+          startAt: spanStart.millisecondsSinceEpoch,
+          endAt: spanEnd.millisecondsSinceEpoch,
+          completedAt: yesterday.millisecondsSinceEpoch,
+          status: TaskStatus.done,
+          sortOrder: 0,
+          createdAt: spanStart.millisecondsSinceEpoch,
+          updatedAt: yesterday.millisecondsSinceEpoch,
+          deleted: 0,
+          priority: TaskPriority.none,
+        ),
+      ];
+
+      final viewData = await buildTodayView(
+        tasks: tasks,
+        now: now,
+        tagsForTask: (_) async => const [],
+      );
+
+      expect(viewData.isEmpty, isTrue);
+      expect(viewData.totalCount, 0);
+    });
   });
 }

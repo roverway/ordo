@@ -35,7 +35,7 @@ class TodayTaskView {
   /// 无子任务时即 `task.status`。
   final TaskStatus effectiveStatus;
 
-  /// 是否逾期（view_rules.isOverdue 判定结果，§9.3）。
+  /// 是否属于逾期分组（无论未完成或今日完成）。
   final bool isOverdue;
 
   /// 所属项目名称（跨项目列表展示用）。
@@ -55,10 +55,10 @@ class TodayTaskView {
 class TodayViewData {
   const TodayViewData({required this.overdue, required this.today});
 
-  /// 逾期组：endAt 升序（最紧迫在前）。
+  /// 逾期组：endAt 升序（最紧迫在前）。包含逾期未完成 + 逾期今日完成。
   final List<TodayTaskView> overdue;
 
-  /// 今天组：startAt 升序（null 排最后），再按 updatedAt 降序。
+  /// 今天组：startAt 升序（null 排最后），再按 updatedAt 降序。包含今日排期未完成 + 今日完成未逾期。
   final List<TodayTaskView> today;
 
   bool get isEmpty => overdue.isEmpty && today.isEmpty;
@@ -68,7 +68,7 @@ class TodayViewData {
       overdue.where((v) => v.effectiveStatus != TaskStatus.done).length +
       today.where((v) => v.effectiveStatus != TaskStatus.done).length;
 
-  /// 已完成任务总数
+  /// 已完成任务总数（逾期今日完成 + 今天今日完成）。
   int get completedCount =>
       overdue.where((v) => v.effectiveStatus == TaskStatus.done).length +
       today.where((v) => v.effectiveStatus == TaskStatus.done).length;
@@ -79,9 +79,10 @@ class TodayViewData {
 
 /// 由任务列表计算今日视图展示模型（纯函数 + IO，可单测）。
 ///
-/// - 入选规则：`matchesToday` 命中 **或** 逾期（§9.1 / §9.3）**或** 今天内完成的任务
-///   （已完成任务在今天视图中正常显示并在进度环/计数项中计数）。
-/// - 无时间任务（startAt/endAt 均 null 且非今天完成）不入选。
+/// 业务规则：
+/// 1. 历史已完成任务（完成时间 < 今日开始）一律不显示（即使排期跨越今日）；
+/// 2. 逾期任务（endAt < 今日开始）：未完成 或 今日完成，归入【逾期组】；
+/// 3. 今天任务（!逾期）：排期包含今日未完成 或 今日完成（含无排期但今日完成），归入【今天组】。
 Future<TodayViewData> buildTodayView({
   required List<Task> tasks,
   required DateTime now,
@@ -98,85 +99,104 @@ Future<TodayViewData> buildTodayView({
       : const <Project>[];
   final projectsMap = {for (final p in projects) p.id: p};
 
-  // 父任务集合：stream 内 parentId 出现过的 id（hasChildren 判定）。
   final parentIds = <String>{
     for (final t in tasks)
       if (t.parentId != null) t.parentId!,
   };
   final childrenIndex = indexChildrenByParent(tasks);
 
-  final views = <TodayTaskView>[];
+  final overdueViews = <TodayTaskView>[];
+  final todayViews = <TodayTaskView>[];
+
   for (final task in tasks) {
     final directChildren = childrenIndex[task.id] ?? const <Task>[];
-    // 复用现有派生纯函数（derived.dart）：无子任务时返回 task.status，多级递归派生。
     final effectiveStatus = derivedStatus(task, directChildren, childrenIndex);
 
-    final isOverdue = view_rules.isOverdue(task, effectiveStatus, todayStart);
+    if (effectiveStatus == TaskStatus.cancelled) continue;
+
+    final isDone = effectiveStatus == TaskStatus.done;
+    final compAt = directChildren.isNotEmpty
+        ? _getEffectiveCompletedAt(task, childrenIndex)
+        : task.completedAt;
+
     final isScheduledToday = view_rules.matchesToday(
       task,
       todayStart,
       todayEnd,
     );
 
-    // 今天完成的任务：有效完成时间（completedAt 或父级派生完成时间）落在今天区间内。
-    // 严格依赖 completedAt，历史 NULL 任务不误作为今日完成。
-    final compAt = directChildren.isNotEmpty
-        ? _getEffectiveCompletedAt(task, childrenIndex)
-        : task.completedAt;
-
-    final isDone = effectiveStatus == TaskStatus.done;
-    final isCancelled = effectiveStatus == TaskStatus.cancelled;
-
-    // 是否属于今天已完成：
-    // 1. 实际在今天内完成（compAt 落在今天内）；
-    // 2. 或者原本计划在今天且已完成，且未明确在今天之前完成（compAt 不是昨天/历史）。
+    // 完成状态检查：
+    // 如果已完成：完成时间必须为今日。如果完成时间在今日之前（历史完成），则一律不显示。
     final bool completedToday;
     if (isDone) {
       if (compAt != null) {
-        completedToday = compAt >= todayStartMs && compAt <= todayEndMs;
+        if (compAt < todayStartMs || compAt > todayEndMs) {
+          continue; // 昨天或更早完成，不进入今日页面
+        }
+        completedToday = true;
       } else {
-        // 无 completedAt 的兼容：如果是今日计划任务，且未在历史完成
-        completedToday = isScheduledToday;
+        if (!isScheduledToday) {
+          continue;
+        }
+        completedToday = true;
       }
     } else {
       completedToday = false;
     }
 
-    final isOpenToday = !isDone && !isCancelled && isScheduledToday;
+    final isPastDeadline = task.endAt != null && task.endAt! < todayStartMs;
 
-    if (!isOpenToday && !isOverdue && !completedToday) continue;
+    // 分组准入判定
+    final bool isOverdueGroup;
+    if (isPastDeadline) {
+      // 逾期任务：未完成或今日完成均属于逾期组
+      if (!isDone || completedToday) {
+        isOverdueGroup = true;
+      } else {
+        continue;
+      }
+    } else {
+      // 非逾期任务：排期在今日未完成 或 今日完成（含无排期今日完成）
+      if ((!isDone && isScheduledToday) || (isDone && completedToday)) {
+        isOverdueGroup = false;
+      } else {
+        continue;
+      }
+    }
 
     final tags = await tagsForTask(task.id);
     final project = projectsMap[task.projectId];
     final isParent = parentIds.contains(task.id);
     final counts = isParent ? taskSubtreeCounts(task, tasks) : null;
 
-    views.add(
-      TodayTaskView(
-        task: task,
-        tags: tags,
-        hasChildren: isParent,
-        effectiveStatus: effectiveStatus,
-        isOverdue: isOverdue,
-        projectName: project?.name,
-        projectColor: project?.color,
-        // 进度环（滴答式）：有子任务任务按整棵子树统计完成度。
-        progressValue: isParent ? taskProgress(task, tasks) : null,
-        subtaskProgressText: counts != null
-            ? '${counts.done}/${counts.total}'
-            : null,
-      ),
+    final viewItem = TodayTaskView(
+      task: task,
+      tags: tags,
+      hasChildren: isParent,
+      effectiveStatus: effectiveStatus,
+      isOverdue: isOverdueGroup,
+      projectName: project?.name,
+      projectColor: project?.color,
+      progressValue: isParent ? taskProgress(task, tasks) : null,
+      subtaskProgressText: counts != null
+          ? '${counts.done}/${counts.total}'
+          : null,
     );
+
+    if (isOverdueGroup) {
+      overdueViews.add(viewItem);
+    } else {
+      todayViews.add(viewItem);
+    }
   }
 
-  // 逾期组：endAt 升序（最紧迫在前）。isOverdue 保证 endAt 非空。
-  final overdue = views.where((v) => v.isOverdue).toList()
-    ..sort((a, b) => a.task.endAt!.compareTo(b.task.endAt!));
+  // 逾期组：endAt 升序（最紧迫在前）
+  overdueViews.sort((a, b) => a.task.endAt!.compareTo(b.task.endAt!));
 
-  // 今天组：startAt 升序（null 排最后），再按 updatedAt 降序。
-  final today = views.where((v) => !v.isOverdue).toList()..sort(_compareToday);
+  // 今天组：startAt 升序（null 排最后），再按 updatedAt 降序
+  todayViews.sort(_compareToday);
 
-  return TodayViewData(overdue: overdue, today: today);
+  return TodayViewData(overdue: overdueViews, today: todayViews);
 }
 
 /// 今天组排序：startAt 升序（null 排最后），再按 updatedAt 降序。
