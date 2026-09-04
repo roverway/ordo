@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/db/database.dart';
+import '../../core/utils/custom_view_models.dart';
+import '../../core/utils/task_query_engine.dart';
 import '../../core/utils/view_rules.dart';
 import '../projects/project_providers.dart';
 
@@ -204,18 +206,31 @@ final calendarStateProvider = NotifierProvider<CalendarNotifier, CalendarState>(
   }
 }
 
-/// 根据日历状态和范围筛选并排序议程任务列表（纯函数）。
+/// 根据日历状态和范围筛选并排序议程任务列表（纯函数，接入统一查询引擎 [TaskQueryEngine]）。
 ///
-/// 匹配规则：以任务的开始到结束时间区间（含起始点）中任一天匹配到范围为准（[inTimeRange]）。
+/// 匹配规则：以任务的开始到结束时间区间（含起始点）中任一天匹配到范围为准（[DateScopeEnum.customRange]）。
 /// 排序规则：优先按开始时间/截止时间（`startAt ?? endAt`）升序排列，相同按 `updatedAt` 降序。
 List<Task> tasksForAgendaScope({
   required List<Task> allTasks,
   required CalendarState state,
+  Map<String, Project> projectsById = const {},
+  Map<String, Set<String>> taskTagIdsMap = const {},
 }) {
   final range = calendarAgendaRangeFor(state);
-  final matched = allTasks
-      .where((t) => inTimeRange(t, range.start, range.end))
-      .toList();
+  final criteria = FilterCriteria(
+    dateScope: DateScopeEnum.customRange,
+    customDateStart: range.start.millisecondsSinceEpoch,
+    customDateEnd: range.end.millisecondsSinceEpoch,
+  );
+  final matched = List<Task>.from(
+    TaskQueryEngine.filterFlat(
+      tasks: allTasks,
+      criteria: criteria,
+      projectsById: projectsById,
+      taskTagIdsMap: taskTagIdsMap,
+      nowUtcMs: DateTime.now().toUtc().millisecondsSinceEpoch,
+    ),
+  );
   matched.sort((a, b) {
     final aTime = a.startAt ?? a.endAt ?? 0;
     final bTime = b.startAt ?? b.endAt ?? 0;

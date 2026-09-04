@@ -112,21 +112,37 @@ Future<TodayViewData> buildTodayView({
     final effectiveStatus = derivedStatus(task, directChildren, childrenIndex);
 
     final isOverdue = view_rules.isOverdue(task, effectiveStatus, todayStart);
-    final isOpenToday =
-        effectiveStatus != TaskStatus.done &&
-        effectiveStatus != TaskStatus.cancelled &&
-        view_rules.matchesToday(task, todayStart, todayEnd);
+    final isScheduledToday = view_rules.matchesToday(
+      task,
+      todayStart,
+      todayEnd,
+    );
 
     // 今天完成的任务：有效完成时间（completedAt 或父级派生完成时间）落在今天区间内。
     // 严格依赖 completedAt，历史 NULL 任务不误作为今日完成。
     final compAt = directChildren.isNotEmpty
         ? _getEffectiveCompletedAt(task, childrenIndex)
         : task.completedAt;
-    final completedToday =
-        effectiveStatus == TaskStatus.done &&
-        compAt != null &&
-        compAt >= todayStartMs &&
-        compAt <= todayEndMs;
+
+    final isDone = effectiveStatus == TaskStatus.done;
+    final isCancelled = effectiveStatus == TaskStatus.cancelled;
+
+    // 是否属于今天已完成：
+    // 1. 实际在今天内完成（compAt 落在今天内）；
+    // 2. 或者原本计划在今天且已完成，且未明确在今天之前完成（compAt 不是昨天/历史）。
+    final bool completedToday;
+    if (isDone) {
+      if (compAt != null) {
+        completedToday = compAt >= todayStartMs && compAt <= todayEndMs;
+      } else {
+        // 无 completedAt 的兼容：如果是今日计划任务，且未在历史完成
+        completedToday = isScheduledToday;
+      }
+    } else {
+      completedToday = false;
+    }
+
+    final isOpenToday = !isDone && !isCancelled && isScheduledToday;
 
     if (!isOpenToday && !isOverdue && !completedToday) continue;
 

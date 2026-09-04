@@ -535,11 +535,23 @@ bool matchesFilter(
         if (!inRange) return false;
         break;
       case DateScopeEnum.customRange:
-        if (filter.customDateStart != null && task.endAt != null) {
-          if (task.endAt! < filter.customDateStart!) return false;
-        }
-        if (filter.customDateEnd != null && task.startAt != null) {
-          if (task.startAt! > filter.customDateEnd!) return false;
+        if (task.startAt == null && task.endAt == null) return false;
+        final startMs = filter.customDateStart;
+        final endMs = filter.customDateEnd;
+        if (startMs != null && endMs != null) {
+          if (task.startAt != null && task.endAt != null) {
+            if (task.startAt! > endMs || task.endAt! < startMs) return false;
+          } else if (task.startAt != null) {
+            if (task.startAt! < startMs || task.startAt! > endMs) return false;
+          } else if (task.endAt != null) {
+            if (task.endAt! < startMs || task.endAt! > endMs) return false;
+          }
+        } else if (startMs != null) {
+          final effectiveTime = task.endAt ?? task.startAt!;
+          if (effectiveTime < startMs) return false;
+        } else if (endMs != null) {
+          final effectiveTime = task.startAt ?? task.endAt!;
+          if (effectiveTime > endMs) return false;
         }
         break;
       case DateScopeEnum.completedToday:

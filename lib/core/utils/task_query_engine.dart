@@ -21,7 +21,7 @@ class TaskQueryEngine {
     required Map<String, Set<String>> taskTagIdsMap,
     required int nowUtcMs,
   }) {
-    if (tasks.isEmpty) return const [];
+    if (tasks.isEmpty) return <Task>[];
     if (!criteria.hasActiveFilter) return List<Task>.from(tasks);
 
     final byId = indexTasksById(tasks);
@@ -51,7 +51,7 @@ class TaskQueryEngine {
     required Map<String, Set<String>> taskTagIdsMap,
     required int nowUtcMs,
   }) {
-    if (tasks.isEmpty) return const [];
+    if (tasks.isEmpty) return <Task>[];
     if (!criteria.hasActiveFilter) return List<Task>.from(tasks);
 
     final byId = indexTasksById(tasks);
@@ -76,7 +76,7 @@ class TaskQueryEngine {
       }
     }
 
-    if (matchedIds.isEmpty) return const [];
+    if (matchedIds.isEmpty) return <Task>[];
 
     // 2. 补全祖先链
     final visibleIds = <String>{...matchedIds};
