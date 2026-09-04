@@ -305,6 +305,7 @@ TaskRecord _withTagIds(TaskRecord task, List<String> tagIds) {
     notes: task.notes,
     startAt: task.startAt,
     endAt: task.endAt,
+    completedAt: task.completedAt,
     status: task.status,
     priority: task.priority,
     sortOrder: task.sortOrder,

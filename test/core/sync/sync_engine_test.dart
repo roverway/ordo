@@ -26,9 +26,11 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:todo/core/db/database.dart';
 import 'package:todo/core/db/repositories/todo_repository.dart';
+import 'package:todo/core/db/tables.dart';
 import 'package:todo/core/security/secure_store.dart';
 import 'package:todo/core/sync/remote_store.dart';
 import 'package:todo/core/sync/remote_store_factory.dart';
@@ -202,6 +204,8 @@ TaskRecord taskRec({
   String? parentId,
   String title = 'T',
   String description = '',
+  int? completedAt,
+  int status = 0,
   int updatedAt = 100,
   int createdAt = 1,
   bool deleted = false,
@@ -213,6 +217,8 @@ TaskRecord taskRec({
     parentId: parentId,
     title: title,
     description: description,
+    completedAt: completedAt,
+    status: status,
     sortOrder: 0,
     createdAt: createdAt,
     updatedAt: updatedAt,
@@ -1297,6 +1303,36 @@ void main() {
       final tasks = await repo.tasks.getAllActive();
       expect(tasks.length, 2);
       expect(tasks.map((t) => t.id), containsAll(['t-child', 't-parent']));
+    });
+
+    test('已完成任务的 completedAt 在导出、合并与本地落库中完整保留', () async {
+      await enableSync(repo);
+      final p = await repo.createProject(name: '项目', color: 0xFF2196F3);
+      final compAt = 1725400000000;
+      final t = await repo.createTask(
+        projectId: p.id,
+        title: '已完成任务',
+        status: TaskStatus.done,
+      );
+      // 明确更新为指定 completedAt
+      await repo.updateTask(
+        t.id,
+        status: TaskStatus.done,
+        completedAt: Value(compAt),
+      );
+
+      final engine = await buildEngine();
+      final result = await engine.run();
+      expect(result.ok, isTrue);
+
+      // 验证上传的远端快照包含 completedAt
+      final remoteSnap = decodeSnapshot(remote.remoteBytes!);
+      final exportedTask = remoteSnap.tasks.firstWhere((x) => x.id == t.id);
+      expect(exportedTask.completedAt, compAt);
+
+      // 模拟另一端下载合并后写入本地
+      final after = await repo.tasks.getActiveById(t.id);
+      expect(after?.completedAt, compAt);
     });
   });
 }
