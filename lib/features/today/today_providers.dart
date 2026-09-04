@@ -126,19 +126,13 @@ Future<TodayViewData> buildTodayView({
     );
 
     // 完成状态检查：
-    // 如果已完成：完成时间必须为今日。如果完成时间在今日之前（历史完成），则一律不显示。
+    // 如果已完成：有效完成时间必须严格为今日。历史完成或缺失完成时间记录的已完成任务，坚决不进入今日页面。
     final bool completedToday;
     if (isDone) {
-      if (compAt != null) {
-        if (compAt < todayStartMs || compAt > todayEndMs) {
-          continue; // 昨天或更早完成，不进入今日页面
-        }
+      if (compAt != null && compAt >= todayStartMs && compAt <= todayEndMs) {
         completedToday = true;
       } else {
-        if (!isScheduledToday) {
-          continue;
-        }
-        completedToday = true;
+        continue;
       }
     } else {
       completedToday = false;

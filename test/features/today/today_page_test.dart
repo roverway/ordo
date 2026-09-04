@@ -901,5 +901,39 @@ void main() {
       expect(viewData.isEmpty, isTrue);
       expect(viewData.totalCount, 0);
     });
+
+    test('缺失 completedAt 记录的历史已完成任务（即使排期跨越今日）：今日页面坚决不显示', () async {
+      final now = DateTime(2026, 9, 3, 12, 0, 0);
+      final spanStart = DateTime(2026, 9, 1, 10, 0, 0);
+      final spanEnd = DateTime(2026, 9, 5, 18, 0, 0);
+
+      final tasks = [
+        Task(
+          id: 'null_comp_spanning',
+          projectId: inboxProjectId,
+          title: '跨越今天但无 completedAt 记录的已完成任务',
+          description: '',
+          notes: '',
+          startAt: spanStart.millisecondsSinceEpoch,
+          endAt: spanEnd.millisecondsSinceEpoch,
+          completedAt: null, // 缺失 completedAt
+          status: TaskStatus.done,
+          sortOrder: 0,
+          createdAt: spanStart.millisecondsSinceEpoch,
+          updatedAt: spanStart.millisecondsSinceEpoch,
+          deleted: 0,
+          priority: TaskPriority.none,
+        ),
+      ];
+
+      final viewData = await buildTodayView(
+        tasks: tasks,
+        now: now,
+        tagsForTask: (_) async => const [],
+      );
+
+      expect(viewData.isEmpty, isTrue);
+      expect(viewData.totalCount, 0);
+    });
   });
 }
