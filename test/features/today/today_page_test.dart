@@ -586,6 +586,89 @@ void main() {
     expect(progressFinder, findsOneWidget);
   });
 
+  testWidgets('逾期任务在今日页面被勾选完成：依然在已逾期分组展示（以已完成划线状态呈现）', (tester) async {
+    final yesterday = _yesterday().millisecondsSinceEpoch;
+    final repo = await _pumpToday(
+      tester,
+      tasks: [_task('o1', title: '逾期待完成', endAt: yesterday)],
+    );
+
+    expect(find.text('逾期待完成'), findsOneWidget);
+    expect(find.text('已逾期'), findsOneWidget);
+
+    await tester.tap(_checkboxOf(tester, '逾期待完成'));
+    await tester.pumpAndSettle();
+
+    final after = await repo.tasks.getActiveById('o1');
+    expect(after!.status, TaskStatus.done);
+    expect(after.completedAt, isNotNull);
+
+    // 重新通过 buildTodayView 计算视图模型
+    final updatedTasks = await repo.tasks.getAllActive();
+    final updatedView = await buildTodayView(
+      tasks: updatedTasks,
+      now: DateTime.now(),
+      tagsForTask: repo.tags.tagsForTask,
+    );
+
+    // 逾期组依然包含该任务，今天组为空
+    expect(updatedView.overdue.map((v) => v.task.id), contains('o1'));
+    expect(updatedView.today, isEmpty);
+    expect(updatedView.overdue.single.effectiveStatus, TaskStatus.done);
+    expect(updatedView.overdue.single.isOverdue, isTrue);
+  });
+
+  testWidgets('Filter Chips 筛选：全部、待办、已完成分别准确展示逾期与今天分组', (tester) async {
+    final today = _todayStart();
+    final todayMs = today.millisecondsSinceEpoch;
+    final yesterday = _yesterday().millisecondsSinceEpoch;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+
+    await _pumpToday(
+      tester,
+      tasks: [
+        _task('o_open', title: '逾期待办', endAt: yesterday),
+        _task(
+          'o_done',
+          title: '逾期已完成',
+          endAt: yesterday,
+          status: TaskStatus.done,
+          completedAt: nowMs,
+        ),
+        _task('t_open', title: '今天待办', startAt: todayMs),
+        _task(
+          't_done',
+          title: '今天已完成',
+          startAt: todayMs,
+          status: TaskStatus.done,
+          completedAt: nowMs,
+        ),
+      ],
+    );
+
+    // 默认「全部」模式：4 个任务全显示
+    expect(find.text('逾期待办'), findsOneWidget);
+    expect(find.text('逾期已完成'), findsOneWidget);
+    expect(find.text('今天待办'), findsOneWidget);
+    expect(find.text('今天已完成'), findsOneWidget);
+
+    // 切换到「进行中」
+    await tester.tap(find.text('进行中'));
+    await tester.pumpAndSettle();
+    expect(find.text('逾期待办'), findsOneWidget);
+    expect(find.text('今天待办'), findsOneWidget);
+    expect(find.text('逾期已完成'), findsNothing);
+    expect(find.text('今天已完成'), findsNothing);
+
+    // 切换到「已完成」
+    await tester.tap(find.text('已完成'));
+    await tester.pumpAndSettle();
+    expect(find.text('逾期待办'), findsNothing);
+    expect(find.text('今天待办'), findsNothing);
+    expect(find.text('逾期已完成'), findsOneWidget);
+    expect(find.text('今天已完成'), findsOneWidget);
+  });
+
   group('今日视图已完成匹配精度（问题 1 修复）', () {
     test('昨天完成的任务（即使截止日是今天或今天被修改），不进入今日视图', () async {
       final now = DateTime(2026, 9, 3, 12, 0, 0);
