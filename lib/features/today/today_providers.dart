@@ -86,18 +86,21 @@ class TodayViewData {
 Future<TodayViewData> buildTodayView({
   required List<Task> tasks,
   required DateTime now,
-  required Future<List<Tag>> Function(String taskId) tagsForTask,
+  Future<List<Tag>> Function(String taskId)? tagsForTask,
   Future<List<Project>> Function()? getAllProjects,
+  Map<String, List<Tag>>? taskTagsMap,
+  List<Project>? projects,
 }) async {
   final todayStart = DateTime(now.year, now.month, now.day);
   final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
   final todayStartMs = todayStart.millisecondsSinceEpoch;
   final todayEndMs = todayEnd.millisecondsSinceEpoch;
 
-  final projects = getAllProjects != null
-      ? await getAllProjects()
-      : const <Project>[];
-  final projectsMap = {for (final p in projects) p.id: p};
+  final resolvedProjects = projects ??
+      (getAllProjects != null
+          ? await getAllProjects()
+          : const <Project>[]);
+  final projectsMap = {for (final p in resolvedProjects) p.id: p};
 
   final parentIds = <String>{
     for (final t in tasks)
@@ -158,7 +161,15 @@ Future<TodayViewData> buildTodayView({
       }
     }
 
-    final tags = await tagsForTask(task.id);
+    final List<Tag> tags;
+    if (taskTagsMap != null) {
+      tags = taskTagsMap[task.id] ?? const [];
+    } else if (tagsForTask != null) {
+      tags = await tagsForTask(task.id);
+    } else {
+      tags = const [];
+    }
+
     final project = projectsMap[task.projectId];
     final isParent = parentIds.contains(task.id);
     final counts = isParent ? taskSubtreeCounts(task, tasks) : null;
@@ -184,8 +195,8 @@ Future<TodayViewData> buildTodayView({
     }
   }
 
-  // 逾期组：endAt 升序（最紧迫在前）
-  overdueViews.sort((a, b) => a.task.endAt!.compareTo(b.task.endAt!));
+  // 逾期组：endAt 升序（最紧迫在前，安全非空排序）
+  overdueViews.sort((a, b) => (a.task.endAt ?? 0).compareTo(b.task.endAt ?? 0));
 
   // 今天组：startAt 升序（null 排最后），再按 updatedAt 降序
   todayViews.sort(_compareToday);
@@ -211,14 +222,28 @@ int _compareToday(TodayTaskView a, TodayTaskView b) {
 /// 每次 DB 变更自动重算展示模型。
 final todayViewProvider = StreamProvider<TodayViewData>((ref) async* {
   final repo = ref.watch(todoRepositoryProvider);
-  yield* repo.tasks.watchAllActive().asyncMap(
-    (tasks) => buildTodayView(
+  yield* repo.tasks.watchAllActive().asyncMap((tasks) async {
+    // 批量预查项目与标签关联，彻底消除 N+1 数据库查询
+    final projects = await repo.projects.getAll();
+    final allTags = await repo.tags.getAll();
+    final allTaskTags = await repo.tags.getAllTaskTags();
+
+    final tagsById = {for (final t in allTags) t.id: t};
+    final taskTagsMap = <String, List<Tag>>{};
+    for (final tt in allTaskTags) {
+      final tag = tagsById[tt.tagId];
+      if (tag != null) {
+        taskTagsMap.putIfAbsent(tt.taskId, () => []).add(tag);
+      }
+    }
+
+    return buildTodayView(
       tasks: tasks,
       now: DateTime.now(),
-      tagsForTask: repo.tags.tagsForTask,
-      getAllProjects: repo.projects.getAll,
-    ),
-  );
+      taskTagsMap: taskTagsMap,
+      projects: projects,
+    );
+  });
 });
 
 int? _getEffectiveCompletedAt(

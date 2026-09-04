@@ -669,6 +669,35 @@ void main() {
     expect(find.text('今天已完成'), findsOneWidget);
   });
 
+  testWidgets('今日完成无排期任务后在今日视图展示（在全部与已完成模式下可见）', (tester) async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+
+    await _pumpToday(
+      tester,
+      tasks: [
+        _task(
+          'inbox_no_date_done',
+          title: '无排期已完成任务',
+          status: TaskStatus.done,
+          completedAt: nowMs,
+        ),
+      ],
+    );
+
+    // 默认「全部」模式：展示无排期已完成任务
+    expect(find.text('无排期已完成任务'), findsOneWidget);
+
+    // 切换到「已完成」：依然展示
+    await tester.tap(find.text('已完成'));
+    await tester.pumpAndSettle();
+    expect(find.text('无排期已完成任务'), findsOneWidget);
+
+    // 切换到「进行中」：被过滤隐藏
+    await tester.tap(find.text('进行中'));
+    await tester.pumpAndSettle();
+    expect(find.text('无排期已完成任务'), findsNothing);
+  });
+
   group('今日视图已完成匹配精度（问题 1 修复）', () {
     test('昨天完成的任务（即使截止日是今天或今天被修改），不进入今日视图', () async {
       final now = DateTime(2026, 9, 3, 12, 0, 0);
