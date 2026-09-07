@@ -22,6 +22,7 @@ import '../projects/project_providers.dart';
 import '../today/today_providers.dart';
 import 'task_providers.dart';
 import 'widgets/task_create_sheet.dart';
+import 'widgets/task_swipe_wrapper.dart';
 import 'widgets/task_tree.dart';
 
 /// 任务作用域（56-task-scope-page.md §3.1，路由驱动）。
@@ -334,24 +335,29 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final v = overdueList[index];
-                      return SimpleTaskTile(
+                      return TaskSwipeWrapper(
                         key: ValueKey('overdue_${v.task.id}'),
                         task: v.task,
                         hasChildren: v.hasChildren,
                         isDone: v.effectiveStatus == TaskStatus.done,
-                        isOverdue: true,
-                        tags: v.tags,
-                        projectName: v.projectName,
-                        projectColor: v.projectColor,
-                        progressValue: v.progressValue,
-                        subtaskProgressText: v.subtaskProgressText,
-                        onTap: () => context.push('/task/${v.task.id}'),
-                        onToggleDone: (done) {
-                          final newStatus = (done ?? false)
-                              ? TaskStatus.done
-                              : TaskStatus.todo;
-                          repo.updateTask(v.task.id, status: newStatus);
-                        },
+                        child: SimpleTaskTile(
+                          task: v.task,
+                          hasChildren: v.hasChildren,
+                          isDone: v.effectiveStatus == TaskStatus.done,
+                          isOverdue: true,
+                          tags: v.tags,
+                          projectName: v.projectName,
+                          projectColor: v.projectColor,
+                          progressValue: v.progressValue,
+                          subtaskProgressText: v.subtaskProgressText,
+                          onTap: () => context.push('/task/${v.task.id}'),
+                          onToggleDone: (done) {
+                            final newStatus = (done ?? false)
+                                ? TaskStatus.done
+                                : TaskStatus.todo;
+                            repo.updateTask(v.task.id, status: newStatus);
+                          },
+                        ),
                       );
                     }, childCount: overdueList.length),
                   ),
@@ -371,24 +377,29 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final v = todayList[index];
-                      return SimpleTaskTile(
+                      return TaskSwipeWrapper(
                         key: ValueKey('today_${v.task.id}'),
                         task: v.task,
                         hasChildren: v.hasChildren,
                         isDone: v.effectiveStatus == TaskStatus.done,
-                        isOverdue: false,
-                        tags: v.tags,
-                        projectName: v.projectName,
-                        projectColor: v.projectColor,
-                        progressValue: v.progressValue,
-                        subtaskProgressText: v.subtaskProgressText,
-                        onTap: () => context.push('/task/${v.task.id}'),
-                        onToggleDone: (done) {
-                          final newStatus = (done ?? false)
-                              ? TaskStatus.done
-                              : TaskStatus.todo;
-                          repo.updateTask(v.task.id, status: newStatus);
-                        },
+                        child: SimpleTaskTile(
+                          task: v.task,
+                          hasChildren: v.hasChildren,
+                          isDone: v.effectiveStatus == TaskStatus.done,
+                          isOverdue: false,
+                          tags: v.tags,
+                          projectName: v.projectName,
+                          projectColor: v.projectColor,
+                          progressValue: v.progressValue,
+                          subtaskProgressText: v.subtaskProgressText,
+                          onTap: () => context.push('/task/${v.task.id}'),
+                          onToggleDone: (done) {
+                            final newStatus = (done ?? false)
+                                ? TaskStatus.done
+                                : TaskStatus.todo;
+                            repo.updateTask(v.task.id, status: newStatus);
+                          },
+                        ),
                       );
                     }, childCount: todayList.length),
                   ),

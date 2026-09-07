@@ -22,6 +22,7 @@ import '../../shared/widgets/task_filter_bar.dart';
 import '../projects/project_providers.dart';
 import '../tags/tag_providers.dart';
 import '../tasks/task_edit_page.dart';
+import '../tasks/widgets/task_swipe_wrapper.dart';
 import 'search_providers.dart';
 
 /// Search page — M3: debounced full-text search + filters.
@@ -150,17 +151,22 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         final isDone =
             (effectiveStatuses[task.id] ?? task.status) == TaskStatus.done;
         final project = projectsMap[task.projectId];
-        return SimpleTaskTile(
+        return TaskSwipeWrapper(
           task: task,
           hasChildren: hasChildren,
           isDone: isDone,
-          projectName: project?.name,
-          projectColor: project?.color,
-          progressValue: taskProgress(task, allTasks),
-          onTap: () => openTaskEdit(context, taskId: task.id),
-          onToggleDone: hasChildren
-              ? null
-              : (value) => _toggleDone(ref, task, value),
+          child: SimpleTaskTile(
+            task: task,
+            hasChildren: hasChildren,
+            isDone: isDone,
+            projectName: project?.name,
+            projectColor: project?.color,
+            progressValue: taskProgress(task, allTasks),
+            onTap: () => openTaskEdit(context, taskId: task.id),
+            onToggleDone: hasChildren
+                ? null
+                : (value) => _toggleDone(ref, task, value),
+          ),
         );
       },
     );

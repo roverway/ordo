@@ -19,6 +19,7 @@ import '../../shared/widgets/loading_view.dart';
 import '../../shared/widgets/simple_task_tile.dart';
 import '../projects/project_providers.dart';
 import '../tasks/task_edit_page.dart';
+import '../tasks/widgets/task_swipe_wrapper.dart';
 import 'tag_providers.dart';
 
 /// 标签详情页（FR-VIEW-04 AC：任务列表支持按状态筛选）。
@@ -188,19 +189,24 @@ class _TagsDetailPageState extends ConsumerState<TagsDetailPage> {
                         ? task.status
                         : derivedStatus(task, children);
                     final project = projectsMap[task.projectId];
-                    return SimpleTaskTile(
+                    return TaskSwipeWrapper(
                       task: task,
                       hasChildren: children.isNotEmpty,
                       isDone: effective == TaskStatus.done,
-                      projectName: project?.name,
-                      projectColor: project?.color,
-                      progressValue: taskProgress(task, allTasks),
-                      onTap: () => openTaskEdit(context, taskId: task.id),
-                      // 有子任务的任务状态由子任务派生，不给切换回调
-                      //（SimpleTaskTile 在 hasChildren 时同样禁用勾选）。
-                      onToggleDone: children.isEmpty
-                          ? (value) => _toggleDone(task, value)
-                          : null,
+                      child: SimpleTaskTile(
+                        task: task,
+                        hasChildren: children.isNotEmpty,
+                        isDone: effective == TaskStatus.done,
+                        projectName: project?.name,
+                        projectColor: project?.color,
+                        progressValue: taskProgress(task, allTasks),
+                        onTap: () => openTaskEdit(context, taskId: task.id),
+                        // 有子任务的任务状态由子任务派生，不给切换回调
+                        //（SimpleTaskTile 在 hasChildren 时同样禁用勾选）。
+                        onToggleDone: children.isEmpty
+                            ? (value) => _toggleDone(task, value)
+                            : null,
+                      ),
                     );
                   },
                 ),

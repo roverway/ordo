@@ -265,6 +265,21 @@
   - 错误：图标 + 文案 + 重试按钮。
 - 同步状态：设置页与 AppBar 显示同步指示（进行中 spinner / 失败红点 + 上次同步时间）。
 
+### 6.4 任务行滑动操作（移动端专用）
+
+适用范围：所有任务列表（今日、项目/收件箱任务树、日历、搜索、标签详情、自定义视图窄屏列表）；**桌面平台（Windows/Linux/macOS）不注册手势层**，保持右键菜单等既有交互。
+
+| 手势 | 行为 |
+|---|---|
+| 左滑 | 露出「优先级」「标签」两个快捷按钮（各 64dp 占位、44dp 方形圆角、语义 tint 底）；松手过半吸附展开；点击弹底部弹层**即点即改**（直接写仓库，不走任务表单） |
+| 右滑 | 滑过 72dp 阈值松手即**切换完成状态**（未完成 ↔ 已完成，Mail 式直接触发，非露出按钮）；左缘绿色反馈条随进度增强，越过阈值触觉反馈（`HapticFeedback.mediumImpact`） |
+
+- 完成切换由仓库统一维护 `completedAt`；**有子任务的任务右滑禁用**（状态由子任务派生，AGENTS.md §3-2），与勾选框禁用逻辑一致。
+- 优先级快捷弹层复用 `showPriorityPicker`（高/中/低/无，选中即落库）；标签快捷弹层复用 `TagPickerSheet`（药丸多选 + 新建标签，勾选即 `setTaskTags` 全量写回）。
+- 水平拖拽与列表垂直滚动、行点击、长按拖拽排序在手势竞技场中自然解耦，互不影响。
+- 相关令牌（`AppTokens`）：`swipeActionWidth` / `swipeActionButtonSize` / `swipeCompleteThreshold` / `swipeCompleteOverdrag` / `swipeCompleteMinAlpha`。
+- 实现：`shared/widgets/swipe_actions.dart`（通用机制）+ `features/tasks/widgets/task_swipe_wrapper.dart`（业务包装）。
+
 ## 7. 无障碍（NFR-06）
 
 - 语义标签：图标按钮、拖拽手柄、状态徽标。

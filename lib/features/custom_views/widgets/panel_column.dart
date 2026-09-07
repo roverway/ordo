@@ -13,6 +13,7 @@ import '../../projects/project_providers.dart';
 import '../../tasks/task_edit_page.dart';
 import '../../tasks/task_providers.dart';
 import '../../tasks/widgets/task_create_sheet.dart';
+import '../../tasks/widgets/task_swipe_wrapper.dart';
 import '../providers/custom_view_providers.dart';
 import 'filter_criteria_sheet.dart';
 
@@ -146,25 +147,32 @@ class PanelColumn extends ConsumerWidget {
                               final tags =
                                   ref.watch(taskTagsProvider(task.id)).value ??
                                   const <Tag>[];
-                              return SimpleTaskTile(
+                              return TaskSwipeWrapper(
                                 task: task,
                                 hasChildren: false,
                                 isDone: task.status == TaskStatus.done,
-                                tags: tags,
-                                projectName: project?.name,
-                                projectColor: project?.color,
-                                onTap: () =>
-                                    openTaskEdit(context, taskId: task.id),
-                                onToggleDone: (value) async {
-                                  final repo = ref.read(todoRepositoryProvider);
-                                  final newStatus = value == true
-                                      ? TaskStatus.done
-                                      : TaskStatus.todo;
-                                  await repo.updateTask(
-                                    task.id,
-                                    status: newStatus,
-                                  );
-                                },
+                                child: SimpleTaskTile(
+                                  task: task,
+                                  hasChildren: false,
+                                  isDone: task.status == TaskStatus.done,
+                                  tags: tags,
+                                  projectName: project?.name,
+                                  projectColor: project?.color,
+                                  onTap: () =>
+                                      openTaskEdit(context, taskId: task.id),
+                                  onToggleDone: (value) async {
+                                    final repo = ref.read(
+                                      todoRepositoryProvider,
+                                    );
+                                    final newStatus = value == true
+                                        ? TaskStatus.done
+                                        : TaskStatus.todo;
+                                    await repo.updateTask(
+                                      task.id,
+                                      status: newStatus,
+                                    );
+                                  },
+                                ),
                               );
                             },
                           );

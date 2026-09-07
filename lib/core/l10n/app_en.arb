@@ -98,6 +98,7 @@
   "pickDate": "Pick date",
   "pickTime": "Pick time",
   "moveFailed": "Move failed: {reason}",
+  "taskUpdateFailed": "Failed to update task",
   "projectRequired": "Please select a project first",
   "statusDerivedFromChildren": "Status is derived from subtasks",
   "rowActions": "Task actions",

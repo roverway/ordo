@@ -316,6 +316,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get taskUpdateFailed => 'Failed to update task';
+
+  @override
   String get projectRequired => 'Please select a project first';
 
   @override

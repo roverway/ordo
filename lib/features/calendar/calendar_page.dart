@@ -22,6 +22,7 @@ import '../projects/project_providers.dart';
 import '../tasks/task_edit_page.dart';
 import '../tasks/task_providers.dart';
 import '../tasks/widgets/task_create_sheet.dart';
+import '../tasks/widgets/task_swipe_wrapper.dart';
 import 'calendar_providers.dart';
 
 /// 现代高质感沉浸式日历视图（FR-VIEW-02）。
@@ -1153,19 +1154,24 @@ class CalendarTaskTile extends ConsumerWidget {
         ?.where((p) => p.id == task.projectId)
         .firstOrNull;
 
-    return SimpleTaskTile(
+    return TaskSwipeWrapper(
       task: task,
       hasChildren: hasChildren,
       isDone: effective == TaskStatus.done,
-      isOverdue: isOverdue,
-      tags: tags,
-      projectName: project?.name,
-      projectColor: project?.color,
-      progressValue: hasChildren ? taskProgress(task, allTasks) : null,
-      onTap: onTap,
-      onToggleDone: hasChildren
-          ? null
-          : (value) => _toggleTaskDone(ref, task, value),
+      child: SimpleTaskTile(
+        task: task,
+        hasChildren: hasChildren,
+        isDone: effective == TaskStatus.done,
+        isOverdue: isOverdue,
+        tags: tags,
+        projectName: project?.name,
+        projectColor: project?.color,
+        progressValue: hasChildren ? taskProgress(task, allTasks) : null,
+        onTap: onTap,
+        onToggleDone: hasChildren
+            ? null
+            : (value) => _toggleTaskDone(ref, task, value),
+      ),
     );
   }
 

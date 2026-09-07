@@ -686,6 +686,12 @@ abstract class AppLocalizations {
   /// **'移动失败：{reason}'**
   String moveFailed(Object reason);
 
+  /// No description provided for @taskUpdateFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'任务更新失败'**
+  String get taskUpdateFailed;
+
   /// No description provided for @projectRequired.
   ///
   /// In zh, this message translates to:

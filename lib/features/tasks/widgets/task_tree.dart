@@ -20,6 +20,7 @@ import '../../projects/project_providers.dart';
 import '../task_edit_page.dart';
 import '../task_providers.dart';
 import 'task_row.dart';
+import 'task_swipe_wrapper.dart';
 
 /// 任务树组件（50-ui-ux.md §5.3；57-task-page-polish.md §4.2 批 2 卡片化）。
 class TaskTree extends ConsumerStatefulWidget {
@@ -777,48 +778,57 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
         final tags =
             ref.watch(taskTagsProvider(node.task.id)).value ?? const <Tag>[];
 
-        return TaskRow(
+        // 移动端滑动操作（50-ui-ux.md §5.8）：左滑优先级/标签快捷设置，
+        // 右滑切换完成状态（父任务由派生状态规则禁用右滑）。
+        return TaskSwipeWrapper(
           task: node.task,
-          depth: node.depth,
-          style: style,
           hasChildren: node.hasChildren,
-          isExpanded: node.isExpanded,
-          childCount: directChildren.length,
-          incompleteChildCount: incompleteChildren,
-          onToggleExpand: () {
-            ref
-                .read(treeExpandProvider(widget.projectId).notifier)
-                .toggle(node.task.id);
-          },
-          onToggleDone: (value) async {
-            final newStatus = value == true ? TaskStatus.done : TaskStatus.todo;
-            try {
-              await repo.updateTask(node.task.id, status: newStatus);
-            } catch (e) {
-              if (context.mounted) {
-                final l10n = AppLocalizations.of(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(_friendlyError(l10n, e))),
-                );
+          isDone: (effectiveStatus ?? node.task.status) == TaskStatus.done,
+          child: TaskRow(
+            task: node.task,
+            depth: node.depth,
+            style: style,
+            hasChildren: node.hasChildren,
+            isExpanded: node.isExpanded,
+            childCount: directChildren.length,
+            incompleteChildCount: incompleteChildren,
+            onToggleExpand: () {
+              ref
+                  .read(treeExpandProvider(widget.projectId).notifier)
+                  .toggle(node.task.id);
+            },
+            onToggleDone: (value) async {
+              final newStatus = value == true
+                  ? TaskStatus.done
+                  : TaskStatus.todo;
+              try {
+                await repo.updateTask(node.task.id, status: newStatus);
+              } catch (e) {
+                if (context.mounted) {
+                  final l10n = AppLocalizations.of(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(_friendlyError(l10n, e))),
+                  );
+                }
               }
-            }
-          },
-          onTap: () => openTaskEdit(context, taskId: node.task.id),
-          onMenuAction: (action) => _handleMenuAction(
-            context,
-            action,
-            node.task,
-            childrenIndexAll,
-            byIdAll,
-            repo,
+            },
+            onTap: () => openTaskEdit(context, taskId: node.task.id),
+            onMenuAction: (action) => _handleMenuAction(
+              context,
+              action,
+              node.task,
+              childrenIndexAll,
+              byIdAll,
+              repo,
+            ),
+            derivedStatus: effectiveStatus,
+            progressValue: progressValue,
+            tags: tags,
+            isDragging: isDragging,
+            isDragTarget: isDragTarget,
+            isInvalidDragTarget: isInvalidDragTarget,
+            dropAsChild: dropAsChild,
           ),
-          derivedStatus: effectiveStatus,
-          progressValue: progressValue,
-          tags: tags,
-          isDragging: isDragging,
-          isDragTarget: isDragTarget,
-          isInvalidDragTarget: isInvalidDragTarget,
-          dropAsChild: dropAsChild,
         );
       },
     );

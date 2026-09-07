@@ -418,6 +418,23 @@ abstract final class AppTokens {
   /// （标题/描述/标签/日期等）整体淡化，勾选/进度环等交互控件保持全不透明。
   static const double doneContentOpacity = 0.55;
 
+  // ── 任务行滑动操作（移动端，50-ui-ux.md §5.8）──
+
+  /// 左滑每个快捷操作按钮的占位宽度（按钮视觉尺寸 + 周边留白）。
+  static const double swipeActionWidth = 64;
+
+  /// 左滑快捷操作按钮的视觉尺寸（正方形）。
+  static const double swipeActionButtonSize = 44;
+
+  /// 右滑触发完成切换的位移阈值。
+  static const double swipeCompleteThreshold = 72;
+
+  /// 右滑达到阈值后允许继续过拖的最大距离（视觉反馈区上限）。
+  static const double swipeCompleteOverdrag = 24;
+
+  /// 右滑完成区背景的最小可见透明度（进度 0 时）。
+  static const double swipeCompleteMinAlpha = 0.12;
+
   // ── 抽屉（55-ui-redesign §3.1 / 62-folder-nav.md §6.1，des-1 垂直节奏优化）──
 
   /// 抽屉行统一垂直间距（系统组 / 文件夹行 / 项目行一致）。

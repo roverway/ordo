@@ -311,6 +311,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get taskUpdateFailed => '任务更新失败';
+
+  @override
   String get projectRequired => '请先选择所属项目';
 
   @override

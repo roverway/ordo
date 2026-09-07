@@ -29,11 +29,55 @@ Future<void> showTaskTagPicker(BuildContext context, WidgetRef ref) async {
   }
 }
 
+/// 标签快捷设置弹层（任务行左滑按钮入口）：与 [showTaskTagPicker] 同一弹层，
+/// 但不走 `taskFormProvider`——每次勾选/取消立即全量写回 DB（即点即改）。
+Future<void> showTaskTagQuickPicker(
+  BuildContext context,
+  WidgetRef ref, {
+  required String taskId,
+}) async {
+  final repo = ref.read(todoRepositoryProvider);
+  final currentIds = await repo.tags.tagIdsForTask(taskId);
+  if (!context.mounted) return;
+  await showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(AppTokens.radiusDialog),
+      ),
+    ),
+    builder: (sheetContext) => TagPickerSheet(
+      initialSelected: currentIds,
+      onChanged: (ids) async {
+        try {
+          await repo.tags.setTaskTags(taskId, ids);
+        } on RepositoryException catch (e) {
+          if (!sheetContext.mounted) return;
+          ScaffoldMessenger.of(
+            sheetContext,
+          ).showSnackBar(SnackBar(content: Text(e.message)));
+        }
+      },
+    ),
+  );
+}
+
 /// 标签弹层：药丸多选 + 新建标签（完成后整体写回表单）。
+///
+/// [onChanged] 非空时进入「即点即改」模式：每次勾选/取消（含新建标签自动
+/// 选中）立即回调当前全量选中集，由调用方负责持久化。
 class TagPickerSheet extends ConsumerStatefulWidget {
-  const TagPickerSheet({super.key, required this.initialSelected});
+  const TagPickerSheet({
+    super.key,
+    required this.initialSelected,
+    this.onChanged,
+  });
 
   final List<String> initialSelected;
+
+  /// 即点即改回调（快捷设置模式）；null = 表单模式（仅点「完成」写回）。
+  final ValueChanged<List<String>>? onChanged;
 
   @override
   ConsumerState<TagPickerSheet> createState() => _TagPickerSheetState();
@@ -41,6 +85,17 @@ class TagPickerSheet extends ConsumerStatefulWidget {
 
 class _TagPickerSheetState extends ConsumerState<TagPickerSheet> {
   late final Set<String> _selected = {...widget.initialSelected};
+
+  void _toggle(String tagId) {
+    setState(() {
+      if (_selected.contains(tagId)) {
+        _selected.remove(tagId);
+      } else {
+        _selected.add(tagId);
+      }
+    });
+    widget.onChanged?.call(_selected.toList());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,13 +148,7 @@ class _TagPickerSheetState extends ConsumerState<TagPickerSheet> {
                     return FilterChip(
                       label: Text(tag.name),
                       selected: isSelected,
-                      onSelected: (_) => setState(() {
-                        if (isSelected) {
-                          _selected.remove(tag.id);
-                        } else {
-                          _selected.add(tag.id);
-                        }
-                      }),
+                      onSelected: (_) => _toggle(tag.id),
                       avatar: isSelected
                           ? null
                           : Container(
@@ -149,6 +198,7 @@ class _TagPickerSheetState extends ConsumerState<TagPickerSheet> {
       final tag = await repo.createTag(name: data.name, color: data.color);
       if (!mounted) return;
       setState(() => _selected.add(tag.id));
+      widget.onChanged?.call(_selected.toList());
     } on RepositoryException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
