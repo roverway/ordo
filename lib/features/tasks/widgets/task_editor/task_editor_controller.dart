@@ -12,18 +12,27 @@ enum TaskEditorMode { create, edit }
 class SubtaskRow {
   SubtaskRow.newRow()
     : id = null,
+      task = null,
       status = TaskStatus.todo,
       controller = TextEditingController(),
       focusNode = FocusNode();
 
-  SubtaskRow.existing(Task task)
-    : id = task.id,
-      status = task.status,
-      controller = TextEditingController(text: task.title),
+  SubtaskRow.existing(Task existing)
+    : id = existing.id,
+      task = existing,
+      status = existing.status,
+      controller = TextEditingController(text: existing.title),
       focusNode = FocusNode();
 
   /// 已存在子任务的 id；null = 新建行。
   final String? id;
+
+  /// 已存在子任务的 DB 快照（新建行为 null）。
+  ///
+  /// 供移动端左滑快捷设置（优先级/标签，50-ui-ux.md §6.4）直接对该子任务
+  /// 落库；快捷设置成功后经 [TaskSwipeWrapper.onTaskUpdated] 原地刷新，
+  /// 保证下一次弹层打开时「当前项」不陈旧。
+  Task? task;
 
   /// 现有子任务状态（新建行默认为 todo）。
   TaskStatus status;

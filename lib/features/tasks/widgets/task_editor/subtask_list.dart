@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/db/tables.dart';
 import '../../../../core/l10n/app_localizations.dart';
 import '../../../../core/theme/app_tokens.dart';
+import '../task_swipe_wrapper.dart';
 import 'subtask_row_tile.dart';
 import 'task_editor_controller.dart';
 
@@ -77,7 +78,10 @@ class SubtaskList extends StatelessWidget {
                 onReorder: controller.reorderSubtasks,
                 itemBuilder: (context, index) {
                   final row = controller.subtaskRows[index];
-                  return SubtaskRowTile(
+                  // 移动端左滑快捷设置（50-ui-ux.md §6.4）：仅已落库的子任务行
+                  // 可用（新建行尚无 id，且处于编辑态）；完成态由编辑器草稿
+                  // 管理（保存时 syncSubtasks 统一落库），右滑禁用。
+                  final tile = SubtaskRowTile(
                     key: ObjectKey(row),
                     index: index,
                     row: row,
@@ -85,6 +89,18 @@ class SubtaskList extends StatelessWidget {
                     onSubmitted: onAddSubtaskAndFocus,
                     onChanged: controller.notifySubtasksChanged,
                     onToggleStatus: () => controller.toggleSubtaskStatus(row),
+                  );
+                  final task = row.task;
+                  if (task == null) return tile;
+                  // ReorderableListView 要求项顶层带 key。
+                  return TaskSwipeWrapper(
+                    key: ObjectKey(row),
+                    task: task,
+                    hasChildren: false,
+                    isDone: row.status == TaskStatus.done,
+                    endSwipeEnabled: false,
+                    onTaskUpdated: (fresh) => row.task = fresh,
+                    child: tile,
                   );
                 },
               ),

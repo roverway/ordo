@@ -12,6 +12,8 @@ import 'package:todo/core/db/tables.dart';
 import 'package:todo/core/l10n/app_localizations.dart';
 import 'package:todo/features/projects/project_providers.dart';
 import 'package:todo/features/tags/tag_providers.dart';
+import 'package:todo/features/tasks/widgets/task_editor/subtask_list.dart';
+import 'package:todo/features/tasks/widgets/task_editor/task_editor_controller.dart';
 import 'package:todo/features/tasks/widgets/task_swipe_wrapper.dart';
 import '../../helpers/db_test_setup.dart';
 
@@ -103,6 +105,61 @@ Future<(AppDatabase, TodoRepository)> _pumpWrapper(
 
 Future<Task> _readTask(AppDatabase db, String id) =>
     (db.select(db.tasks)..where((t) => t.id.equals(id))).getSingle();
+
+/// 泵入包着 [SubtaskList] 的编辑器场景（父任务 + 已存在子任务行）。
+Future<(AppDatabase, TodoRepository, TaskEditorController)> _pumpSubtaskList(
+  WidgetTester tester,
+  Task subtask,
+) async {
+  tester.view.physicalSize = const Size(400, 800);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
+
+  final db = openTestDatabase();
+  addTearDown(db.close);
+  final repo = TodoRepository(database: db);
+
+  await db
+      .into(db.projects)
+      .insertOnConflictUpdate(
+        ProjectsCompanion.insert(
+          id: 'p1',
+          name: 'P1',
+          color: 0,
+          sortOrder: 0,
+          createdAt: 0,
+          updatedAt: 0,
+        ),
+      );
+  await db.into(db.tasks).insertOnConflictUpdate(_task('t1'));
+  await db.into(db.tasks).insertOnConflictUpdate(subtask);
+
+  final controller = TaskEditorController(mode: TaskEditorMode.edit);
+  addTearDown(controller.dispose);
+  controller.initializeSubtasks([subtask]);
+
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [todoRepositoryProvider.overrideWithValue(repo)],
+      child: MaterialApp(
+        locale: const Locale('zh'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: SubtaskList(
+              controller: controller,
+              onAddSubtaskAndFocus: () {},
+              onConfirmRemoveSubtask: (_) {},
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return (db, repo, controller);
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -249,6 +306,42 @@ void main() {
     await tester.tap(find.text('完成'), warnIfMissed: false);
     await tester.pumpAndSettle();
     expect(await _readTask(db, 't1').then((r) => r.id), 't1');
+  });
+
+  testWidgets('编辑器子任务行左滑快捷设置优先级，row.task 就地刷新', (tester) async {
+    final subtask = _task('sub1', parentId: 't1');
+    final (db, repo, controller) = await _pumpSubtaskList(tester, subtask);
+
+    await tester.drag(
+      find.text('任务 sub1'),
+      const Offset(-140, 0),
+      warnIfMissed: false,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('优先级'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('高'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    // DB 落库 + 编辑器本地快照刷新（下次弹层「当前项」不陈旧）。
+    expect((await _readTask(db, 'sub1')).priority, TaskPriority.high);
+    expect(controller.subtaskRows.single.task!.priority, TaskPriority.high);
+  });
+
+  testWidgets('编辑器子任务行右滑被禁用（完成态由编辑器草稿管理）', (tester) async {
+    final subtask = _task('sub1', parentId: 't1');
+    final (db, _, _) = await _pumpSubtaskList(tester, subtask);
+
+    await tester.drag(
+      find.text('任务 sub1'),
+      const Offset(100, 0),
+      warnIfMissed: false,
+    );
+    await tester.pumpAndSettle();
+
+    final row = await _readTask(db, 'sub1');
+    expect(row.status, TaskStatus.todo);
+    expect(row.completedAt, isNull);
   });
 
   testWidgets('桌面平台不注册滑动手势层', (tester) async {
