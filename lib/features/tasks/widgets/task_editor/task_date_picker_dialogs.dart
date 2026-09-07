@@ -233,6 +233,7 @@ class DateSettingCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Container(
       decoration: BoxDecoration(
@@ -296,7 +297,7 @@ class DateSettingCard extends StatelessWidget {
                 ),
                 if (hasValue && onClear != null)
                   IconButton(
-                    tooltip: '清除',
+                    tooltip: l10n.clear,
                     icon: const Icon(Icons.close, size: 18),
                     onPressed: onClear,
                   )

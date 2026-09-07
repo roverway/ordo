@@ -479,21 +479,21 @@ class PanelColumn extends ConsumerWidget {
           Row(
             children: [
               _buildQuickSortChip(
-                label: '优先级',
+                label: l10n.sortOrderPriority,
                 isActive: panel.sortBy == 'priority',
                 onTap: () =>
                     onUpdatePanel?.call(panel.copyWith(sortBy: 'priority')),
               ),
               const SizedBox(width: 5),
               _buildQuickSortChip(
-                label: '截止',
+                label: l10n.sortOrderDueDate,
                 isActive: panel.sortBy == 'endAt',
                 onTap: () =>
                     onUpdatePanel?.call(panel.copyWith(sortBy: 'endAt')),
               ),
               const SizedBox(width: 5),
               _buildQuickSortChip(
-                label: '手动',
+                label: l10n.sortOrderManual,
                 isActive:
                     panel.sortBy == 'sortOrder' || panel.sortBy == 'manual',
                 onTap: () =>
@@ -672,7 +672,7 @@ class PanelColumn extends ConsumerWidget {
                 Icon(Icons.add, size: 16, color: mutedColor),
                 const SizedBox(width: 8),
                 Text(
-                  '添加任务',
+                  l10n.addTask,
                   style: TextStyle(
                     fontSize: 13,
                     color: mutedColor,

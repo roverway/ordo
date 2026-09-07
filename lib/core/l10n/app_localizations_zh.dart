@@ -1094,4 +1094,158 @@ class AppLocalizationsZh extends AppLocalizations {
   String taskCompletedOn(String date) {
     return '完成于 $date';
   }
+
+  @override
+  String get searchNoResults => '未搜索到相关任务';
+
+  @override
+  String get noCompletedTasks => '暂无已完成任务';
+
+  @override
+  String get descriptionHint => '添加描述或要点…';
+
+  @override
+  String get notesHint => '添加备注…';
+
+  @override
+  String get notAdded => '未添加';
+
+  @override
+  String get notSet => '未设置';
+
+  @override
+  String startPrefix(String time) {
+    return '开始 $time';
+  }
+
+  @override
+  String duePrefix(String time) {
+    return '截止 $time';
+  }
+
+  @override
+  String itemCount(int count) {
+    return '$count 项';
+  }
+
+  @override
+  String get viewsSection => '视图';
+
+  @override
+  String get listsSection => '清单';
+
+  @override
+  String get webdavSync => 'WebDAV 同步';
+
+  @override
+  String get searchTasks => '搜索任务';
+
+  @override
+  String searchMatchCount(int count) {
+    return '找到 $count 项匹配任务';
+  }
+
+  @override
+  String progressA11y(String label) {
+    return '完成进度 $label';
+  }
+
+  @override
+  String get weeklyProgress => '本周进度';
+
+  @override
+  String projectsSummarySubtitle(int total, int pending) {
+    return '共 $total 个项目 · $pending 项待办';
+  }
+
+  @override
+  String itemsProgress(int done, int total) {
+    return '$done/$total 项';
+  }
+
+  @override
+  String manageTagsSubtitle(int count) {
+    return '管理任务标签 · 当前 $count 个';
+  }
+
+  @override
+  String get autoSync => '自动同步';
+
+  @override
+  String get autoSyncSubtitle => '数据变更或启动时自动同步';
+
+  @override
+  String get seedColorSubtitle => '为应用注入个性色';
+
+  @override
+  String get basicInfo => '基本信息';
+
+  @override
+  String get displayMode => '展示方式';
+
+  @override
+  String get quickTemplates => '快速模板';
+
+  @override
+  String get statusKanbanDesc => '待办 / 进行中 / 已完成';
+
+  @override
+  String get priorityKanbanDesc => '高优 / 中优 / 低优 / 无';
+
+  @override
+  String filterStatusCount(int count) {
+    return '$count 状态';
+  }
+
+  @override
+  String filterPriorityCount(int count) {
+    return '$count 优先级';
+  }
+
+  @override
+  String filterProjectCount(int count) {
+    return '$count 项目';
+  }
+
+  @override
+  String filterTagCount(int count) {
+    return '$count 标签';
+  }
+
+  @override
+  String get allTasksLabel => '全部任务';
+
+  @override
+  String get yesterday => '昨天';
+
+  @override
+  String get syncedJustNow => '刚刚同步';
+
+  @override
+  String syncedMinutesAgo(int count) {
+    return '$count分钟前同步';
+  }
+
+  @override
+  String syncedAt(String time) {
+    return '$time同步';
+  }
+
+  @override
+  String get monthLabel => '月';
+
+  @override
+  String get weekLabel => '周';
+
+  @override
+  String get overview => '概览';
+
+  @override
+  String get projectLabel => '项目';
+
+  @override
+  String get statusKanbanName => '状态看板';
+
+  @override
+  String get priorityKanbanName => '优先级看板';
 }

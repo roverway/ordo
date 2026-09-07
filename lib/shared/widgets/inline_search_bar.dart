@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/l10n/app_localizations.dart';
+
 import '../../core/theme/app_tokens.dart';
 
 /// 筛选栏下方内联平滑展开的搜索输入框。
@@ -12,7 +14,7 @@ class InlineSearchBar extends StatefulWidget {
     required this.controller,
     required this.onChanged,
     required this.onClear,
-    this.hintText = '搜索任务',
+    this.hintText,
     this.matchCount,
   });
 
@@ -20,7 +22,7 @@ class InlineSearchBar extends StatefulWidget {
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
   final VoidCallback onClear;
-  final String hintText;
+  final String? hintText;
   final int? matchCount;
 
   @override
@@ -55,6 +57,7 @@ class _InlineSearchBarState extends State<InlineSearchBar> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     return AnimatedSize(
       duration: AppTokens.motionNormal,
@@ -110,7 +113,7 @@ class _InlineSearchBarState extends State<InlineSearchBar> {
                               color: colorScheme.onSurface,
                             ),
                             decoration: InputDecoration(
-                              hintText: widget.hintText,
+                              hintText: widget.hintText ?? l10n.searchTasks,
                               hintStyle: TextStyle(
                                 fontSize: 14.5,
                                 color: colorScheme.onSurfaceVariant.withValues(
@@ -159,7 +162,7 @@ class _InlineSearchBarState extends State<InlineSearchBar> {
                     Padding(
                       padding: const EdgeInsets.only(top: 8, left: 4),
                       child: Text(
-                        '找到 ${widget.matchCount} 项匹配任务',
+                        l10n.searchMatchCount(widget.matchCount!),
                         style: TextStyle(
                           fontSize: 11.5,
                           color: colorScheme.onSurfaceVariant,

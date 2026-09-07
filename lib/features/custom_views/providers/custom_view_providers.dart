@@ -269,7 +269,7 @@ class CustomViewOperations {
     if (hasStatusDiff && hasSubtasks && targetStatus != null) {
       return const PanelDropResult(
         actionType: PanelDropActionType.derivedStatusBlocked,
-        message: '该任务包含子任务，状态由子任务自动派生计算',
+        message: null,
       );
     }
 

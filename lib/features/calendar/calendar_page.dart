@@ -208,6 +208,7 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final projectsMap = ref.watch(projectsMapProvider);
+    final l10n = AppLocalizations.of(context);
 
     // 网格日期集（月 = 整月矩阵、周 = 单周行）；首日作 AnimatedSwitcher 的
     // key——翻月/翻周/月周切换时 key 变化触发过渡。
@@ -280,7 +281,7 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
             child: Row(
               children: [
                 IconButton(
-                  tooltip: '上一周期',
+                  tooltip: l10n.prevPeriod,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(
                     minWidth: 32,
@@ -318,7 +319,7 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
                   ),
                 ),
                 IconButton(
-                  tooltip: '下一周期',
+                  tooltip: l10n.nextPeriod,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(
                     minWidth: 32,
@@ -345,7 +346,7 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
                     children: [
                       _buildModeSegButton(
                         context,
-                        label: '月',
+                        label: l10n.monthLabel,
                         isActive: widget.state.mode == CalendarMode.month,
                         onTap: () {
                           _slideDirection = 0;
@@ -356,7 +357,7 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
                       ),
                       _buildModeSegButton(
                         context,
-                        label: '周',
+                        label: l10n.weekLabel,
                         isActive: widget.state.mode == CalendarMode.week,
                         onTap: () {
                           _slideDirection = 0;
@@ -964,7 +965,7 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
-                      '${tasks.length} 项',
+                      l10n.itemCount(tasks.length),
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -985,7 +986,7 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
                 children: [
                   _buildScopeChip(
                     context,
-                    label: '当日',
+                    label: l10n.calendarScopeDay,
                     isActive:
                         widget.state.agendaScope == CalendarAgendaScope.day,
                     onTap: () => ref
@@ -995,7 +996,7 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
                   const SizedBox(width: 8),
                   _buildScopeChip(
                     context,
-                    label: '该周',
+                    label: l10n.calendarScopeWeek,
                     isActive:
                         widget.state.agendaScope == CalendarAgendaScope.week,
                     onTap: () => ref
@@ -1005,7 +1006,7 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
                   const SizedBox(width: 8),
                   _buildScopeChip(
                     context,
-                    label: '该月',
+                    label: l10n.calendarScopeMonth,
                     isActive:
                         widget.state.agendaScope == CalendarAgendaScope.month,
                     onTap: () => ref

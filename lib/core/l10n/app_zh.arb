@@ -423,7 +423,6 @@
       }
     }
   },
-  "autoSaveOnClose": "关闭时自动保存",
   "addSubtaskHint": "添加子任务，回车确认",
   "noTimeSet": "未设置时间",
   "titleCannotBeEmpty": "标题不能为空",
@@ -457,5 +456,252 @@
         "type": "String"
       }
     }
+  },
+  "searchNoResults": "未搜索到相关任务",
+  "@searchNoResults": {
+    "description": "searchNoResults"
+  },
+  "noCompletedTasks": "暂无已完成任务",
+  "@noCompletedTasks": {
+    "description": "noCompletedTasks"
+  },
+  "descriptionHint": "添加描述或要点…",
+  "@descriptionHint": {
+    "description": "descriptionHint"
+  },
+  "notesHint": "添加备注…",
+  "@notesHint": {
+    "description": "notesHint"
+  },
+  "notAdded": "未添加",
+  "@notAdded": {
+    "description": "notAdded"
+  },
+  "notSet": "未设置",
+  "@notSet": {
+    "description": "notSet"
+  },
+  "startPrefix": "开始 {time}",
+  "@startPrefix": {
+    "description": "startPrefix",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "duePrefix": "截止 {time}",
+  "@duePrefix": {
+    "description": "duePrefix",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "itemCount": "{count} 项",
+  "@itemCount": {
+    "description": "itemCount",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "viewsSection": "视图",
+  "@viewsSection": {
+    "description": "viewsSection"
+  },
+  "listsSection": "清单",
+  "@listsSection": {
+    "description": "listsSection"
+  },
+  "webdavSync": "WebDAV 同步",
+  "@webdavSync": {
+    "description": "webdavSync"
+  },
+  "searchTasks": "搜索任务",
+  "@searchTasks": {
+    "description": "searchTasks"
+  },
+  "searchMatchCount": "找到 {count} 项匹配任务",
+  "@searchMatchCount": {
+    "description": "searchMatchCount",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "progressA11y": "完成进度 {label}",
+  "@progressA11y": {
+    "description": "progressA11y",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "weeklyProgress": "本周进度",
+  "@weeklyProgress": {
+    "description": "weeklyProgress"
+  },
+  "projectsSummarySubtitle": "共 {total} 个项目 · {pending} 项待办",
+  "@projectsSummarySubtitle": {
+    "description": "projectsSummarySubtitle",
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "pending": {
+        "type": "int"
+      }
+    }
+  },
+  "itemsProgress": "{done}/{total} 项",
+  "@itemsProgress": {
+    "description": "itemsProgress",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "manageTagsSubtitle": "管理任务标签 · 当前 {count} 个",
+  "@manageTagsSubtitle": {
+    "description": "manageTagsSubtitle",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "autoSync": "自动同步",
+  "@autoSync": {
+    "description": "autoSync"
+  },
+  "autoSyncSubtitle": "数据变更或启动时自动同步",
+  "@autoSyncSubtitle": {
+    "description": "autoSyncSubtitle"
+  },
+  "seedColorSubtitle": "为应用注入个性色",
+  "@seedColorSubtitle": {
+    "description": "seedColorSubtitle"
+  },
+  "basicInfo": "基本信息",
+  "@basicInfo": {
+    "description": "basicInfo"
+  },
+  "displayMode": "展示方式",
+  "@displayMode": {
+    "description": "displayMode"
+  },
+  "quickTemplates": "快速模板",
+  "@quickTemplates": {
+    "description": "quickTemplates"
+  },
+  "statusKanbanDesc": "待办 / 进行中 / 已完成",
+  "@statusKanbanDesc": {
+    "description": "statusKanbanDesc"
+  },
+  "priorityKanbanDesc": "高优 / 中优 / 低优 / 无",
+  "@priorityKanbanDesc": {
+    "description": "priorityKanbanDesc"
+  },
+  "filterStatusCount": "{count} 状态",
+  "@filterStatusCount": {
+    "description": "filterStatusCount",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filterPriorityCount": "{count} 优先级",
+  "@filterPriorityCount": {
+    "description": "filterPriorityCount",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filterProjectCount": "{count} 项目",
+  "@filterProjectCount": {
+    "description": "filterProjectCount",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filterTagCount": "{count} 标签",
+  "@filterTagCount": {
+    "description": "filterTagCount",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "allTasksLabel": "全部任务",
+  "@allTasksLabel": {
+    "description": "allTasksLabel"
+  },
+  "@clear": {
+    "description": "clear"
+  },
+  "yesterday": "昨天",
+  "@yesterday": {
+    "description": "yesterday"
+  },
+  "syncedJustNow": "刚刚同步",
+  "@syncedJustNow": {
+    "description": "syncedJustNow"
+  },
+  "syncedMinutesAgo": "{count}分钟前同步",
+  "@syncedMinutesAgo": {
+    "description": "syncedMinutesAgo",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncedAt": "{time}同步",
+  "@syncedAt": {
+    "description": "syncedAt",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "monthLabel": "月",
+  "@monthLabel": {
+    "description": "monthLabel"
+  },
+  "weekLabel": "周",
+  "@weekLabel": {
+    "description": "weekLabel"
+  },
+  "overview": "概览",
+  "@overview": {
+    "description": "overview"
+  },
+  "projectLabel": "项目",
+  "@projectLabel": {
+    "description": "projectLabel"
+  },
+  "statusKanbanName": "状态看板",
+  "@statusKanbanName": {
+    "description": "statusKanbanName"
+  },
+  "priorityKanbanName": "优先级看板",
+  "@priorityKanbanName": {
+    "description": "priorityKanbanName"
   }
 }

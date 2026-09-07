@@ -218,7 +218,10 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
         ),
         children: [
           // ── 1. 基本信息 ──
-          _buildSectionHeader(icon: Icons.grid_view_outlined, title: '基本信息'),
+          _buildSectionHeader(
+            icon: Icons.grid_view_outlined,
+            title: l10n.basicInfo,
+          ),
           Container(
             decoration: BoxDecoration(
               color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
@@ -271,7 +274,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '视图名称',
+                            l10n.viewName,
                             style: TextStyle(
                               fontSize: 11,
                               fontFamily: 'monospace',
@@ -380,7 +383,10 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
           ),
 
           // ── 2. 布局模式 ──
-          _buildSectionHeader(icon: Icons.splitscreen_outlined, title: '布局模式'),
+          _buildSectionHeader(
+            icon: Icons.splitscreen_outlined,
+            title: l10n.viewLayout,
+          ),
           Container(
             decoration: BoxDecoration(
               color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
@@ -394,9 +400,12 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  '展示方式',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                Text(
+                  l10n.displayMode,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 Container(
                   padding: const EdgeInsets.all(3),
@@ -413,14 +422,14 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                     children: [
                       _buildLayoutToggleItem(
                         mode: 'kanban',
-                        label: '看板',
+                        label: l10n.layoutKanban,
                         icon: Icons.view_column_outlined,
                         isSelected: _layoutMode == 'kanban',
                       ),
                       const SizedBox(width: 2),
                       _buildLayoutToggleItem(
                         mode: 'list',
-                        label: '列表',
+                        label: l10n.layoutList,
                         icon: Icons.view_agenda_outlined,
                         isSelected: _layoutMode == 'list',
                       ),
@@ -432,7 +441,10 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
           ),
 
           // ── 3. 快速模板 ──
-          _buildSectionHeader(icon: Icons.auto_awesome_outlined, title: '快速模板'),
+          _buildSectionHeader(
+            icon: Icons.auto_awesome_outlined,
+            title: l10n.quickTemplates,
+          ),
           Row(
             children: [
               Expanded(
@@ -467,9 +479,9 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                               color: theme.colorScheme.primary,
                             ),
                             const SizedBox(width: 6),
-                            const Text(
-                              '状态看板',
-                              style: TextStyle(
+                            Text(
+                              l10n.statusKanbanName,
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -478,7 +490,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                         ),
                         const SizedBox(height: 5),
                         Text(
-                          '待办 / 进行中 / 已完成',
+                          l10n.statusKanbanDesc,
                           style: TextStyle(
                             fontSize: 11,
                             color: theme.colorScheme.onSurfaceVariant,
@@ -523,9 +535,9 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                               color: AppTokens.colorPriorityHigh,
                             ),
                             const SizedBox(width: 6),
-                            const Text(
-                              '优先级看板',
-                              style: TextStyle(
+                            Text(
+                              l10n.priorityKanbanName,
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -534,7 +546,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                         ),
                         const SizedBox(height: 5),
                         Text(
-                          '高优 / 中优 / 低优 / 无',
+                          l10n.priorityKanbanDesc,
                           style: TextStyle(
                             fontSize: 11,
                             color: theme.colorScheme.onSurfaceVariant,
@@ -838,16 +850,16 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
   Widget _buildFilterSummary(FilterCriteria filter, AppLocalizations l10n) {
     final chips = <String>[];
     if (filter.statuses.isNotEmpty) {
-      chips.add('${filter.statuses.length} 状态');
+      chips.add(l10n.filterStatusCount(filter.statuses.length));
     }
     if (filter.priorities.isNotEmpty) {
-      chips.add('${filter.priorities.length} 优先级');
+      chips.add(l10n.filterPriorityCount(filter.priorities.length));
     }
     if (filter.projectIds.isNotEmpty) {
-      chips.add('${filter.projectIds.length} 项目');
+      chips.add(l10n.filterProjectCount(filter.projectIds.length));
     }
     if (filter.tagIds.isNotEmpty) {
-      chips.add('${filter.tagIds.length} 标签');
+      chips.add(l10n.filterTagCount(filter.tagIds.length));
     }
     if (filter.dateScope != DateScopeEnum.all) {
       chips.add(filter.dateScope.name);
@@ -866,7 +878,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
           borderRadius: BorderRadius.circular(999),
         ),
         child: Text(
-          '全部任务',
+          l10n.allTasksLabel,
           style: TextStyle(
             fontSize: 10.5,
             color: Theme.of(context).colorScheme.onSurfaceVariant,

@@ -438,7 +438,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                           color: colorScheme.onSurface,
                         ),
                         decoration: InputDecoration(
-                          hintText: '添加备注…',
+                          hintText: l10n.notesHint,
                           hintStyle: TextStyle(
                             color: colorScheme.onSurfaceVariant.withValues(
                               alpha: 0.45,
@@ -494,7 +494,13 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                               isStart: true,
                               currentValue: startAt,
                               label: startAt != null
-                                  ? '开始 ${formatTaskTimeDisplay(startAt, null, l10n)}'
+                                  ? l10n.startPrefix(
+                                      formatTaskTimeDisplay(
+                                        startAt,
+                                        null,
+                                        l10n,
+                                      ),
+                                    )
                                   : l10n.startTime,
                               icon: Icons.calendar_today_outlined,
                             ),
@@ -506,7 +512,9 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                               isStart: false,
                               currentValue: endAt,
                               label: endAt != null
-                                  ? '截止 ${formatTaskTimeDisplay(null, endAt, l10n)}'
+                                  ? l10n.duePrefix(
+                                      formatTaskTimeDisplay(null, endAt, l10n),
+                                    )
                                   : l10n.endTime,
                               icon: Icons.flag_outlined,
                             ),
@@ -646,7 +654,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                 children: [
                                   if (selectedTagIds.isEmpty)
                                     Text(
-                                      '未添加',
+                                      l10n.notAdded,
                                       style: theme.textTheme.bodyMedium
                                           ?.copyWith(
                                             color: colorScheme.onSurfaceVariant
@@ -760,7 +768,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                               ),
                               if (_subtaskRows.isNotEmpty)
                                 Text(
-                                  '${_subtaskRows.length} 项',
+                                  l10n.itemCount(_subtaskRows.length),
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontFeatures: AppTokens.fontTabular,
@@ -1033,7 +1041,9 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
         isUtc: true,
       ).toLocal();
       parts.add(
-        '开始 ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}',
+        l10n.startPrefix(
+          '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}',
+        ),
       );
     }
     if (endAt != null) {
@@ -1042,7 +1052,9 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
         isUtc: true,
       ).toLocal();
       parts.add(
-        '截止 ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}',
+        l10n.duePrefix(
+          '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}',
+        ),
       );
     }
     if (parts.isEmpty) return l10n.noTimeSet;

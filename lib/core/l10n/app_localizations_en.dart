@@ -1117,4 +1117,158 @@ class AppLocalizationsEn extends AppLocalizations {
   String taskCompletedOn(String date) {
     return 'Completed on $date';
   }
+
+  @override
+  String get searchNoResults => 'No matching tasks';
+
+  @override
+  String get noCompletedTasks => 'No completed tasks';
+
+  @override
+  String get descriptionHint => 'Add description or notes…';
+
+  @override
+  String get notesHint => 'Add notes…';
+
+  @override
+  String get notAdded => 'None added';
+
+  @override
+  String get notSet => 'Not set';
+
+  @override
+  String startPrefix(String time) {
+    return 'Start $time';
+  }
+
+  @override
+  String duePrefix(String time) {
+    return 'Due $time';
+  }
+
+  @override
+  String itemCount(int count) {
+    return '$count items';
+  }
+
+  @override
+  String get viewsSection => 'Views';
+
+  @override
+  String get listsSection => 'Lists';
+
+  @override
+  String get webdavSync => 'WebDAV Sync';
+
+  @override
+  String get searchTasks => 'Search tasks';
+
+  @override
+  String searchMatchCount(int count) {
+    return '$count matching tasks';
+  }
+
+  @override
+  String progressA11y(String label) {
+    return 'Completion progress $label';
+  }
+
+  @override
+  String get weeklyProgress => 'This week\'s progress';
+
+  @override
+  String projectsSummarySubtitle(int total, int pending) {
+    return '$total projects · $pending to-dos';
+  }
+
+  @override
+  String itemsProgress(int done, int total) {
+    return '$done/$total items';
+  }
+
+  @override
+  String manageTagsSubtitle(int count) {
+    return 'Manage task tags · $count total';
+  }
+
+  @override
+  String get autoSync => 'Auto sync';
+
+  @override
+  String get autoSyncSubtitle => 'Sync on data changes or app start';
+
+  @override
+  String get seedColorSubtitle => 'Give the app an accent color';
+
+  @override
+  String get basicInfo => 'Basics';
+
+  @override
+  String get displayMode => 'Display as';
+
+  @override
+  String get quickTemplates => 'Quick templates';
+
+  @override
+  String get statusKanbanDesc => 'To-do / In progress / Done';
+
+  @override
+  String get priorityKanbanDesc => 'High / Medium / Low / None';
+
+  @override
+  String filterStatusCount(int count) {
+    return '$count statuses';
+  }
+
+  @override
+  String filterPriorityCount(int count) {
+    return '$count priorities';
+  }
+
+  @override
+  String filterProjectCount(int count) {
+    return '$count projects';
+  }
+
+  @override
+  String filterTagCount(int count) {
+    return '$count tags';
+  }
+
+  @override
+  String get allTasksLabel => 'All tasks';
+
+  @override
+  String get yesterday => 'Yesterday';
+
+  @override
+  String get syncedJustNow => 'Synced just now';
+
+  @override
+  String syncedMinutesAgo(int count) {
+    return 'Synced $count min ago';
+  }
+
+  @override
+  String syncedAt(String time) {
+    return 'Synced $time';
+  }
+
+  @override
+  String get monthLabel => 'Month';
+
+  @override
+  String get weekLabel => 'Week';
+
+  @override
+  String get overview => 'Overview';
+
+  @override
+  String get projectLabel => 'Project';
+
+  @override
+  String get statusKanbanName => 'Status kanban';
+
+  @override
+  String get priorityKanbanName => 'Priority kanban';
 }

@@ -118,9 +118,9 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
           return EmptyState(
             icon: Icons.check_circle_outline,
             message: widget.searchQuery.isNotEmpty
-                ? '未搜索到相关任务'
+                ? l10n.searchNoResults
                 : (widget.filterMode == TaskFilterChipMode.done
-                      ? '暂无已完成任务'
+                      ? l10n.noCompletedTasks
                       : l10n.allTasksCompleted),
           );
         }

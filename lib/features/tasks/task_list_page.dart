@@ -414,9 +414,9 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                     child: EmptyState(
                       icon: Icons.done_all_rounded,
                       message: _searchQuery.isNotEmpty
-                          ? '未搜索到相关任务'
+                          ? l10n.searchNoResults
                           : (_filterMode == TaskFilterChipMode.done
-                                ? '暂无已完成任务'
+                                ? l10n.noCompletedTasks
                                 : l10n.emptyToday),
                     ),
                   ),
@@ -528,7 +528,7 @@ class _ProjectOrInboxBodyState extends ConsumerState<_ProjectOrInboxBody> {
                       .where((f) => f.id == project?.folderId)
                       .firstOrNull
                       ?.name ??
-                  '未分组');
+                  l10n.ungrouped);
 
         final summary = ref.watch(projectSummaryProvider(widget.projectId));
         final tasks =
@@ -557,14 +557,14 @@ class _ProjectOrInboxBodyState extends ConsumerState<_ProjectOrInboxBody> {
                       ),
                     ),
                     TextSpan(
-                      text: ' · 共 ',
+                      text: ' · ',
                       style: TextStyle(
                         fontSize: 12,
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                     TextSpan(
-                      text: '$rootCount',
+                      text: l10n.itemCount(rootCount),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -572,7 +572,7 @@ class _ProjectOrInboxBodyState extends ConsumerState<_ProjectOrInboxBody> {
                       ),
                     ),
                     TextSpan(
-                      text: ' 项 · 已完成 ',
+                      text: ' · ${l10n.completedSubtitle} ',
                       style: TextStyle(
                         fontSize: 12,
                         color: colorScheme.onSurfaceVariant,

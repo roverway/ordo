@@ -337,6 +337,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     final syncState = ref.watch(syncStateProvider);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     final isSyncEnabled = syncConfigAsync.value?.enabled ?? false;
     if (!isSyncEnabled) return const SizedBox.shrink();
@@ -354,7 +355,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
             color: colorScheme.primary,
           ),
         );
-        statusText = '同步中...';
+        statusText = l10n.syncStatusSyncing;
         break;
       case SyncStateStatus.error:
         statusIcon = Icon(
@@ -362,7 +363,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
           color: colorScheme.error,
           size: 12,
         );
-        statusText = '同步失败';
+        statusText = l10n.syncStatusError;
         textColor = colorScheme.error;
         break;
       case SyncStateStatus.success:
@@ -372,14 +373,14 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
         if (lastSynced != null) {
           final diff = DateTime.now().millisecondsSinceEpoch - lastSynced;
           if (diff < 60000) {
-            statusText = '刚刚同步';
+            statusText = l10n.syncedJustNow;
           } else if (diff < 3600000) {
-            statusText = '${diff ~/ 60000}分钟前同步';
+            statusText = l10n.syncedMinutesAgo(diff ~/ 60000);
           } else {
-            statusText = '${formatDateTime(lastSynced)}同步';
+            statusText = l10n.syncedAt(formatDateTime(lastSynced));
           }
         } else {
-          statusText = '未同步';
+          statusText = l10n.syncStatusIdle;
         }
         break;
     }

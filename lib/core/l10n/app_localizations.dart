@@ -1070,7 +1070,7 @@ abstract class AppLocalizations {
   /// **'自定义'**
   String get custom;
 
-  /// No description provided for @clear.
+  /// clear
   ///
   /// In zh, this message translates to:
   /// **'清除'**
@@ -2155,6 +2155,258 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'完成于 {date}'**
   String taskCompletedOn(String date);
+
+  /// searchNoResults
+  ///
+  /// In zh, this message translates to:
+  /// **'未搜索到相关任务'**
+  String get searchNoResults;
+
+  /// noCompletedTasks
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无已完成任务'**
+  String get noCompletedTasks;
+
+  /// descriptionHint
+  ///
+  /// In zh, this message translates to:
+  /// **'添加描述或要点…'**
+  String get descriptionHint;
+
+  /// notesHint
+  ///
+  /// In zh, this message translates to:
+  /// **'添加备注…'**
+  String get notesHint;
+
+  /// notAdded
+  ///
+  /// In zh, this message translates to:
+  /// **'未添加'**
+  String get notAdded;
+
+  /// notSet
+  ///
+  /// In zh, this message translates to:
+  /// **'未设置'**
+  String get notSet;
+
+  /// startPrefix
+  ///
+  /// In zh, this message translates to:
+  /// **'开始 {time}'**
+  String startPrefix(String time);
+
+  /// duePrefix
+  ///
+  /// In zh, this message translates to:
+  /// **'截止 {time}'**
+  String duePrefix(String time);
+
+  /// itemCount
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 项'**
+  String itemCount(int count);
+
+  /// viewsSection
+  ///
+  /// In zh, this message translates to:
+  /// **'视图'**
+  String get viewsSection;
+
+  /// listsSection
+  ///
+  /// In zh, this message translates to:
+  /// **'清单'**
+  String get listsSection;
+
+  /// webdavSync
+  ///
+  /// In zh, this message translates to:
+  /// **'WebDAV 同步'**
+  String get webdavSync;
+
+  /// searchTasks
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索任务'**
+  String get searchTasks;
+
+  /// searchMatchCount
+  ///
+  /// In zh, this message translates to:
+  /// **'找到 {count} 项匹配任务'**
+  String searchMatchCount(int count);
+
+  /// progressA11y
+  ///
+  /// In zh, this message translates to:
+  /// **'完成进度 {label}'**
+  String progressA11y(String label);
+
+  /// weeklyProgress
+  ///
+  /// In zh, this message translates to:
+  /// **'本周进度'**
+  String get weeklyProgress;
+
+  /// projectsSummarySubtitle
+  ///
+  /// In zh, this message translates to:
+  /// **'共 {total} 个项目 · {pending} 项待办'**
+  String projectsSummarySubtitle(int total, int pending);
+
+  /// itemsProgress
+  ///
+  /// In zh, this message translates to:
+  /// **'{done}/{total} 项'**
+  String itemsProgress(int done, int total);
+
+  /// manageTagsSubtitle
+  ///
+  /// In zh, this message translates to:
+  /// **'管理任务标签 · 当前 {count} 个'**
+  String manageTagsSubtitle(int count);
+
+  /// autoSync
+  ///
+  /// In zh, this message translates to:
+  /// **'自动同步'**
+  String get autoSync;
+
+  /// autoSyncSubtitle
+  ///
+  /// In zh, this message translates to:
+  /// **'数据变更或启动时自动同步'**
+  String get autoSyncSubtitle;
+
+  /// seedColorSubtitle
+  ///
+  /// In zh, this message translates to:
+  /// **'为应用注入个性色'**
+  String get seedColorSubtitle;
+
+  /// basicInfo
+  ///
+  /// In zh, this message translates to:
+  /// **'基本信息'**
+  String get basicInfo;
+
+  /// displayMode
+  ///
+  /// In zh, this message translates to:
+  /// **'展示方式'**
+  String get displayMode;
+
+  /// quickTemplates
+  ///
+  /// In zh, this message translates to:
+  /// **'快速模板'**
+  String get quickTemplates;
+
+  /// statusKanbanDesc
+  ///
+  /// In zh, this message translates to:
+  /// **'待办 / 进行中 / 已完成'**
+  String get statusKanbanDesc;
+
+  /// priorityKanbanDesc
+  ///
+  /// In zh, this message translates to:
+  /// **'高优 / 中优 / 低优 / 无'**
+  String get priorityKanbanDesc;
+
+  /// filterStatusCount
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 状态'**
+  String filterStatusCount(int count);
+
+  /// filterPriorityCount
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 优先级'**
+  String filterPriorityCount(int count);
+
+  /// filterProjectCount
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 项目'**
+  String filterProjectCount(int count);
+
+  /// filterTagCount
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 标签'**
+  String filterTagCount(int count);
+
+  /// allTasksLabel
+  ///
+  /// In zh, this message translates to:
+  /// **'全部任务'**
+  String get allTasksLabel;
+
+  /// yesterday
+  ///
+  /// In zh, this message translates to:
+  /// **'昨天'**
+  String get yesterday;
+
+  /// syncedJustNow
+  ///
+  /// In zh, this message translates to:
+  /// **'刚刚同步'**
+  String get syncedJustNow;
+
+  /// syncedMinutesAgo
+  ///
+  /// In zh, this message translates to:
+  /// **'{count}分钟前同步'**
+  String syncedMinutesAgo(int count);
+
+  /// syncedAt
+  ///
+  /// In zh, this message translates to:
+  /// **'{time}同步'**
+  String syncedAt(String time);
+
+  /// monthLabel
+  ///
+  /// In zh, this message translates to:
+  /// **'月'**
+  String get monthLabel;
+
+  /// weekLabel
+  ///
+  /// In zh, this message translates to:
+  /// **'周'**
+  String get weekLabel;
+
+  /// overview
+  ///
+  /// In zh, this message translates to:
+  /// **'概览'**
+  String get overview;
+
+  /// projectLabel
+  ///
+  /// In zh, this message translates to:
+  /// **'项目'**
+  String get projectLabel;
+
+  /// statusKanbanName
+  ///
+  /// In zh, this message translates to:
+  /// **'状态看板'**
+  String get statusKanbanName;
+
+  /// priorityKanbanName
+  ///
+  /// In zh, this message translates to:
+  /// **'优先级看板'**
+  String get priorityKanbanName;
 }
 
 class _AppLocalizationsDelegate

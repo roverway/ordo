@@ -423,7 +423,6 @@
       }
     }
   },
-  "autoSaveOnClose": "Auto-save on close",
   "addSubtaskHint": "Add subtask, press enter to confirm",
   "noTimeSet": "No time set",
   "titleCannotBeEmpty": "Title cannot be empty",
@@ -457,5 +456,252 @@
         "type": "String"
       }
     }
+  },
+  "searchNoResults": "No matching tasks",
+  "@searchNoResults": {
+    "description": "searchNoResults"
+  },
+  "noCompletedTasks": "No completed tasks",
+  "@noCompletedTasks": {
+    "description": "noCompletedTasks"
+  },
+  "descriptionHint": "Add description or notes…",
+  "@descriptionHint": {
+    "description": "descriptionHint"
+  },
+  "notesHint": "Add notes…",
+  "@notesHint": {
+    "description": "notesHint"
+  },
+  "notAdded": "None added",
+  "@notAdded": {
+    "description": "notAdded"
+  },
+  "notSet": "Not set",
+  "@notSet": {
+    "description": "notSet"
+  },
+  "startPrefix": "Start {time}",
+  "@startPrefix": {
+    "description": "startPrefix",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "duePrefix": "Due {time}",
+  "@duePrefix": {
+    "description": "duePrefix",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "itemCount": "{count} items",
+  "@itemCount": {
+    "description": "itemCount",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "viewsSection": "Views",
+  "@viewsSection": {
+    "description": "viewsSection"
+  },
+  "listsSection": "Lists",
+  "@listsSection": {
+    "description": "listsSection"
+  },
+  "webdavSync": "WebDAV Sync",
+  "@webdavSync": {
+    "description": "webdavSync"
+  },
+  "searchTasks": "Search tasks",
+  "@searchTasks": {
+    "description": "searchTasks"
+  },
+  "searchMatchCount": "{count} matching tasks",
+  "@searchMatchCount": {
+    "description": "searchMatchCount",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "progressA11y": "Completion progress {label}",
+  "@progressA11y": {
+    "description": "progressA11y",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "weeklyProgress": "This week's progress",
+  "@weeklyProgress": {
+    "description": "weeklyProgress"
+  },
+  "projectsSummarySubtitle": "{total} projects · {pending} to-dos",
+  "@projectsSummarySubtitle": {
+    "description": "projectsSummarySubtitle",
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "pending": {
+        "type": "int"
+      }
+    }
+  },
+  "itemsProgress": "{done}/{total} items",
+  "@itemsProgress": {
+    "description": "itemsProgress",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "manageTagsSubtitle": "Manage task tags · {count} total",
+  "@manageTagsSubtitle": {
+    "description": "manageTagsSubtitle",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "autoSync": "Auto sync",
+  "@autoSync": {
+    "description": "autoSync"
+  },
+  "autoSyncSubtitle": "Sync on data changes or app start",
+  "@autoSyncSubtitle": {
+    "description": "autoSyncSubtitle"
+  },
+  "seedColorSubtitle": "Give the app an accent color",
+  "@seedColorSubtitle": {
+    "description": "seedColorSubtitle"
+  },
+  "basicInfo": "Basics",
+  "@basicInfo": {
+    "description": "basicInfo"
+  },
+  "displayMode": "Display as",
+  "@displayMode": {
+    "description": "displayMode"
+  },
+  "quickTemplates": "Quick templates",
+  "@quickTemplates": {
+    "description": "quickTemplates"
+  },
+  "statusKanbanDesc": "To-do / In progress / Done",
+  "@statusKanbanDesc": {
+    "description": "statusKanbanDesc"
+  },
+  "priorityKanbanDesc": "High / Medium / Low / None",
+  "@priorityKanbanDesc": {
+    "description": "priorityKanbanDesc"
+  },
+  "filterStatusCount": "{count} statuses",
+  "@filterStatusCount": {
+    "description": "filterStatusCount",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filterPriorityCount": "{count} priorities",
+  "@filterPriorityCount": {
+    "description": "filterPriorityCount",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filterProjectCount": "{count} projects",
+  "@filterProjectCount": {
+    "description": "filterProjectCount",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filterTagCount": "{count} tags",
+  "@filterTagCount": {
+    "description": "filterTagCount",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "allTasksLabel": "All tasks",
+  "@allTasksLabel": {
+    "description": "allTasksLabel"
+  },
+  "@clear": {
+    "description": "clear"
+  },
+  "yesterday": "Yesterday",
+  "@yesterday": {
+    "description": "yesterday"
+  },
+  "syncedJustNow": "Synced just now",
+  "@syncedJustNow": {
+    "description": "syncedJustNow"
+  },
+  "syncedMinutesAgo": "Synced {count} min ago",
+  "@syncedMinutesAgo": {
+    "description": "syncedMinutesAgo",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncedAt": "Synced {time}",
+  "@syncedAt": {
+    "description": "syncedAt",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "monthLabel": "Month",
+  "@monthLabel": {
+    "description": "monthLabel"
+  },
+  "weekLabel": "Week",
+  "@weekLabel": {
+    "description": "weekLabel"
+  },
+  "overview": "Overview",
+  "@overview": {
+    "description": "overview"
+  },
+  "projectLabel": "Project",
+  "@projectLabel": {
+    "description": "projectLabel"
+  },
+  "statusKanbanName": "Status kanban",
+  "@statusKanbanName": {
+    "description": "statusKanbanName"
+  },
+  "priorityKanbanName": "Priority kanban",
+  "@priorityKanbanName": {
+    "description": "priorityKanbanName"
   }
 }

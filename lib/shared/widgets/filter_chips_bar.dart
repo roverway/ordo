@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/l10n/app_localizations.dart';
+
 import '../../core/theme/app_tokens.dart';
 
 /// 任务状态筛选模式（全部 / 进行中 / 已完成）。
@@ -32,6 +34,7 @@ class FilterChipsBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -40,21 +43,21 @@ class FilterChipsBar extends StatelessWidget {
           _buildChip(
             context,
             mode: TaskFilterChipMode.all,
-            label: '全部',
+            label: l10n.filterAll,
             count: allCount,
           ),
           const SizedBox(width: 8),
           _buildChip(
             context,
             mode: TaskFilterChipMode.open,
-            label: '进行中',
+            label: l10n.statusInProgress,
             count: openCount,
           ),
           const SizedBox(width: 8),
           _buildChip(
             context,
             mode: TaskFilterChipMode.done,
-            label: '已完成',
+            label: l10n.statusDone,
             count: doneCount,
           ),
           const Spacer(),

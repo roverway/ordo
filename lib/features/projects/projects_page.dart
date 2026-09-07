@@ -73,12 +73,14 @@ class ProjectsPage extends ConsumerWidget {
                 // Hero 顶栏
                 SliverToBoxAdapter(
                   child: PageHeroHeader(
-                    title: '概览',
+                    title: l10n.overview,
                     onTitleTap: narrow
                         ? () => showScopeSwitcherSheet(context)
                         : null,
-                    subtitle:
-                        '共 $totalProjectsCount 个项目 · $totalPendingTasks 项待办',
+                    subtitle: l10n.projectsSummarySubtitle(
+                      totalProjectsCount,
+                      totalPendingTasks,
+                    ),
                     trailing: HeroProgressRing(
                       completed: totalCompleted,
                       total: totalTasks > 0 ? totalTasks : 1,
@@ -104,7 +106,7 @@ class ProjectsPage extends ConsumerWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                '本周进度',
+                                l10n.weeklyProgress,
                                 style: TextStyle(
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.w500,
@@ -112,7 +114,7 @@ class ProjectsPage extends ConsumerWidget {
                                 ),
                               ),
                               Text(
-                                '$totalCompleted/$totalTasks 项 (${(totalCompleted / totalTasks * 100).round()}%)',
+                                '${l10n.itemsProgress(totalCompleted, totalTasks)} (${(totalCompleted / totalTasks * 100).round()}%)',
                                 style: TextStyle(
                                   fontFamily: 'monospace',
                                   fontFeatures: AppTokens.fontTabular,
@@ -172,7 +174,7 @@ class ProjectsPage extends ConsumerWidget {
                       ],
                       if (ungrouped.isNotEmpty) ...[
                         _FolderSectionHeader(
-                          title: '未分组',
+                          title: l10n.ungrouped,
                           count: ungrouped.length,
                         ),
                         for (final project in ungrouped)

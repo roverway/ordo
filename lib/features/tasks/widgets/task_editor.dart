@@ -210,7 +210,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
               color: colorScheme.onSurface,
             ),
             decoration: InputDecoration(
-              hintText: '准备做什么？',
+              hintText: l10n.taskTitleHint,
               hintStyle: TextStyle(
                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                 fontWeight: FontWeight.w700,
@@ -267,7 +267,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                 ),
 
               // 时间
-              if (timeText.isNotEmpty && timeText != '未设置')
+              if (timeText.isNotEmpty)
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -328,7 +328,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
             color: colorScheme.onSurface,
           ),
           decoration: InputDecoration(
-            hintText: '添加描述或要点…',
+            hintText: l10n.descriptionHint,
             hintStyle: TextStyle(
               color: colorScheme.onSurfaceVariant.withValues(alpha: 0.45),
               fontSize: 15,
@@ -362,11 +362,11 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
               // 1. 日期行
               _DetailsRow(
                 icon: Icons.calendar_today_outlined,
-                label: '日期',
+                label: l10n.dateAndReminder,
                 value: Text(
                   startAt != null || endAt != null
                       ? formatTaskTimeDisplay(startAt, endAt, l10n)
-                      : '未设置',
+                      : l10n.notSet,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: startAt != null || endAt != null
                         ? colorScheme.onSurface
@@ -394,7 +394,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      '优先级',
+                      l10n.priority,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w500,
                         color: colorScheme.onSurface,
@@ -476,7 +476,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
               // 3. 所属项目行
               _DetailsRow(
                 icon: Icons.folder_outlined,
-                label: '项目',
+                label: l10n.projectLabel,
                 value: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -491,7 +491,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                       ),
                     if (project != null) const SizedBox(width: 6),
                     Text(
-                      project?.name ?? '收集箱',
+                      project?.name ?? l10n.inbox,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: colorScheme.onSurface,
                         fontSize: 13.5,
@@ -506,13 +506,13 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
               // 4. 标签行
               _DetailsRow(
                 icon: Icons.label_outline,
-                label: '标签',
+                label: l10n.taskTags,
                 value: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (selectedTags.isEmpty)
                       Text(
-                        '未添加',
+                        l10n.notAdded,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: colorScheme.onSurfaceVariant.withValues(
                             alpha: 0.6,
@@ -622,7 +622,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                     color: colorScheme.error,
                   ),
                   label: Text(
-                    '删除任务',
+                    l10n.deleteTask,
                     style: TextStyle(
                       color: colorScheme.error,
                       fontWeight: FontWeight.w600,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/motion.dart';
 
@@ -38,7 +39,7 @@ class HeroProgressRing extends StatelessWidget {
     final barColor = colorScheme.primary;
 
     return Semantics(
-      label: '完成进度 $labelText',
+      label: AppLocalizations.of(context).progressA11y(labelText),
       child: ExcludeSemantics(
         child: SizedBox(
           width: size,

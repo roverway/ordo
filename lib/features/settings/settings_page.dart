@@ -205,7 +205,7 @@ class SettingsBody extends ConsumerWidget {
                       child: Text(
                         (tagsAsync.value?.isEmpty ?? true)
                             ? l10n.emptyTags
-                            : '管理任务标签 · 当前 ${tagsAsync.value!.length} 个',
+                            : l10n.manageTagsSubtitle(tagsAsync.value!.length),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                           fontSize: 12,
@@ -285,13 +285,16 @@ class SettingsBody extends ConsumerWidget {
                   color: Color(0xFF10B981),
                 ),
               ),
-              title: const Text(
-                '自动同步',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              title: Text(
+                l10n.autoSync,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              subtitle: const Text(
-                '数据变更或启动时自动同步',
-                style: TextStyle(fontSize: 12),
+              subtitle: Text(
+                l10n.autoSyncSubtitle,
+                style: const TextStyle(fontSize: 12),
               ),
               trailing: Switch(
                 value:
@@ -533,7 +536,7 @@ class _ThemeColorPicker extends ConsumerWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          '为应用注入个性色',
+          l10n.seedColorSubtitle,
           style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 12),

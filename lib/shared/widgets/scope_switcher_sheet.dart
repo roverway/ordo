@@ -118,7 +118,7 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                 padding: const EdgeInsets.fromLTRB(10, 2, 10, 12),
                 children: [
                   // 1. 系统作用域
-                  _buildSectionHeader('视图'),
+                  _buildSectionHeader(l10n.viewsSection),
                   _buildScopeTile(
                     icon: Icons.wb_sunny_outlined,
                     iconColor: AppTokens.colorNavToday,
@@ -163,7 +163,7 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                   _buildScopeTile(
                     icon: Icons.pie_chart_outline_rounded,
                     iconColor: AppTokens.colorNavOverview,
-                    title: '概览',
+                    title: l10n.overview,
                     isSelected: currentRoute == '/projects',
                     onTap: () {
                       final router = GoRouter.of(context);
@@ -214,8 +214,8 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
 
                   // 3. 项目与文件夹分组（清单）
                   _buildSectionHeaderWithAdd(
-                    title: '清单',
-                    tooltip: '新建文件夹',
+                    title: l10n.listsSection,
+                    tooltip: l10n.newFolder,
                     onAdd: () async {
                       await showCreateListFolderSheet(
                         context: context,
@@ -382,7 +382,7 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                     },
                   ),
                   IconButton(
-                    tooltip: 'WebDAV 同步',
+                    tooltip: l10n.webdavSync,
                     icon: Icon(
                       syncState.status == SyncStateStatus.syncing
                           ? Icons.sync
