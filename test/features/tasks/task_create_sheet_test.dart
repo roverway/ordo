@@ -351,12 +351,14 @@ void main() {
     expect(subtaskFields(), hasLength(1));
     expect(subtaskFields().single.focusNode!.hasFocus, isTrue);
 
-    // 新行输入内容后回车（onSubmitted）→ 追加下一行并再次聚焦（与按钮同 UX，已输入文本行在失焦后转为按需静态展示）。
+    // 新行输入内容：回车为行内换行（多行输入 maxLines=null，与任务编辑页一致）。
+    // bug 修复：原单行输入回车触发 onSubmitted 追加下一行 + 跳焦点，软键盘
+    // 收起/重开的焦点真空会引发整层 maxHeight 翻转，弹层整体重新展开。
     await tester.enterText(find.byType(TextField).last, '子任务一');
-    await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
     expect(find.text('子任务一'), findsOneWidget);
     expect(subtaskFields(), hasLength(1));
+    expect(subtaskFields().last.maxLines, null);
     expect(subtaskFields().last.focusNode!.hasFocus, isTrue);
   });
 

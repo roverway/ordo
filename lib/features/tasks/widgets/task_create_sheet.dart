@@ -6,7 +6,8 @@
 // 3. 选项胶囊栏（项目选择器 + 开始时间设置 + 结束时间/截止时间设置）
 // 4. 优先级分段选择（无/低/中/高 带彩色圆点）
 // 5. 标签选择行 + 内联新建标签输入
-// 6. 子任务列表（带复选框、删除按钮及回车即添加新行）
+// 6. 子任务列表（带复选框、删除按钮；多行输入与编辑页一致，回车=行内换行，
+//    新增行经底部「添加子任务」按钮）
 // 7. 底部信息栏（关闭时自动保存开关 + 当前配置摘要）
 
 import 'dart:math' as math;
@@ -231,7 +232,13 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
         _subtaskRows.any((r) => r.focusNode.hasFocus);
 
     final screenHeight = MediaQuery.sizeOf(context).height;
-    final targetMaxHeight = isFocused ? screenHeight : screenHeight * 0.85;
+    // maxHeight 一律允许全高，不随 [isFocused] 在 85%↔100% 间翻转。
+    //
+    // 原实现下每次重新聚焦（典型：键盘收起后点「添加子任务行」）都会以
+    // 200ms 动画把整层重新展开，观感等同弹层重新弹出（任务编辑页是整页
+    // 布局故无此问题）。弹层实际高度仍由内容撑起（Column mainAxisSize.min），
+    // 各状态视觉不变，仅失去「未聚焦压到 85%」的行为。
+    final targetMaxHeight = screenHeight;
 
     final rawTopInset = MediaQuery.viewPaddingOf(context).top;
     final view = View.maybeOf(context);
@@ -861,6 +868,12 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                           controller:
                                               _subtaskRows[i].controller,
                                           focusNode: _subtaskRows[i].focusNode,
+                                          // 多行输入，与任务编辑页 SubtaskRowTile
+                                          // 一致：软键盘回车 = 行内换行，
+                                          // 不触发提交/跳行（bug 修复：单行
+                                          // 提交会收起软键盘 + 跳焦点，引发
+                                          // 整层 maxHeight 翻转重新展开）。
+                                          maxLines: null,
                                           style: TextStyle(
                                             fontSize: 14.5,
                                             fontWeight: FontWeight.w500,
@@ -893,8 +906,6 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                             isDense: true,
                                             contentPadding: EdgeInsets.zero,
                                           ),
-                                          onSubmitted: (_) =>
-                                              _addSubtaskAndFocus(),
                                         ),
                                 ),
                                 InkWell(
@@ -957,7 +968,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
-                                      l10n.addSubtaskHint,
+                                      l10n.addSubtask,
                                       style: TextStyle(
                                         fontSize: 14.5,
                                         color: colorScheme.onSurfaceVariant
