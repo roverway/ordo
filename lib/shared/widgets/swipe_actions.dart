@@ -88,7 +88,13 @@ class _SwipeActionsState extends State<SwipeActions>
     _controller = AnimationController(
       vsync: this,
       duration: AppTokens.motionNormal,
-    );
+    )..addListener(_onAnimationTick);
+  }
+
+  void _onAnimationTick() {
+    if (_animation != null) {
+      setState(() => _dragOffset = _animation!.value);
+    }
   }
 
   @override
@@ -147,7 +153,7 @@ class _SwipeActionsState extends State<SwipeActions>
   void _animateTo(double target) {
     _animation = Tween<double>(begin: _dragOffset, end: target).animate(
       CurvedAnimation(parent: _controller, curve: AppTokens.motionSpring),
-    )..addListener(() => setState(() => _dragOffset = _animation!.value));
+    );
     _controller
       ..reset()
       ..forward();

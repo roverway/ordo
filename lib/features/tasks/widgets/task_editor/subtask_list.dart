@@ -78,11 +78,12 @@ class SubtaskList extends StatelessWidget {
                 onReorder: controller.reorderSubtasks,
                 itemBuilder: (context, index) {
                   final row = controller.subtaskRows[index];
+                  final task = row.task;
                   // 移动端左滑快捷设置（50-ui-ux.md §6.4）：仅已落库的子任务行
                   // 可用（新建行尚无 id，且处于编辑态）；完成态由编辑器草稿
                   // 管理（保存时 syncSubtasks 统一落库），右滑禁用。
                   final tile = SubtaskRowTile(
-                    key: ObjectKey(row),
+                    key: task == null ? ObjectKey(row) : null,
                     index: index,
                     row: row,
                     onRemove: () => onConfirmRemoveSubtask(row),
@@ -90,7 +91,6 @@ class SubtaskList extends StatelessWidget {
                     onChanged: controller.notifySubtasksChanged,
                     onToggleStatus: () => controller.toggleSubtaskStatus(row),
                   );
-                  final task = row.task;
                   if (task == null) return tile;
                   // ReorderableListView 要求项顶层带 key。
                   return TaskSwipeWrapper(

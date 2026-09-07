@@ -115,6 +115,7 @@ class TaskSwipeWrapper extends ConsumerWidget {
   /// 标签快捷设置：底部弹层即点即改（全量替换写回）。
   Future<void> _setTags(BuildContext context, WidgetRef ref) async {
     await showTaskTagQuickPicker(context, ref, taskId: task.id);
+    await _notifyTaskUpdated(ref);
   }
 
   /// 快捷设置落库成功后回读任务并通知调用方（仅在注册了回调时）。

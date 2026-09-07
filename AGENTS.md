@@ -118,6 +118,8 @@ Windows 环境相关工具及 SDK 路径说明：
 
 ## 4. 代码规范
 
+- 通用规范，见`CLAUD.md`。
+
 - 目录结构遵循 `30-architecture.md` §3 的 `lib/` 布局，按 feature 组织。
 - 状态管理用 Riverpod（`flutter_riverpod`，无 codegen 版本），禁止引入其他状态管理库。
 - 路由用 `go_router`，路由表集中在 `lib/router.dart`。

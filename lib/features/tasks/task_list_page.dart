@@ -351,11 +351,24 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                           progressValue: v.progressValue,
                           subtaskProgressText: v.subtaskProgressText,
                           onTap: () => context.push('/task/${v.task.id}'),
-                          onToggleDone: (done) {
+                          onToggleDone: (done) async {
                             final newStatus = (done ?? false)
                                 ? TaskStatus.done
                                 : TaskStatus.todo;
-                            repo.updateTask(v.task.id, status: newStatus);
+                            try {
+                              await repo.updateTask(
+                                v.task.id,
+                                status: newStatus,
+                              );
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(l10n.taskUpdateFailed),
+                                  ),
+                                );
+                              }
+                            }
                           },
                         ),
                       );
@@ -393,11 +406,24 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                           progressValue: v.progressValue,
                           subtaskProgressText: v.subtaskProgressText,
                           onTap: () => context.push('/task/${v.task.id}'),
-                          onToggleDone: (done) {
+                          onToggleDone: (done) async {
                             final newStatus = (done ?? false)
                                 ? TaskStatus.done
                                 : TaskStatus.todo;
-                            repo.updateTask(v.task.id, status: newStatus);
+                            try {
+                              await repo.updateTask(
+                                v.task.id,
+                                status: newStatus,
+                              );
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(l10n.taskUpdateFailed),
+                                  ),
+                                );
+                              }
+                            }
                           },
                         ),
                       );
