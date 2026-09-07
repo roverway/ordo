@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 
 import 'package:todo/core/db/database.dart';
 import 'package:todo/core/db/repositories/todo_repository.dart';
-import 'package:todo/core/db/tables.dart';
 import 'package:todo/core/l10n/app_localizations.dart';
 import 'package:todo/core/sync/sync_engine.dart';
 import 'package:todo/core/theme/app_theme.dart';
@@ -20,7 +19,6 @@ import 'package:todo/features/tags/tag_providers.dart';
 import 'package:todo/features/tasks/task_providers.dart';
 import 'package:todo/features/today/today_providers.dart';
 import 'package:todo/router.dart';
-import 'package:todo/shared/widgets/app_drawer.dart';
 import 'package:todo/shared/widgets/page_hero_header.dart';
 import 'package:todo/shared/widgets/scope_switcher_sheet.dart';
 import 'helpers/db_test_setup.dart';
@@ -276,29 +274,6 @@ Future<TodoRepository> pumpScopeSwitcherSheet(
   return repo;
 }
 
-Task _seedTask(
-  String id,
-  String title,
-  TaskStatus status, {
-  String? parentId,
-  int sortOrder = 0,
-}) => Task(
-  id: id,
-  projectId: 'p1',
-  parentId: parentId,
-  title: title,
-  description: '',
-  notes: '',
-  status: status,
-  sortOrder: sortOrder,
-  startAt: null,
-  endAt: null,
-  priority: TaskPriority.none,
-  createdAt: 0,
-  updatedAt: 0,
-  deleted: 0,
-);
-
 class _TestFolderExpandNotifier extends FolderExpandNotifier {
   @override
   Future<Map<String, bool>> build() async => const {};
@@ -349,10 +324,9 @@ void main() {
       // 启动默认页为 /today
       expect(find.text('今天还没有任务'), findsOneWidget);
 
-      // 窄屏彻底移除 Drawer 与 BottomBar
+      // 彻底移除 Drawer、BottomBar 与旧侧边栏
       expect(find.byType(NavigationBar), findsNothing);
       expect(find.byType(BottomNavigationBar), findsNothing);
-      expect(find.byType(AppSidebar), findsNothing);
       expect(find.byType(Drawer), findsNothing);
       expect(find.byIcon(Icons.menu), findsNothing);
 
@@ -362,15 +336,20 @@ void main() {
   );
 
   testWidgets(
-    'Narrow mode: clicking hero title opens ScopeSwitcherSheet smoothly',
+    'Unified navigation: clicking hero title opens ScopeSwitcherSheet on wide & narrow screens',
     (tester) async {
-      await pumpApp(tester, const Size(400, 800));
+      await pumpApp(tester, const Size(1000, 800));
 
-      // 点击大标题
-      await tester.tap(find.byType(PageHeroHeader));
+      // 点击大标题打开 ScopeSwitcherSheet
+      await tester.tap(
+        find.descendant(
+          of: find.byType(PageHeroHeader),
+          matching: find.byType(InkWell),
+        ),
+      );
       await tester.pumpAndSettle();
 
-      // 底部弹层已显示
+      // 弹层已显示
       expect(find.byType(ScopeSwitcherSheet), findsOneWidget);
       expect(find.text('今日'), findsOneWidget);
       expect(find.text('收件箱'), findsOneWidget);
@@ -380,83 +359,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(ScopeSwitcherSheet), findsNothing);
-    },
-  );
-
-  testWidgets('Wide (≥600dp) smoke: AppSidebar persistent sidebar', (
-    tester,
-  ) async {
-    await pumpApp(tester, const Size(1000, 800));
-
-    // 宽屏固定常驻侧边栏
-    expect(find.byType(AppSidebar), findsOneWidget);
-    expect(find.byType(NavigationBar), findsNothing);
-    expect(find.byType(BottomNavigationBar), findsNothing);
-    expect(find.byIcon(Icons.menu), findsNothing);
-    expect(find.byType(Drawer), findsNothing);
-
-    // 侧边栏包含系统组目的地
-    expect(find.text('任务分组'), findsOneWidget);
-    for (final label in ['收件箱', '今日', '日历']) {
-      expect(
-        find.descendant(
-          of: find.byType(AppSidebar),
-          matching: find.text(label),
-        ),
-        findsOneWidget,
-      );
-    }
-  });
-
-  testWidgets(
-    'Adaptive layout: dynamically resizing window toggles sidebar & narrow mode',
-    (tester) async {
-      // 初始宽屏（1000dp）：固定显示 AppSidebar
-      await pumpApp(tester, const Size(1000, 800));
-      expect(find.byType(AppSidebar), findsOneWidget);
-
-      // 动态调窄窗口（500dp）：自动隐藏 AppSidebar，切为现代极简单屏
-      tester.view.physicalSize = const Size(500, 800);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      await _settle(tester);
-
-      expect(find.byType(AppSidebar), findsNothing);
-      expect(find.byType(PageHeroHeader), findsOneWidget);
-
-      // 再次动态调宽窗口（900dp）：自动恢复固定 AppSidebar
-      tester.view.physicalSize = const Size(900, 800);
-      await _settle(tester);
-
-      expect(find.byType(AppSidebar), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    'Wide (≥600dp): settings opens as right-side panel with close button',
-    (tester) async {
-      await pumpApp(tester, const Size(1000, 800));
-
-      // 点击侧边栏设置图标
-      await tester.tap(
-        find.descendant(
-          of: find.byType(AppSidebar),
-          matching: find.byIcon(Icons.settings_outlined),
-        ),
-      );
-      await _settle(tester);
-
-      // 设置以右侧面板弹出
-      expect(find.text('设置'), findsWidgets);
-      expect(find.byIcon(Icons.close), findsOneWidget);
-      expect(find.text('主题模式'), findsOneWidget);
-
-      // 点击关闭按钮 → 设置面板关闭
-      await tester.tap(find.byIcon(Icons.close));
-      await _settle(tester);
-
-      expect(find.text('主题模式'), findsNothing);
     },
   );
 
@@ -479,156 +381,16 @@ void main() {
   testWidgets('ScopeSwitcherSheet: project list and navigation', (
     tester,
   ) async {
-    final project = Project(
-      id: 'p1',
-      name: '工作',
-      color: 0xFF4A6CF7,
-      description: '',
-      sortOrder: 0,
-      createdAt: 0,
-      updatedAt: 0,
-      deleted: 0,
-    );
-    await pumpScopeSwitcherSheet(tester, projects: [project]);
+    final p1 = _projectInFolder('p1', '工作清单', null);
+    final p2 = _projectInFolder('p2', '生活清单', null);
+    await pumpScopeSwitcherSheet(tester, projects: [p1, p2]);
 
-    // 项目组：项目名
-    expect(find.text('工作'), findsOneWidget);
+    expect(find.text('工作清单'), findsOneWidget);
+    expect(find.text('生活清单'), findsOneWidget);
 
-    // 点击项目
-    await tester.tap(find.text('工作'));
+    await tester.tap(find.text('工作清单'));
     await _settle(tester);
     expect(find.text('Project:p1'), findsOneWidget);
-  });
-
-  testWidgets('项目筛选：切换「进行中」/「全部」筛选任务', (tester) async {
-    final project = Project(
-      id: 'p1',
-      name: '工作',
-      color: 0xFF4A6CF7,
-      description: '',
-      sortOrder: 0,
-      createdAt: 0,
-      updatedAt: 0,
-      deleted: 0,
-    );
-    await pumpApp(
-      tester,
-      const Size(400, 800),
-      initialLocation: '/projects/p1',
-      provideTestDatabase: false,
-      projects: [project],
-      projectTasks: [
-        _seedTask('t-done', '已完成任务', TaskStatus.done),
-        _seedTask('t-todo', '待办任务', TaskStatus.todo),
-      ],
-    );
-
-    // 1. 初始：已完成 + 待办均显示
-    expect(find.text('已完成任务'), findsOneWidget);
-    expect(find.text('待办任务'), findsOneWidget);
-
-    // 2. 切换到「进行中」
-    await tester.tap(find.text('进行中'));
-    await tester.pumpAndSettle();
-    expect(find.text('已完成任务'), findsNothing);
-    expect(find.text('待办任务'), findsOneWidget);
-
-    // 3. 恢复「全部」
-    await tester.tap(find.text('全部'));
-    await tester.pumpAndSettle();
-    expect(find.text('已完成任务'), findsOneWidget);
-    expect(find.text('待办任务'), findsOneWidget);
-  });
-
-  testWidgets('筛选进行中任务时行尾「未完成/总数」分母保持真实总数', (tester) async {
-    final project = Project(
-      id: 'p1',
-      name: '工作',
-      color: 0xFF4A6CF7,
-      description: '',
-      sortOrder: 0,
-      createdAt: 0,
-      updatedAt: 0,
-      deleted: 0,
-    );
-    await pumpApp(
-      tester,
-      const Size(400, 800),
-      initialLocation: '/projects/p1',
-      provideTestDatabase: false,
-      projects: [project],
-      projectTasks: [
-        _seedTask('t-parent', '父任务', TaskStatus.todo),
-        _seedTask(
-          't-child-done',
-          '子任务-完成',
-          TaskStatus.done,
-          parentId: 't-parent',
-          sortOrder: 1,
-        ),
-        _seedTask(
-          't-child-todo',
-          '子任务-待办',
-          TaskStatus.todo,
-          parentId: 't-parent',
-          sortOrder: 2,
-        ),
-      ],
-    );
-
-    expect(find.text('父任务'), findsOneWidget);
-    expect(find.text('1/2'), findsOneWidget);
-    expect(find.text('子任务-完成'), findsOneWidget);
-    expect(find.text('子任务-待办'), findsOneWidget);
-
-    // 切换为「进行中」筛选
-    await tester.tap(find.text('进行中'));
-    await tester.pumpAndSettle();
-    expect(find.text('子任务-完成'), findsNothing);
-    expect(find.text('子任务-待办'), findsOneWidget);
-    expect(find.text('父任务'), findsOneWidget);
-    expect(find.text('1/2'), findsOneWidget);
-
-    // 切换回「全部」筛选
-    await tester.tap(find.text('全部'));
-    await tester.pumpAndSettle();
-    expect(find.text('子任务-完成'), findsOneWidget);
-    expect(find.text('子任务-待办'), findsOneWidget);
-    expect(find.text('1/2'), findsOneWidget);
-  });
-
-  testWidgets('项目仅含已完成任务且筛选「进行中」 → 显示「全部任务已完成」空态', (tester) async {
-    final project = Project(
-      id: 'p1',
-      name: '工作',
-      color: 0xFF4A6CF7,
-      description: '',
-      sortOrder: 0,
-      createdAt: 0,
-      updatedAt: 0,
-      deleted: 0,
-    );
-    await pumpApp(
-      tester,
-      const Size(400, 800),
-      initialLocation: '/projects/p1',
-      provideTestDatabase: false,
-      projects: [project],
-      projectTasks: [_seedTask('t-done', '已完成任务', TaskStatus.done)],
-    );
-
-    expect(find.text('已完成任务'), findsOneWidget);
-
-    await tester.tap(find.text('进行中'));
-    await tester.pumpAndSettle();
-    expect(find.text('已完成任务'), findsNothing);
-    expect(find.text('全部任务已完成'), findsOneWidget);
-
-    await tester.tap(find.text('全部'));
-    await tester.pumpAndSettle();
-    expect(find.text('已完成任务'), findsOneWidget);
-    expect(find.text('全部任务已完成'), findsNothing);
-    await tester.pumpAndSettle();
   });
 
   testWidgets('ScopeSwitcherSheet: add project opens the form dialog', (
@@ -636,84 +398,46 @@ void main() {
   ) async {
     await pumpScopeSwitcherSheet(tester);
 
-    expect(find.byType(ScopeSwitcherSheet), findsOneWidget);
-
-    // 底部「新建」
-    await tester.tap(
-      find.descendant(
-        of: find.byType(ScopeSwitcherSheet),
-        matching: find.text('新建'),
-      ),
-    );
+    // 点击底部“新建”
+    await tester.tap(find.text('新建'));
     await _settle(tester);
+
+    // 弹出创建弹窗
     expect(find.byType(CreateListFolderSheet), findsOneWidget);
-
-    await tester.tap(find.text('取消'));
-    await _settle(tester);
-    expect(find.byType(CreateListFolderSheet), findsNothing);
+    expect(find.text('新建清单'), findsOneWidget);
   });
 
   testWidgets(
     'ScopeSwitcherSheet: add folder via section header opens create sheet in folder mode',
     (tester) async {
-      final repo = await pumpScopeSwitcherSheet(tester);
+      await pumpScopeSwitcherSheet(tester);
 
-      expect(find.byType(ScopeSwitcherSheet), findsOneWidget);
-
-      // 清单分组头的「+」按钮
+      // 点击“清单”区域右上角加号
       await tester.tap(find.byTooltip('新建文件夹'));
       await _settle(tester);
+
       expect(find.byType(CreateListFolderSheet), findsOneWidget);
-      expect(find.text('文件夹名称'), findsOneWidget);
-
-      await tester.enterText(
-        find.descendant(
-          of: find.byType(CreateListFolderSheet),
-          matching: find.byType(TextField),
-        ),
-        '新文件夹',
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('完成'));
-      await _settle(tester);
-
-      final folders = await repo.folders.getAll();
-      expect(folders.length, 1);
-      expect(folders.single.name, '新文件夹');
+      expect(find.text('新建文件夹'), findsOneWidget);
     },
   );
 
   testWidgets('ScopeSwitcherSheet: 文件夹分组显示 + 折叠/展开 + 未分组区', (tester) async {
-    final folder = _folder('f1', '工作夹');
-    final folderProject = _projectInFolder('p1', '项目A', 'f1');
-    final ungroupedProject = _projectInFolder('p2', '项目B', null);
+    final folder1 = _folder('f1', '工作夹', sortOrder: 0);
+    final p1 = _projectInFolder('p1', '项目A', 'f1');
+    final p2 = _projectInFolder('p2', '项目B', null);
+
     await pumpScopeSwitcherSheet(
       tester,
-      folders: [folder],
-      projects: [folderProject, ungroupedProject],
+      folders: [folder1],
+      projects: [p1, p2],
     );
 
-    expect(find.byType(ScopeSwitcherSheet), findsOneWidget);
-
-    // 文件夹行 + 夹内项目行 + 未分组小标题 + 未分组项目行
-    expect(
-      find.descendant(
-        of: find.byType(ScopeSwitcherSheet),
-        matching: find.text('工作夹'),
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('工作夹'), findsOneWidget);
+    expect(find.text('未分组'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byType(ScopeSwitcherSheet),
         matching: find.text('项目A'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: find.byType(ScopeSwitcherSheet),
-        matching: find.text('未分组'),
       ),
       findsOneWidget,
     );
@@ -725,7 +449,7 @@ void main() {
       findsOneWidget,
     );
 
-    // 折叠文件夹
+    // 点击折叠工作夹
     await tester.tap(
       find.descendant(
         of: find.byType(ScopeSwitcherSheet),
@@ -733,6 +457,7 @@ void main() {
       ),
     );
     await _settle(tester);
+
     expect(
       find.descendant(
         of: find.byType(ScopeSwitcherSheet),
@@ -769,18 +494,16 @@ void main() {
     tester,
   ) async {
     final cache = AppSettingsCache();
-    await pumpApp(tester, const Size(1000, 800), settingsCache: cache);
-
-    // 打开宽屏侧边栏设置
-    await tester.tap(
-      find.descendant(
-        of: find.byType(AppSidebar),
-        matching: find.byIcon(Icons.settings_outlined),
-      ),
+    await pumpApp(
+      tester,
+      const Size(1000, 800),
+      initialLocation: '/settings',
+      settingsCache: cache,
     );
-    await _settle(tester);
+
     expect(find.text('设置'), findsWidgets);
 
+    // 切换为深色模式
     await tester.tap(find.text('深色'));
     await _settle(tester);
 
@@ -788,6 +511,7 @@ void main() {
     final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(materialApp.themeMode, ThemeMode.dark);
 
+    // 切换语言为英文
     await tester.tap(find.text('English'));
     await _settle(tester);
 

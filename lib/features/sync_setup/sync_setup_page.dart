@@ -27,6 +27,7 @@ import '../../core/sync/sync_engine.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_breakpoints.dart';
 import '../../core/utils/dates.dart';
+import '../../shared/widgets/modern_segmented_control.dart';
 import 'sync_setup_providers.dart';
 
 /// 宽屏表单最大宽度（50-ui-ux §5.7：约 560dp）。
@@ -125,7 +126,7 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
     return confirmed ?? false;
   }
 
-  /// 用当前配置预填表单（仅填充当前类型适用字段，另一类型字段清空）。
+  /// 用当前配置预填表单（仅填入当前类型适用字段，另一类型字段清空）。
   void _applyConfig(SyncConfig config) {
     setState(() {
       _type = config.type;
@@ -137,15 +138,7 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
     });
   }
 
-  /// 按 [type] 的字段集填充表单（从 [creds] 取已存值，无则清空）。
-  ///
-  /// 每类型字段集（docs/60-sync-design.md §10.1，SecureStore key 按类型隔离）：
-  /// - WebDAV：serverUrl / username / secret（bucket/region/prefix 不适用）；
-  /// - S3：serverUrl(=endpoint) / username(=accessKey) / secret(=secretKey)
-  ///   / bucket / region / prefix。
-  ///
-  /// 切换类型时另一类型的字段一律清空，防止残留值在保存时写入错误 key
-  /// （用户实测 bug：WebDAV 参数原样残留在 S3 输入框）。
+  /// 按 [type] 的字段集填入表单（从 [creds] 取已存值，无则清空）。
   void _fillTypeFields(RemoteType type, SyncConfig creds) {
     _serverUrl.text = creds.serverUrl ?? '';
     _username.text = creds.username ?? '';
@@ -157,11 +150,6 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
   }
 
   /// 切换远端类型：先同步清空全部字段，再异步重载新类型已存凭据。
-  ///
-  /// 凭据按类型独立 key（`sync_<type>_<field>`），切换时必须重载而非保留。
-  /// 时序：清空是同步的（立即可见），readCreds 是异步的——结果返回时若
-  /// 用户已再次切换（_type 变化）则丢弃旧结果；读取失败保持清空（可安全
-  /// 重填，不打断输入）。
   Future<void> _onTypeChanged(RemoteType newType) async {
     if (newType == _type) return;
     setState(() {
@@ -173,17 +161,13 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
     try {
       creds = await store.readCreds(newType);
     } on SecureStoreException {
-      creds = null; // 读取失败 → 保持清空。
+      creds = null;
     }
     if (!mounted || _type != newType) return;
     setState(() => _fillTypeFields(newType, creds ?? const SyncConfig()));
   }
 
   /// 表单 → SyncConfig。
-  ///
-  /// 空字段语义：serverUrl/username/bucket 为空 → `''`（writeCreds 写入空值
-  /// 即清除旧凭据）；secret 为空 → `''`（清除）；region/prefix 为空 → null
-  /// （region 由客户端探测、prefix 回落工厂默认 `todo/`）。
   SyncConfig _buildConfig() {
     return SyncConfig(
       type: _type,
@@ -245,7 +229,6 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
     final result = await testSyncConnection(ref, _buildConfig());
     if (!mounted) return;
     setState(() => _testing = false);
-    // i18n：错误码 → ARB 文案映射，禁止直接展示引擎/异常的中文 message。
     messenger.showSnackBar(
       SnackBar(
         content: Text(
@@ -265,7 +248,6 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
       return;
     }
 
-    // 用户在配置页主动触发「立即同步」：若未开启同步则自动开启，并先保存表单最新配置
     if (!_enabled) {
       setState(() => _enabled = true);
     }
@@ -298,7 +280,6 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
       return;
     }
 
-    // §12：失败 → 记录是否可重试；展示错误提示；可重试错误交给触发层指数退避调度
     setState(() => _lastErrorRetryable = result.retryable);
     messenger.showSnackBar(
       SnackBar(content: Text(_syncErrorText(l10n, result.errorCode))),
@@ -315,7 +296,6 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
     final configAsync = ref.watch(syncConfigProvider);
     final syncState = ref.watch(syncStateProvider);
 
-    // 配置加载成功后一次性预填（post-frame，避免 build 中改状态）。
     if (!_loaded) {
       final config = configAsync.value;
       if (config != null) {
@@ -349,21 +329,21 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
               title: Text(l10n.syncType, style: theme.textTheme.bodyLarge),
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: AppTokens.spaceSm),
-                child: SegmentedButton<RemoteType>(
-                  showSelectedIcon: false,
-                  segments: [
-                    ButtonSegment(
+                child: ModernSegmentedControl<RemoteType>(
+                  selectedValue: _type,
+                  onChanged: (type) => unawaited(_onTypeChanged(type)),
+                  items: [
+                    ModernSegmentItem(
                       value: RemoteType.webdav,
-                      label: Text(l10n.syncTypeNutstore),
+                      label: l10n.syncTypeNutstore,
+                      icon: Icons.cloud_outlined,
                     ),
-                    ButtonSegment(
+                    ModernSegmentItem(
                       value: RemoteType.s3,
-                      label: Text(l10n.syncTypeS3),
+                      label: l10n.syncTypeS3,
+                      icon: Icons.storage_outlined,
                     ),
                   ],
-                  selected: {_type},
-                  onSelectionChanged: (selection) =>
-                      unawaited(_onTypeChanged(selection.first)),
                 ),
               ),
             ),
@@ -407,7 +387,6 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
                 labelText: _type == RemoteType.webdav
                     ? l10n.syncPassword
                     : l10n.syncSecretKey,
-                // 坚果云要求「应用密码」（安全选项中生成），登录密码会 401。
                 helperText: _type == RemoteType.webdav
                     ? l10n.syncWebdavPasswordHint
                     : null,
@@ -527,7 +506,6 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
     AsyncValue<SyncConfig> configAsync,
   ) {
     final colorScheme = theme.colorScheme;
-    // 状态内 lastSyncedAt 优先（本次会话）；否则回落持久化配置值。
     final lastSynced = state.lastSyncedAt ?? configAsync.value?.lastSyncedAt;
 
     final (icon, title) = switch (state.status) {
@@ -558,8 +536,6 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
     };
 
     final String subtitle = switch (state.status) {
-      // i18n：按结构化错误码映射 ARB 文案；errorCode 缺失时兜底通用文案，
-      // 禁止直接展示引擎/异常的中文 message。
       SyncStateStatus.error => _syncErrorText(l10n, state.errorCode),
       _ when lastSynced != null => l10n.syncLastSyncedAt(
         formatDateTime(lastSynced),
@@ -567,49 +543,59 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
       _ => l10n.syncNotConfigured,
     };
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTokens.spaceMd),
-        child: Row(
-          children: [
-            // 图标为装饰性：状态信息由相邻标题/副标题文本承载，读屏不重复播报。
-            ExcludeSemantics(child: icon),
-            const SizedBox(width: AppTokens.spaceMd),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: theme.textTheme.bodyLarge),
+    final isDark = theme.brightness == Brightness.dark;
+    final borderColor = isDark
+        ? AppTokens.borderSubtleDark
+        : AppTokens.borderSubtleLight;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor, width: 1),
+        boxShadow: isDark
+            ? AppTokens.cardShadowDarkList
+            : AppTokens.cardShadowLight,
+      ),
+      padding: const EdgeInsets.all(AppTokens.spaceMd),
+      child: Row(
+        children: [
+          ExcludeSemantics(child: icon),
+          const SizedBox(width: AppTokens.spaceMd),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: theme.textTheme.bodyLarge),
+                const SizedBox(height: AppTokens.spaceXxs),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: state.status == SyncStateStatus.error
+                        ? colorScheme.error
+                        : colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                if (_lastErrorRetryable &&
+                    state.status == SyncStateStatus.error) ...[
                   const SizedBox(height: AppTokens.spaceXxs),
                   Text(
-                    subtitle,
+                    l10n.syncRetryable,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: state.status == SyncStateStatus.error
-                          ? colorScheme.error
-                          : colorScheme.onSurfaceVariant,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  if (_lastErrorRetryable &&
-                      state.status == SyncStateStatus.error) ...[
-                    const SizedBox(height: AppTokens.spaceXxs),
-                    Text(
-                      l10n.syncRetryable,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
                 ],
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// 按钮内小号 spinner（禁用态下仍保持动画）。
+/// 按钮内小号 spinner。
 class _ButtonSpinner extends StatelessWidget {
   const _ButtonSpinner();
 
@@ -623,16 +609,11 @@ class _ButtonSpinner extends StatelessWidget {
   }
 }
 
-/// 空文本 → null（region/prefix 等可选字段语义：自动探测 / 工厂默认）。
 String? _emptyToNull(String value) {
   final trimmed = value.trim();
   return trimmed.isEmpty ? null : trimmed;
 }
 
-/// 同步错误码 → ARB 文案映射（i18n 合规，AGENTS.md §3-8）。
-///
-/// UI 只按结构化错误码取文案，**禁止**直接展示引擎/异常的中文 message。
-/// `errorCode == null`（旧状态/未知路径）→ 兜底通用「同步失败」。
 String _syncErrorText(AppLocalizations l10n, SyncErrorCode? errorCode) {
   return switch (errorCode) {
     SyncErrorCode.skippedRunning => l10n.syncErrSkippedRunning,
@@ -648,7 +629,7 @@ String _syncErrorText(AppLocalizations l10n, SyncErrorCode? errorCode) {
   };
 }
 
-/// 设置分组卡片（与 settings_page.dart 同款样式）。
+/// 设置分组卡片
 class _SettingsCard extends StatelessWidget {
   const _SettingsCard({required this.children});
 
@@ -656,11 +637,23 @@ class _SettingsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTokens.spaceMd),
-        child: Column(children: children),
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final borderColor = isDark
+        ? AppTokens.borderSubtleDark
+        : AppTokens.borderSubtleLight;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor, width: 1),
+        boxShadow: isDark
+            ? AppTokens.cardShadowDarkList
+            : AppTokens.cardShadowLight,
       ),
+      padding: const EdgeInsets.all(AppTokens.spaceMd),
+      child: Column(children: children),
     );
   }
 }

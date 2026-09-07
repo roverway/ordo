@@ -22,18 +22,17 @@ class SwipeActionSpec {
   final VoidCallback onTap;
 }
 
-/// 任务行滑动操作包装（仅移动端生效，50-ui-ux.md §5.8）。
+/// 任务行滑动操作包装组件。
 ///
-/// - **左滑**（手指左移）：内容跟随左移，右侧露出 [startActions] 快捷按钮；
-///   松手过半吸附展开，点击按钮后收起并触发回调。
-/// - **右滑**（手指右移）：左侧露出 [endSwipeColor] 完成区，位移超过
+/// - **左滑**（手指/光标左移）：内容跟随左移，右侧露出 [startActions] 快捷按钮；
+///   按钮随滑动距离平滑渐显、缩放并微平移；松手过半吸附展开，点击按钮后收起并触发回调。
+/// - **右滑**（手指/光标右移）：左侧露出 [endSwipeColor] 完成区，位移超过
 ///   [AppTokens.swipeCompleteThreshold] 时进入「已蓄力」态（触觉反馈 + 强化
 ///   视觉），松手即触发 [onEndSwipeTriggered] 并回弹归零（Mail 式直接触发，
 ///   不是露出按钮）。再次右滑可反向切换回未完成。
 ///
 /// 桌面平台（windows/linux/macOS）原样返回 [child]，不注册任何手势层——
-/// 任务树行的右键菜单等桌面交互不受影响。水平拖拽在手势竞技场中与
-/// ListView 垂直滚动、InkWell 点击、LongPressDraggable 长按拖拽自然解耦。
+/// 任务树行的右键菜单等桌面交互不受影响。
 class SwipeActions extends StatefulWidget {
   const SwipeActions({
     super.key,
@@ -181,7 +180,7 @@ class _SwipeActionsState extends State<SwipeActions>
     return ClipRect(
       child: Stack(
         children: [
-          // 右滑完成区（内容右移后左侧露出的绿色反馈条）。
+          // 右滑完成区（内容右移后左侧露出的绿色反馈条，图标与背景渐进显现）
           if (_dragOffset > 0)
             Positioned(
               left: 0,
@@ -196,12 +195,18 @@ class _SwipeActionsState extends State<SwipeActions>
                             (1 - AppTokens.swipeCompleteMinAlpha) * endProgress,
                 ),
                 alignment: Alignment.center,
-                child: Icon(
-                  widget.endSwipeIcon,
-                  size: 20 + 6 * endProgress,
-                  color: _endArmed
-                      ? colorScheme.onPrimary
-                      : widget.endSwipeColor,
+                child: Opacity(
+                  opacity: (endProgress * 1.5).clamp(0.0, 1.0),
+                  child: Transform.scale(
+                    scale: 0.7 + 0.3 * endProgress,
+                    child: Icon(
+                      widget.endSwipeIcon,
+                      size: 20 + 4 * endProgress,
+                      color: _endArmed
+                          ? colorScheme.onPrimary
+                          : widget.endSwipeColor,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -218,42 +223,49 @@ class _SwipeActionsState extends State<SwipeActions>
             ),
           ),
 
-          // 左滑露出的快捷按钮层（仅左滑时置于顶层，可直接点击），
-          // 随滑动进度淡入，避免小位移时生硬地叠在行内容上。
-          if (_dragOffset < 0 && hasStartActions)
-            Positioned(
-              right: 0,
-              top: 0,
-              bottom: 0,
-              width: _maxReveal,
-              child: Opacity(
-                opacity: (-_dragOffset / _maxReveal).clamp(0.0, 1.0),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppTokens.spaceXs,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      for (var i = widget.startActions.length - 1; i >= 0; i--)
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            left: AppTokens.spaceXxs,
-                          ),
-                          child: _SwipeActionButton(
-                            spec: widget.startActions[i],
-                            onTap: () {
-                              _collapse();
-                              widget.startActions[i].onTap();
-                            },
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+          // 左滑露出的快捷按钮层（随滑动进度渐显、平移与缩放）
+          if (_dragOffset < 0 && hasStartActions) _buildRevealedActions(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRevealedActions() {
+    final rawProgress = (-_dragOffset / _maxReveal).clamp(0.0, 1.0);
+    final eased = Curves.easeOutCubic.transform(rawProgress);
+
+    return Positioned(
+      right: 0,
+      top: 0,
+      bottom: 0,
+      width: _maxReveal,
+      child: Opacity(
+        opacity: eased,
+        child: Transform.translate(
+          offset: Offset((1.0 - eased) * 16, 0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppTokens.spaceXs),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                for (var i = widget.startActions.length - 1; i >= 0; i--)
+                  Transform.scale(
+                    scale: 0.75 + 0.25 * eased,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: AppTokens.spaceXxs),
+                      child: _SwipeActionButton(
+                        spec: widget.startActions[i],
+                        onTap: () {
+                          _collapse();
+                          widget.startActions[i].onTap();
+                        },
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

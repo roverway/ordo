@@ -90,7 +90,6 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final isWide = AppBreakpoints.isWide(context);
-    final narrow = AppBreakpoints.isNarrow(context);
 
     final viewAsync = ref.watch(customViewDetailProvider(widget.viewId));
 
@@ -108,7 +107,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
 
         final header = PageHeroHeader(
           title: view.name,
-          onTitleTap: narrow ? () => showScopeSwitcherSheet(context) : null,
+          onTitleTap: () => showScopeSwitcherSheet(context),
           trailing: _buildTrailingActions(context, l10n, view),
         );
 

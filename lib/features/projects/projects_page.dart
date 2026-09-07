@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/db/database.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
-import '../../core/utils/app_breakpoints.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/hero_progress_ring.dart';
@@ -28,7 +27,6 @@ class ProjectsPage extends ConsumerWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
-    final narrow = AppBreakpoints.isNarrow(context);
 
     final groupingAsync = ref.watch(projectsByFolderProvider);
     final projectsAsync = ref.watch(projectsStreamProvider);
@@ -74,9 +72,7 @@ class ProjectsPage extends ConsumerWidget {
                 SliverToBoxAdapter(
                   child: PageHeroHeader(
                     title: l10n.overview,
-                    onTitleTap: narrow
-                        ? () => showScopeSwitcherSheet(context)
-                        : null,
+                    onTitleTap: () => showScopeSwitcherSheet(context),
                     subtitle: l10n.projectsSummarySubtitle(
                       totalProjectsCount,
                       totalPendingTasks,

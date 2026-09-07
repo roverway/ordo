@@ -229,9 +229,7 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
         // 固定顶部 Hero 头部
         PageHeroHeader(
           title: dateStr,
-          onTitleTap: widget.isNarrow
-              ? () => showScopeSwitcherSheet(context)
-              : null,
+          onTitleTap: () => showScopeSwitcherSheet(context),
           subtitleWidget: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -284,7 +282,6 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
               ),
             ],
           ),
-
           trailing: HeroProgressRing(
             completed: completedCount,
             total: totalCount,
@@ -624,9 +621,7 @@ class _ProjectOrInboxBodyState extends ConsumerState<_ProjectOrInboxBody> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              onTitleTap: widget.isNarrow
-                  ? () => showScopeSwitcherSheet(context)
-                  : null,
+              onTitleTap: () => showScopeSwitcherSheet(context),
               trailing: HeroProgressRing(
                 completed: doneCount,
                 total: totalCount,

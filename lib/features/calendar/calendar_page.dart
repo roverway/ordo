@@ -12,11 +12,11 @@ import '../../core/utils/derived.dart';
 import '../../core/utils/motion.dart';
 import '../../core/utils/tree.dart';
 import '../../core/utils/view_rules.dart' as view_rules;
-import '../../shared/widgets/page_hero_header.dart';
-import '../../shared/widgets/scope_switcher_sheet.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/loading_view.dart';
+import '../../shared/widgets/page_hero_header.dart';
+import '../../shared/widgets/scope_switcher_sheet.dart';
 import '../../shared/widgets/simple_task_tile.dart';
 import '../projects/project_providers.dart';
 import '../tasks/task_edit_page.dart';
@@ -51,9 +51,7 @@ class CalendarPage extends ConsumerWidget {
           children: [
             PageHeroHeader(
               title: l10n.navCalendar,
-              onTitleTap: isNarrow
-                  ? () => showScopeSwitcherSheet(context)
-                  : null,
+              onTitleTap: () => showScopeSwitcherSheet(context),
               trailing: IconButton(
                 tooltip: l10n.goToToday,
                 icon: const Icon(Icons.today_outlined, size: 22),
@@ -98,7 +96,7 @@ class CalendarPage extends ConsumerWidget {
     );
   }
 
-  // ── 窄屏布局（上下联动）───────────────────────────────────────────────
+  // ── 窄屏布局（上下联动）────────────────────────────────────────────────
 
   Widget _buildNarrowLayout(
     BuildContext context,
@@ -114,7 +112,7 @@ class CalendarPage extends ConsumerWidget {
     );
   }
 
-  // ── 宽屏布局（左右分栏）───────────────────────────────────────────────
+  // ── 宽屏布局（左右分栏）────────────────────────────────────────────────
 
   Widget _buildWideLayout(
     BuildContext context,
@@ -376,7 +374,7 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
           // 星期表头（一至日）
           _buildWeekdayRow(context),
           const SizedBox(height: AppTokens.spaceXs),
-          // 日期格网：上下（月↔周）的高度过渡由外层 AnimatedSize 承担
+          // 日期网格：上下（月↔周）的高度过渡由外层 AnimatedSize 承担
           // （周视图即同结构矩阵的 1 行，与任务树/侧边栏同一范式）；左右
           // 翻页由内层 AnimatedSwitcher 做方向性推入 + 淡入淡出。滑动位移
           // 为宽度分数（0.18），分辨率无关；reduced motion 经 motionDuration
@@ -390,7 +388,7 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
               duration: duration,
               switchInCurve: curve,
               switchOutCurve: curve.flipped,
-              // Stack 尺寸只取**新网格**：退场旧网格以 Positioned 叠放（不参与
+              // Stack 尺寸只取**新网格**：退场旧网格以 Positioned 叠加（不参与
               // Stack 尺寸测定）。默认 layoutBuilder 的 Stack 尺寸取最大子项，
               // 月视图（6 行）退场期间高度迟迟不塌，AnimatedSize 收起被拖到
               // 退场结束才开始——这正是上滑后"等一段时间才显示周日历"的迟滞
@@ -532,7 +530,7 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
     );
   }
 
-  // ── 星期表头（全面国际化）──────────────────────────────────────────────
+  // ── 星期表头（全面国际化）──────────────────────────────────────────
 
   Widget _buildWeekdayRow(BuildContext context) {
     final theme = Theme.of(context);
@@ -565,7 +563,7 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
     );
   }
 
-  // ── 日期网格 ─────────────────────────────────────────────────────────
+  // ── 日期网格 ────────────────────────────────────────────────────────
 
   Widget _buildDaysGrid(
     BuildContext context,
@@ -620,7 +618,7 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
   }
 }
 
-// ── 单个精致日期方格组件 ─────────────────────────────────────────────────
+// ── 单个精致日期方格组件 ──────────────────────────────────────────────
 
 class _DayCell extends StatelessWidget {
   const _DayCell({
@@ -777,7 +775,7 @@ class _DayCell extends StatelessWidget {
   }
 }
 
-// ── 当日/周/月议程与任务列表（下半部）───────────────────────────────────────
+// ── 当日/周/月议程与任务列表（下半部）─────────────────────────────────
 
 /// 日历任务议程列表组件。
 ///
@@ -1121,12 +1119,12 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
   }
 }
 
-// ── 任务列表项（复用 SimpleTaskTile）──────────────────────────────────
+// ── 任务列表项（复用 SimpleTaskTile）─────────────────────────────────
 
 /// 日历议程任务列表项组件（复用 [SimpleTaskTile]）。
 ///
 /// 独立抽离为 [ConsumerWidget]，将 [taskTagsProvider] 监听边界隔离在单个 Tile 内，
-/// 避免标签变动向上传染导致 [CalendarPage] 与 42 个日期格网全局级联 Rebuild。
+/// 避免标签变动向上传染导致 [CalendarPage] 与 42 个日期网格全局级联 Rebuild。
 class CalendarTaskTile extends ConsumerWidget {
   const CalendarTaskTile({
     super.key,

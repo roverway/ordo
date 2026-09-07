@@ -12,6 +12,7 @@ import 'package:todo/features/settings/widgets/settings_side_sheet.dart';
 import 'package:todo/features/sync_setup/sync_setup_page.dart';
 import 'package:todo/features/sync_setup/sync_setup_providers.dart';
 import 'package:todo/features/tags/tag_providers.dart';
+import 'package:todo/shared/widgets/modern_segmented_control.dart';
 
 import '../../helpers/db_test_setup.dart';
 
@@ -96,7 +97,7 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('设置页选项卡：SegmentedButton 选中态应用 primary 高亮样式', (tester) async {
+  testWidgets('设置页选项卡：ModernSegmentedControl 支持主题模式与语言选择', (tester) async {
     final db = AppDatabase.forTesting();
     addTearDown(db.close);
     final repo = TodoRepository(database: db);
@@ -122,11 +123,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 查找主题模式与语言的 SegmentedButton
-    final segmentedButtons = find.byType(SegmentedButton<ThemeMode>);
-    expect(segmentedButtons, findsOneWidget);
+    // 查找主题模式与语言的 ModernSegmentedControl
+    final themeSegmented = find.byType(ModernSegmentedControl<ThemeMode>);
+    expect(themeSegmented, findsOneWidget);
 
-    final langSegmented = find.byType(SegmentedButton<Locale>);
+    final langSegmented = find.byType(ModernSegmentedControl<Locale>);
     expect(langSegmented, findsOneWidget);
   });
 
@@ -160,7 +161,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final tagEntryFinder = find.widgetWithText(ListTile, '标签');
+    final tagEntryFinder = find.byIcon(Icons.local_offer_outlined);
     expect(tagEntryFinder, findsOneWidget);
 
     await tester.tap(tagEntryFinder);

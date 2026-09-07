@@ -1026,6 +1026,9 @@ class _SlidableActionTileState extends State<_SlidableActionTile>
       );
     }
 
+    final rawProgress = (-_dragExtent / _actionWidth).clamp(0.0, 1.0);
+    final eased = Curves.easeOutCubic.transform(rawProgress);
+
     return ClipRect(
       child: Stack(
         children: [
@@ -1040,62 +1043,81 @@ class _SlidableActionTileState extends State<_SlidableActionTile>
             ),
           ),
 
-          // 右侧露出的操作按钮（仅在左滑时置于顶层，确保可直接点击交互）
+          // 右侧露出的操作按钮（随滑动距离平滑渐显、位移与微缩放）
           if (_dragExtent < 0)
             Positioned(
               right: 0,
               top: 0,
               bottom: 0,
               width: _actionWidth,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    InkWell(
-                      onTap: () {
-                        _close();
-                        widget.onEdit();
-                      },
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        width: 42,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: colorScheme.primary.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        alignment: Alignment.center,
-                        child: Icon(
-                          Icons.edit_outlined,
-                          size: 17,
-                          color: colorScheme.primary,
-                        ),
-                      ),
+              child: Opacity(
+                opacity: eased,
+                child: Transform.translate(
+                  offset: Offset((1.0 - eased) * 18, 0),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
                     ),
-                    const SizedBox(width: 6),
-                    InkWell(
-                      onTap: () {
-                        _close();
-                        widget.onDelete();
-                      },
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        width: 42,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: colorScheme.error.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Transform.scale(
+                          scale: 0.75 + 0.25 * eased,
+                          child: InkWell(
+                            onTap: () {
+                              _close();
+                              widget.onEdit();
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              width: 42,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color: colorScheme.primary.withValues(
+                                  alpha: 0.12,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              alignment: Alignment.center,
+                              child: Icon(
+                                Icons.edit_outlined,
+                                size: 17,
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                          ),
                         ),
-                        alignment: Alignment.center,
-                        child: Icon(
-                          Icons.delete_outline,
-                          size: 17,
-                          color: colorScheme.error,
+                        const SizedBox(width: 6),
+                        Transform.scale(
+                          scale: 0.75 + 0.25 * eased,
+                          child: InkWell(
+                            onTap: () {
+                              _close();
+                              widget.onDelete();
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              width: 42,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color: colorScheme.error.withValues(
+                                  alpha: 0.12,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              alignment: Alignment.center,
+                              child: Icon(
+                                Icons.delete_outline,
+                                size: 17,
+                                color: colorScheme.error,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
