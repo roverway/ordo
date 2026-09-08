@@ -14,11 +14,6 @@ import 'settings_providers.dart';
 
 const String appVersion = '1.0.0';
 
-/// 预设主题色列表（对齐导航弹层新建清单/文件夹的 8 款精选主题色体系）
-final List<Color> _presetColors = AppTokens.themePalettes
-    .map((p) => p.color)
-    .toList();
-
 /// 现代极简设置页面（完全复刻 `待办应用改版设计/screens/settings.html` 设计规范）。
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
