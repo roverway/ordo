@@ -165,6 +165,7 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
   TodoRepository get _repo => ref.read(todoRepositoryProvider);
 
   // 用于追踪原始值（判断是否有改动）。
+  String? _originalProjectId;
   String _originalTitle = '';
   String _originalDescription = '';
   String _originalNotes = '';
@@ -227,6 +228,7 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
   /// 进入新建模式：重置表单状态，避免复用上一个已编辑任务的状态
   /// （审查发现 Bug 2：保存成功后不 reset 导致新建误改旧任务）。
   void resetForNew(String projectId, String? parentId) {
+    _originalProjectId = null;
     _originalTitle = '';
     _originalDescription = '';
     _originalNotes = '';
@@ -239,6 +241,7 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
   }
 
   void _captureOriginal() {
+    _originalProjectId = state.projectId;
     _originalTitle = state.title;
     _originalDescription = state.description;
     _originalNotes = state.notes;
@@ -259,7 +262,8 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
           state.priority != TaskPriority.none ||
           state.selectedTagIds.isNotEmpty;
     }
-    return state.title != _originalTitle ||
+    return state.projectId != _originalProjectId ||
+        state.title != _originalTitle ||
         state.description != _originalDescription ||
         state.notes != _originalNotes ||
         state.startAt != _originalStartAt ||
@@ -290,7 +294,15 @@ class TaskFormNotifier extends Notifier<TaskFormState> {
     state = state.copyWith(statusEnum: TaskFormStatus.saving);
     try {
       if (state.isEditing && state.id != null) {
-        // 更新任务。
+        // 1. 跨项目移动（如果项目发生变更）
+        if (state.projectId != null &&
+            _originalProjectId != null &&
+            state.projectId != _originalProjectId) {
+          await _repo.moveTaskToProject(state.id!, state.projectId!);
+          _originalProjectId = state.projectId;
+        }
+
+        // 2. 更新任务。
         // 有子任务的任务状态由子任务派生（AGENTS.md §3-2），此时不传 status，
         // 否则 Repository 会抛异常导致任何编辑都失败（审查发现 Bug 1）。
         final children = await _repo.tasks.getDirectChildren(
