@@ -703,5 +703,25 @@
   "priorityKanbanName": "Priority kanban",
   "@priorityKanbanName": {
     "description": "priorityKanbanName"
+  },
+  "settingsSectionCalendar": "Calendar",
+  "@settingsSectionCalendar": {
+    "description": "Calendar section title in settings"
+  },
+  "showLunar": "Chinese Lunar Calendar",
+  "@showLunar": {
+    "description": "Toggle Chinese Lunar calendar in settings"
+  },
+  "showLunarSubtitle": "Show lunar dates, 24 solar terms, and traditional festivals",
+  "@showLunarSubtitle": {
+    "description": "Subtitle for lunar calendar toggle"
+  },
+  "showHolidays": "Public Holidays & Workdays",
+  "@showHolidays": {
+    "description": "Toggle public holidays and workdays in settings"
+  },
+  "showHolidaysSubtitle": "Show official holidays and weekend alternate workdays (Rest / Work)",
+  "@showHolidaysSubtitle": {
+    "description": "Subtitle for holidays toggle"
   }
 }

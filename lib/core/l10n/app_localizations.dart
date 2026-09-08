@@ -2407,6 +2407,36 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'优先级看板'**
   String get priorityKanbanName;
+
+  /// 设置页日历分组标题
+  ///
+  /// In zh, this message translates to:
+  /// **'日历'**
+  String get settingsSectionCalendar;
+
+  /// 日历设置：显示农历开关标题
+  ///
+  /// In zh, this message translates to:
+  /// **'显示中国农历'**
+  String get showLunar;
+
+  /// 日历设置：显示农历副标题
+  ///
+  /// In zh, this message translates to:
+  /// **'在日历格子中显示农历、二十四节气与传统节日'**
+  String get showLunarSubtitle;
+
+  /// 日历设置：显示法定节假日及调休开关标题
+  ///
+  /// In zh, this message translates to:
+  /// **'中国法定节假日与调休'**
+  String get showHolidays;
+
+  /// 日历设置：显示法定节假日及调休副标题
+  ///
+  /// In zh, this message translates to:
+  /// **'标注放假安排与周末调休补班状态（休/班）'**
+  String get showHolidaysSubtitle;
 }
 
 class _AppLocalizationsDelegate

@@ -115,6 +115,8 @@ class SettingsBody extends ConsumerWidget {
     final syncState = ref.watch(syncStateProvider);
     final syncConfigAsync = ref.watch(syncConfigProvider);
     final tagsAsync = ref.watch(tagsStreamProvider);
+    final showLunar = ref.watch(calendarShowLunarProvider);
+    final showHolidays = ref.watch(calendarShowHolidaysProvider);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -353,7 +355,91 @@ class SettingsBody extends ConsumerWidget {
 
         const SizedBox(height: 20),
 
-        // ── 3. 同步 ──
+        // ── 3. 日历 ──
+        _SectionHeader(title: l10n.settingsSectionCalendar),
+        _SettingsCard(
+          children: [
+            // 中国农历开关
+            Row(
+              children: [
+                _IconBadge(
+                  icon: Icons.calendar_month_outlined,
+                  color: colorScheme.primary,
+                ),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.showLunar,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        l10n.showLunarSubtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch.adaptive(
+                  value: showLunar,
+                  onChanged: (val) =>
+                      ref.read(calendarShowLunarProvider.notifier).setShowLunar(val),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            // 中国法定节假日及调休开关
+            Row(
+              children: [
+                _IconBadge(
+                  icon: Icons.event_available_outlined,
+                  color: colorScheme.secondary,
+                ),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.showHolidays,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        l10n.showHolidaysSubtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch.adaptive(
+                  value: showHolidays,
+                  onChanged: (val) =>
+                      ref.read(calendarShowHolidaysProvider.notifier).setShowHolidays(val),
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 20),
+
+        // ── 4. 同步 ──
         _SectionHeader(title: l10n.sync),
         _SettingsCard(
           padding: EdgeInsets.zero,
@@ -464,7 +550,7 @@ class SettingsBody extends ConsumerWidget {
 
         const SizedBox(height: 20),
 
-        // ── 4. 关于 ──
+        // ── 5. 关于 ──
         _SectionHeader(title: l10n.settingsSectionAbout),
         _SettingsCard(
           children: [

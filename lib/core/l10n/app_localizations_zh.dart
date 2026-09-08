@@ -1248,4 +1248,19 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get priorityKanbanName => '优先级看板';
+
+  @override
+  String get settingsSectionCalendar => '日历';
+
+  @override
+  String get showLunar => '显示中国农历';
+
+  @override
+  String get showLunarSubtitle => '在日历格子中显示农历、二十四节气与传统节日';
+
+  @override
+  String get showHolidays => '中国法定节假日与调休';
+
+  @override
+  String get showHolidaysSubtitle => '标注放假安排与周末调休补班状态（休/班）';
 }

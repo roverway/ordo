@@ -154,3 +154,71 @@ class ThemeSeedColorNotifier extends Notifier<Color> {
     }
   }
 }
+
+/// 显示农历持久化 key。
+const String calendarShowLunarPrefKey = 'calendar_show_lunar';
+
+/// 显示节假日与调休持久化 key。
+const String calendarShowHolidaysPrefKey = 'calendar_show_holidays';
+
+/// 是否在日历中显示中国农历 Notifier。
+final calendarShowLunarProvider =
+    NotifierProvider<CalendarShowLunarNotifier, bool>(
+      CalendarShowLunarNotifier.new,
+    );
+
+class CalendarShowLunarNotifier extends Notifier<bool> {
+  /// 默认显示农历。
+  static const bool defaultShowLunar = true;
+
+  @override
+  bool build() {
+    final value = ref
+        .watch(appSettingsCacheProvider)
+        .get(calendarShowLunarPrefKey);
+    if (value == null) return defaultShowLunar;
+    return value == 'true';
+  }
+
+  /// 切换是否显示农历并持久化。
+  Future<void> setShowLunar(bool enable) async {
+    final cache = ref.read(appSettingsCacheProvider);
+    state = enable;
+    try {
+      await cache.set(calendarShowLunarPrefKey, enable.toString());
+    } catch (e) {
+      debugPrint('setShowLunar 持久化失败：${e.runtimeType}');
+    }
+  }
+}
+
+/// 是否在日历中显示法定节假日及调休 Notifier。
+final calendarShowHolidaysProvider =
+    NotifierProvider<CalendarShowHolidaysNotifier, bool>(
+      CalendarShowHolidaysNotifier.new,
+    );
+
+class CalendarShowHolidaysNotifier extends Notifier<bool> {
+  /// 默认显示法定节假日及调休。
+  static const bool defaultShowHolidays = true;
+
+  @override
+  bool build() {
+    final value = ref
+        .watch(appSettingsCacheProvider)
+        .get(calendarShowHolidaysPrefKey);
+    if (value == null) return defaultShowHolidays;
+    return value == 'true';
+  }
+
+  /// 切换是否显示法定节假日及调休并持久化。
+  Future<void> setShowHolidays(bool enable) async {
+    final cache = ref.read(appSettingsCacheProvider);
+    state = enable;
+    try {
+      await cache.set(calendarShowHolidaysPrefKey, enable.toString());
+    } catch (e) {
+      debugPrint('setShowHolidays 持久化失败：${e.runtimeType}');
+    }
+  }
+}

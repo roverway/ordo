@@ -703,5 +703,25 @@
   "priorityKanbanName": "优先级看板",
   "@priorityKanbanName": {
     "description": "priorityKanbanName"
+  },
+  "settingsSectionCalendar": "日历",
+  "@settingsSectionCalendar": {
+    "description": "设置页日历分组标题"
+  },
+  "showLunar": "显示中国农历",
+  "@showLunar": {
+    "description": "日历设置：显示农历开关标题"
+  },
+  "showLunarSubtitle": "在日历格子中显示农历、二十四节气与传统节日",
+  "@showLunarSubtitle": {
+    "description": "日历设置：显示农历副标题"
+  },
+  "showHolidays": "中国法定节假日与调休",
+  "@showHolidays": {
+    "description": "日历设置：显示法定节假日及调休开关标题"
+  },
+  "showHolidaysSubtitle": "标注放假安排与周末调休补班状态（休/班）",
+  "@showHolidaysSubtitle": {
+    "description": "日历设置：显示法定节假日及调休副标题"
   }
 }

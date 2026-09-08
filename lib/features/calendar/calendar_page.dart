@@ -23,6 +23,8 @@ import '../tasks/task_edit_page.dart';
 import '../tasks/task_providers.dart';
 import '../tasks/widgets/task_create_sheet.dart';
 import '../tasks/widgets/task_swipe_wrapper.dart';
+import '../../core/utils/calendar_day_decorator.dart';
+import '../settings/settings_providers.dart';
 import 'calendar_providers.dart';
 
 /// 现代高质感沉浸式日历视图（FR-VIEW-02）。
@@ -576,6 +578,8 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
     final selected = state.selectedDate;
     final now = DateTime.now();
     final todayKey = DateTime(now.year, now.month, now.day);
+    final showLunar = ref.watch(calendarShowLunarProvider);
+    final showHolidays = ref.watch(calendarShowHolidaysProvider);
 
     final weeks = (days.length / 7).ceil();
 
@@ -600,6 +604,8 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
                         selectedDate: selected,
                         todayDate: todayKey,
                         isMonthMode: state.mode == CalendarMode.month,
+                        showLunar: showLunar,
+                        showHolidays: showHolidays,
                         tasks: tasksForDay(buckets, days[w * 7 + c]),
                         projectsMap: projectsMap,
                         onTap: () {
@@ -629,6 +635,8 @@ class _DayCell extends StatelessWidget {
     required this.tasks,
     required this.projectsMap,
     required this.onTap,
+    this.showLunar = true,
+    this.showHolidays = true,
   });
 
   final DateTime day;
@@ -638,6 +646,8 @@ class _DayCell extends StatelessWidget {
   final List<Task> tasks;
   final Map<String, Project> projectsMap;
   final VoidCallback onTap;
+  final bool showLunar;
+  final bool showHolidays;
 
   @override
   Widget build(BuildContext context) {
@@ -690,6 +700,28 @@ class _DayCell extends StatelessWidget {
       numColor = colorScheme.onSurface;
     }
 
+    final isDark = theme.brightness == Brightness.dark;
+    final decoration = CalendarDayDecorator.decorate(
+      date: day,
+      showLunar: showLunar,
+      showHolidays: showHolidays,
+    );
+
+    final hasSubText = decoration.subText != null;
+
+    Color subTextColor;
+    if (isSelected && isToday) {
+      subTextColor = colorScheme.onPrimary.withValues(alpha: 0.85);
+    } else if (isSelected) {
+      subTextColor = colorScheme.onPrimaryContainer.withValues(alpha: 0.85);
+    } else if (!inMonth) {
+      subTextColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.25);
+    } else if (decoration.isSpecialSubText) {
+      subTextColor = colorScheme.primary;
+    } else {
+      subTextColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.7);
+    }
+
     return AspectRatio(
       aspectRatio: 1.0,
       child: Material(
@@ -697,32 +729,82 @@ class _DayCell extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(AppTokens.radiusChip),
           onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // 日期圆圈 / 数字
-                Container(
-                  width: 28,
-                  height: 28,
-                  alignment: Alignment.center,
-                  decoration: numDeco,
-                  child: Text(
-                    '${day.day}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: AppTokens.textFootnoteSize,
-                      fontWeight: numWeight,
-                      color: numColor,
-                      fontFeatures: AppTokens.fontTabular,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: hasSubText ? 22 : 28,
+                        height: hasSubText ? 22 : 28,
+                        alignment: Alignment.center,
+                        decoration: numDeco,
+                        child: Text(
+                          '${day.day}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: hasSubText ? 12.0 : AppTokens.textFootnoteSize,
+                            fontWeight: numWeight,
+                            color: numColor,
+                            fontFeatures: AppTokens.fontTabular,
+                          ),
+                        ),
+                      ),
+                      if (hasSubText) ...[
+                        const SizedBox(height: 1),
+                        Text(
+                          decoration.subText!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 9.0,
+                            fontWeight: decoration.isSpecialSubText
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                            color: subTextColor,
+                            height: 1.1,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 2),
+                      _buildEventDots(tasks),
+                    ],
+                  ),
+                ),
+              ),
+              if (decoration.badgeText != null)
+                Positioned(
+                  top: 1,
+                  right: 2,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 2.5, vertical: 0.5),
+                    decoration: BoxDecoration(
+                      color: decoration.isRestBadge
+                          ? (isDark
+                              ? Colors.redAccent.withValues(alpha: 0.25)
+                              : Colors.red.withValues(alpha: 0.12))
+                          : (isDark
+                              ? colorScheme.surfaceContainerHighest
+                              : colorScheme.surfaceContainerHigh),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                    child: Text(
+                      decoration.badgeText!,
+                      style: TextStyle(
+                        fontSize: 8.5,
+                        fontWeight: FontWeight.w700,
+                        color: decoration.isRestBadge
+                            ? (isDark ? Colors.redAccent.shade100 : Colors.red.shade700)
+                            : colorScheme.onSurfaceVariant,
+                        height: 1.1,
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 3),
-                // 任务色彩微标小点（Event Dots）
-                _buildEventDots(tasks),
-              ],
-            ),
+            ],
           ),
         ),
       ),
@@ -846,6 +928,13 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
     final tasks = tasksForAgendaScope(allTasks: allTasks, state: widget.state);
     final childrenIndex = indexChildrenByParent(allTasks);
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final showLunar = ref.watch(calendarShowLunarProvider);
+    final showHolidays = ref.watch(calendarShowHolidaysProvider);
+    final dayDecoration = CalendarDayDecorator.decorate(
+      date: selected,
+      showLunar: showLunar,
+      showHolidays: showHolidays,
+    );
 
     final String dateHeader;
     final bool isHighlighted;
@@ -938,15 +1027,59 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      dateHeader,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: isHighlighted
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.onSurface,
-                      ),
+                    child: Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 6,
+                      runSpacing: 2,
+                      children: [
+                        Text(
+                          dateHeader,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: isHighlighted
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurface,
+                          ),
+                        ),
+                        if (widget.state.agendaScope == CalendarAgendaScope.day &&
+                            dayDecoration.agendaDescription != null)
+                          Text(
+                            dayDecoration.agendaDescription!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        if (widget.state.agendaScope == CalendarAgendaScope.day &&
+                            dayDecoration.badgeText != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: dayDecoration.isRestBadge
+                                  ? (isDark
+                                      ? Colors.redAccent.withValues(alpha: 0.25)
+                                      : Colors.red.withValues(alpha: 0.12))
+                                  : (isDark
+                                      ? theme.colorScheme.surfaceContainerHighest
+                                      : theme.colorScheme.surfaceContainerHigh),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: Text(
+                              dayDecoration.badgeText!,
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w700,
+                                color: dayDecoration.isRestBadge
+                                    ? (isDark ? Colors.redAccent.shade100 : Colors.red.shade700)
+                                    : theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   Container(

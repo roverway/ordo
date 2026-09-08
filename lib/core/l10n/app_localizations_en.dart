@@ -1271,4 +1271,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get priorityKanbanName => 'Priority kanban';
+
+  @override
+  String get settingsSectionCalendar => 'Calendar';
+
+  @override
+  String get showLunar => 'Chinese Lunar Calendar';
+
+  @override
+  String get showLunarSubtitle =>
+      'Show lunar dates, 24 solar terms, and traditional festivals';
+
+  @override
+  String get showHolidays => 'Public Holidays & Workdays';
+
+  @override
+  String get showHolidaysSubtitle =>
+      'Show official holidays and weekend alternate workdays (Rest / Work)';
 }
