@@ -86,7 +86,7 @@ class ModernSegmentedControl<T> extends StatelessWidget {
                 item.icon,
                 size: 15,
                 color: isSelected
-                    ? colorScheme.onSurface
+                    ? colorScheme.primary
                     : colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 6),
@@ -97,7 +97,7 @@ class ModernSegmentedControl<T> extends StatelessWidget {
                 fontSize: fontSize,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 color: isSelected
-                    ? colorScheme.onSurface
+                    ? colorScheme.primary
                     : colorScheme.onSurfaceVariant,
               ),
               maxLines: 1,
@@ -125,17 +125,11 @@ class ModernSegmentedControl<T> extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: containerBg,
-        borderRadius: BorderRadius.circular(11),
+        borderRadius: BorderRadius.circular(10),
       ),
-      child: Row(
-        mainAxisSize: isExpanded ? MainAxisSize.max : MainAxisSize.min,
-        children: [
-          for (int i = 0; i < widgetList.length; i++) ...[
-            if (i > 0) const SizedBox(width: 2),
-            widgetList[i],
-          ],
-        ],
-      ),
+      child: isExpanded
+          ? Row(mainAxisSize: MainAxisSize.max, children: widgetList)
+          : Row(mainAxisSize: MainAxisSize.min, children: widgetList),
     );
   }
 }

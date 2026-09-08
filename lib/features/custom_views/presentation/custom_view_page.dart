@@ -341,7 +341,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
                           ? TabAlignment.start
                           : TabAlignment.fill,
                       dividerColor: Colors.transparent,
-                      indicatorColor: theme.colorScheme.onSurface,
+                      indicatorColor: theme.colorScheme.primary,
                       indicatorWeight: 2.5,
                       indicatorSize: TabBarIndicatorSize.tab,
                       tabs: panels.map((p) => _PanelTabItem(panel: p)).toList(),

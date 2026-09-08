@@ -14,17 +14,10 @@ import 'settings_providers.dart';
 
 const String appVersion = '1.0.0';
 
-/// 预设主题色列表（对齐设计稿 8 色双环光晕色板）
-const List<Color> _presetColors = [
-  Color(0xFF4A6CF7), // 经典蓝
-  Color(0xFF7C3AED), // 优雅紫
-  Color(0xFFEC4899), // 活力粉
-  Color(0xFFEF4444), // 珊瑚红
-  Color(0xFFF97316), // 暖阳橙
-  Color(0xFF10B981), // 薄荷绿
-  Color(0xFF06B6D4), // 湖水青
-  Color(0xFF64748B), // 石板灰
-];
+/// 预设主题色列表（对齐导航弹层新建清单/文件夹的 8 款精选主题色体系）
+final List<Color> _presetColors = AppTokens.themePalettes
+    .map((p) => p.color)
+    .toList();
 
 /// 现代极简设置页面（完全复刻 `待办应用改版设计/screens/settings.html` 设计规范）。
 class SettingsPage extends ConsumerWidget {
@@ -46,7 +39,7 @@ class SettingsPage extends ConsumerWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 580),
           child: SettingsBody(
-            onOpenSync: () => context.push('/sync/setup'),
+            onOpenSync: () => context.push('/settings/sync'),
             onOpenTags: () => context.push('/tags'),
           ),
         ),
@@ -97,7 +90,7 @@ class SettingsDrawer extends ConsumerWidget {
             const Divider(height: 1),
             Expanded(
               child: SettingsBody(
-                onOpenSync: () => context.push('/sync/setup'),
+                onOpenSync: () => context.push('/settings/sync'),
                 onOpenTags: () => context.push('/tags'),
               ),
             ),
@@ -129,7 +122,6 @@ class SettingsBody extends ConsumerWidget {
     final tagsAsync = ref.watch(tagsStreamProvider);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isZh = locale.languageCode == 'zh';
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
@@ -145,26 +137,44 @@ class SettingsBody extends ConsumerWidget {
                   icon: themeMode == ThemeMode.dark
                       ? Icons.dark_mode_outlined
                       : Icons.wb_sunny_outlined,
-                  color: const Color(0xFFEAB308),
+                  color: colorScheme.primary,
                 ),
                 const SizedBox(width: 13),
                 Expanded(
-                  child: Text(
-                    l10n.themeMode,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.themeMode,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        switch (themeMode) {
+                          ThemeMode.system => l10n.themeModeSystem,
+                          ThemeMode.light => l10n.themeModeLight,
+                          ThemeMode.dark => l10n.themeModeDark,
+                        },
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            // 主题模式现代胶囊分段器
+
+            // 主题模式胶囊切换器 (跟随系统 / 浅色 / 深色)
             ModernSegmentedControl<ThemeMode>(
               selectedValue: themeMode,
-              onChanged: (mode) =>
-                  ref.read(themeModeProvider.notifier).setThemeMode(mode),
+              onChanged: (val) =>
+                  ref.read(themeModeProvider.notifier).setThemeMode(val),
               items: [
                 ModernSegmentItem(
                   value: ThemeMode.system,
@@ -174,7 +184,7 @@ class SettingsBody extends ConsumerWidget {
                 ModernSegmentItem(
                   value: ThemeMode.light,
                   label: l10n.themeModeLight,
-                  icon: Icons.wb_sunny_outlined,
+                  icon: Icons.light_mode_outlined,
                 ),
                 ModernSegmentItem(
                   value: ThemeMode.dark,
@@ -186,58 +196,86 @@ class SettingsBody extends ConsumerWidget {
 
             const SizedBox(height: 16),
             const Divider(height: 1),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
 
-            // 主题色标题行
+            // 主题色选择标题行
             Row(
               children: [
-                const _IconBadge(
+                _IconBadge(
                   icon: Icons.palette_outlined,
-                  color: Color(0xFFEC4899),
+                  color: colorScheme.primary,
                 ),
                 const SizedBox(width: 13),
                 Expanded(
-                  child: Text(
-                    l10n.themeColor,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.themeColor,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        l10n.seedColorSubtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            // 主题色调色板
+            const SizedBox(height: 14),
+
+            // 8 色双环光晕色板
             const _ThemeColorPicker(),
 
             const SizedBox(height: 16),
             const Divider(height: 1),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
 
-            // 语言标题行与切换器
+            // 语言选择行
             Row(
               children: [
-                const _IconBadge(
-                  icon: Icons.language_outlined,
-                  color: Color(0xFF3B82F6),
-                ),
+                _IconBadge(icon: Icons.language, color: colorScheme.primary),
                 const SizedBox(width: 13),
                 Expanded(
-                  child: Text(
-                    l10n.language,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.language,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        locale.languageCode == 'zh'
+                            ? l10n.languageZh
+                            : l10n.languageEn,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                // 语言分段胶囊
                 ModernSegmentedControl<Locale>(
                   isExpanded: false,
-                  selectedValue: locale,
-                  onChanged: (newLocale) =>
-                      ref.read(localeProvider.notifier).setLocale(newLocale),
+                  itemPadding: const EdgeInsets.symmetric(horizontal: 14),
+                  selectedValue: locale.languageCode == 'en'
+                      ? const Locale('en')
+                      : const Locale('zh'),
+                  onChanged: (val) =>
+                      ref.read(localeProvider.notifier).setLocale(val),
                   items: [
                     ModernSegmentItem(
                       value: const Locale('zh'),
@@ -256,7 +294,7 @@ class SettingsBody extends ConsumerWidget {
 
         const SizedBox(height: 20),
 
-        // ── 2. 任务与标签 ──
+        // ── 2. 数据与标签 ──
         _SectionHeader(title: l10n.taskTags),
         _SettingsCard(
           padding: EdgeInsets.zero,
@@ -267,13 +305,13 @@ class SettingsBody extends ConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 12,
+                  vertical: 14,
                 ),
                 child: Row(
                   children: [
-                    const _IconBadge(
+                    _IconBadge(
                       icon: Icons.local_offer_outlined,
-                      color: Color(0xFF8B5CF6),
+                      color: colorScheme.primary,
                     ),
                     const SizedBox(width: 13),
                     Expanded(
@@ -306,7 +344,7 @@ class SettingsBody extends ConsumerWidget {
                     ),
                     Icon(
                       Icons.chevron_right,
-                      size: 18,
+                      size: 20,
                       color: colorScheme.onSurfaceVariant.withValues(
                         alpha: 0.6,
                       ),
@@ -327,17 +365,19 @@ class SettingsBody extends ConsumerWidget {
           children: [
             InkWell(
               onTap: onOpenSync,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 12,
+                  vertical: 14,
                 ),
                 child: Row(
                   children: [
-                    const _IconBadge(
+                    _IconBadge(
                       icon: Icons.cloud_sync_outlined,
-                      color: Color(0xFF0D9488),
+                      color: colorScheme.primary,
                     ),
                     const SizedBox(width: 13),
                     Expanded(
@@ -354,7 +394,11 @@ class SettingsBody extends ConsumerWidget {
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              _buildSyncStatusBadge(l10n, syncState.status),
+                              _buildSyncStatusBadge(
+                                l10n,
+                                colorScheme,
+                                syncState.status,
+                              ),
                             ],
                           ),
                           const SizedBox(height: 2),
@@ -374,7 +418,7 @@ class SettingsBody extends ConsumerWidget {
                     ),
                     Icon(
                       Icons.chevron_right,
-                      size: 18,
+                      size: 20,
                       color: colorScheme.onSurfaceVariant.withValues(
                         alpha: 0.6,
                       ),
@@ -400,8 +444,8 @@ class SettingsBody extends ConsumerWidget {
                   Transform.scale(
                     scale: 0.88,
                     child: Switch(
-                      activeTrackColor: const Color(0xFF10B981),
-                      activeThumbColor: Colors.white,
+                      activeTrackColor: colorScheme.primary,
+                      activeThumbColor: colorScheme.onPrimary,
                       value:
                           syncConfigAsync.value?.autoOnStart == true ||
                           syncConfigAsync.value?.autoOnEdit == true,
@@ -485,66 +529,40 @@ class SettingsBody extends ConsumerWidget {
 
             // Slogan 引用框
             Container(
-              padding: const EdgeInsets.all(12),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTokens.spaceMd,
+                vertical: AppTokens.spaceSm,
+              ),
               decoration: BoxDecoration(
-                color: colorScheme.onSurface.withValues(alpha: 0.03),
-                borderRadius: BorderRadius.circular(10),
-                border: Border(
-                  left: BorderSide(color: colorScheme.primary, width: 3),
+                color: colorScheme.primary.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                border: Border.all(
+                  color: colorScheme.primary.withValues(alpha: 0.15),
+                  width: 0.8,
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '“',
-                    style: TextStyle(
-                      fontSize: 20,
-                      height: 0.8,
-                      fontWeight: FontWeight.w800,
-                      color: colorScheme.primary,
-                    ),
+              child: Center(
+                child: Text(
+                  '“${l10n.aboutSlogan}”',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                    fontStyle: FontStyle.italic,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    isZh
-                        ? '让行动自然流淌，在秩序中专注当下。'
-                        : 'Let action flow naturally, stay focused in order.',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontStyle: FontStyle.italic,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
+                  textAlign: TextAlign.center,
+                ),
               ),
             ),
-
-            const SizedBox(height: 16),
-
-            // 品牌内涵列表 (To, Do, Todo)
-            _AboutMeaningRow(
-              letter: 'T',
-              word: 'To',
-              meaning: isZh
-                  ? '目标与方向，始于清晰的意图'
-                  : 'Target & direction, starting with clear intent',
+            const SizedBox(height: AppTokens.spaceMd),
+            _BrandMeaningItem(
+              title: l10n.aboutBrandZhTitle,
+              description: l10n.aboutBrandZhDesc,
             ),
-            const SizedBox(height: 8),
-            _AboutMeaningRow(
-              letter: 'D',
-              word: 'Do',
-              meaning: isZh
-                  ? '行动与执行，专注于当下的推进'
-                  : 'Action & execution, focusing on present progress',
-            ),
-            const SizedBox(height: 8),
-            _AboutMeaningRow(
-              letter: '∞',
-              word: 'Todo',
-              meaning: isZh
-                  ? '秩序与循环，连接目标与完成的闭环'
-                  : 'Order & loop, closing the cycle of goals and completion',
+            const SizedBox(height: AppTokens.spaceXs),
+            _BrandMeaningItem(
+              title: l10n.aboutBrandEnTitle,
+              description: l10n.aboutBrandEnDesc,
             ),
           ],
         ),
@@ -552,7 +570,11 @@ class SettingsBody extends ConsumerWidget {
     );
   }
 
-  Widget _buildSyncStatusBadge(AppLocalizations l10n, SyncStateStatus status) {
+  Widget _buildSyncStatusBadge(
+    AppLocalizations l10n,
+    ColorScheme colorScheme,
+    SyncStateStatus status,
+  ) {
     Color bg;
     Color fg;
     String label;
@@ -560,8 +582,8 @@ class SettingsBody extends ConsumerWidget {
 
     switch (status) {
       case SyncStateStatus.syncing:
-        bg = const Color(0xFF3B82F6).withValues(alpha: 0.12);
-        fg = const Color(0xFF2563EB);
+        bg = colorScheme.primary.withValues(alpha: 0.12);
+        fg = colorScheme.primary;
         label = l10n.syncStatusSyncing;
         icon = Icons.sync;
       case SyncStateStatus.success:
@@ -575,8 +597,8 @@ class SettingsBody extends ConsumerWidget {
         label = l10n.syncStatusError;
         icon = Icons.error_outline;
       case SyncStateStatus.idle:
-        bg = Colors.grey.withValues(alpha: 0.12);
-        fg = Colors.grey.shade700;
+        bg = colorScheme.onSurfaceVariant.withValues(alpha: 0.12);
+        fg = colorScheme.onSurfaceVariant;
         label = l10n.syncStatusIdle;
         icon = Icons.cloud_outlined;
     }
@@ -699,27 +721,28 @@ class _SettingsCard extends StatelessWidget {
 
 /// 彩色图标徽标（32x32，圆角 9dp，微透明底色）。
 class _IconBadge extends StatelessWidget {
-  const _IconBadge({required this.icon, required this.color});
+  const _IconBadge({required this.icon, this.color});
 
   final IconData icon;
-  final Color color;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
+    final effectiveColor = color ?? Theme.of(context).colorScheme.primary;
     return Container(
       width: 32,
       height: 32,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: effectiveColor.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(9),
       ),
       alignment: Alignment.center,
-      child: Icon(icon, size: 17, color: color),
+      child: Icon(icon, size: 17, color: effectiveColor),
     );
   }
 }
 
-/// 主题色双环光晕选择器（8色网格，完全复刻 .c-opt 双环选中态）。
+/// 主题色双环光晕选择器（8色网格，完全复刻 .c-opt 双环选中态，采用全应用统一主题色体系）。
 class _ThemeColorPicker extends ConsumerWidget {
   const _ThemeColorPicker();
 
@@ -727,102 +750,86 @@ class _ThemeColorPicker extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentSeed = ref.watch(themeSeedColorProvider);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: _presetColors.map((color) {
-            final isSelected = color.toARGB32() == currentSeed.toARGB32();
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: AppTokens.themePalettes.map((palette) {
+        final color = palette.color;
+        final isSelected = color.toARGB32() == currentSeed.toARGB32();
+        final name = palette.localizedName(context);
 
-            return InkWell(
-              onTap: () =>
-                  ref.read(themeSeedColorProvider.notifier).setSeedColor(color),
-              borderRadius: BorderRadius.circular(100),
-              child: Container(
-                width: 38,
-                height: 38,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: isSelected
-                      ? Border.all(
-                          color: color.withValues(alpha: 0.4),
-                          width: 2.5,
-                        )
-                      : null,
-                ),
-                child: Container(
-                  width: isSelected ? 26 : 30,
-                  height: isSelected ? 26 : 30,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withValues(alpha: 0.35),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: isSelected
-                      ? const Icon(Icons.check, size: 16, color: Colors.white)
-                      : null,
+        return Tooltip(
+          message: name,
+          child: InkWell(
+            onTap: () =>
+                ref.read(themeSeedColorProvider.notifier).setSeedColor(color),
+            borderRadius: BorderRadius.circular(100),
+            child: Container(
+              width: 34,
+              height: 34,
+              padding: const EdgeInsets.all(2.5),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? color : Colors.transparent,
+                  width: 2,
                 ),
               ),
-            );
-          }).toList(),
+              child: Container(
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                child: isSelected
+                    ? const Icon(Icons.check, size: 16, color: Colors.white)
+                    : null,
+              ),
+            ),
+          ),
         );
-      },
+      }).toList(),
     );
   }
 }
 
-/// 品牌内涵行（微型首字母高亮徽章 + 词语 + 释义）。
-class _AboutMeaningRow extends StatelessWidget {
-  const _AboutMeaningRow({
-    required this.letter,
-    required this.word,
-    required this.meaning,
-  });
+/// 品牌寓意展示行。
+class _BrandMeaningItem extends StatelessWidget {
+  const _BrandMeaningItem({required this.title, required this.description});
 
-  final String letter;
-  final String word;
-  final String meaning;
+  final String title;
+  final String description;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 24,
-          height: 24,
+          margin: const EdgeInsets.only(top: 7),
+          width: 5,
+          height: 5,
           decoration: BoxDecoration(
-            color: colorScheme.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            letter,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: colorScheme.primary,
-            ),
+            color: colorScheme.primary,
+            shape: BoxShape.circle,
           ),
         ),
-        const SizedBox(width: 10),
-        Text(
-          '$word · ',
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-        ),
+        const SizedBox(width: AppTokens.spaceSm),
         Expanded(
-          child: Text(
-            meaning,
-            style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+          child: RichText(
+            text: TextSpan(
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                height: 1.45,
+              ),
+              children: [
+                TextSpan(
+                  text: '$title: ',
+                  style: TextStyle(
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                TextSpan(text: description),
+              ],
+            ),
           ),
         ),
       ],
