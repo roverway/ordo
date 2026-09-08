@@ -54,13 +54,17 @@ Task _task(
 );
 
 /// 封装测试用 ProviderScope。
-Future<void> _pumpEdit(
+Future<TodoRepository> _pumpEdit(
   WidgetTester tester, {
   String? taskId,
   String projectId = 'p1',
+  String projectName = '测试项目',
+  int? projectColor,
+  String? projectFolderId,
   String? parentId,
   List<Task> existingTasks = const [],
   List<Project> extraProjects = const [],
+  List<Folder> extraFolders = const [],
   Size size = const Size(400, 800),
 }) async {
   tester.view.physicalSize = size;
@@ -71,14 +75,30 @@ Future<void> _pumpEdit(
   final db = openTestDatabase();
   final repo = TodoRepository(database: db);
 
+  // 预插入文件夹。
+  for (final f in extraFolders) {
+    await db
+        .into(db.folders)
+        .insertOnConflictUpdate(
+          FoldersCompanion.insert(
+            id: f.id,
+            name: f.name,
+            sortOrder: f.sortOrder,
+            createdAt: f.createdAt,
+            updatedAt: f.updatedAt,
+          ),
+        );
+  }
+
   // 预插入项目（满足 FK 约束）。
   await db
       .into(db.projects)
       .insertOnConflictUpdate(
         ProjectsCompanion.insert(
           id: projectId,
-          name: '测试项目',
-          color: 0xFF3482FF,
+          folderId: Value(projectFolderId),
+          name: projectName,
+          color: projectColor ?? 0xFF3482FF,
           sortOrder: 0,
           createdAt: 0,
           updatedAt: 0,
@@ -90,6 +110,7 @@ Future<void> _pumpEdit(
         .insertOnConflictUpdate(
           ProjectsCompanion.insert(
             id: p.id,
+            folderId: Value(p.folderId),
             name: p.name,
             color: p.color,
             sortOrder: p.sortOrder,
@@ -120,19 +141,21 @@ Future<void> _pumpEdit(
   final overrides = [
     appSettingsCacheProvider.overrideWithValue(cache),
     todoRepositoryProvider.overrideWithValue(repo),
+    foldersStreamProvider.overrideWithValue(AsyncData(extraFolders)),
     projectsStreamProvider.overrideWithValue(
       AsyncData([
         Project(
           id: projectId,
-          name: '测试项目',
-          color: 0xFF3482FF,
+          folderId: projectFolderId,
+          name: projectName,
+          color: projectColor ?? 0xFF3482FF,
           description: '',
           sortOrder: 0,
           createdAt: 0,
           updatedAt: 0,
           deleted: 0,
         ),
-        ...extraProjects,
+        ...extraProjects.where((p) => p.id != projectId),
       ]),
     ),
     projectTasksProvider.overrideWith(
@@ -145,6 +168,7 @@ Future<void> _pumpEdit(
     allActiveTasksProvider.overrideWith((ref) => Stream.value(existingTasks)),
     tagsStreamProvider.overrideWithValue(const AsyncData([])),
   ];
+  addTearDown(db.close);
 
   final router = GoRouter(
     initialLocation: taskId != null
@@ -181,6 +205,7 @@ Future<void> _pumpEdit(
     ),
   );
   await tester.pumpAndSettle();
+  return repo;
 }
 
 void main() {
@@ -670,6 +695,7 @@ void main() {
                 ),
               ]),
             ),
+            foldersStreamProvider.overrideWithValue(const AsyncData([])),
             tagsStreamProvider.overrideWithValue(const AsyncData([])),
           ],
           child: MaterialApp.router(
@@ -860,6 +886,7 @@ void main() {
                 ),
               ]),
             ),
+            foldersStreamProvider.overrideWithValue(const AsyncData([])),
             tagsStreamProvider.overrideWithValue(const AsyncData([])),
           ],
           child: MaterialApp.router(
@@ -952,6 +979,7 @@ void main() {
                 ),
               ]),
             ),
+            foldersStreamProvider.overrideWithValue(const AsyncData([])),
             tagsStreamProvider.overrideWithValue(const AsyncData([])),
           ],
           child: MaterialApp.router(
@@ -1040,6 +1068,7 @@ void main() {
                 ),
               ]),
             ),
+            foldersStreamProvider.overrideWithValue(const AsyncData([])),
             tagsStreamProvider.overrideWithValue(const AsyncData([])),
           ],
           child: MaterialApp.router(
@@ -1120,6 +1149,7 @@ void main() {
                 ),
               ]),
             ),
+            foldersStreamProvider.overrideWithValue(const AsyncData([])),
             tagsStreamProvider.overrideWithValue(const AsyncData([])),
           ],
           child: MaterialApp.router(
@@ -1187,6 +1217,245 @@ void main() {
       );
       expect(footer.data, contains('创建于'));
       expect(footer.data, contains('完成于'));
+    });
+  });
+
+  // ────────────────────────────────────────
+  // 12. 任务编辑移动到指定文件夹与清单
+  // ────────────────────────────────────────
+  group('任务编辑移动到指定文件夹与清单', () {
+    test(
+      'TaskFormNotifier: 切换 projectId 触发 hasChanges，保存时调用 moveTaskToProject',
+      () async {
+        final db = openTestDatabase();
+        final repo = TodoRepository(database: db);
+        final p1 = await repo.createProject(name: '清单A', color: 0xFF3482FF);
+        final p2 = await repo.createProject(name: '清单B', color: 0xFF00AA55);
+        final task = await repo.createTask(projectId: p1.id, title: '测试任务');
+
+        final container = ProviderContainer(
+          overrides: [todoRepositoryProvider.overrideWithValue(repo)],
+        );
+        addTearDown(container.dispose);
+        final notifier = container.read(taskFormProvider.notifier);
+
+        await notifier.loadTask(task.id);
+        expect(notifier.hasChanges, isFalse);
+
+        notifier.setProjectAndParent(p2.id, null);
+        expect(notifier.hasChanges, isTrue);
+
+        final error = await notifier.save();
+        expect(error, isNull);
+
+        final reloaded = await repo.tasks.getActiveById(task.id);
+        expect(reloaded!.projectId, p2.id);
+      },
+    );
+
+    testWidgets('所属项目行展示：未归属文件夹展示项目名，归属于文件夹展示 文件夹名 / 项目名', (tester) async {
+      final folder = Folder(
+        id: 'f1',
+        name: '工作',
+        sortOrder: 0,
+        createdAt: 0,
+        updatedAt: 0,
+        deleted: 0,
+      );
+      final task = _task('t1', projectId: 'p_work', title: '周报');
+
+      await _pumpEdit(
+        tester,
+        taskId: 't1',
+        projectId: 'p_work',
+        projectName: '待办清单',
+        projectFolderId: 'f1',
+        existingTasks: [task],
+        extraFolders: [folder],
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('工作 / 待办清单'), findsWidgets);
+    });
+
+    testWidgets('点击所属项目行呼出 ProjectPickerSheet，可搜索并选择清单将任务移动到目标清单', (
+      tester,
+    ) async {
+      final folder = Folder(
+        id: 'f1',
+        name: '工作文件夹',
+        sortOrder: 0,
+        createdAt: 0,
+        updatedAt: 0,
+        deleted: 0,
+      );
+      final p2 = Project(
+        id: 'p2',
+        folderId: 'f1',
+        name: '目标项目B',
+        color: 0xFF00AA55,
+        description: '',
+        sortOrder: 1,
+        createdAt: 0,
+        updatedAt: 0,
+        deleted: 0,
+      );
+      final task = _task('t1', projectId: 'p1', title: '待移动任务');
+
+      final repo = await _pumpEdit(
+        tester,
+        taskId: 't1',
+        projectId: 'p1',
+        projectName: '项目A',
+        existingTasks: [task],
+        extraFolders: [folder],
+        extraProjects: [p2],
+      );
+      await tester.pumpAndSettle();
+
+      // 点击「所属项目」行
+      await tester.tap(find.byIcon(Icons.folder_outlined));
+      await tester.pumpAndSettle();
+
+      // 弹出 ProjectPickerSheet
+      expect(find.byType(ProjectPickerSheet), findsOneWidget);
+      expect(find.text('工作文件夹'), findsOneWidget);
+      expect(find.text('目标项目B'), findsOneWidget);
+
+      // 选择「目标项目B」
+      await tester.tap(find.text('目标项目B'));
+      await tester.pumpAndSettle();
+
+      // 弹窗关闭，编辑界面展示更新为 工作文件夹 / 目标项目B
+      expect(find.byType(ProjectPickerSheet), findsNothing);
+      expect(find.text('工作文件夹 / 目标项目B'), findsWidgets);
+
+      // 点击保存
+      await tester.tap(find.text('保存'));
+      await tester.pumpAndSettle();
+
+      // 校验 DB 中的任务已移动到 p2
+      final moved = await repo.tasks.getActiveById(task.id);
+      expect(moved!.projectId, 'p2');
+    });
+
+    testWidgets('ProjectPickerSheet 搜索过滤：输入清单或文件夹名称，正确过滤并显示文件夹副标题', (
+      tester,
+    ) async {
+      final folder = Folder(
+        id: 'f1',
+        name: '公司事务',
+        sortOrder: 0,
+        createdAt: 0,
+        updatedAt: 0,
+        deleted: 0,
+      );
+      final p1 = Project(
+        id: 'p1',
+        folderId: 'f1',
+        name: '周会纪要',
+        color: 0xFF3482FF,
+        description: '',
+        sortOrder: 0,
+        createdAt: 0,
+        updatedAt: 0,
+        deleted: 0,
+      );
+      final task = _task('t1', projectId: 'p2', title: '日常待办');
+
+      await _pumpEdit(
+        tester,
+        taskId: 't1',
+        projectId: 'p2',
+        projectName: '日常生活',
+        existingTasks: [task],
+        extraFolders: [folder],
+        extraProjects: [p1],
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.folder_outlined));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ProjectPickerSheet), findsOneWidget);
+
+      // 输入搜索关键字「公司」到 ProjectPickerSheet 的搜索框
+      final searchField = find.descendant(
+        of: find.byType(ProjectPickerSheet),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(searchField, '公司');
+      await tester.pumpAndSettle();
+
+      // 命中「周会纪要」，其副标题显示「公司事务」，未匹配的「日常生活」不在弹层中展示
+      final picker = find.byType(ProjectPickerSheet);
+      expect(
+        find.descendant(of: picker, matching: find.text('周会纪要')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: picker, matching: find.text('公司事务')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: picker, matching: find.text('日常生活')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('ProjectPickerSheet 文件夹折叠与展开交互', (tester) async {
+      final folder = Folder(
+        id: 'f1',
+        name: '工作文件夹',
+        sortOrder: 0,
+        createdAt: 0,
+        updatedAt: 0,
+        deleted: 0,
+      );
+      final p2 = Project(
+        id: 'p2',
+        folderId: 'f1',
+        name: '组内项目',
+        color: 0xFF00AA55,
+        description: '',
+        sortOrder: 1,
+        createdAt: 0,
+        updatedAt: 0,
+        deleted: 0,
+      );
+      final task = _task('t1', projectId: 'p1', title: '待移动任务');
+
+      await _pumpEdit(
+        tester,
+        taskId: 't1',
+        projectId: 'p1',
+        projectName: '项目A',
+        existingTasks: [task],
+        extraFolders: [folder],
+        extraProjects: [p2],
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.folder_outlined));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ProjectPickerSheet), findsOneWidget);
+      // 默认展开，组内项目可见
+      expect(find.text('组内项目'), findsOneWidget);
+
+      // 点击文件夹 Header 折叠
+      await tester.tap(find.text('工作文件夹'));
+      await tester.pumpAndSettle();
+
+      // 折叠后组内项目隐藏
+      expect(find.text('组内项目'), findsNothing);
+
+      // 再次点击展开
+      await tester.tap(find.text('工作文件夹'));
+      await tester.pumpAndSettle();
+
+      // 组内项目重新可见
+      expect(find.text('组内项目'), findsOneWidget);
     });
   });
 }

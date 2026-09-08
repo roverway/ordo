@@ -474,33 +474,50 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
               Divider(height: 1, color: borderColor),
 
               // 3. 所属项目行
-              _DetailsRow(
-                icon: Icons.folder_outlined,
-                label: l10n.projectLabel,
-                value: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (project != null)
-                      Container(
-                        width: 7,
-                        height: 7,
-                        decoration: BoxDecoration(
-                          color: Color(project.color),
-                          shape: BoxShape.circle,
+              () {
+                final folders =
+                    ref.watch(foldersStreamProvider).value ?? const <Folder>[];
+                final folder = folders
+                    .where((f) => f.id == project?.folderId)
+                    .firstOrNull;
+                final projectDisplayName = folder != null
+                    ? '${folder.name} / ${project!.name}'
+                    : (project?.name ?? l10n.inbox);
+
+                return _DetailsRow(
+                  icon: Icons.folder_outlined,
+                  label: l10n.projectLabel,
+                  value: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (project != null)
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            color: Color(project.color),
+                            shape: BoxShape.circle,
+                          ),
+                        )
+                      else
+                        const Icon(
+                          Icons.inbox_outlined,
+                          size: 14,
+                          color: AppTokens.colorNavInbox,
+                        ),
+                      const SizedBox(width: 6),
+                      Text(
+                        projectDisplayName,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurface,
+                          fontSize: 13.5,
                         ),
                       ),
-                    if (project != null) const SizedBox(width: 6),
-                    Text(
-                      project?.name ?? l10n.inbox,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurface,
-                        fontSize: 13.5,
-                      ),
-                    ),
-                  ],
-                ),
-                onTap: () => showTaskProjectPicker(context, ref),
-              ),
+                    ],
+                  ),
+                  onTap: () => showTaskProjectPicker(context, ref),
+                );
+              }(),
               Divider(height: 1, color: borderColor),
 
               // 4. 标签行

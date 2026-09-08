@@ -791,10 +791,15 @@ class TodoRepository {
   }
 
   /// 跨项目移动任务（更新 projectId，清除 parentId，置于目标项目末尾）。
+  ///
+  /// 若任务包含子任务/孙任务，级联更新整棵子树的 projectId 为 [newProjectId]，
+  /// 保留各级子任务内部的 parentId 与 sortOrder 关系。
   Future<void> moveTaskToProject(String taskId, String newProjectId) async {
     await database.transaction(() async {
       final task = await tasks.getActiveById(taskId);
       if (task == null) throw RepositoryException('任务不存在：$taskId');
+      if (task.projectId == newProjectId) return;
+
       final targetProject = await projects.getById(newProjectId);
       if (targetProject == null || targetProject.deleted != 0) {
         throw RepositoryException('目标项目不存在：$newProjectId');
@@ -806,6 +811,21 @@ class TodoRepository {
           : targetTasks.last.sortOrder + 1;
 
       final now = _nowMs();
+
+      // 递归收集整棵子树的所有后代任务
+      final allOldTasks = await tasks.getAllByProject(task.projectId);
+      final childrenIndex = indexChildrenByParent(allOldTasks);
+      final descendantIds = <String>[];
+      void collect(String id) {
+        for (final child in childrenIndex[id] ?? const <Task>[]) {
+          descendantIds.add(child.id);
+          collect(child.id);
+        }
+      }
+
+      collect(taskId);
+
+      // 1. 更新根任务（脱离原父任务 parentId=null，排在目标项目末尾）
       await tasks.updateById(
         taskId,
         TasksCompanion(
@@ -815,6 +835,15 @@ class TodoRepository {
           updatedAt: Value(now),
         ),
       );
+
+      // 2. 级联更新所有后代任务的 projectId（内部 parentId 与 sortOrder 保持不变）
+      for (final descId in descendantIds) {
+        await tasks.updateById(
+          descId,
+          TasksCompanion(projectId: Value(newProjectId), updatedAt: Value(now)),
+        );
+      }
+
       await onDataChanged?.call();
     });
   }

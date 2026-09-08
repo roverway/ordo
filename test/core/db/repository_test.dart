@@ -378,6 +378,103 @@ void main() {
       final after = (await repo.tasks.getById(a.id))!.updatedAt;
       expect(after, greaterThanOrEqualTo(before));
     });
+
+    test('跨项目移动单任务：更新 projectId，清空 parentId，置于目标项目末尾', () async {
+      final p1 = await repo.createProject(name: 'P1', color: 0);
+      final p2 = await repo.createProject(name: 'P2', color: 0);
+      final t1 = await repo.createTask(projectId: p1.id, title: 't1');
+      await repo.createTask(projectId: p2.id, title: 'existing_p2');
+
+      await repo.moveTaskToProject(t1.id, p2.id);
+
+      final moved = (await repo.tasks.getById(t1.id))!;
+      expect(moved.projectId, p2.id);
+      expect(moved.parentId, isNull);
+      expect(moved.sortOrder, 1);
+
+      final p1Tasks = await repo.tasks.getByProject(p1.id);
+      expect(p1Tasks, isEmpty);
+
+      final p2Tasks = await repo.tasks.getByProject(p2.id);
+      expect(p2Tasks.map((t) => t.id), contains(t1.id));
+    });
+
+    test('跨项目移动带子任务与孙任务整棵子树：级联更新所有后代 projectId 并保留内部层级', () async {
+      final p1 = await repo.createProject(name: 'P1', color: 0);
+      final p2 = await repo.createProject(name: 'P2', color: 0);
+      final root = await repo.createTask(projectId: p1.id, title: 'root');
+      final child = await repo.createTask(
+        projectId: p1.id,
+        parentId: root.id,
+        title: 'child',
+      );
+      final grandChild = await repo.createTask(
+        projectId: p1.id,
+        parentId: child.id,
+        title: 'grandChild',
+      );
+
+      await repo.moveTaskToProject(root.id, p2.id);
+
+      final movedRoot = (await repo.tasks.getById(root.id))!;
+      final movedChild = (await repo.tasks.getById(child.id))!;
+      final movedGrandChild = (await repo.tasks.getById(grandChild.id))!;
+
+      expect(movedRoot.projectId, p2.id);
+      expect(movedRoot.parentId, isNull);
+
+      expect(movedChild.projectId, p2.id);
+      expect(movedChild.parentId, root.id);
+
+      expect(movedGrandChild.projectId, p2.id);
+      expect(movedGrandChild.parentId, child.id);
+
+      // p1 下应无任何任务，全部成功转移至 p2
+      expect(await repo.tasks.getAllByProject(p1.id), isEmpty);
+      final p2All = await repo.tasks.getAllByProject(p2.id);
+      expect(p2All.length, 3);
+    });
+
+    test('跨项目移动原为子任务的任务：清空 parentId，脱离原父级并成为目标项目根任务', () async {
+      final p1 = await repo.createProject(name: 'P1', color: 0);
+      final p2 = await repo.createProject(name: 'P2', color: 0);
+      final parent = await repo.createTask(projectId: p1.id, title: 'parent');
+      final subtask = await repo.createTask(
+        projectId: p1.id,
+        parentId: parent.id,
+        title: 'subtask',
+      );
+
+      await repo.moveTaskToProject(subtask.id, p2.id);
+
+      final moved = (await repo.tasks.getById(subtask.id))!;
+      expect(moved.projectId, p2.id);
+      expect(moved.parentId, isNull);
+
+      final p1Tasks = await repo.tasks.getAllByProject(p1.id);
+      expect(p1Tasks.length, 1);
+      expect(p1Tasks.first.id, parent.id);
+    });
+
+    test('跨项目移动异常防御：任务不存在或目标项目不存在/已删除抛错', () async {
+      final p1 = await repo.createProject(name: 'P1', color: 0);
+      final p2 = await repo.createProject(name: 'P2', color: 0);
+      final t = await repo.createTask(projectId: p1.id, title: 't');
+      await repo.deleteProject(p2.id);
+
+      expect(
+        () => repo.moveTaskToProject('non_existent', p1.id),
+        throwsA(isA<RepositoryException>()),
+      );
+      expect(
+        () => repo.moveTaskToProject(t.id, 'non_existent_project'),
+        throwsA(isA<RepositoryException>()),
+      );
+      expect(
+        () => repo.moveTaskToProject(t.id, p2.id),
+        throwsA(isA<RepositoryException>()),
+      );
+    });
   });
 
   group('派生状态约束', () {
