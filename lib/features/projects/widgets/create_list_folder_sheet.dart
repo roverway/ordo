@@ -346,7 +346,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
         maxHeight: targetMaxHeight,
       ),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF18191D) : const Color(0xFFFFFFFF),
+        color: isDark ? AppTokens.surfacePageDark : AppTokens.surfacePageLight,
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(isFocused ? 16 : 24),
         ),
@@ -606,11 +606,11 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
               labelTitle.toUpperCase(),
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
                 color: isDark
-                    ? const Color(0xFF9CA3AF)
-                    : const Color(0xFF4B5563),
+                    ? const Color(0xFF6B7280)
+                    : const Color(0xFF9CA3AF),
               ),
             ),
             Text(
@@ -760,11 +760,11 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
               l10n.modalThemeColor.toUpperCase(),
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
                 color: isDark
-                    ? const Color(0xFF9CA3AF)
-                    : const Color(0xFF4B5563),
+                    ? const Color(0xFF6B7280)
+                    : const Color(0xFF9CA3AF),
               ),
             ),
             Text(
@@ -847,11 +847,11 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
               l10n.selectIcon.toUpperCase(),
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
                 color: isDark
-                    ? const Color(0xFF9CA3AF)
-                    : const Color(0xFF4B5563),
+                    ? const Color(0xFF6B7280)
+                    : const Color(0xFF9CA3AF),
               ),
             ),
             Text(
@@ -893,8 +893,8 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                       color: isSelected
                           ? activeAccent
                           : (isDark
-                                ? const Color(0xFF262830)
-                                : const Color(0xFFF1F5F9)),
+                              ? const Color(0xFF262830)
+                              : const Color(0xFFF1F5F9)),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
@@ -907,8 +907,8 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                         color: isSelected
                             ? Colors.white
                             : (isDark
-                                  ? const Color(0xFF9CA3AF)
-                                  : const Color(0xFF6B7280)),
+                                ? const Color(0xFF9CA3AF)
+                                : const Color(0xFF6B7280)),
                       ),
                     ),
                   ),
@@ -920,16 +920,25 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
 
         const SizedBox(height: 12),
 
-        // 图标网格
+        // 候选图标卡片（对齐设置页卡片视觉外观）
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E2025) : const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+            color: isDark ? const Color(0xFF1E1E24) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isDark ? const Color(0xFF262830) : const Color(0xFFE2E8F0),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.07)
+                  : Colors.black.withValues(alpha: 0.06),
               width: 1.0,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -958,15 +967,15 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                         color: isSelected
                             ? activeAccent.withValues(alpha: 0.14)
                             : (isDark
-                                  ? const Color(0xFF262830)
-                                  : const Color(0xFFFFFFFF)),
+                                ? const Color(0xFF262830)
+                                : const Color(0xFFF8FAFC)),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
                           color: isSelected
                               ? activeAccent
                               : (isDark
-                                    ? const Color(0xFF333640)
-                                    : const Color(0xFFE5E7EB)),
+                                  ? const Color(0xFF333640)
+                                  : const Color(0xFFE2E8F0)),
                           width: isSelected ? 1.5 : 1.0,
                         ),
                       ),
@@ -977,8 +986,8 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                           color: isSelected
                               ? activeAccent
                               : (isDark
-                                    ? const Color(0xFFD1D5DB)
-                                    : const Color(0xFF4B5563)),
+                                  ? const Color(0xFFD1D5DB)
+                                  : const Color(0xFF4B5563)),
                         ),
                       ),
                     ),
@@ -1016,6 +1025,10 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
     Color activeAccent,
     AsyncValue<ProjectGrouping> groupingAsync,
   ) {
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.07)
+        : Colors.black.withValues(alpha: 0.06);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1026,11 +1039,11 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
               l10n.belongingFolder.toUpperCase(),
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
                 color: isDark
-                    ? const Color(0xFF9CA3AF)
-                    : const Color(0xFF4B5563),
+                    ? const Color(0xFF6B7280)
+                    : const Color(0xFF9CA3AF),
               ),
             ),
             Text(
@@ -1047,15 +1060,22 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
         const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E2025) : const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+            color: isDark ? const Color(0xFF1E1E24) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isDark ? const Color(0xFF262830) : const Color(0xFFE2E8F0),
+              color: borderColor,
               width: 1.0,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+            borderRadius: BorderRadius.circular(16),
             child: groupingAsync.when(
               loading: () => const Padding(
                 padding: EdgeInsets.all(16),
@@ -1091,7 +1111,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
 
                     // 已有文件夹列表
                     for (int i = 0; i < folders.length; i++) ...[
-                      const Divider(height: 1, thickness: 0.5),
+                      Divider(height: 1, thickness: 0.5, color: borderColor),
                       _buildFolderOptionTile(
                         id: folders[i].id,
                         name: folders[i].name,

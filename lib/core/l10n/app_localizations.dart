@@ -2393,7 +2393,7 @@ abstract class AppLocalizations {
   /// projectLabel
   ///
   /// In zh, this message translates to:
-  /// **'项目'**
+  /// **'归属于'**
   String get projectLabel;
 
   /// statusKanbanName

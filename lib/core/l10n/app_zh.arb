@@ -692,7 +692,7 @@
   "@overview": {
     "description": "overview"
   },
-  "projectLabel": "项目",
+  "projectLabel": "归属于",
   "@projectLabel": {
     "description": "projectLabel"
   },

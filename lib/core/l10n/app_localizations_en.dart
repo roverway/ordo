@@ -1264,7 +1264,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get overview => 'Overview';
 
   @override
-  String get projectLabel => 'Project';
+  String get projectLabel => 'Belongs to';
 
   @override
   String get statusKanbanName => 'Status kanban';

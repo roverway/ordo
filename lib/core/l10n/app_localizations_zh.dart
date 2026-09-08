@@ -1241,7 +1241,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get overview => '概览';
 
   @override
-  String get projectLabel => '项目';
+  String get projectLabel => '归属于';
 
   @override
   String get statusKanbanName => '状态看板';
