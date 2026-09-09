@@ -91,28 +91,35 @@ class ModernSegmentedControl<T> extends StatelessWidget {
               ),
               const SizedBox(width: 6),
             ],
-            Text(
-              item.label,
-              style: TextStyle(
-                fontSize: fontSize,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant,
+            Flexible(
+              child: Text(
+                item.label,
+                style: TextStyle(
+                  fontSize: fontSize,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
       );
 
-      final clickableItem = InkWell(
-        onTap: () => onChanged(item.value),
-        borderRadius: BorderRadius.circular(8),
-        splashColor: Colors.transparent,
-        highlightColor: colorScheme.onSurface.withValues(alpha: 0.04),
-        child: buttonContent,
+      final clickableItem = Semantics(
+        selected: isSelected,
+        button: true,
+        label: item.label,
+        child: InkWell(
+          onTap: () => onChanged(item.value),
+          borderRadius: BorderRadius.circular(8),
+          splashColor: Colors.transparent,
+          highlightColor: colorScheme.onSurface.withValues(alpha: 0.04),
+          child: buttonContent,
+        ),
       );
 
       if (isExpanded) {

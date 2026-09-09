@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:drift/drift.dart';
@@ -805,10 +806,10 @@ class TodoRepository {
         throw RepositoryException('目标项目不存在：$newProjectId');
       }
 
-      final targetTasks = await tasks.getByProject(newProjectId);
-      final newSortOrder = targetTasks.isEmpty
+      final roots = await tasks.getDirectChildren(newProjectId, null);
+      final newSortOrder = roots.isEmpty
           ? 0
-          : targetTasks.last.sortOrder + 1;
+          : (roots.map((t) => t.sortOrder).reduce(math.max) + 1);
 
       final now = _nowMs();
 

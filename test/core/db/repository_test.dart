@@ -456,6 +456,26 @@ void main() {
       expect(p1Tasks.first.id, parent.id);
     });
 
+    test('跨项目移动：目标项目包含子任务时，新根任务 sortOrder 基于根任务计算且不发生碰撞', () async {
+      final p1 = await repo.createProject(name: 'P1', color: 0);
+      final p2 = await repo.createProject(name: 'P2', color: 0);
+
+      // p2 中有根任务 rootA (sortOrder 0), rootB (sortOrder 1)
+      await repo.createTask(projectId: p2.id, title: 'rootA');
+      final rootB = await repo.createTask(projectId: p2.id, title: 'rootB');
+      // rootB 下有子任务 sub1 (sortOrder 0)
+      await repo.createTask(projectId: p2.id, parentId: rootB.id, title: 'sub1');
+
+      // 从 p1 移动任务 t 到 p2
+      final t = await repo.createTask(projectId: p1.id, title: 't');
+      await repo.moveTaskToProject(t.id, p2.id);
+
+      final moved = (await repo.tasks.getById(t.id))!;
+      // 新移入的根任务 sortOrder 必须严格大于 rootB 的 sortOrder (1)
+      expect(moved.sortOrder, greaterThan(rootB.sortOrder));
+      expect(moved.sortOrder, 2);
+    });
+
     test('跨项目移动异常防御：任务不存在或目标项目不存在/已删除抛错', () async {
       final p1 = await repo.createProject(name: 'P1', color: 0);
       final p2 = await repo.createProject(name: 'P2', color: 0);

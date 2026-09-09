@@ -17,6 +17,9 @@ enum DayWorkStatus {
 class ChineseHolidays {
   ChineseHolidays._();
 
+  /// 节假日或调休数据变更时的监听回调（用于自动清理关联缓存）。
+  static void Function()? onHolidaysChanged;
+
   /// 动态注入的自定义/远程缓存假日数据（键为 yyyyMMdd 整数）
   static final Map<int, DayWorkStatus> _customHolidays = {};
   static final Map<int, String> _customNames = {};
@@ -34,6 +37,7 @@ class ChineseHolidays {
         ..clear()
         ..addAll(holidayNames);
     }
+    onHolidaysChanged?.call();
   }
 
   /// 将 DateTime 格式化为 yyyyMMdd 整数键
@@ -70,100 +74,28 @@ class ChineseHolidays {
     801: '建军节',
     910: '教师节',
     1001: '国庆节',
+    1224: '平安夜',
     1225: '圣诞节',
   };
 
-  /// 2020–2027 年法定节假日及调休内置预置表
+  /// 2020–2027 年法定节假日及周末补班调休明细字典
   static const Map<int, DayWorkStatus> _presetHolidays = {
-    // ── 2024 年 ──
-    20240101: DayWorkStatus.rest, // 元旦
-    20240204: DayWorkStatus.workday, // 春节调休
-    20240210: DayWorkStatus.rest, // 春节
-    20240211: DayWorkStatus.rest,
-    20240212: DayWorkStatus.rest,
-    20240213: DayWorkStatus.rest,
-    20240214: DayWorkStatus.rest,
-    20240215: DayWorkStatus.rest,
-    20240216: DayWorkStatus.rest,
-    20240217: DayWorkStatus.rest,
-    20240218: DayWorkStatus.workday,
-    20240404: DayWorkStatus.rest, // 清明
-    20240405: DayWorkStatus.rest,
-    20240406: DayWorkStatus.rest,
-    20240407: DayWorkStatus.workday,
-    20240428: DayWorkStatus.workday, // 劳动节调休
-    20240501: DayWorkStatus.rest, // 劳动节
-    20240502: DayWorkStatus.rest,
-    20240503: DayWorkStatus.rest,
-    20240504: DayWorkStatus.rest,
-    20240505: DayWorkStatus.rest,
-    20240511: DayWorkStatus.workday,
-    20240610: DayWorkStatus.rest, // 端午
-    20240914: DayWorkStatus.workday, // 中秋调休
-    20240915: DayWorkStatus.rest, // 中秋
-    20240916: DayWorkStatus.rest,
-    20240917: DayWorkStatus.rest,
-    20240929: DayWorkStatus.workday, // 国庆调休
-    20241001: DayWorkStatus.rest, // 国庆
-    20241002: DayWorkStatus.rest,
-    20241003: DayWorkStatus.rest,
-    20241004: DayWorkStatus.rest,
-    20241005: DayWorkStatus.rest,
-    20241006: DayWorkStatus.rest,
-    20241007: DayWorkStatus.rest,
-    20241012: DayWorkStatus.workday,
-
-    // ── 2025 年 ──
-    20250101: DayWorkStatus.rest, // 元旦
-    20250126: DayWorkStatus.workday, // 春节调休
-    20250128: DayWorkStatus.rest, // 除夕
-    20250129: DayWorkStatus.rest, // 春节
-    20250130: DayWorkStatus.rest,
-    20250131: DayWorkStatus.rest,
-    20250201: DayWorkStatus.rest,
-    20250202: DayWorkStatus.rest,
-    20250203: DayWorkStatus.rest,
-    20250204: DayWorkStatus.rest,
-    20250208: DayWorkStatus.workday,
-    20250404: DayWorkStatus.rest, // 清明
-    20250405: DayWorkStatus.rest,
-    20250406: DayWorkStatus.rest,
-    20250427: DayWorkStatus.workday, // 劳动节调休
-    20250501: DayWorkStatus.rest, // 劳动节
-    20250502: DayWorkStatus.rest,
-    20250503: DayWorkStatus.rest,
-    20250504: DayWorkStatus.rest,
-    20250505: DayWorkStatus.rest,
-    20250531: DayWorkStatus.rest, // 端午
-    20250601: DayWorkStatus.rest,
-    20250602: DayWorkStatus.rest,
-    20250928: DayWorkStatus.workday, // 国庆/中秋调休
-    20251001: DayWorkStatus.rest, // 国庆
-    20251002: DayWorkStatus.rest,
-    20251003: DayWorkStatus.rest,
-    20251004: DayWorkStatus.rest,
-    20251005: DayWorkStatus.rest,
-    20251006: DayWorkStatus.rest, // 中秋
-    20251007: DayWorkStatus.rest,
-    20251008: DayWorkStatus.rest,
-    20251011: DayWorkStatus.workday,
-
-    // ── 2026 年 ──
+    // 2026 年（国务院办公厅发布的 2026 年部分节假日安排）
     20260101: DayWorkStatus.rest, // 元旦
     20260102: DayWorkStatus.rest,
     20260103: DayWorkStatus.rest,
-    20260104: DayWorkStatus.workday,
-    20260215: DayWorkStatus.workday, // 春节调休
-    20260216: DayWorkStatus.rest, // 除夕
-    20260217: DayWorkStatus.rest, // 春节
+    20260104: DayWorkStatus.workday, // 元旦补班
+    20260215: DayWorkStatus.workday, // 春节调休补班
+    20260216: DayWorkStatus.rest, // 除夕（2025农历腊月廿九）
+    20260217: DayWorkStatus.rest, // 春节（2026农历正月初一）
     20260218: DayWorkStatus.rest,
     20260219: DayWorkStatus.rest,
     20260220: DayWorkStatus.rest,
     20260221: DayWorkStatus.rest,
     20260222: DayWorkStatus.rest,
     20260223: DayWorkStatus.rest,
-    20260228: DayWorkStatus.workday,
-    20260404: DayWorkStatus.rest, // 清明
+    20260228: DayWorkStatus.workday, // 春节补班
+    20260404: DayWorkStatus.rest, // 清明节
     20260405: DayWorkStatus.rest,
     20260406: DayWorkStatus.rest,
     20260426: DayWorkStatus.workday, // 劳动节调休
@@ -172,23 +104,97 @@ class ChineseHolidays {
     20260503: DayWorkStatus.rest,
     20260504: DayWorkStatus.rest,
     20260505: DayWorkStatus.rest,
-    20260509: DayWorkStatus.workday,
-    20260619: DayWorkStatus.rest, // 端午
+    20260509: DayWorkStatus.workday, // 劳动节补班
+    20260619: DayWorkStatus.rest, // 端午节
     20260620: DayWorkStatus.rest,
     20260621: DayWorkStatus.rest,
     20260925: DayWorkStatus.rest, // 中秋节
     20260926: DayWorkStatus.rest,
-    20260927: DayWorkStatus.rest, // 中秋连休（周日）
-    20261001: DayWorkStatus.rest, // 国庆
+    20260927: DayWorkStatus.rest,
+    20260920: DayWorkStatus.workday, // 国庆调休
+    20261001: DayWorkStatus.rest, // 国庆节
     20261002: DayWorkStatus.rest,
     20261003: DayWorkStatus.rest,
     20261004: DayWorkStatus.rest,
     20261005: DayWorkStatus.rest,
     20261006: DayWorkStatus.rest,
     20261007: DayWorkStatus.rest,
-    20261010: DayWorkStatus.workday,
+    20261010: DayWorkStatus.workday, // 国庆补班
+    // 2025 年
+    20250101: DayWorkStatus.rest,
+    20250126: DayWorkStatus.workday,
+    20250128: DayWorkStatus.rest,
+    20250129: DayWorkStatus.rest,
+    20250130: DayWorkStatus.rest,
+    20250131: DayWorkStatus.rest,
+    20250201: DayWorkStatus.rest,
+    20250202: DayWorkStatus.rest,
+    20250203: DayWorkStatus.rest,
+    20250204: DayWorkStatus.rest,
+    20250208: DayWorkStatus.workday,
+    20250404: DayWorkStatus.rest,
+    20250405: DayWorkStatus.rest,
+    20250406: DayWorkStatus.rest,
+    20250427: DayWorkStatus.workday,
+    20250501: DayWorkStatus.rest,
+    20250502: DayWorkStatus.rest,
+    20250503: DayWorkStatus.rest,
+    20250504: DayWorkStatus.rest,
+    20250505: DayWorkStatus.rest,
+    20250510: DayWorkStatus.workday,
+    20250531: DayWorkStatus.rest,
+    20250601: DayWorkStatus.rest,
+    20250602: DayWorkStatus.rest,
+    20250928: DayWorkStatus.workday,
+    20251001: DayWorkStatus.rest,
+    20251002: DayWorkStatus.rest,
+    20251003: DayWorkStatus.rest,
+    20251004: DayWorkStatus.rest,
+    20251005: DayWorkStatus.rest,
+    20251006: DayWorkStatus.rest,
+    20251007: DayWorkStatus.rest,
+    20251008: DayWorkStatus.rest,
+    20251011: DayWorkStatus.workday,
 
-    // ── 2027 年 ──
+    // 2024 年
+    20240101: DayWorkStatus.rest,
+    20240204: DayWorkStatus.workday,
+    20240210: DayWorkStatus.rest,
+    20240211: DayWorkStatus.rest,
+    20240212: DayWorkStatus.rest,
+    20240213: DayWorkStatus.rest,
+    20240214: DayWorkStatus.rest,
+    20240215: DayWorkStatus.rest,
+    20240216: DayWorkStatus.rest,
+    20240217: DayWorkStatus.rest,
+    20240218: DayWorkStatus.workday,
+    20240404: DayWorkStatus.rest,
+    20240405: DayWorkStatus.rest,
+    20240406: DayWorkStatus.rest,
+    20240407: DayWorkStatus.workday,
+    20240428: DayWorkStatus.workday,
+    20240501: DayWorkStatus.rest,
+    20240502: DayWorkStatus.rest,
+    20240503: DayWorkStatus.rest,
+    20240504: DayWorkStatus.rest,
+    20240505: DayWorkStatus.rest,
+    20240511: DayWorkStatus.workday,
+    20240610: DayWorkStatus.rest,
+    20240914: DayWorkStatus.workday,
+    20240915: DayWorkStatus.rest,
+    20240916: DayWorkStatus.rest,
+    20240917: DayWorkStatus.rest,
+    20240929: DayWorkStatus.workday,
+    20241001: DayWorkStatus.rest,
+    20241002: DayWorkStatus.rest,
+    20241003: DayWorkStatus.rest,
+    20241004: DayWorkStatus.rest,
+    20241005: DayWorkStatus.rest,
+    20241006: DayWorkStatus.rest,
+    20241007: DayWorkStatus.rest,
+    20241012: DayWorkStatus.workday,
+
+    // 2027 年
     20270101: DayWorkStatus.rest, // 元旦
     20270102: DayWorkStatus.rest,
     20270103: DayWorkStatus.rest,

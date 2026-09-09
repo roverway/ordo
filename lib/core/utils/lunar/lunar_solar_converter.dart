@@ -73,26 +73,6 @@ class LunarSolarConverter {
     return jd;
   }
 
-  /// 儒略日数转公历年月日 [day, month, year]
-  static List<int> jdToDate(int jd) {
-    int a, b, c;
-    if (jd > 2299160) {
-      a = jd + 32044;
-      b = _intFloor((4 * a + 3) / 146097);
-      c = a - _intFloor((b * 146097) / 4);
-    } else {
-      b = 0;
-      c = jd + 32082;
-    }
-    final d = _intFloor((4 * c + 3) / 1461);
-    final e = c - _intFloor((1461 * d) / 4);
-    final m = _intFloor((5 * e + 2) / 153);
-    final day = e - _intFloor((153 * m + 2) / 5) + 1;
-    final month = m + 3 - 12 * _intFloor(m / 10);
-    final year = b * 100 + d - 4800 + _intFloor(m / 10);
-    return [day, month, year];
-  }
-
   /// 计算第 k 个朔日（新月日）的儒略日数
   static int _getNewMoonDay(int k, int timeZone) {
     final t = k / 1236.85;
@@ -117,46 +97,33 @@ class LunarSolarConverter {
         0.0010 * sin(dr * (2 * f - mpr)) +
         0.0005 * sin(dr * (2 * mpr + m));
 
-    final double deltat;
-    if (t < -11) {
-      deltat =
-          0.001 +
-          0.000839 * t +
-          0.0002261 * t2 -
-          0.00000845 * t3 -
-          0.000000081 * t * t3;
-    } else {
-      deltat = -0.000278 + 0.000265 * t + 0.000262 * t2;
-    }
-    final jdNew = jd1 + c1 - deltat;
-    return _intFloor(jdNew + 0.5 + timeZone / 24);
+    final deltat = (t < -4.0) ? (102.3 + 123.5 * t + 32.5 * t2) : 0.0;
+    final jdn = jd1 + c1 - deltat / 86400.0;
+    return _intFloor(jdn + 0.5 + timeZone / 24.0);
   }
 
-  /// 计算太阳黄经所处的中气区间（0..11）
+  /// 获取太阳视黄经对应 30° 分段（用于中气判定）
   static int getSunLongitudeSegment(int jdn, int timeZone) {
-    final t = (jdn - 2451545.5 - timeZone / 24) / 36525;
+    final t = (jdn - 2451545.5 - timeZone / 24.0) / 36525.0;
     final t2 = t * t;
     const dr = pi / 180;
-    final m =
-        357.52910 + 35999.05030 * t - 0.0001559 * t2 - 0.00000048 * t * t2;
     final l0 = 280.46645 + 36000.76983 * t + 0.0003032 * t2;
+    final m = 357.52910 + 35999.05029 * t - 0.0001537 * t2;
     final dl =
         (1.914600 - 0.004817 * t - 0.000014 * t2) * sin(dr * m) +
         (0.019993 - 0.000101 * t) * sin(dr * 2 * m) +
         0.000290 * sin(dr * 3 * m);
-    var l = (l0 + dl) * dr;
-    l = l - pi * 2 * (_intFloor(l / (pi * 2)));
-    return _intFloor(l / pi * 6);
+    final l = (l0 + dl) % 360.0;
+    return _intFloor(l / 30.0);
   }
 
-  /// 计算太阳视黄经角度（0.0 ~ 360.0°）
+  /// 获取太阳精确视黄经度数（0°~360°）
   static double getSunLongitudeDegrees(int jdn, int timeZone) {
-    final t = (jdn - 2451545.5 - timeZone / 24) / 36525;
+    final t = (jdn - 2451545.5 - timeZone / 24.0) / 36525.0;
     final t2 = t * t;
     const dr = pi / 180;
-    final m =
-        357.52910 + 35999.05030 * t - 0.0001559 * t2 - 0.00000048 * t * t2;
     final l0 = 280.46645 + 36000.76983 * t + 0.0003032 * t2;
+    final m = 357.52910 + 35999.05029 * t - 0.0001537 * t2;
     final dl =
         (1.914600 - 0.004817 * t - 0.000014 * t2) * sin(dr * m) +
         (0.019993 - 0.000101 * t) * sin(dr * 2 * m) +

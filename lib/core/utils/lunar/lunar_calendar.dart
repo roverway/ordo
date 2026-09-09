@@ -53,7 +53,7 @@ class LunarDayInfo {
   /// 1. 法定假日/传统节日（如 "中秋", "国庆", "除夕", "元宵"）
   /// 2. 二十四节气（如 "秋分", "冬至"）
   /// 3. 农历每月初一（如 "八月", "闰四月"）
-  /// 4. 农历日（如 "初八", "廿五"）
+  /// 4. 普通农历日（如 "初八", "廿五"）
   String get displayText {
     // 1. 节日优先
     if (holidayName != null) {
@@ -102,9 +102,18 @@ class LunarCalendar {
 
   /// 缓存最近查询，提升滑动性能
   static final Map<int, LunarDayInfo> _dayCache = {};
+  static bool _hookInstalled = false;
+
+  /// 清空农历日期信息缓存（当节假日数据动态更新或测试用例注入时调用）。
+  static void clearCache() => _dayCache.clear();
 
   /// 获取指定公历日的农历与节假日信息
   static LunarDayInfo getDayInfo(DateTime solarDate) {
+    if (!_hookInstalled) {
+      _hookInstalled = true;
+      ChineseHolidays.onHolidaysChanged = clearCache;
+    }
+
     final key = ChineseHolidays.dateToKey(solarDate);
     final cached = _dayCache[key];
     if (cached != null) return cached;
@@ -158,23 +167,38 @@ class LunarCalendar {
 
   /// 匹配传统农历民俗节日
   static String? _findTraditionalFestival(DateTime solarDate, LunarDate lunar) {
-    if (lunar.isLeap) return null; // 闰月通常不过传统节日
-
-    // 除夕：明天是正月初一
-    final tomorrow = solarDate.add(const Duration(days: 1));
+    // 除夕：明天是正月初一（采用基于日期的确定性构造，避免 Duration 夏令时偏差）
+    final tomorrow = DateTime(
+      solarDate.year,
+      solarDate.month,
+      solarDate.day + 1,
+    );
     final tomorrowLunar = LunarSolarConverter.solarToLunar(tomorrow);
     if (tomorrowLunar.month == 1 && tomorrowLunar.day == 1) {
       return '除夕';
     }
 
+    // 正月
     if (lunar.month == 1 && lunar.day == 1) return '春节';
     if (lunar.month == 1 && lunar.day == 15) return '元宵节';
+
+    // 二月
     if (lunar.month == 2 && lunar.day == 2) return '龙抬头';
+
+    // 五月
     if (lunar.month == 5 && lunar.day == 5) return '端午节';
+
+    // 七月
     if (lunar.month == 7 && lunar.day == 7) return '七夕节';
     if (lunar.month == 7 && lunar.day == 15) return '中元节';
+
+    // 八月
     if (lunar.month == 8 && lunar.day == 15) return '中秋节';
+
+    // 九月
     if (lunar.month == 9 && lunar.day == 9) return '重阳节';
+
+    // 腊月
     if (lunar.month == 12 && lunar.day == 8) return '腊八节';
     if (lunar.month == 12 && (lunar.day == 23 || lunar.day == 24)) return '小年';
 

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:todo/core/utils/calendar_day_decorator.dart';
 import 'package:todo/core/utils/lunar/chinese_holidays.dart';
 import 'package:todo/core/utils/lunar/lunar_calendar.dart';
 import 'package:todo/core/utils/lunar/lunar_solar_converter.dart';
@@ -138,6 +139,36 @@ void main() {
       expect(dayTwo.traditionalFestival, isNull);
       expect(dayTwo.displayText, '初二');
       expect(dayTwo.workStatus, DayWorkStatus.rest);
+    });
+
+    test('动态注入假日时自动刷新 LunarCalendar 缓存', () {
+      final testDate = DateTime(2029, 5, 1);
+      // 先查询并触发缓存
+      final initialInfo = LunarCalendar.getDayInfo(testDate);
+      expect(initialInfo.workStatus, DayWorkStatus.none);
+
+      // 动态注入 2029 劳动节
+      ChineseHolidays.setCustomHolidays(
+        {20290501: DayWorkStatus.rest},
+        {20290501: '劳动节'},
+      );
+
+      // 缓存应已自动失效并返回最新注入信息
+      final updatedInfo = LunarCalendar.getDayInfo(testDate);
+      expect(updatedInfo.workStatus, DayWorkStatus.rest);
+      expect(updatedInfo.holidayName, '劳动节');
+    });
+
+    test('CalendarDayDecorator 解耦测试：仅开节假日且无农历时展示法定节日描述', () {
+      final decoration = CalendarDayDecorator.decorate(
+        date: DateTime(2026, 10, 1),
+        showLunar: false,
+        showHolidays: true,
+      );
+      expect(decoration.subText, isNull);
+      expect(decoration.badgeText, '休');
+      expect(decoration.isRestBadge, isTrue);
+      expect(decoration.agendaDescription, '国庆节');
     });
   });
 }

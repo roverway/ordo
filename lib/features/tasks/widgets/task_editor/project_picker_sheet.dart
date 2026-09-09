@@ -207,23 +207,36 @@ class _ProjectPickerSheetState extends ConsumerState<ProjectPickerSheet> {
             const SizedBox(height: AppTokens.spaceXs),
             const Divider(height: 1),
 
-            // 主列表区：搜索模式 vs 文件夹层级模式
+            // 主列表区：加载态 vs 搜索模式 vs 文件夹层级模式
             Flexible(
-              child: _query.isNotEmpty
-                  ? _buildSearchResults(
-                      context: context,
-                      l10n: l10n,
-                      theme: theme,
-                      allProjects: allProjects,
-                      grouping: groupingAsync.value,
+              child: groupingAsync.isLoading
+                  ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          vertical: AppTokens.spaceLg,
+                        ),
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
                     )
-                  : _buildHierarchicalList(
-                      context: context,
-                      l10n: l10n,
-                      theme: theme,
-                      borderColor: borderColor,
-                      grouping: groupingAsync.value,
-                    ),
+                  : (_query.isNotEmpty
+                      ? _buildSearchResults(
+                          context: context,
+                          l10n: l10n,
+                          theme: theme,
+                          allProjects: allProjects,
+                          grouping: groupingAsync.value,
+                        )
+                      : _buildHierarchicalList(
+                          context: context,
+                          l10n: l10n,
+                          theme: theme,
+                          borderColor: borderColor,
+                          grouping: groupingAsync.value,
+                        )),
             ),
 
             const Divider(height: 1),

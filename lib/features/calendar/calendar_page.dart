@@ -599,21 +599,32 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
                 children: [
                   for (var c = 0; c < 7; c++)
                     Expanded(
-                      child: _DayCell(
-                        day: days[w * 7 + c],
-                        selectedDate: selected,
-                        todayDate: todayKey,
-                        isMonthMode: state.mode == CalendarMode.month,
-                        showLunar: showLunar,
-                        showHolidays: showHolidays,
-                        tasks: tasksForDay(buckets, days[w * 7 + c]),
-                        projectsMap: projectsMap,
-                        onTap: () {
-                          ref
-                              .read(calendarStateProvider.notifier)
-                              .selectDate(days[w * 7 + c]);
-                        },
-                      ),
+                      child: () {
+                        final cellDay = days[w * 7 + c];
+                        final isSelected = cellDay.year == selected.year &&
+                            cellDay.month == selected.month &&
+                            cellDay.day == selected.day;
+                        final isToday = cellDay.year == todayKey.year &&
+                            cellDay.month == todayKey.month &&
+                            cellDay.day == todayKey.day;
+                        final inMonth = state.mode != CalendarMode.month ||
+                            cellDay.month == selected.month;
+                        return _DayCell(
+                          day: cellDay,
+                          isSelected: isSelected,
+                          isToday: isToday,
+                          inMonth: inMonth,
+                          showLunar: showLunar,
+                          showHolidays: showHolidays,
+                          tasks: tasksForDay(buckets, cellDay),
+                          projectsMap: projectsMap,
+                          onTap: () {
+                            ref
+                                .read(calendarStateProvider.notifier)
+                                .selectDate(cellDay);
+                          },
+                        );
+                      }(),
                     ),
                 ],
               ),
@@ -629,9 +640,9 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
 class _DayCell extends StatelessWidget {
   const _DayCell({
     required this.day,
-    required this.selectedDate,
-    required this.todayDate,
-    required this.isMonthMode,
+    required this.isSelected,
+    required this.isToday,
+    required this.inMonth,
     required this.tasks,
     required this.projectsMap,
     required this.onTap,
@@ -640,9 +651,9 @@ class _DayCell extends StatelessWidget {
   });
 
   final DateTime day;
-  final DateTime selectedDate;
-  final DateTime todayDate;
-  final bool isMonthMode;
+  final bool isSelected;
+  final bool isToday;
+  final bool inMonth;
   final List<Task> tasks;
   final Map<String, Project> projectsMap;
   final VoidCallback onTap;
@@ -654,15 +665,6 @@ class _DayCell extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    final isToday =
-        day.year == todayDate.year &&
-        day.month == todayDate.month &&
-        day.day == todayDate.day;
-    final isSelected =
-        day.year == selectedDate.year &&
-        day.month == selectedDate.month &&
-        day.day == selectedDate.day;
-    final inMonth = !isMonthMode || day.month == selectedDate.month;
     final isWeekend =
         day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
 

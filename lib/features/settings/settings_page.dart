@@ -6,6 +6,7 @@ import '../../core/l10n/app_localizations.dart';
 import '../../core/sync/sync_config.dart';
 import '../../core/sync/sync_engine.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/utils/dates.dart';
 import '../../features/sync_setup/sync_setup_providers.dart';
 import '../../features/tags/tag_providers.dart';
 import '../../shared/widgets/app_logo.dart';
@@ -97,7 +98,7 @@ class SettingsDrawer extends ConsumerWidget {
 }
 
 /// 设置列表主内容（支持独立页面及宽屏内嵌复用）。
-class SettingsBody extends ConsumerWidget {
+class SettingsBody extends StatelessWidget {
   const SettingsBody({
     super.key,
     required this.onOpenSync,
@@ -108,22 +109,48 @@ class SettingsBody extends ConsumerWidget {
   final VoidCallback onOpenTags;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final themeMode = ref.watch(themeModeProvider);
-    final locale = ref.watch(localeProvider);
-    final syncState = ref.watch(syncStateProvider);
-    final syncConfigAsync = ref.watch(syncConfigProvider);
-    final tagsAsync = ref.watch(tagsStreamProvider);
-    final showLunar = ref.watch(calendarShowLunarProvider);
-    final showHolidays = ref.watch(calendarShowHolidaysProvider);
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
+  Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
       children: [
         // ── 1. 外观 ──
+        const _AppearanceSection(),
+        const SizedBox(height: 20),
+
+        // ── 2. 数据与标签 ──
+        _TagsSection(onOpenTags: onOpenTags),
+        const SizedBox(height: 20),
+
+        // ── 3. 日历 ──
+        const _CalendarSection(),
+        const SizedBox(height: 20),
+
+        // ── 4. 同步 ──
+        _SyncSection(onOpenSync: onOpenSync),
+        const SizedBox(height: 20),
+
+        // ── 5. 关于 ──
+        const _AboutSection(),
+      ],
+    );
+  }
+}
+
+/// 外观配置卡片（主题模式、主题色、语言）
+class _AppearanceSection extends ConsumerWidget {
+  const _AppearanceSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final themeMode = ref.watch(themeModeProvider);
+    final locale = ref.watch(localeProvider);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         _SectionHeader(title: l10n.settingsSectionAppearance),
         _SettingsCard(
           children: [
@@ -288,10 +315,26 @@ class SettingsBody extends ConsumerWidget {
             ),
           ],
         ),
+      ],
+    );
+  }
+}
 
-        const SizedBox(height: 20),
+/// 标签管理入口卡片
+class _TagsSection extends ConsumerWidget {
+  const _TagsSection({required this.onOpenTags});
 
-        // ── 2. 数据与标签 ──
+  final VoidCallback onOpenTags;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final tagsAsync = ref.watch(tagsStreamProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         _SectionHeader(title: l10n.taskTags),
         _SettingsCard(
           padding: EdgeInsets.zero,
@@ -352,10 +395,25 @@ class SettingsBody extends ConsumerWidget {
             ),
           ],
         ),
+      ],
+    );
+  }
+}
 
-        const SizedBox(height: 20),
+/// 日历配置卡片（农历、法定假日）
+class _CalendarSection extends ConsumerWidget {
+  const _CalendarSection();
 
-        // ── 3. 日历 ──
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final showLunar = ref.watch(calendarShowLunarProvider);
+    final showHolidays = ref.watch(calendarShowHolidaysProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         _SectionHeader(title: l10n.settingsSectionCalendar),
         _SettingsCard(
           children: [
@@ -436,10 +494,27 @@ class SettingsBody extends ConsumerWidget {
             ),
           ],
         ),
+      ],
+    );
+  }
+}
 
-        const SizedBox(height: 20),
+/// 同步配置卡片
+class _SyncSection extends ConsumerWidget {
+  const _SyncSection({required this.onOpenSync});
 
-        // ── 4. 同步 ──
+  final VoidCallback onOpenSync;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final syncState = ref.watch(syncStateProvider);
+    final syncConfigAsync = ref.watch(syncConfigProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         _SectionHeader(title: l10n.sync),
         _SettingsCard(
           padding: EdgeInsets.zero,
@@ -527,15 +602,13 @@ class SettingsBody extends ConsumerWidget {
                     child: Switch(
                       activeTrackColor: colorScheme.primary,
                       activeThumbColor: colorScheme.onPrimary,
-                      value:
-                          syncConfigAsync.value?.autoOnStart == true ||
-                          syncConfigAsync.value?.autoOnEdit == true,
+                      value: syncConfigAsync.value?.autoOnStart == true,
                       onChanged: (val) async {
                         final config = syncConfigAsync.value;
                         if (config != null) {
                           await saveSyncConfig(
                             ref,
-                            config.copyWith(autoOnStart: val, autoOnEdit: val),
+                            config.copyWith(autoOnStart: val),
                           );
                           ref.invalidate(syncConfigProvider);
                         }
@@ -547,10 +620,102 @@ class SettingsBody extends ConsumerWidget {
             ),
           ],
         ),
+      ],
+    );
+  }
 
-        const SizedBox(height: 20),
+  Widget _buildSyncStatusBadge(
+    AppLocalizations l10n,
+    ColorScheme colorScheme,
+    SyncStateStatus status,
+  ) {
+    Color bg;
+    Color fg;
+    String label;
+    IconData icon;
 
-        // ── 5. 关于 ──
+    switch (status) {
+      case SyncStateStatus.syncing:
+        bg = colorScheme.primary.withValues(alpha: 0.12);
+        fg = colorScheme.primary;
+        label = l10n.syncStatusSyncing;
+        icon = Icons.sync;
+      case SyncStateStatus.success:
+        bg = const Color(0xFF10B981).withValues(alpha: 0.12);
+        fg = const Color(0xFF059669);
+        label = l10n.syncStatusSuccess;
+        icon = Icons.check_circle_outline;
+      case SyncStateStatus.error:
+        bg = const Color(0xFFEF4444).withValues(alpha: 0.12);
+        fg = const Color(0xFFDC2626);
+        label = l10n.syncStatusError;
+        icon = Icons.error_outline;
+      case SyncStateStatus.idle:
+        bg = colorScheme.onSurfaceVariant.withValues(alpha: 0.12);
+        fg = colorScheme.onSurfaceVariant;
+        label = l10n.syncStatusIdle;
+        icon = Icons.cloud_outlined;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: fg),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: fg,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatSyncSubtitle(
+    AppLocalizations l10n,
+    SyncState syncState,
+    SyncConfig? config,
+  ) {
+    if (config == null || !config.enabled) {
+      return l10n.syncNotConfigured;
+    }
+    final target = config.type == RemoteType.webdav
+        ? l10n.syncTypeNutstore
+        : l10n.syncTypeS3;
+    if (syncState.status == SyncStateStatus.syncing) {
+      return '$target · ${l10n.syncStatusSyncing}';
+    }
+    if (syncState.lastSyncedAt != null) {
+      final timeStr = formatDateTime(syncState.lastSyncedAt!);
+      return '$target · ${l10n.syncLastSyncedAt(timeStr)}';
+    }
+    return target;
+  }
+}
+
+/// 关于应用卡片（独立无状态组件）
+class _AboutSection extends StatelessWidget {
+  const _AboutSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         _SectionHeader(title: l10n.settingsSectionAbout),
         _SettingsCard(
           children: [
@@ -649,86 +814,6 @@ class SettingsBody extends ConsumerWidget {
         ),
       ],
     );
-  }
-
-  Widget _buildSyncStatusBadge(
-    AppLocalizations l10n,
-    ColorScheme colorScheme,
-    SyncStateStatus status,
-  ) {
-    Color bg;
-    Color fg;
-    String label;
-    IconData icon;
-
-    switch (status) {
-      case SyncStateStatus.syncing:
-        bg = colorScheme.primary.withValues(alpha: 0.12);
-        fg = colorScheme.primary;
-        label = l10n.syncStatusSyncing;
-        icon = Icons.sync;
-      case SyncStateStatus.success:
-        bg = const Color(0xFF10B981).withValues(alpha: 0.12);
-        fg = const Color(0xFF059669);
-        label = l10n.syncStatusSuccess;
-        icon = Icons.check_circle_outline;
-      case SyncStateStatus.error:
-        bg = const Color(0xFFEF4444).withValues(alpha: 0.12);
-        fg = const Color(0xFFDC2626);
-        label = l10n.syncStatusError;
-        icon = Icons.error_outline;
-      case SyncStateStatus.idle:
-        bg = colorScheme.onSurfaceVariant.withValues(alpha: 0.12);
-        fg = colorScheme.onSurfaceVariant;
-        label = l10n.syncStatusIdle;
-        icon = Icons.cloud_outlined;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: fg),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: fg,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatSyncSubtitle(
-    AppLocalizations l10n,
-    SyncState syncState,
-    SyncConfig? config,
-  ) {
-    if (config == null || !config.enabled) {
-      return l10n.syncNotConfigured;
-    }
-    final target = config.type == RemoteType.webdav
-        ? l10n.syncTypeNutstore
-        : l10n.syncTypeS3;
-    if (syncState.status == SyncStateStatus.syncing) {
-      return '$target · ${l10n.syncStatusSyncing}';
-    }
-    if (syncState.lastSyncedAt != null) {
-      final dt = DateTime.fromMillisecondsSinceEpoch(syncState.lastSyncedAt!);
-      final timeStr =
-          '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-      return '$target · ${l10n.syncLastSyncedAt(timeStr)}';
-    }
-    return target;
   }
 }
 

@@ -27,7 +27,7 @@ class CalendarDayDecoration {
   /// 是否为调休补班徽标
   final bool isWorkdayBadge;
 
-  /// 议程列表中显示的完整补充描述（如 "农历七月廿七 · 白露"）
+  /// 议程列表中显示的完整补充描述（如 "农历七月廿七 · 白露" 或 "国庆节"）
   final String? agendaDescription;
 
   /// 空装饰（纯公历展示模式）
@@ -58,6 +58,11 @@ class CalendarDayDecorator {
       subText = info.displayText;
       isSpecial = info.isSpecialDay;
       agendaDesc = info.agendaDescription;
+    } else if (showHolidays) {
+      // 仅开启节假日时：若当日为法定节假日，提供对应的节日描述（如“国庆节”）
+      if (info.holidayName != null) {
+        agendaDesc = info.holidayName;
+      }
     }
 
     String? badgeText;
