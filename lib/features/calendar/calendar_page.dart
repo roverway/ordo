@@ -668,7 +668,7 @@ class _DayCell extends StatelessWidget {
 
     // 选中 / 今天 / 正常状态视觉颜色分配
     Color numColor;
-    FontWeight numWeight = FontWeight.w400;
+    FontWeight numWeight = FontWeight.w500;
     BoxDecoration? numDeco;
 
     if (isSelected && isToday) {
@@ -739,14 +739,14 @@ class _DayCell extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        width: hasSubText ? 22 : 28,
-                        height: hasSubText ? 22 : 28,
+                        width: hasSubText ? 24 : 28,
+                        height: hasSubText ? 24 : 28,
                         alignment: Alignment.center,
                         decoration: numDeco,
                         child: Text(
                           '${day.day}',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            fontSize: hasSubText ? 12.0 : AppTokens.textFootnoteSize,
+                            fontSize: hasSubText ? 14.5 : 15.5,
                             fontWeight: numWeight,
                             color: numColor,
                             fontFeatures: AppTokens.fontTabular,

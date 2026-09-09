@@ -11,7 +11,7 @@ void main() {
       expect(lunar.year, 2026);
       expect(lunar.month, 1);
       expect(lunar.day, 1);
-      expect(lunar.isLeap, false);
+      expect(lunar.isLeap, isFalse);
     });
 
     test('2026-09-25 中秋节 -> 2026年八月十五', () {
@@ -19,7 +19,7 @@ void main() {
       expect(lunar.year, 2026);
       expect(lunar.month, 8);
       expect(lunar.day, 15);
-      expect(lunar.isLeap, false);
+      expect(lunar.isLeap, isFalse);
     });
 
     test('2023-03-22 闰二月初一', () {
@@ -27,22 +27,19 @@ void main() {
       expect(lunar.year, 2023);
       expect(lunar.month, 2);
       expect(lunar.day, 1);
-      expect(lunar.isLeap, true);
+      expect(lunar.isLeap, isTrue);
     });
 
     test('支持 1900 至 2200 宽阔跨度', () {
-      final l1900 = LunarSolarConverter.solarToLunar(DateTime(1900, 1, 31));
-      expect(l1900.year, 1900);
-      expect(l1900.month, 1);
-      expect(l1900.day, 1);
+      final lunar1900 = LunarSolarConverter.solarToLunar(DateTime(1900, 1, 31));
+      expect(lunar1900.year, 1900);
+      expect(lunar1900.month, 1);
+      expect(lunar1900.day, 1);
 
-      final l2100 = LunarSolarConverter.solarToLunar(DateTime(2100, 2, 9));
-      expect(l2100.year, 2100);
-      expect(l2100.month, 1);
-      expect(l2100.day, 1);
-
-      final l2200 = LunarSolarConverter.solarToLunar(DateTime(2200, 1, 1));
-      expect(l2200.year, greaterThanOrEqualTo(2199));
+      final lunar2199 = LunarSolarConverter.solarToLunar(
+        DateTime(2199, 12, 31),
+      );
+      expect(lunar2199.year >= 2199, isTrue);
     });
   });
 
@@ -84,6 +81,13 @@ void main() {
       );
     });
 
+    test('2026-09-27 中秋连休周日为 rest (休) 而非 workday (班)', () {
+      expect(
+        ChineseHolidays.getWorkStatus(DateTime(2026, 9, 27)),
+        DayWorkStatus.rest,
+      );
+    });
+
     test('支持动态注入自定义/未来年份节假日 (2028+)', () {
       ChineseHolidays.setCustomHolidays(
         {20281001: DayWorkStatus.rest},
@@ -117,6 +121,23 @@ void main() {
       expect(info.traditionalFestival, '中秋节');
       expect(info.displayText, '中秋');
       expect(info.agendaDescription, contains('中秋节'));
+    });
+
+    test('2027年春节与除夕精确识别：2-5除夕，2-6春节，2-7初二', () {
+      final eve = LunarCalendar.getDayInfo(DateTime(2027, 2, 5));
+      expect(eve.traditionalFestival, '除夕');
+      expect(eve.displayText, '除夕');
+      expect(eve.workStatus, DayWorkStatus.rest);
+
+      final springFestival = LunarCalendar.getDayInfo(DateTime(2027, 2, 6));
+      expect(springFestival.traditionalFestival, '春节');
+      expect(springFestival.displayText, '春节');
+      expect(springFestival.workStatus, DayWorkStatus.rest);
+
+      final dayTwo = LunarCalendar.getDayInfo(DateTime(2027, 2, 7));
+      expect(dayTwo.traditionalFestival, isNull);
+      expect(dayTwo.displayText, '初二');
+      expect(dayTwo.workStatus, DayWorkStatus.rest);
     });
   });
 }

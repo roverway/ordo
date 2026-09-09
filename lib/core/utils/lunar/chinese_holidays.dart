@@ -48,12 +48,13 @@ class ChineseHolidays {
     return _presetHolidays[key] ?? DayWorkStatus.none;
   }
 
-  /// 获取指定日期的法定节日名称（若有）
+  /// 获取指定日期的公历/法定节日名称（若有，优先自定义，其次公历固定节日）
   static String? getHolidayName(DateTime date) {
     final key = dateToKey(date);
     final custom = _customNames[key];
     if (custom != null) return custom;
-    return _presetHolidayNames[key];
+    final mmdd = date.month * 100 + date.day;
+    return fixedSolarHolidays[mmdd];
   }
 
   /// 公历固定重要节日名称映射（按月日 MMdd 匹配，如 1001 -> '国庆节'）
@@ -175,9 +176,9 @@ class ChineseHolidays {
     20260619: DayWorkStatus.rest, // 端午
     20260620: DayWorkStatus.rest,
     20260621: DayWorkStatus.rest,
-    20260925: DayWorkStatus.rest, // 中秋
+    20260925: DayWorkStatus.rest, // 中秋节
     20260926: DayWorkStatus.rest,
-    20260927: DayWorkStatus.workday,
+    20260927: DayWorkStatus.rest, // 中秋连休（周日）
     20261001: DayWorkStatus.rest, // 国庆
     20261002: DayWorkStatus.rest,
     20261003: DayWorkStatus.rest,
@@ -191,24 +192,29 @@ class ChineseHolidays {
     20270101: DayWorkStatus.rest, // 元旦
     20270102: DayWorkStatus.rest,
     20270103: DayWorkStatus.rest,
-    20270206: DayWorkStatus.rest, // 除夕
-    20270207: DayWorkStatus.rest, // 春节
+    20270131: DayWorkStatus.workday, // 春节调休
+    20270205: DayWorkStatus.rest, // 除夕（2026农历腊月廿九）
+    20270206: DayWorkStatus.rest, // 春节（2027农历正月初一）
+    20270207: DayWorkStatus.rest,
     20270208: DayWorkStatus.rest,
     20270209: DayWorkStatus.rest,
     20270210: DayWorkStatus.rest,
     20270211: DayWorkStatus.rest,
     20270212: DayWorkStatus.rest,
-    20270213: DayWorkStatus.rest,
+    20270214: DayWorkStatus.workday, // 春节补班
     20270404: DayWorkStatus.rest, // 清明
     20270405: DayWorkStatus.rest,
     20270406: DayWorkStatus.rest,
+    20270425: DayWorkStatus.workday, // 劳动节调休
     20270501: DayWorkStatus.rest, // 劳动节
     20270502: DayWorkStatus.rest,
     20270503: DayWorkStatus.rest,
     20270504: DayWorkStatus.rest,
     20270505: DayWorkStatus.rest,
+    20270508: DayWorkStatus.workday,
     20270609: DayWorkStatus.rest, // 端午
     20270915: DayWorkStatus.rest, // 中秋
+    20270926: DayWorkStatus.workday, // 国庆调休
     20271001: DayWorkStatus.rest, // 国庆
     20271002: DayWorkStatus.rest,
     20271003: DayWorkStatus.rest,
@@ -216,43 +222,6 @@ class ChineseHolidays {
     20271005: DayWorkStatus.rest,
     20271006: DayWorkStatus.rest,
     20271007: DayWorkStatus.rest,
-  };
-
-  /// 预置法定节假日名称映射
-  static const Map<int, String> _presetHolidayNames = {
-    20240101: '元旦',
-    20240210: '春节',
-    20240404: '清明节',
-    20240501: '劳动节',
-    20240610: '端午节',
-    20240917: '中秋节',
-    20241001: '国庆节',
-
-    20250101: '元旦',
-    20250128: '除夕',
-    20250129: '春节',
-    20250404: '清明节',
-    20250501: '劳动节',
-    20250531: '端午节',
-    20251001: '国庆节',
-    20251006: '中秋节',
-
-    20260101: '元旦',
-    20260216: '除夕',
-    20260217: '春节',
-    20260405: '清明节',
-    20260501: '劳动节',
-    20260619: '端午节',
-    20260925: '中秋节',
-    20261001: '国庆节',
-
-    20270101: '元旦',
-    20270206: '除夕',
-    20270207: '春节',
-    20270405: '清明节',
-    20270501: '劳动节',
-    20270609: '端午节',
-    20270915: '中秋节',
-    20271001: '国庆节',
+    20271009: DayWorkStatus.workday,
   };
 }
