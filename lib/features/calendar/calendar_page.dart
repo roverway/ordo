@@ -1227,12 +1227,12 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
         decoration: BoxDecoration(
           color: isActive
-              ? (isDark ? Colors.white : Colors.black87)
+              ? colorScheme.primary
               : Colors.transparent,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: isActive
-                ? Colors.transparent
+                ? colorScheme.primary
                 : (isDark
                       ? AppTokens.borderSubtleDark
                       : AppTokens.borderSubtleLight),
@@ -1245,7 +1245,7 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
             fontSize: 12.5,
             fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
             color: isActive
-                ? (isDark ? Colors.black87 : Colors.white)
+                ? colorScheme.onPrimary
                 : colorScheme.onSurfaceVariant,
           ),
         ),

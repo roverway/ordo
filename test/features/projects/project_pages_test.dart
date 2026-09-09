@@ -13,6 +13,7 @@ import 'package:todo/core/l10n/app_localizations.dart';
 import 'package:todo/features/custom_views/providers/custom_view_providers.dart';
 import 'package:todo/features/projects/project_providers.dart';
 import 'package:todo/features/projects/projects_page.dart';
+import 'package:todo/shared/widgets/page_hero_header.dart';
 import 'package:todo/features/projects/widgets/project_form_dialog.dart';
 import 'package:todo/features/settings/settings_providers.dart';
 import 'package:todo/features/tasks/task_list_page.dart';
@@ -165,6 +166,38 @@ void main() {
       expect(find.byType(FloatingActionButton), findsOneWidget);
       expect(find.text('还没有项目'), findsNothing);
     });
+
+    testWidgets('顶部 Hero 区域固定在滚动视图外', (tester) async {
+      final projects = List.generate(
+        15,
+        (i) => _project('p$i', '项目 $i'),
+      );
+
+      await _pump(
+        tester,
+        initialLocation: '/projects',
+        routes: [
+          GoRoute(path: '/projects', builder: (_, _) => const ProjectsPage()),
+          GoRoute(path: '/projects/:id', builder: (_, _) => const Scaffold()),
+        ],
+        projects: projects,
+      );
+
+      expect(find.byType(PageHeroHeader), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(CustomScrollView),
+          matching: find.byType(PageHeroHeader),
+        ),
+        findsNothing,
+      );
+
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -300));
+      await tester.pump();
+
+      expect(find.byType(PageHeroHeader), findsOneWidget);
+    });
+
 
     testWidgets('按文件夹分组展示：文件夹分组头 + 卡片 + 未分组区（D5）', (tester) async {
       final projects = [

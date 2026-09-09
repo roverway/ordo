@@ -516,4 +516,25 @@ void main() {
     // 周视图保持不变，任务列表正常向下滚动
     expect(find.text('8月10日 – 8月16日'), findsOneWidget);
   });
+
+  testWidgets('当日/该周/该月 Scope Chip 选中时背景使用主题色 primary', (tester) async {
+    final db = openTestDatabase();
+    final repo = TodoRepository(database: db);
+    final state = _fixedState(CalendarMode.week);
+
+    final controller = await _pump(tester, repo: repo, state: state);
+    controller.add(buildCalendarBuckets([], state));
+    await tester.pumpAndSettle();
+
+    final dayFinder = find.ancestor(
+      of: find.text('当日'),
+      matching: find.byType(Container),
+    ).first;
+    final container = tester.widget<Container>(dayFinder);
+    final decoration = container.decoration as BoxDecoration?;
+    expect(decoration?.color, isNotNull);
+    final element = tester.element(find.byType(CalendarPage));
+    final expectedPrimary = Theme.of(element).colorScheme.primary;
+    expect(decoration?.color, equals(expectedPrimary));
+  });
 }

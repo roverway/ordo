@@ -66,28 +66,28 @@ class ProjectsPage extends ConsumerWidget {
 
             var cardIndex = 0;
 
-            return CustomScrollView(
-              slivers: [
-                // Hero 顶栏
-                SliverToBoxAdapter(
-                  child: PageHeroHeader(
-                    title: l10n.overview,
-                    onTitleTap: () => showScopeSwitcherSheet(context),
-                    subtitle: l10n.projectsSummarySubtitle(
-                      totalProjectsCount,
-                      totalPendingTasks,
-                    ),
-                    trailing: HeroProgressRing(
-                      completed: totalCompleted,
-                      total: totalTasks > 0 ? totalTasks : 1,
-                      customCenterText: totalTasks > 0
-                          ? '$totalCompleted/$totalTasks'
-                          : '0/0',
-                    ),
+            return Column(
+              children: [
+                // 固定顶部 Hero 顶栏
+                PageHeroHeader(
+                  title: l10n.overview,
+                  onTitleTap: () => showScopeSwitcherSheet(context),
+                  subtitle: l10n.projectsSummarySubtitle(
+                    totalProjectsCount,
+                    totalPendingTasks,
+                  ),
+                  trailing: HeroProgressRing(
+                    completed: totalCompleted,
+                    total: totalTasks > 0 ? totalTasks : 1,
+                    customCenterText: totalTasks > 0
+                        ? '$totalCompleted/$totalTasks'
+                        : '0/0',
                   ),
                 ),
-
-                // 周完成条 (Week progress bar)
+                Expanded(
+                  child: CustomScrollView(
+                    slivers: [
+                      // 周完成条 (Week progress bar)
                 if (totalTasks > 0)
                   SliverToBoxAdapter(
                     child: Padding(
@@ -188,6 +188,9 @@ class ProjectsPage extends ConsumerWidget {
                 ),
 
                 const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                    ],
+                  ),
+                ),
               ],
             );
           },
