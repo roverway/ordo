@@ -26,6 +26,7 @@ import '../../core/sync/sync_engine.dart';
 import '../../core/sync/sync_exceptions.dart';
 import '../../core/sync/sync_triggers.dart';
 import '../projects/project_providers.dart';
+import '../settings/settings_providers.dart';
 
 /// 凭据安全存储（flutter_secure_storage 封装，§13；凭据禁止明文入 settings）。
 final secureStoreProvider = Provider<SecureStore>((ref) => SecureStore());
@@ -76,6 +77,7 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
     repository: ref.watch(todoRepositoryProvider),
     secureStore: ref.watch(secureStoreProvider),
     remoteStoreFactory: ref.watch(remoteStoreFactoryProvider),
+    snapshotPoolService: ref.watch(snapshotPoolServiceProvider),
     confirmClockSkew: () async {
       final confirm = ref.read(clockSkewConfirmProvider).callback;
       return confirm != null ? confirm() : false;

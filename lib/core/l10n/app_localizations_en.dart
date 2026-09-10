@@ -1288,4 +1288,102 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get showHolidaysSubtitle =>
       'Show official holidays and weekend alternate workdays (Rest / Work)';
+
+  @override
+  String get settingsSectionBackup => 'Data & Backup';
+
+  @override
+  String get backupExportTitle => 'Export Backup';
+
+  @override
+  String get backupExportSubtitle =>
+      'Export all data as .ordobak file (excluding credentials)';
+
+  @override
+  String get backupExportSuccess => 'Backup exported successfully';
+
+  @override
+  String get backupImportTitle => 'Import Backup';
+
+  @override
+  String get backupImportSubtitle =>
+      'Restore or merge data from a .ordobak file';
+
+  @override
+  String get backupSnapshotPoolTitle => 'Local Snapshots';
+
+  @override
+  String backupSnapshotPoolSubtitle(int count) {
+    return '$count snapshots available for rollback';
+  }
+
+  @override
+  String get backupRetentionDaysTitle => 'Snapshot Retention';
+
+  @override
+  String get backupRetentionDaysSubtitle =>
+      'Auto-purges expired snapshots while keeping at least one';
+
+  @override
+  String backupRetentionDaysOption(int days) {
+    return '$days days';
+  }
+
+  @override
+  String get backupImportDialogTitle => 'Confirm Backup Import';
+
+  @override
+  String backupImportDialogSummary(
+    String time,
+    int projects,
+    int tasks,
+    int tags,
+    int folders,
+    int views,
+  ) {
+    return 'Exported at: $time\nContains: $projects projects · $tasks tasks · $tags tags · $folders folders · $views custom views';
+  }
+
+  @override
+  String get backupImportModeMerge => 'Merge (Recommended)';
+
+  @override
+  String get backupImportModeMergeDesc =>
+      'Merges data using LWW timestamp, preserving latest changes on both sides';
+
+  @override
+  String get backupImportModeReplace => 'Full Replace';
+
+  @override
+  String get backupImportModeReplaceDesc =>
+      'Clears current data and restores from backup (a safety snapshot is created beforehand)';
+
+  @override
+  String get backupImportAction => 'Import Now';
+
+  @override
+  String get backupImportSuccess => 'Data imported successfully';
+
+  @override
+  String get backupSnapshotSheetTitle => 'Local Snapshot History';
+
+  @override
+  String get backupCreateSnapshotManual => 'New Snapshot';
+
+  @override
+  String get backupRestoreAction => 'Restore From Snapshot';
+
+  @override
+  String get backupDeleteAction => 'Delete';
+
+  @override
+  String get backupSnapshotEmpty => 'No local snapshots yet';
+
+  @override
+  String get backupInvalidFile => 'Invalid or corrupted backup file';
+
+  @override
+  String backupOperationFailed(String error) {
+    return 'Operation failed: $error';
+  }
 }

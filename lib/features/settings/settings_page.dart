@@ -12,6 +12,7 @@ import '../../features/tags/tag_providers.dart';
 import '../../shared/widgets/app_logo.dart';
 import '../../shared/widgets/modern_segmented_control.dart';
 import 'settings_providers.dart';
+import 'widgets/backup_section.dart';
 
 const String appVersion = '1.0.0';
 
@@ -129,7 +130,11 @@ class SettingsBody extends StatelessWidget {
         _SyncSection(onOpenSync: onOpenSync),
         const SizedBox(height: 20),
 
-        // ── 5. 关于 ──
+        // ── 5. 数据导入导出与安全备份 ──
+        const BackupSection(),
+        const SizedBox(height: 20),
+
+        // ── 6. 关于 ──
         const _AboutSection(),
       ],
     );

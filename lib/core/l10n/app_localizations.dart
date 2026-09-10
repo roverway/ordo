@@ -2437,6 +2437,169 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'标注放假安排与周末调休补班状态（休/班）'**
   String get showHolidaysSubtitle;
+
+  /// No description provided for @settingsSectionBackup.
+  ///
+  /// In zh, this message translates to:
+  /// **'数据与安全备份'**
+  String get settingsSectionBackup;
+
+  /// No description provided for @backupExportTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出备份数据'**
+  String get backupExportTitle;
+
+  /// No description provided for @backupExportSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出所有业务数据为 .ordobak 文件（不含密钥与应用配置）'**
+  String get backupExportSubtitle;
+
+  /// No description provided for @backupExportSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'已成功导出备份文件'**
+  String get backupExportSuccess;
+
+  /// No description provided for @backupImportTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'导入备份文件'**
+  String get backupImportTitle;
+
+  /// No description provided for @backupImportSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'从 .ordobak 文件恢复或合并数据'**
+  String get backupImportSubtitle;
+
+  /// No description provided for @backupSnapshotPoolTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'本地安全快照'**
+  String get backupSnapshotPoolTitle;
+
+  /// No description provided for @backupSnapshotPoolSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'共 {count} 份快照，随时可按快照还原'**
+  String backupSnapshotPoolSubtitle(int count);
+
+  /// No description provided for @backupRetentionDaysTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'快照保留时间'**
+  String get backupRetentionDaysTitle;
+
+  /// No description provided for @backupRetentionDaysSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'过期快照自动滚动清理，保底保留最新 1 份'**
+  String get backupRetentionDaysSubtitle;
+
+  /// No description provided for @backupRetentionDaysOption.
+  ///
+  /// In zh, this message translates to:
+  /// **'{days} 天'**
+  String backupRetentionDaysOption(int days);
+
+  /// No description provided for @backupImportDialogTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'确认导入备份'**
+  String get backupImportDialogTitle;
+
+  /// No description provided for @backupImportDialogSummary.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出时间：{time}\n包含：{projects} 个清单 · {tasks} 项任务 · {tags} 个标签 · {folders} 个文件夹 · {views} 个自定义视图'**
+  String backupImportDialogSummary(
+    String time,
+    int projects,
+    int tasks,
+    int tags,
+    int folders,
+    int views,
+  );
+
+  /// No description provided for @backupImportModeMerge.
+  ///
+  /// In zh, this message translates to:
+  /// **'增量合并（推荐）'**
+  String get backupImportModeMerge;
+
+  /// No description provided for @backupImportModeMergeDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'基于最新修改时间合流双方数据，不丢失本地现有记录'**
+  String get backupImportModeMergeDesc;
+
+  /// No description provided for @backupImportModeReplace.
+  ///
+  /// In zh, this message translates to:
+  /// **'全新覆盖'**
+  String get backupImportModeReplace;
+
+  /// No description provided for @backupImportModeReplaceDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'清空当前业务数据并完全按备份重建（还原前将自动创建前置保护快照）'**
+  String get backupImportModeReplaceDesc;
+
+  /// No description provided for @backupImportAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'开始导入'**
+  String get backupImportAction;
+
+  /// No description provided for @backupImportSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'数据导入成功'**
+  String get backupImportSuccess;
+
+  /// No description provided for @backupSnapshotSheetTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'本地安全快照历史'**
+  String get backupSnapshotSheetTitle;
+
+  /// No description provided for @backupCreateSnapshotManual.
+  ///
+  /// In zh, this message translates to:
+  /// **'新建快照'**
+  String get backupCreateSnapshotManual;
+
+  /// No description provided for @backupRestoreAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'按此快照还原'**
+  String get backupRestoreAction;
+
+  /// No description provided for @backupDeleteAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除'**
+  String get backupDeleteAction;
+
+  /// No description provided for @backupSnapshotEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无本地快照'**
+  String get backupSnapshotEmpty;
+
+  /// No description provided for @backupInvalidFile.
+  ///
+  /// In zh, this message translates to:
+  /// **'无效或损坏的备份文件'**
+  String get backupInvalidFile;
+
+  /// No description provided for @backupOperationFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'操作失败：{error}'**
+  String backupOperationFailed(String error);
 }
 
 class _AppLocalizationsDelegate

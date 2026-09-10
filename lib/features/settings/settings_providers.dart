@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/db/daos/settings_dao.dart';
+import '../../core/backup/backup_restore_service.dart';
+import '../../core/backup/snapshot_pool_service.dart';
 import '../../core/theme/app_tokens.dart';
+import '../projects/project_providers.dart';
 
 /// 设备本地偏好缓存：settings 表在内存的同步镜像（docs/64-local-preferences.md §3.1）。
 ///
@@ -220,5 +223,77 @@ class CalendarShowHolidaysNotifier extends Notifier<bool> {
     } catch (e) {
       debugPrint('setShowHolidays 持久化失败：${e.runtimeType}');
     }
+  }
+}
+
+/// 快照保留天数持久化 key（settings 表）。
+const String backupRetentionDaysPrefKey = 'backup_retention_days';
+
+/// 默认本地快照保留天数（7 天）。
+const int defaultBackupRetentionDays = 7;
+
+/// 快照保留天数 Notifier。
+final backupRetentionDaysProvider =
+    NotifierProvider<BackupRetentionDaysNotifier, int>(
+  BackupRetentionDaysNotifier.new,
+);
+
+class BackupRetentionDaysNotifier extends Notifier<int> {
+  @override
+  int build() {
+    final value = ref
+        .watch(appSettingsCacheProvider)
+        .get(backupRetentionDaysPrefKey);
+    return int.tryParse(value ?? '') ?? defaultBackupRetentionDays;
+  }
+
+  /// 更改快照保留天数并持久化。
+  Future<void> setDays(int days) async {
+    final cache = ref.read(appSettingsCacheProvider);
+    state = days;
+    try {
+      await cache.set(backupRetentionDaysPrefKey, days.toString());
+    } catch (e) {
+      debugPrint('setBackupRetentionDays 持久化失败：${e.runtimeType}');
+    }
+  }
+}
+
+/// 数据导入导出与灾难恢复服务 Provider。
+final backupRestoreServiceProvider = Provider<BackupRestoreService>((ref) {
+  final repo = ref.watch(todoRepositoryProvider);
+  return BackupRestoreService(repo);
+});
+
+/// 本地安全快照池管理服务 Provider。
+final snapshotPoolServiceProvider = Provider<SnapshotPoolService>((ref) {
+  final backupService = ref.watch(backupRestoreServiceProvider);
+  final repo = ref.watch(todoRepositoryProvider);
+  return SnapshotPoolService(
+    backupService: backupService,
+    settings: repo.settings,
+  );
+});
+
+/// 本地快照列表 Notifier。
+final localSnapshotsProvider =
+    AsyncNotifierProvider<LocalSnapshotsNotifier, List<LocalSnapshotInfo>>(
+  LocalSnapshotsNotifier.new,
+);
+
+class LocalSnapshotsNotifier extends AsyncNotifier<List<LocalSnapshotInfo>> {
+  @override
+  Future<List<LocalSnapshotInfo>> build() async {
+    final pool = ref.watch(snapshotPoolServiceProvider);
+    return pool.listSnapshots();
+  }
+
+  /// 重新扫描快照池并刷新列表。
+  Future<void> refresh() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final pool = ref.read(snapshotPoolServiceProvider);
+      return pool.listSnapshots();
+    });
   }
 }

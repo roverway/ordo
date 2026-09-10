@@ -723,5 +723,74 @@
   "showHolidaysSubtitle": "Show official holidays and weekend alternate workdays (Rest / Work)",
   "@showHolidaysSubtitle": {
     "description": "Subtitle for holidays toggle"
+  }  ,
+  "settingsSectionBackup": "Data & Backup",
+  "backupExportTitle": "Export Backup",
+  "backupExportSubtitle": "Export all data as .ordobak file (excluding credentials)",
+  "backupExportSuccess": "Backup exported successfully",
+  "backupImportTitle": "Import Backup",
+  "backupImportSubtitle": "Restore or merge data from a .ordobak file",
+  "backupSnapshotPoolTitle": "Local Snapshots",
+  "backupSnapshotPoolSubtitle": "{count} snapshots available for rollback",
+  "@backupSnapshotPoolSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupRetentionDaysTitle": "Snapshot Retention",
+  "backupRetentionDaysSubtitle": "Auto-purges expired snapshots while keeping at least one",
+  "backupRetentionDaysOption": "{days} days",
+  "@backupRetentionDaysOption": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "backupImportDialogTitle": "Confirm Backup Import",
+  "backupImportDialogSummary": "Exported at: {time}\nContains: {projects} projects · {tasks} tasks · {tags} tags · {folders} folders · {views} custom views",
+  "@backupImportDialogSummary": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "projects": {
+        "type": "int"
+      },
+      "tasks": {
+        "type": "int"
+      },
+      "tags": {
+        "type": "int"
+      },
+      "folders": {
+        "type": "int"
+      },
+      "views": {
+        "type": "int"
+      }
+    }
+  },
+  "backupImportModeMerge": "Merge (Recommended)",
+  "backupImportModeMergeDesc": "Merges data using LWW timestamp, preserving latest changes on both sides",
+  "backupImportModeReplace": "Full Replace",
+  "backupImportModeReplaceDesc": "Clears current data and restores from backup (a safety snapshot is created beforehand)",
+  "backupImportAction": "Import Now",
+  "backupImportSuccess": "Data imported successfully",
+  "backupSnapshotSheetTitle": "Local Snapshot History",
+  "backupCreateSnapshotManual": "New Snapshot",
+  "backupRestoreAction": "Restore From Snapshot",
+  "backupDeleteAction": "Delete",
+  "backupSnapshotEmpty": "No local snapshots yet",
+  "backupInvalidFile": "Invalid or corrupted backup file",
+  "backupOperationFailed": "Operation failed: {error}",
+  "@backupOperationFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   }
 }

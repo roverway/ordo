@@ -1263,4 +1263,97 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get showHolidaysSubtitle => '标注放假安排与周末调休补班状态（休/班）';
+
+  @override
+  String get settingsSectionBackup => '数据与安全备份';
+
+  @override
+  String get backupExportTitle => '导出备份数据';
+
+  @override
+  String get backupExportSubtitle => '导出所有业务数据为 .ordobak 文件（不含密钥与应用配置）';
+
+  @override
+  String get backupExportSuccess => '已成功导出备份文件';
+
+  @override
+  String get backupImportTitle => '导入备份文件';
+
+  @override
+  String get backupImportSubtitle => '从 .ordobak 文件恢复或合并数据';
+
+  @override
+  String get backupSnapshotPoolTitle => '本地安全快照';
+
+  @override
+  String backupSnapshotPoolSubtitle(int count) {
+    return '共 $count 份快照，随时可按快照还原';
+  }
+
+  @override
+  String get backupRetentionDaysTitle => '快照保留时间';
+
+  @override
+  String get backupRetentionDaysSubtitle => '过期快照自动滚动清理，保底保留最新 1 份';
+
+  @override
+  String backupRetentionDaysOption(int days) {
+    return '$days 天';
+  }
+
+  @override
+  String get backupImportDialogTitle => '确认导入备份';
+
+  @override
+  String backupImportDialogSummary(
+    String time,
+    int projects,
+    int tasks,
+    int tags,
+    int folders,
+    int views,
+  ) {
+    return '导出时间：$time\n包含：$projects 个清单 · $tasks 项任务 · $tags 个标签 · $folders 个文件夹 · $views 个自定义视图';
+  }
+
+  @override
+  String get backupImportModeMerge => '增量合并（推荐）';
+
+  @override
+  String get backupImportModeMergeDesc => '基于最新修改时间合流双方数据，不丢失本地现有记录';
+
+  @override
+  String get backupImportModeReplace => '全新覆盖';
+
+  @override
+  String get backupImportModeReplaceDesc => '清空当前业务数据并完全按备份重建（还原前将自动创建前置保护快照）';
+
+  @override
+  String get backupImportAction => '开始导入';
+
+  @override
+  String get backupImportSuccess => '数据导入成功';
+
+  @override
+  String get backupSnapshotSheetTitle => '本地安全快照历史';
+
+  @override
+  String get backupCreateSnapshotManual => '新建快照';
+
+  @override
+  String get backupRestoreAction => '按此快照还原';
+
+  @override
+  String get backupDeleteAction => '删除';
+
+  @override
+  String get backupSnapshotEmpty => '暂无本地快照';
+
+  @override
+  String get backupInvalidFile => '无效或损坏的备份文件';
+
+  @override
+  String backupOperationFailed(String error) {
+    return '操作失败：$error';
+  }
 }

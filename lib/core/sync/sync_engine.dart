@@ -32,6 +32,7 @@ import 'package:flutter/foundation.dart' show compute, debugPrint;
 import '../db/database.dart' show CustomView, Folder, Project, Tag, Task;
 import '../db/repositories/todo_repository.dart';
 import '../db/tables.dart' show TaskPriority, TaskStatus;
+import '../backup/snapshot_pool_service.dart';
 import '../security/secure_store.dart';
 import '../utils/uuid.dart';
 import 'content_hash.dart';
@@ -168,8 +169,10 @@ class SyncEngine {
     required RemoteStoreFactory remoteStoreFactory,
     Future<bool> Function()? confirmClockSkew,
     void Function(SyncState)? onStateChanged,
+    SnapshotPoolService? snapshotPoolService,
     DateTime Function()? now,
   }) : _repository = repository,
+       _snapshotPoolService = snapshotPoolService,
        _secureStore = secureStore,
        _remoteStoreFactory = remoteStoreFactory,
        _confirmClockSkew = confirmClockSkew,
@@ -179,6 +182,7 @@ class SyncEngine {
   final TodoRepository _repository;
   final SecureStore _secureStore;
   final RemoteStoreFactory _remoteStoreFactory;
+  final SnapshotPoolService? _snapshotPoolService;
 
   /// 时钟偏差确认回调；null 表示 UI 未提供 → 直接拒绝（§11）。
   final Future<bool> Function()? _confirmClockSkew;
@@ -288,6 +292,16 @@ class SyncEngine {
           data.folders.isEmpty &&
           data.customViews.isEmpty &&
           tombstones.isEmpty;
+
+      if (_snapshotPoolService != null && !localEmpty) {
+        try {
+          await _snapshotPoolService.createSnapshot(
+            trigger: SnapshotTriggerType.preSync,
+          );
+        } catch (e) {
+          debugPrint('sync: preSync snapshot failed (ignored): ');
+        }
+      }
 
       if (!remoteExists) {
         // 分支 B（§5）：本地有 + 远端空 → 上传（两端都空也走此路径，
