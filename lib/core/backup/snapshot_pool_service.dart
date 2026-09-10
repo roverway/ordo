@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:path_provider/path_provider.dart';
 import 'package:todo/core/db/daos/settings_dao.dart';
 
@@ -230,35 +231,64 @@ class SnapshotPoolService {
     }
   }
 
-  /// 清理过期快照。
+  /// 清理过期快照（轻量高效实现：零 I/O 读取文件内容，零 CPU 解压反序列化）。
   ///
   /// 保留策略：
-  /// - 遍历所有有效快照；
-  /// - 距当前时间超过 `retentionDays` 的快照标记为待删除；
+  /// - 遍历所有有效快照文件实体；
+  /// - 距离当前时间超过 `retentionDays` 的快照标记为待删除；
   /// - **终极保底防空**：如果删除会导致快照池被彻底清空，始终强行保留最新的 1 份快照。
   Future<int> pruneExpiredSnapshots() async {
-    final snapshots = await listSnapshots();
-    if (snapshots.isEmpty) return 0;
+    try {
+      final dir = await _getDirectory();
+      if (!await dir.exists()) return 0;
 
-    final days = await getRetentionDays();
-    final cutoff = DateTime.now().subtract(Duration(days: days));
+      final entities = await dir.list().toList();
+      final validFiles = <({File file, DateTime createdAt})>[];
 
-    var deletedCount = 0;
-    // snapshots 已经按时间降序排列，snapshots.first 是最新的一份
-    for (var i = 0; i < snapshots.length; i++) {
-      final snap = snapshots[i];
-      // 如果是最新的第一份，绝对不删（保底）
-      if (i == 0) continue;
+      for (final entity in entities) {
+        if (entity is! File) continue;
+        final fileName = entity.uri.pathSegments.isNotEmpty
+            ? entity.uri.pathSegments.last
+            : '';
+        if (!fileName.startsWith('snap_') || !fileName.endsWith('.ordobak')) {
+          continue;
+        }
 
-      if (snap.createdAt.isBefore(cutoff)) {
-        try {
-          await deleteSnapshot(snap.filePath);
-          deletedCount++;
-        } catch (_) {}
+        final parts = fileName.replaceFirst('.ordobak', '').split('_');
+        if (parts.length < 4) continue;
+        final dateStr = parts[1];
+        final timeStr = parts[2];
+
+        final dt =
+            parseTimestamp(dateStr, timeStr) ?? await entity.lastModified();
+        validFiles.add((file: entity, createdAt: dt));
       }
-    }
 
-    return deletedCount;
+      if (validFiles.isEmpty) return 0;
+
+      // 按时间降序排列，第 0 项是最新的一份
+      validFiles.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      final days = await getRetentionDays();
+      final cutoff = DateTime.now().subtract(Duration(days: days));
+
+      var deletedCount = 0;
+      // 保底策略：第 0 项（最新的一份）绝对保留，从索引 1 开始检查过期
+      for (var i = 1; i < validFiles.length; i++) {
+        final item = validFiles[i];
+        if (item.createdAt.isBefore(cutoff)) {
+          try {
+            await item.file.delete();
+            deletedCount++;
+          } catch (_) {}
+        }
+      }
+
+      return deletedCount;
+    } catch (e) {
+      debugPrint('SnapshotPoolService: pruneExpiredSnapshots failed: $e');
+      return 0;
+    }
   }
 
   /// 从快照中还原数据。

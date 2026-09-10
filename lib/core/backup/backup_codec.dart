@@ -6,12 +6,7 @@ import '../sync/snapshot.dart';
 import '../sync/snapshot_codec.dart';
 
 /// `.ordobak` 文件的 4 字节魔数（ASCII: "ORDO"）。
-final Uint8List kBackupMagicBytes = Uint8List.fromList([
-  0x4F,
-  0x52,
-  0x44,
-  0x4F,
-]); // O, R, D, O
+const List<int> kBackupMagicBytes = [0x4F, 0x52, 0x44, 0x4F]; // O, R, D, O
 
 /// 当前备份文件格式版本。
 const int kBackupFormatVersion = 1;
@@ -47,7 +42,7 @@ class UnsupportedBackupVersionException implements Exception {
 /// 格式布局：
 /// ```
 /// 0..3:   Magic Header (4 bytes: 'O', 'R', 'D', 'O')
-/// 4..5:   Format Version (2 bytes, Big-Endian uint16, 当前为 1)
+/// 4..5:   Format Version (2 bytes, Big-Endian uint16，当前为 1)
 /// 6..end: Gzip-compressed JSON payload (SnapshotData)
 /// ```
 Uint8List encodeBackup(SnapshotData data) {
@@ -65,7 +60,7 @@ Uint8List encodeBackup(SnapshotData data) {
   buffer.setRange(0, 4, kBackupMagicBytes);
   // 版本号: uint16 big endian
   byteData.setUint16(4, kBackupFormatVersion, Endian.big);
-  // 数据载荷
+  // 数据负载
   buffer.setRange(6, totalLength, compressed);
 
   return buffer;
@@ -77,11 +72,11 @@ Uint8List encodeBackup(SnapshotData data) {
 /// 1. 检查长度至少为 6 字节（4 字节魔数 + 2 字节版本号）；
 /// 2. 严格核对魔数 `ORDO`，不匹配则抛出 [InvalidBackupMagicException]；
 /// 3. 解析版本号，超出当前支持范围则抛出 [UnsupportedBackupVersionException]；
-/// 4. 提取后续载荷，通过内置 GZipCodec 解压并交由 [SnapshotData.fromJson] 进行崩溃安全解析；
-/// 5. 数据 Schema 版本的兼容性在载荷解压后交由现有 [decodeSnapshot] 或底层 Schema 规则验证。
+/// 4. 提取后续负载，通过内置 GZipCodec 解压并交由 [SnapshotData.fromJson] 进行崩溃安全解析；
+/// 5. 数据 Schema 版本的兼容性在负载解压后交由现有 [decodeSnapshot] 或底层 Schema 规则验证。
 SnapshotData decodeBackup(Uint8List bytes) {
   if (bytes.length < 6) {
-    throw const InvalidBackupMagicException([]);
+    throw InvalidBackupMagicException(bytes.sublist(0, bytes.length));
   }
 
   // 1. 魔数核对
@@ -99,11 +94,10 @@ SnapshotData decodeBackup(Uint8List bytes) {
     throw UnsupportedBackupVersionException(version);
   }
 
-  // 3. 提取载荷并解码
+  // 3. 提取负载并解码
   final payloadBytes = Uint8List.sublistView(bytes, 6);
   return decodeSnapshot(payloadBytes);
 }
-
 
 /// 方便调用统一编解码静态入口。
 class BackupCodec {

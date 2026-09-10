@@ -723,7 +723,7 @@
   "showHolidaysSubtitle": "Show official holidays and weekend alternate workdays (Rest / Work)",
   "@showHolidaysSubtitle": {
     "description": "Subtitle for holidays toggle"
-  }  ,
+  },
   "settingsSectionBackup": "Data & Backup",
   "backupExportTitle": "Export Backup",
   "backupExportSubtitle": "Export all data as .ordobak file (excluding credentials)",
@@ -750,7 +750,7 @@
     }
   },
   "backupImportDialogTitle": "Confirm Backup Import",
-  "backupImportDialogSummary": "Exported at: {time}\nContains: {projects} projects · {tasks} tasks · {tags} tags · {folders} folders · {views} custom views",
+  "backupImportDialogSummary": "Exported at: {time}\\nContains: {projects} projects · {tasks} tasks · {tags} tags · {folders} folders · {views} views",
   "@backupImportDialogSummary": {
     "placeholders": {
       "time": {
@@ -789,6 +789,18 @@
   "@backupOperationFailed": {
     "placeholders": {
       "error": {
+        "type": "String"
+      }
+    }
+  },
+  "backupRestoreButton": "Restore",
+  "backupSnapshotPoint": "Snapshot: {time} ({label})",
+  "@backupSnapshotPoint": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "label": {
         "type": "String"
       }
     }

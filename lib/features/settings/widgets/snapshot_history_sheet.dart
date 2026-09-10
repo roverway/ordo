@@ -43,6 +43,7 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
 
   Future<void> _createManualSnapshot() async {
     setState(() => _isCreating = true);
+    final l10n = AppLocalizations.of(context);
     final pool = ref.read(snapshotPoolServiceProvider);
     try {
       await pool.createSnapshot(trigger: SnapshotTriggerType.manual);
@@ -50,13 +51,13 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('已成功创建本地安全快照')));
+        ).showSnackBar(SnackBar(content: Text(l10n.backupExportSuccess)));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('创建快照失败：$e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.backupOperationFailed(e.toString()))),
+        );
       }
     } finally {
       if (mounted) {
@@ -66,13 +67,14 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
   }
 
   Future<void> _handleRestore(LocalSnapshotInfo snap) async {
+    final l10n = AppLocalizations.of(context);
     final pool = ref.read(snapshotPoolServiceProvider);
     final file = File(snap.filePath);
     if (!await file.exists()) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('快照文件不存在')));
+        ).showSnackBar(SnackBar(content: Text(l10n.backupInvalidFile)));
       }
       return;
     }
@@ -82,11 +84,11 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
     BackupSummary summary;
     try {
       summary = backupService.inspectBackup(bytes);
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('快照文件已损坏：$e')));
+        ).showSnackBar(SnackBar(content: Text(l10n.backupInvalidFile)));
       }
       return;
     }
@@ -96,8 +98,10 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
     final confirmed = await ImportConfirmDialog.show(
       context,
       summary: summary,
-      sourceTitle:
-          '快照点：${_formatDateTime(snap.createdAt)} (${snap.triggerType.label})',
+      sourceTitle: l10n.backupSnapshotPoint(
+        _formatDateTime(snap.createdAt),
+        snap.triggerType.label,
+      ),
       onConfirm: (mode) async {
         await pool.restoreFromSnapshot(snap.filePath, mode: mode);
         ref.invalidate(localSnapshotsProvider);
@@ -108,31 +112,34 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('已从选定快照成功还原数据')));
+      ).showSnackBar(SnackBar(content: Text(l10n.backupImportSuccess)));
     }
   }
 
   Future<void> _handleDelete(LocalSnapshotInfo snap) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          '删除快照',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        title: Text(
+          l10n.backupDeleteAction,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
-        content: Text('确定删除于 ${_formatDateTime(snap.createdAt)} 生成的备份快照吗？'),
+        content: Text(
+          l10n.deleteProjectConfirm(_formatDateTime(snap.createdAt)),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFEF4444),
             ),
-            child: const Text('删除'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -230,7 +237,9 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '按快照自由回滚数据（还原前自动保留当前保护点）',
+                          l10n.backupSnapshotPoolSubtitle(
+                            snapshotsAsync.value?.length ?? 0,
+                          ),
                           style: TextStyle(
                             fontSize: 11,
                             color: colorScheme.onSurfaceVariant,
@@ -286,7 +295,7 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                 error: (err, _) => Center(
                   child: Padding(
                     padding: const EdgeInsets.all(32),
-                    child: Text('读取快照失败：$err'),
+                    child: Text(l10n.backupOperationFailed(err.toString())),
                   ),
                 ),
                 data: (snapshots) {
@@ -382,7 +391,7 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    '${snap.projectCount} 清单 · ${snap.taskCount} 任务 · $sizeKb KB',
+                                    '${snap.projectCount} · ${snap.taskCount} · $sizeKb KB',
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: colorScheme.onSurfaceVariant,
@@ -401,7 +410,7 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                                 color: colorScheme.primary,
                               ),
                               label: Text(
-                                '还原',
+                                l10n.backupRestoreButton,
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -428,7 +437,7 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                               ),
                               onPressed: () => _handleDelete(snap),
                               visualDensity: VisualDensity.compact,
-                              tooltip: '删除此快照',
+                              tooltip: l10n.backupDeleteAction,
                             ),
                           ],
                         ),

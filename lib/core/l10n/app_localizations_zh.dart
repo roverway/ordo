@@ -1313,7 +1313,7 @@ class AppLocalizationsZh extends AppLocalizations {
     int folders,
     int views,
   ) {
-    return '导出时间：$time\n包含：$projects 个清单 · $tasks 项任务 · $tags 个标签 · $folders 个文件夹 · $views 个自定义视图';
+    return '导出时间：$time\\n包含：$projects 个清单 · $tasks 项任务 · $tags 个标签 · $folders 个文件夹 · $views 个视图';
   }
 
   @override
@@ -1355,5 +1355,13 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String backupOperationFailed(String error) {
     return '操作失败：$error';
+  }
+
+  @override
+  String get backupRestoreButton => '还原';
+
+  @override
+  String backupSnapshotPoint(String time, String label) {
+    return '快照点：$time ($label)';
   }
 }

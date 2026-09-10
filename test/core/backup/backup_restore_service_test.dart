@@ -173,7 +173,19 @@ void main() {
           ),
         ],
         tags: externalSnapshot.tags,
-        folders: externalSnapshot.folders,
+        folders: [
+          ...externalSnapshot.folders,
+          const FolderRecord(
+            id: 'folder-merge-test',
+            name: '合并测试文件夹',
+            color: 0xFF884422,
+            icon: 'folder_special',
+            sortOrder: 1,
+            createdAt: 1800,
+            updatedAt: 1800,
+            deleted: false,
+          ),
+        ],
         customViews: externalSnapshot.customViews,
       );
       final backupBytes = encodeBackup(backupSnapshot);
@@ -188,6 +200,12 @@ void main() {
       final taskC = await repo.tasks.getById('task-c');
       expect(taskC, isNotNull);
       expect(taskC?.title, equals('来自备份的新任务C'));
+
+      // 验证 Folder 元数据 (color, icon) 在合并时得到完整保留
+      final mergedFolder = await repo.folders.getById('folder-merge-test');
+      expect(mergedFolder, isNotNull);
+      expect(mergedFolder?.color, equals(0xFF884422));
+      expect(mergedFolder?.icon, equals('folder_special'));
     });
   });
 }

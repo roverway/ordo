@@ -9,11 +9,12 @@ import '../db/tables.dart';
 import '../sync/merge_engine.dart';
 import '../sync/snapshot.dart';
 import '../sync/snapshot_codec.dart';
+import '../sync/sync_config.dart';
 import 'backup_codec.dart';
 
 /// 导入模式枚举。
 enum ImportMode {
-  /// 全新覆盖模式（完全清空现有数据与同步墓碑，使用备份数据全量重建）。
+  /// 全新覆盖模式（完全清体现有数据与同步墓碑，使用备份数据全量重建）。
   replace,
 
   /// 增量合并模式（基于 LWW 时间戳算法合流，保留双方最新数据）。
@@ -216,7 +217,13 @@ class BackupRestoreService {
       await _db.delete(_db.tags).go();
 
       // 2. 清除设置中的历史同步墓碑与远端基准状态，确保不会被旧删除墓碑冲刷
-      await _repository.settings.remove('sync_tombstones');
+      await (_db.delete(_db.settings)..where(
+            (s) => s.key.isIn([
+              SyncSettingsKeys.tombstones,
+              SyncSettingsKeys.lastSyncedAt,
+            ]),
+          ))
+          .go();
 
       // 3. 按拓扑依赖顺序写入备份实体
       // 3.1 文件夹
@@ -485,6 +492,8 @@ class BackupRestoreService {
           Folder(
             id: f.id,
             name: f.name,
+            color: f.color,
+            icon: f.icon,
             sortOrder: f.sortOrder,
             createdAt: f.createdAt,
             updatedAt: f.updatedAt,

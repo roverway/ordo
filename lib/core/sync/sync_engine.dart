@@ -299,7 +299,7 @@ class SyncEngine {
             trigger: SnapshotTriggerType.preSync,
           );
         } catch (e) {
-          debugPrint('sync: preSync snapshot failed (ignored): ');
+          debugPrint('sync: preSync snapshot failed (ignored): $e');
         }
       }
 

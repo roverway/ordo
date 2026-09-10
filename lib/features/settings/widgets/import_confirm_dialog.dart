@@ -128,7 +128,7 @@ class _ImportConfirmDialogState extends State<ImportConfirmDialog> {
               const SizedBox(height: 8),
             ],
 
-            // 摘要卡片
+            // 摘要卡片（使用标准本地化模板字符串）
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
@@ -140,48 +140,27 @@ class _ImportConfirmDialogState extends State<ImportConfirmDialog> {
                   width: 1,
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '备份时间：${_formatDateTime(widget.summary.exportedAt)}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '包含：${widget.summary.projectCount} 个清单 · '
-                    '${widget.summary.taskCount} 项任务 · '
-                    '${widget.summary.tagCount} 个标签 · '
-                    '${widget.summary.folderCount} 个文件夹 · '
-                    '${widget.summary.customViewCount} 个视图',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark
-                          ? const Color(0xFFD1D5DB)
-                          : const Color(0xFF4B5563),
-                      height: 1.4,
-                    ),
-                  ),
-                ],
+              child: Text(
+                l10n.backupImportDialogSummary(
+                  _formatDateTime(widget.summary.exportedAt),
+                  widget.summary.projectCount,
+                  widget.summary.taskCount,
+                  widget.summary.tagCount,
+                  widget.summary.folderCount,
+                  widget.summary.customViewCount,
+                ),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark
+                      ? const Color(0xFFD1D5DB)
+                      : const Color(0xFF4B5563),
+                  height: 1.4,
+                ),
               ),
             ),
             const SizedBox(height: 16),
 
-            Text(
-              '请选择导入方式：',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // 增量合并卡片
+            // 导入模式单选
             _ModeSelectCard(
               title: l10n.backupImportModeMerge,
               subtitle: l10n.backupImportModeMergeDesc,
@@ -191,7 +170,6 @@ class _ImportConfirmDialogState extends State<ImportConfirmDialog> {
             ),
             const SizedBox(height: 10),
 
-            // 全新覆盖卡片
             _ModeSelectCard(
               title: l10n.backupImportModeReplace,
               subtitle: l10n.backupImportModeReplaceDesc,
@@ -221,7 +199,7 @@ class _ImportConfirmDialogState extends State<ImportConfirmDialog> {
         TextButton(
           onPressed: _isLoading ? null : () => Navigator.of(context).pop(false),
           child: Text(
-            '取消',
+            l10n.cancel,
             style: TextStyle(color: colorScheme.onSurfaceVariant),
           ),
         ),

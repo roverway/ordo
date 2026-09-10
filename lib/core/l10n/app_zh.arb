@@ -723,7 +723,7 @@
   "showHolidaysSubtitle": "标注放假安排与周末调休补班状态（休/班）",
   "@showHolidaysSubtitle": {
     "description": "日历设置：显示法定节假日及调休副标题"
-  }  ,
+  },
   "settingsSectionBackup": "数据与安全备份",
   "backupExportTitle": "导出备份数据",
   "backupExportSubtitle": "导出所有业务数据为 .ordobak 文件（不含密钥与应用配置）",
@@ -750,7 +750,7 @@
     }
   },
   "backupImportDialogTitle": "确认导入备份",
-  "backupImportDialogSummary": "导出时间：{time}\n包含：{projects} 个清单 · {tasks} 项任务 · {tags} 个标签 · {folders} 个文件夹 · {views} 个自定义视图",
+  "backupImportDialogSummary": "导出时间：{time}\\n包含：{projects} 个清单 · {tasks} 项任务 · {tags} 个标签 · {folders} 个文件夹 · {views} 个视图",
   "@backupImportDialogSummary": {
     "placeholders": {
       "time": {
@@ -789,6 +789,18 @@
   "@backupOperationFailed": {
     "placeholders": {
       "error": {
+        "type": "String"
+      }
+    }
+  },
+  "backupRestoreButton": "还原",
+  "backupSnapshotPoint": "快照点：{time} ({label})",
+  "@backupSnapshotPoint": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "label": {
         "type": "String"
       }
     }

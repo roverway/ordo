@@ -1341,7 +1341,7 @@ class AppLocalizationsEn extends AppLocalizations {
     int folders,
     int views,
   ) {
-    return 'Exported at: $time\nContains: $projects projects · $tasks tasks · $tags tags · $folders folders · $views custom views';
+    return 'Exported at: $time\\nContains: $projects projects · $tasks tasks · $tags tags · $folders folders · $views views';
   }
 
   @override
@@ -1385,5 +1385,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String backupOperationFailed(String error) {
     return 'Operation failed: $error';
+  }
+
+  @override
+  String get backupRestoreButton => 'Restore';
+
+  @override
+  String backupSnapshotPoint(String time, String label) {
+    return 'Snapshot: $time ($label)';
   }
 }

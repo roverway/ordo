@@ -2513,7 +2513,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupImportDialogSummary.
   ///
   /// In zh, this message translates to:
-  /// **'导出时间：{time}\n包含：{projects} 个清单 · {tasks} 项任务 · {tags} 个标签 · {folders} 个文件夹 · {views} 个自定义视图'**
+  /// **'导出时间：{time}\\n包含：{projects} 个清单 · {tasks} 项任务 · {tags} 个标签 · {folders} 个文件夹 · {views} 个视图'**
   String backupImportDialogSummary(
     String time,
     int projects,
@@ -2600,6 +2600,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'操作失败：{error}'**
   String backupOperationFailed(String error);
+
+  /// No description provided for @backupRestoreButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'还原'**
+  String get backupRestoreButton;
+
+  /// No description provided for @backupSnapshotPoint.
+  ///
+  /// In zh, this message translates to:
+  /// **'快照点：{time} ({label})'**
+  String backupSnapshotPoint(String time, String label);
 }
 
 class _AppLocalizationsDelegate
