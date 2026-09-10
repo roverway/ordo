@@ -1394,4 +1394,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String backupSnapshotPoint(String time, String label) {
     return 'Snapshot: $time ($label)';
   }
+
+  @override
+  String get snapshotTriggerDaily => 'Daily Auto';
+
+  @override
+  String get snapshotTriggerPreSync => 'Pre-sync';
+
+  @override
+  String get snapshotTriggerPreRestore => 'Pre-restore';
+
+  @override
+  String get snapshotTriggerManual => 'Manual';
 }

@@ -225,7 +225,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
                   children: [
                     _IconBadge(
                       icon: Icons.file_download_outlined,
-                      color: colorScheme.secondary,
+                      color: colorScheme.primary,
                     ),
                     const SizedBox(width: 13),
                     Expanded(
@@ -282,7 +282,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
                   children: [
                     _IconBadge(
                       icon: Icons.shield_outlined,
-                      color: const Color(0xFF10B981),
+                      color: colorScheme.primary,
                     ),
                     const SizedBox(width: 13),
                     Expanded(
@@ -361,7 +361,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
                 children: [
                   _IconBadge(
                     icon: Icons.auto_delete_outlined,
-                    color: const Color(0xFFF59E0B),
+                    color: colorScheme.primary,
                   ),
                   const SizedBox(width: 13),
                   Expanded(

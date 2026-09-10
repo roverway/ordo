@@ -1,6 +1,6 @@
 {
   "@@locale": "zh",
-  "appTitle": "知序",
+  "appTitle": "知序 Ordo",
   "inbox": "收件箱",
   "navInbox": "收件箱",
   "navToday": "今日",
@@ -805,4 +805,9 @@
       }
     }
   }
+,
+  "snapshotTriggerDaily": "每日自动快照",
+  "snapshotTriggerPreSync": "同步前快照",
+  "snapshotTriggerPreRestore": "还原前快照",
+  "snapshotTriggerManual": "手动创建快照"
 }

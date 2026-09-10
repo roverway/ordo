@@ -100,7 +100,7 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
       summary: summary,
       sourceTitle: l10n.backupSnapshotPoint(
         _formatDateTime(snap.createdAt),
-        snap.triggerType.label,
+        snap.triggerType.localizedLabel(l10n),
       ),
       onConfirm: (mode) async {
         await pool.restoreFromSnapshot(snap.filePath, mode: mode);
@@ -368,7 +368,9 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                snap.triggerType.label,
+                                snap.triggerType.localizedLabel(l10n),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
@@ -401,29 +403,18 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                               ),
                             ),
 
-                            // 还原按钮
-                            TextButton.icon(
-                              onPressed: () => _handleRestore(snap),
+                            const SizedBox(width: 4),
+
+                            // 还原按钮（去掉文本以节省空间）
+                            IconButton(
                               icon: Icon(
                                 Icons.settings_backup_restore_rounded,
-                                size: 14,
+                                size: 18,
                                 color: colorScheme.primary,
                               ),
-                              label: Text(
-                                l10n.backupRestoreButton,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: colorScheme.primary,
-                                ),
-                              ),
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                visualDensity: VisualDensity.compact,
-                              ),
+                              onPressed: () => _handleRestore(snap),
+                              visualDensity: VisualDensity.compact,
+                              tooltip: l10n.backupRestoreButton,
                             ),
 
                             // 删除按钮
@@ -451,5 +442,16 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
         ),
       ),
     );
+  }
+}
+
+extension SnapshotTriggerTypeL10n on SnapshotTriggerType {
+  String localizedLabel(AppLocalizations l10n) {
+    return switch (this) {
+      SnapshotTriggerType.dailyAuto => l10n.snapshotTriggerDaily,
+      SnapshotTriggerType.preSync => l10n.snapshotTriggerPreSync,
+      SnapshotTriggerType.preRestore => l10n.snapshotTriggerPreRestore,
+      SnapshotTriggerType.manual => l10n.snapshotTriggerManual,
+    };
   }
 }

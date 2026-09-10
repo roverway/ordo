@@ -9,7 +9,7 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get appTitle => '知序';
+  String get appTitle => '知序 Ordo';
 
   @override
   String get inbox => '收件箱';
@@ -1364,4 +1364,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String backupSnapshotPoint(String time, String label) {
     return '快照点：$time ($label)';
   }
+
+  @override
+  String get snapshotTriggerDaily => '每日自动快照';
+
+  @override
+  String get snapshotTriggerPreSync => '同步前快照';
+
+  @override
+  String get snapshotTriggerPreRestore => '还原前快照';
+
+  @override
+  String get snapshotTriggerManual => '手动创建快照';
 }

@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In zh, this message translates to:
-  /// **'知序'**
+  /// **'知序 Ordo'**
   String get appTitle;
 
   /// No description provided for @inbox.
@@ -2612,6 +2612,30 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'快照点：{time} ({label})'**
   String backupSnapshotPoint(String time, String label);
+
+  /// No description provided for @snapshotTriggerDaily.
+  ///
+  /// In zh, this message translates to:
+  /// **'每日自动快照'**
+  String get snapshotTriggerDaily;
+
+  /// No description provided for @snapshotTriggerPreSync.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步前快照'**
+  String get snapshotTriggerPreSync;
+
+  /// No description provided for @snapshotTriggerPreRestore.
+  ///
+  /// In zh, this message translates to:
+  /// **'还原前快照'**
+  String get snapshotTriggerPreRestore;
+
+  /// No description provided for @snapshotTriggerManual.
+  ///
+  /// In zh, this message translates to:
+  /// **'手动创建快照'**
+  String get snapshotTriggerManual;
 }
 
 class _AppLocalizationsDelegate

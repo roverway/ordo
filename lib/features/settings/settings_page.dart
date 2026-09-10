@@ -465,7 +465,7 @@ class _CalendarSection extends ConsumerWidget {
               children: [
                 _IconBadge(
                   icon: Icons.event_available_outlined,
-                  color: colorScheme.secondary,
+                  color: colorScheme.primary,
                 ),
                 const SizedBox(width: 13),
                 Expanded(
@@ -752,25 +752,6 @@ class _AboutSection extends StatelessWidget {
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                  child: Text(
-                    'v$appVersion',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.primary,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
-                ),
               ],
             ),
 
@@ -809,11 +790,6 @@ class _AboutSection extends StatelessWidget {
             _BrandMeaningItem(
               title: l10n.aboutBrandZhTitle,
               description: l10n.aboutBrandZhDesc,
-            ),
-            const SizedBox(height: AppTokens.spaceXs),
-            _BrandMeaningItem(
-              title: l10n.aboutBrandEnTitle,
-              description: l10n.aboutBrandEnDesc,
             ),
           ],
         ),
