@@ -18,19 +18,19 @@ abstract final class AppTheme {
     return switch (defaultTargetPlatform) {
       TargetPlatform.windows => 'Segoe UI',
       TargetPlatform.macOS || TargetPlatform.iOS => 'PingFang SC',
-      TargetPlatform.linux => 'Noto Sans SC',
+      TargetPlatform.linux => 'Noto Sans CJK SC',
       TargetPlatform.android => 'Noto Sans SC',
       _ => null,
     };
   }
 
   /// 全平台字体回退链，匹配设计原型字体系统（PingFang SC / HarmonyOS Sans SC / MiSans / Noto Sans SC / Segoe UI / Microsoft YaHei）。
-  static const List<String> _fontFamilyFallback = [
+  static const List<String> fontFamilyFallback = [
     'PingFang SC',
     'HarmonyOS Sans SC',
     'MiSans',
-    'Noto Sans SC',
     'Noto Sans CJK SC',
+    'Noto Sans SC',
     'Segoe UI',
     'Microsoft YaHei UI',
     'Microsoft YaHei',
@@ -93,7 +93,7 @@ abstract final class AppTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       fontFamily: _defaultFontFamily,
-      fontFamilyFallback: _fontFamilyFallback,
+      fontFamilyFallback: fontFamilyFallback,
     );
 
     return base.copyWith(
@@ -118,7 +118,7 @@ abstract final class AppTheme {
             : SystemUiOverlayStyle.dark,
         titleTextStyle: TextStyle(
           fontFamily: _defaultFontFamily,
-          fontFamilyFallback: _fontFamilyFallback,
+          fontFamilyFallback: fontFamilyFallback,
           fontSize: AppTokens.textHeadingSize,
           fontWeight: AppTokens.textHeadingWeight,
           color: colorScheme.onSurface,
@@ -252,7 +252,7 @@ abstract final class AppTheme {
             final isSelected = states.contains(WidgetState.selected);
             return TextStyle(
               fontFamily: _defaultFontFamily,
-              fontFamilyFallback: _fontFamilyFallback,
+              fontFamilyFallback: fontFamilyFallback,
               fontSize: AppTokens.textFootnoteSize,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
             );
@@ -413,7 +413,7 @@ abstract final class AppTheme {
       textTheme: base.textTheme
           .apply(
             fontFamily: _defaultFontFamily,
-            fontFamilyFallback: _fontFamilyFallback,
+            fontFamilyFallback: fontFamilyFallback,
           )
           .copyWith(
             headlineSmall: base.textTheme.headlineSmall?.copyWith(

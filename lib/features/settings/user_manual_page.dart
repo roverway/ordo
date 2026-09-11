@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/l10n/app_localizations.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_tokens.dart';
 import 'settings_providers.dart';
 
@@ -470,11 +471,14 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
                         color: colorScheme.primary,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        l10n.manualTOC,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
+                      Expanded(
+                        child: Text(
+                          l10n.manualTOC,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -554,6 +558,7 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
           final headingBlock = _HeadingBlock(
             level: level,
             title: title,
+            tokens: _tokenizeInline(title),
             anchorId: anchorId,
             slug: slug,
           );
@@ -574,12 +579,26 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
       if (trimmed.startsWith('>')) {
         final calloutLines = <String>[];
         while (index < lines.length && lines[index].trim().startsWith('>')) {
-          final raw = lines[index].trim().substring(1).trim();
-          calloutLines.add(raw);
+          final cur = lines[index].trim();
+          calloutLines.add(cur.substring(1).trim());
           index++;
         }
-        final fullCalloutText = calloutLines.join('\n');
-        blocks.add(_parseCallout(fullCalloutText));
+        final calloutBlock = _parseCallout(calloutLines.join('\n'));
+        blocks.add(calloutBlock);
+        continue;
+      }
+
+      // 代码块 (```mermaid 或 ```)
+      if (trimmed.startsWith('```')) {
+        final lang = trimmed.substring(3).trim();
+        final codeLines = <String>[];
+        index++;
+        while (index < lines.length && !lines[index].trim().startsWith('```')) {
+          codeLines.add(lines[index]);
+          index++;
+        }
+        if (index < lines.length) index++; // 跳过结束的三反引号
+        blocks.add(_CodeBlock(language: lang, code: codeLines.join('\n')));
         continue;
       }
 
@@ -592,61 +611,41 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
           tableLines.add(lines[index].trim());
           index++;
         }
-        if (tableLines.length >= 2) {
-          final table = _parseTable(tableLines);
-          if (table != null) {
-            blocks.add(table);
-            continue;
-          }
+        final tableBlock = _parseTable(tableLines);
+        if (tableBlock != null) {
+          blocks.add(tableBlock);
         }
-      }
-
-      // 代码块 (``` ... ```)
-      if (trimmed.startsWith('```')) {
-        final lang = trimmed.substring(3).trim();
-        index++;
-        final codeLines = <String>[];
-        while (index < lines.length && !lines[index].trim().startsWith('```')) {
-          codeLines.add(lines[index]);
-          index++;
-        }
-        if (index < lines.length) {
-          index++;
-        } // 跳过闭合 ```
-        blocks.add(_CodeBlock(language: lang, code: codeLines.join('\n')));
         continue;
       }
 
-      // 列表项 (- 或 * 或 1. )
+      // 无序列表与有序列表 (- item, * item, 1. item)
       if (trimmed.startsWith('- ') ||
           trimmed.startsWith('* ') ||
           RegExp(r'^\d+\.\s').hasMatch(trimmed)) {
+        final isOrdered = RegExp(r'^\d+\.\s').hasMatch(trimmed);
         final listItems = <_ListItem>[];
-        bool isOrdered = RegExp(r'^\d+\.\s').hasMatch(trimmed);
 
         while (index < lines.length) {
-          final rawLine = lines[index];
-          final curTrimmed = rawLine.trim();
+          final cur = lines[index];
+          final curTrimmed = cur.trim();
           if (curTrimmed.isEmpty) break;
 
-          // 计算缩进层级 (2空格或tab算一级缩进)
-          int indent = 0;
-          if (rawLine.startsWith('    ') || rawLine.startsWith('\t\t')) {
-            indent = 2;
-          } else if (rawLine.startsWith('  ') || rawLine.startsWith('\t')) {
-            indent = 1;
-          }
+          final indent = cur.length - cur.trimLeft().length;
 
           if (curTrimmed.startsWith('- ') || curTrimmed.startsWith('* ')) {
+            final t = curTrimmed.substring(2).trim();
             listItems.add(_ListItem(
-              text: curTrimmed.substring(2).trim(),
+              text: t,
+              tokens: _tokenizeInline(t),
               indent: indent,
             ));
             index++;
           } else if (RegExp(r'^\d+\.\s').hasMatch(curTrimmed)) {
             final dotIdx = curTrimmed.indexOf('. ');
+            final t = curTrimmed.substring(dotIdx + 2).trim();
             listItems.add(_ListItem(
-              text: curTrimmed.substring(dotIdx + 2).trim(),
+              text: t,
+              tokens: _tokenizeInline(t),
               indent: indent,
             ));
             index++;
@@ -654,37 +653,46 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
             break;
           }
         }
+
         blocks.add(_ListBlock(items: listItems, isOrdered: isOrdered));
         continue;
       }
 
-      // 普通段落（累积直到遇到空行、标题、表格、代码块等）
+      // 普通段落
       final paragraphLines = <String>[];
       while (index < lines.length) {
-        final cur = lines[index].trim();
-        if (cur.isEmpty ||
-            cur.startsWith('#') ||
-            cur.startsWith('>') ||
-            cur.startsWith('```') ||
-            cur.startsWith('|') ||
-            cur.startsWith('- ') ||
-            cur.startsWith('* ') ||
-            RegExp(r'^\d+\.\s').hasMatch(cur) ||
-            cur == '---' ||
-            cur == '***') {
+        final cur = lines[index];
+        final curTrimmed = cur.trim();
+        if (curTrimmed.isEmpty ||
+            curTrimmed.startsWith('#') ||
+            curTrimmed.startsWith('>') ||
+            curTrimmed.startsWith('```') ||
+            (curTrimmed.startsWith('|') && curTrimmed.endsWith('|')) ||
+            curTrimmed.startsWith('- ') ||
+            curTrimmed.startsWith('* ') ||
+            RegExp(r'^\d+\.\s').hasMatch(curTrimmed) ||
+            curTrimmed == '---' ||
+            curTrimmed == '***') {
           break;
         }
-        paragraphLines.add(cur);
+        paragraphLines.add(curTrimmed);
         index++;
       }
+
       if (paragraphLines.isNotEmpty) {
-        blocks.add(_ParagraphBlock(text: paragraphLines.join(' ')));
+        final pText = paragraphLines.join(' ');
+        blocks.add(_ParagraphBlock(
+          text: pText,
+          tokens: _tokenizeInline(pText),
+        ));
       } else {
-        // 安全保护：确保 index 一定推进，防止死循环
         if (index < lines.length) {
           final singleLine = lines[index].trim();
           if (singleLine.isNotEmpty) {
-            blocks.add(_ParagraphBlock(text: singleLine));
+            blocks.add(_ParagraphBlock(
+              text: singleLine,
+              tokens: _tokenizeInline(singleLine),
+            ));
           }
           index++;
         }
@@ -715,7 +723,11 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
           .trim();
     }
 
-    return _CalloutBlock(type: type, content: cleanText);
+    return _CalloutBlock(
+      type: type,
+      content: cleanText,
+      tokens: _tokenizeInline(cleanText),
+    );
   }
 
   _TableBlock? _parseTable(List<String> lines) {
@@ -738,7 +750,15 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
       }
     }
 
-    return _TableBlock(headers: headers, rows: rows);
+    final headerTokens = headers.map(_tokenizeInline).toList();
+    final rowTokens = rows.map((r) => r.map(_tokenizeInline).toList()).toList();
+
+    return _TableBlock(
+      headers: headers,
+      headerTokens: headerTokens,
+      rows: rows,
+      rowTokens: rowTokens,
+    );
   }
 }
 
@@ -754,6 +774,12 @@ String _slugify(String input) {
 }
 
 // -------------------------------------------------------------
+class _ParsedManual {
+  const _ParsedManual({required this.blocks, required this.tocItems});
+  final List<_ManualBlock> blocks;
+  final List<_TocItem> tocItems;
+}
+
 // AST 块定义与数据模型
 // -------------------------------------------------------------
 abstract class _ManualBlock {
@@ -765,11 +791,13 @@ class _HeadingBlock extends _ManualBlock {
   const _HeadingBlock({
     required this.level,
     required this.title,
+    required this.tokens,
     required this.anchorId,
     required this.slug,
   });
   final int level;
   final String title;
+  final List<_InlineToken> tokens;
   final String anchorId;
   final String slug;
 
@@ -779,8 +807,9 @@ class _HeadingBlock extends _ManualBlock {
 }
 
 class _ParagraphBlock extends _ManualBlock {
-  const _ParagraphBlock({required this.text});
+  const _ParagraphBlock({required this.text, required this.tokens});
   final String text;
+  final List<_InlineToken> tokens;
 
   @override
   bool matchesQuery(String query) =>
@@ -790,9 +819,14 @@ class _ParagraphBlock extends _ManualBlock {
 enum _CalloutType { note, tip, important, warning, quote }
 
 class _CalloutBlock extends _ManualBlock {
-  const _CalloutBlock({required this.type, required this.content});
+  const _CalloutBlock({
+    required this.type,
+    required this.content,
+    required this.tokens,
+  });
   final _CalloutType type;
   final String content;
+  final List<_InlineToken> tokens;
 
   @override
   bool matchesQuery(String query) =>
@@ -800,8 +834,13 @@ class _CalloutBlock extends _ManualBlock {
 }
 
 class _ListItem {
-  const _ListItem({required this.text, this.indent = 0});
+  const _ListItem({
+    required this.text,
+    required this.tokens,
+    this.indent = 0,
+  });
   final String text;
+  final List<_InlineToken> tokens;
   final int indent;
 }
 
@@ -817,9 +856,16 @@ class _ListBlock extends _ManualBlock {
 }
 
 class _TableBlock extends _ManualBlock {
-  const _TableBlock({required this.headers, required this.rows});
+  const _TableBlock({
+    required this.headers,
+    required this.headerTokens,
+    required this.rows,
+    required this.rowTokens,
+  });
   final List<String> headers;
+  final List<List<_InlineToken>> headerTokens;
   final List<List<String>> rows;
+  final List<List<List<_InlineToken>>> rowTokens;
 
   @override
   bool matchesQuery(String query) {
@@ -860,14 +906,8 @@ class _TocItem {
   final int level;
 }
 
-class _ParsedManual {
-  const _ParsedManual({required this.blocks, required this.tocItems});
-  final List<_ManualBlock> blocks;
-  final List<_TocItem> tocItems;
-}
-
 // -------------------------------------------------------------
-// 行内 Markdown 标记解析器 (加粗、斜体、代码、超链接锚点跳转)
+// Markdown 行内分词与富文本渲染
 // -------------------------------------------------------------
 class _InlineToken {
   const _InlineToken({
@@ -889,16 +929,9 @@ class _InlineToken {
 
 List<_InlineToken> _tokenizeInline(String input) {
   final tokens = <_InlineToken>[];
-  // 匹配：
-  // 1) ***粗斜体*** (group 1, 2)
-  // 2) **粗体** (group 3, 4)
-  // 3) *斜体* (group 5, 6)
-  // 4) `代码` (group 7, 8)
-  // 5) [文本](链接) (group 9, 10, 11)
-  // 6) ~~删除线~~ (group 12, 13)
   final regex = RegExp(
-    r'(\*\*\*(.+?)\*\*\*)|'
-    r'(\*\*(.+?)\*\*)|'
+    r'(\*{3}(.+?)\*{3})|'
+    r'(\*{2}(.+?)\*{2})|'
     r'(\*(.+?)\*)|'
     r'(`([^`]+)`)|'
     r'(\[([^\]]+)\]\(([^)]+)\))|'
@@ -938,24 +971,128 @@ List<_InlineToken> _tokenizeInline(String input) {
   return tokens;
 }
 
-class _MarkdownInlineText extends StatefulWidget {
+class _MarkdownInlineText extends StatelessWidget {
   const _MarkdownInlineText({
-    required this.text,
+    required this.tokens,
     required this.style,
     required this.searchQuery,
     this.onLinkTap,
   });
 
-  final String text;
+  final List<_InlineToken> tokens;
   final TextStyle style;
   final String searchQuery;
   final void Function(String url)? onLinkTap;
 
   @override
-  State<_MarkdownInlineText> createState() => _MarkdownInlineTextState();
+  Widget build(BuildContext context) {
+    final hasLinks = tokens.any((t) => t.linkUrl != null);
+    if (hasLinks && onLinkTap != null) {
+      return _MarkdownInteractiveInlineText(
+        tokens: tokens,
+        style: style,
+        searchQuery: searchQuery,
+        onLinkTap: onLinkTap!,
+      );
+    }
+
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final spans = <InlineSpan>[];
+
+    for (final token in tokens) {
+      TextStyle tokenStyle = style;
+      if (token.isBold) {
+        tokenStyle = tokenStyle.copyWith(
+          fontWeight: FontWeight.w700,
+          color: colorScheme.onSurface,
+        );
+      }
+      if (token.isItalic) {
+        tokenStyle = tokenStyle.copyWith(fontStyle: FontStyle.italic);
+      }
+      if (token.isStrikethrough) {
+        tokenStyle = tokenStyle.copyWith(
+          decoration: TextDecoration.lineThrough,
+        );
+      }
+      if (token.isCode) {
+        tokenStyle = tokenStyle.copyWith(
+          fontFamily: 'monospace',
+          fontSize: (tokenStyle.fontSize ?? 14.0) * 0.92,
+          color: colorScheme.primary,
+          backgroundColor: colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.8,
+          ),
+        );
+      }
+
+      // 处理搜索词高亮
+      if (searchQuery.isNotEmpty &&
+          token.text.toLowerCase().contains(searchQuery.toLowerCase())) {
+        final lowerText = token.text.toLowerCase();
+        final lowerQuery = searchQuery.toLowerCase();
+        int start = 0;
+        while (true) {
+          final idx = lowerText.indexOf(lowerQuery, start);
+          if (idx < 0) {
+            if (start < token.text.length) {
+              spans.add(TextSpan(
+                text: token.text.substring(start),
+                style: tokenStyle,
+              ));
+            }
+            break;
+          }
+          if (idx > start) {
+            spans.add(TextSpan(
+              text: token.text.substring(start, idx),
+              style: tokenStyle,
+            ));
+          }
+          final matchText = token.text.substring(idx, idx + searchQuery.length);
+          spans.add(TextSpan(
+            text: matchText,
+            style: tokenStyle.copyWith(
+              backgroundColor: Colors.amber.withValues(alpha: 0.4),
+              color: colorScheme.primary,
+              fontWeight: FontWeight.w800,
+            ),
+          ));
+          start = idx + searchQuery.length;
+        }
+      } else {
+        spans.add(TextSpan(
+          text: token.text,
+          style: tokenStyle,
+        ));
+      }
+    }
+
+    return Text.rich(TextSpan(children: spans));
+  }
 }
 
-class _MarkdownInlineTextState extends State<_MarkdownInlineText> {
+class _MarkdownInteractiveInlineText extends StatefulWidget {
+  const _MarkdownInteractiveInlineText({
+    required this.tokens,
+    required this.style,
+    required this.searchQuery,
+    required this.onLinkTap,
+  });
+
+  final List<_InlineToken> tokens;
+  final TextStyle style;
+  final String searchQuery;
+  final void Function(String url) onLinkTap;
+
+  @override
+  State<_MarkdownInteractiveInlineText> createState() =>
+      _MarkdownInteractiveInlineTextState();
+}
+
+class _MarkdownInteractiveInlineTextState
+    extends State<_MarkdownInteractiveInlineText> {
   final List<TapGestureRecognizer> _recognizers = [];
 
   @override
@@ -976,11 +1113,9 @@ class _MarkdownInlineTextState extends State<_MarkdownInlineText> {
     _clearRecognizers();
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-
-    final tokens = _tokenizeInline(widget.text);
     final spans = <InlineSpan>[];
 
-    for (final token in tokens) {
+    for (final token in widget.tokens) {
       TextStyle tokenStyle = widget.style;
       if (token.isBold) {
         tokenStyle = tokenStyle.copyWith(
@@ -1015,12 +1150,10 @@ class _MarkdownInlineTextState extends State<_MarkdownInlineText> {
           decoration: TextDecoration.underline,
           decorationColor: colorScheme.primary.withValues(alpha: 0.5),
         );
-        if (widget.onLinkTap != null) {
-          final r = TapGestureRecognizer()
-            ..onTap = () => widget.onLinkTap!(token.linkUrl!);
-          _recognizers.add(r);
-          recognizer = r;
-        }
+        final r = TapGestureRecognizer()
+          ..onTap = () => widget.onLinkTap(token.linkUrl!);
+        _recognizers.add(r);
+        recognizer = r;
       }
 
       // 处理搜索词高亮
@@ -1076,11 +1209,6 @@ class _MarkdownInlineTextState extends State<_MarkdownInlineText> {
   }
 }
 
-// -------------------------------------------------------------
-// UI 辅助小部件
-// -------------------------------------------------------------
-
-/// 语言切换胶囊按钮
 class _LanguageChip extends StatelessWidget {
   const _LanguageChip({
     required this.label,
@@ -1121,7 +1249,6 @@ class _LanguageChip extends StatelessWidget {
   }
 }
 
-/// 目录列表项
 class _TocListTile extends StatelessWidget {
   const _TocListTile({
     required this.item,
@@ -1201,7 +1328,9 @@ class _TocListTile extends StatelessWidget {
   }
 }
 
-/// 单个 Markdown 块渲染器
+// -------------------------------------------------------------
+// Markdown 块级渲染组件
+// -------------------------------------------------------------
 class _BlockWidget extends StatelessWidget {
   const _BlockWidget({
     required this.block,
@@ -1217,39 +1346,48 @@ class _BlockWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final widget = _buildContent(context);
-    if (sectionKey != null) {
-      return Container(key: sectionKey, child: widget);
-    }
-    return widget;
+    final content = _buildContent(context);
+    final child = sectionKey != null
+        ? KeyedSubtree(key: sectionKey, child: content)
+        : content;
+    return RepaintBoundary(child: child);
   }
 
   Widget _buildContent(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final baseStyle = (theme.textTheme.bodyMedium ?? const TextStyle()).copyWith(
+      fontFamilyFallback: AppTheme.fontFamilyFallback,
+    );
 
     if (block is _HeadingBlock) {
       final b = block as _HeadingBlock;
-      final double topMargin = switch (b.level) {
-        1 => 28.0,
-        2 => 24.0,
-        3 => 18.0,
-        _ => 14.0,
-      };
-      final double fontSize = switch (b.level) {
-        1 => 22.0,
-        2 => 18.0,
-        3 => 15.5,
-        _ => 14.0,
-      };
+      final double fontSize;
+      final double topMargin;
+
+      switch (b.level) {
+        case 1:
+          fontSize = 24;
+          topMargin = 32;
+        case 2:
+          fontSize = 20;
+          topMargin = 26;
+        case 3:
+          fontSize = 16.5;
+          topMargin = 18;
+        default:
+          fontSize = 15;
+          topMargin = 14;
+      }
+
       return Padding(
         padding: EdgeInsets.only(top: topMargin, bottom: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _MarkdownInlineText(
-              text: b.title,
-              style: TextStyle(
+              tokens: b.tokens,
+              style: baseStyle.copyWith(
                 fontSize: fontSize,
                 fontWeight: FontWeight.w800,
                 color: colorScheme.onSurface,
@@ -1278,8 +1416,8 @@ class _BlockWidget extends StatelessWidget {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: _MarkdownInlineText(
-          text: b.text,
-          style: TextStyle(
+          tokens: b.tokens,
+          style: baseStyle.copyWith(
             fontSize: 14.5,
             height: 1.65,
             color: colorScheme.onSurface.withValues(alpha: 0.92),
@@ -1292,77 +1430,101 @@ class _BlockWidget extends StatelessWidget {
 
     if (block is _CalloutBlock) {
       final b = block as _CalloutBlock;
-      final (color, icon, label) = switch (b.type) {
-        _CalloutType.note => (
-          Colors.blue,
-          Icons.info_outline_rounded,
-          '提示 Note',
-        ),
-        _CalloutType.tip => (
-          Colors.teal,
-          Icons.lightbulb_outline_rounded,
-          '建议 Tip',
-        ),
-        _CalloutType.important => (
-          Colors.purple,
-          Icons.star_outline_rounded,
-          '重要 Important',
-        ),
-        _CalloutType.warning => (
-          Colors.orange,
-          Icons.warning_amber_rounded,
-          '警告 Warning',
-        ),
-        _CalloutType.quote => (
-          colorScheme.primary,
-          Icons.format_quote_rounded,
-          null,
-        ),
-      };
+      final Color borderColor;
+      final Color bgColor;
+      final IconData iconData;
+      final String calloutTitle;
+
+      switch (b.type) {
+        case _CalloutType.note:
+          borderColor = Colors.blue;
+          bgColor = Colors.blue.withValues(alpha: 0.08);
+          iconData = Icons.info_outline;
+          calloutTitle = 'NOTE';
+        case _CalloutType.tip:
+          borderColor = Colors.teal;
+          bgColor = Colors.teal.withValues(alpha: 0.08);
+          iconData = Icons.lightbulb_outline;
+          calloutTitle = 'TIP';
+        case _CalloutType.important:
+          borderColor = Colors.purple;
+          bgColor = Colors.purple.withValues(alpha: 0.08);
+          iconData = Icons.priority_high;
+          calloutTitle = 'IMPORTANT';
+        case _CalloutType.warning:
+          borderColor = Colors.amber.shade700;
+          bgColor = Colors.amber.withValues(alpha: 0.08);
+          iconData = Icons.warning_amber_rounded;
+          calloutTitle = 'WARNING';
+        case _CalloutType.quote:
+          borderColor = colorScheme.outlineVariant;
+          bgColor = colorScheme.surfaceContainerHighest.withValues(alpha: 0.3);
+          iconData = Icons.format_quote;
+          calloutTitle = '';
+      }
 
       return Container(
         margin: const EdgeInsets.symmetric(vertical: 10),
-        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
+          color: bgColor,
           borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-          border: Border(left: BorderSide(color: color, width: 4)),
+          border: Border.all(
+            color: borderColor.withValues(alpha: 0.3),
+          ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (label != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(
-                  children: [
-                    Icon(icon, size: 16, color: color),
-                    const SizedBox(width: 6),
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: color,
+        clipBehavior: Clip.antiAlias,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: 4,
+                color: borderColor,
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (calloutTitle.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
+                            children: [
+                              Icon(iconData, size: 16, color: borderColor),
+                              const SizedBox(width: 6),
+                              Text(
+                                calloutTitle,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: borderColor,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      _MarkdownInlineText(
+                        tokens: b.tokens,
+                        style: baseStyle.copyWith(
+                          fontSize: 13.5,
+                          height: 1.6,
+                          fontStyle: b.type == _CalloutType.quote
+                              ? FontStyle.italic
+                              : FontStyle.normal,
+                          color: colorScheme.onSurface,
+                        ),
+                        searchQuery: searchQuery,
+                        onLinkTap: onLinkTap,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            _MarkdownInlineText(
-              text: b.content,
-              style: TextStyle(
-                fontSize: 13.5,
-                height: 1.6,
-                fontStyle: b.type == _CalloutType.quote
-                    ? FontStyle.italic
-                    : FontStyle.normal,
-                color: colorScheme.onSurface,
-              ),
-              searchQuery: searchQuery,
-              onLinkTap: onLinkTap,
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }
@@ -1373,31 +1535,34 @@ class _BlockWidget extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: List.generate(b.items.length, (idx) {
-            final item = b.items[idx];
-            final prefix = b.isOrdered ? '${idx + 1}. ' : '• ';
+          children: List.generate(b.items.length, (i) {
+            final item = b.items[i];
             return Padding(
-              padding: EdgeInsets.fromLTRB(
-                item.indent * 18.0,
-                2.5,
-                0,
-                2.5,
+              padding: EdgeInsets.only(
+                left: item.indent * 10.0 + 4.0,
+                top: 3,
+                bottom: 3,
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    prefix,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: colorScheme.primary,
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4, right: 8),
+                    child: Text(
+                      b.isOrdered ? '${i + 1}.' : '•',
+                      style: TextStyle(
+                        fontSize: b.isOrdered ? 13 : 16,
+                        height: 1.3,
+                        fontWeight:
+                            b.isOrdered ? FontWeight.w600 : FontWeight.w900,
+                        color: colorScheme.primary,
+                      ),
                     ),
                   ),
                   Expanded(
                     child: _MarkdownInlineText(
-                      text: item.text,
-                      style: TextStyle(
+                      tokens: item.tokens,
+                      style: baseStyle.copyWith(
                         fontSize: 14,
                         height: 1.55,
                         color: colorScheme.onSurface,
@@ -1431,36 +1596,39 @@ class _BlockWidget extends StatelessWidget {
             headingRowColor: WidgetStateProperty.all(
               colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
             ),
-            columns: b.headers
-                .map(
-                  (h) => DataColumn(
-                    label: _MarkdownInlineText(
-                      text: h,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+            columns: List.generate(
+              b.headers.length,
+              (colIdx) => DataColumn(
+                label: _MarkdownInlineText(
+                  tokens: b.headerTokens[colIdx],
+                  style: baseStyle.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
+                  ),
+                  searchQuery: searchQuery,
+                  onLinkTap: onLinkTap,
+                ),
+              ),
+            ),
+            rows: List.generate(
+              b.rows.length,
+              (rowIdx) => DataRow(
+                cells: List.generate(
+                  b.rows[rowIdx].length,
+                  (colIdx) => DataCell(
+                    _MarkdownInlineText(
+                      tokens: b.rowTokens[rowIdx][colIdx],
+                      style: baseStyle.copyWith(
+                        fontSize: 13,
+                        color: colorScheme.onSurface,
+                      ),
                       searchQuery: searchQuery,
                       onLinkTap: onLinkTap,
                     ),
                   ),
-                )
-                .toList(),
-            rows: b.rows
-                .map(
-                  (r) => DataRow(
-                    cells: r
-                        .map(
-                          (cell) => DataCell(
-                            _MarkdownInlineText(
-                              text: cell,
-                              style: const TextStyle(fontSize: 13),
-                              searchQuery: searchQuery,
-                              onLinkTap: onLinkTap,
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                )
-                .toList(),
+                ),
+              ),
+            ),
           ),
         ),
       );
@@ -1505,8 +1673,6 @@ class _BlockWidget extends StatelessWidget {
     return const SizedBox.shrink();
   }
 }
-
-/// Mermaid 流程图原生可视化小部件
 class _MermaidFlowWidget extends StatefulWidget {
   const _MermaidFlowWidget({required this.code});
   final String code;
