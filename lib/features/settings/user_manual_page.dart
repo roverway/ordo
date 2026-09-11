@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/l10n/app_localizations.dart';
@@ -9,13 +10,14 @@ import 'settings_providers.dart';
 /// 知序 Ordo 用户使用手册页面
 ///
 /// 具备能力：
-/// 1. 原生 Markdown 轻量化 AST 解析（分段、标题、强调、列表、表格、代码块、引用与 GitHub 样式 Callout 警告卡片）；
+/// 1. 原生 Markdown 轻量化 AST 解析与行内格式化（粗体、斜体、代码、超链接锚点跳转）；
 /// 2. 响应式布局自适应：
 ///    - 宽屏（>= 900dp）：左侧固定宽度（280dp）展开目录树（Table of Contents），右侧正文平滑定位；
 ///    - 窄屏（< 900dp）：正文全屏阅读，底部悬浮目录按钮唤起 Draggable 目录抽屉；
 /// 3. 本地化联动：默认跟随应用系统语言（zh / en），标题栏提供即时「中 / EN」切换；
-/// 4. 实时搜索过滤与关键字黄色高亮展示；
-/// 5. 零外部三方排版依赖，100% 契合应用设计令牌（AppTokens）与动态深浅主题。
+/// 4. 实时搜索过滤与关键字高亮展示；
+/// 5. 目录与正文内锚点超链接点击 100% 精准平滑滚动跳转；
+/// 6. 零外部第三方排版依赖，100% 契合应用设计令牌（AppTokens）与动态深浅主题。
 class UserManualPage extends ConsumerStatefulWidget {
   const UserManualPage({
     super.key,
@@ -41,6 +43,9 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
   List<_TocItem> _tocItems = [];
 
   final Map<String, GlobalKey> _sectionKeys = {};
+  final Map<_HeadingBlock, GlobalKey> _headingKeys = {};
+  final Map<GlobalKey, String> _keyToSectionId = {};
+
   String? _activeSectionId;
   String _searchQuery = '';
   bool _isSearching = false;
@@ -88,9 +93,18 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
           _blocks = parsed.blocks;
           _tocItems = parsed.tocItems;
           _sectionKeys.clear();
-          for (final item in _tocItems) {
-            _sectionKeys[item.id] = GlobalKey();
+          _headingKeys.clear();
+          _keyToSectionId.clear();
+
+          for (final block in _blocks) {
+            if (block is _HeadingBlock) {
+              final key = GlobalKey();
+              _sectionKeys[block.anchorId] = key;
+              _headingKeys[block] = key;
+              _keyToSectionId[key] = block.anchorId;
+            }
           }
+
           _isLoading = false;
         });
       }
@@ -112,19 +126,72 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
     _loadManual();
   }
 
-  void _scrollToSection(String sectionId) {
-    final key = _sectionKeys[sectionId];
-    if (key?.currentContext != null) {
-      Scrollable.ensureVisible(
-        key!.currentContext!,
-        duration: const Duration(milliseconds: 350),
-        curve: Curves.easeOutCubic,
-        alignment: 0.05,
-      );
+  GlobalKey? _resolveSectionKey(String target) {
+    String clean = target.trim();
+    if (clean.startsWith('#')) {
+      clean = clean.substring(1).trim();
+    }
+    if (clean.isEmpty) return null;
+
+    // 1. 直接通过 sectionId 匹配 (如 sec_1)
+    if (_sectionKeys.containsKey(clean)) {
+      return _sectionKeys[clean];
+    }
+
+    // 2. 通过 slug 精准匹配
+    final cleanSlug = _slugify(clean);
+    for (final entry in _headingKeys.entries) {
+      if (entry.key.slug == cleanSlug || entry.key.slug == clean) {
+        return entry.value;
+      }
+    }
+
+    // 3. 通过标题内容或子集匹配
+    for (final entry in _headingKeys.entries) {
+      final hSlug = entry.key.slug;
+      if (hSlug.contains(cleanSlug) || cleanSlug.contains(hSlug)) {
+        return entry.value;
+      }
+      final hTitleClean = _slugify(entry.key.title);
+      if (hTitleClean == cleanSlug || hTitleClean.contains(cleanSlug)) {
+        return entry.value;
+      }
+    }
+
+    return null;
+  }
+
+  void _scrollToSection(String sectionIdOrSlug) {
+    // 若当前正在搜索状态，退出搜索以便展示全部内容
+    if (_isSearching || _searchQuery.isNotEmpty) {
       setState(() {
-        _activeSectionId = sectionId;
+        _isSearching = false;
+        _searchQuery = '';
+        _searchController.clear();
       });
     }
+
+    void doScroll() {
+      final key = _resolveSectionKey(sectionIdOrSlug);
+      final ctx = key?.currentContext;
+      if (ctx != null && ctx.mounted) {
+        Scrollable.ensureVisible(
+          ctx,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOutCubic,
+          alignment: 0.0,
+        );
+        final foundId = _keyToSectionId[key];
+        if (foundId != null && mounted) {
+          setState(() {
+            _activeSectionId = foundId;
+          });
+        }
+      }
+    }
+
+    doScroll();
+    WidgetsBinding.instance.addPostFrameCallback((_) => doScroll());
   }
 
   void _showTocBottomSheet(BuildContext context) {
@@ -162,7 +229,7 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
-                      vertical: 8,
+                      vertical: 6,
                     ),
                     child: Row(
                       children: [
@@ -174,7 +241,8 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
                         const SizedBox(width: 8),
                         Text(
                           l10n.manualTOC,
-                          style: theme.textTheme.titleMedium?.copyWith(
+                          style: const TextStyle(
+                            fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -190,8 +258,9 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
                   Expanded(
                     child: ListView.builder(
                       controller: scrollController,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       itemCount: _tocItems.length,
-                      itemBuilder: (ctx, index) {
+                      itemBuilder: (context, index) {
                         final item = _tocItems[index];
                         final isSelected = item.id == _activeSectionId;
                         return _TocListTile(
@@ -216,10 +285,12 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     final currentLang = _getEffectiveLanguage();
+
+    final isWide = MediaQuery.of(context).size.width >= 900;
 
     return Scaffold(
       appBar: AppBar(
@@ -227,15 +298,14 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
+                style: TextStyle(color: colorScheme.onSurface, fontSize: 16),
                 decoration: InputDecoration(
                   hintText: l10n.manualSearchHint,
                   border: InputBorder.none,
                   hintStyle: TextStyle(
-                    fontSize: 14,
                     color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                   ),
                 ),
-                style: const TextStyle(fontSize: 15),
                 onChanged: (val) {
                   setState(() {
                     _searchQuery = val.trim();
@@ -244,16 +314,12 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
               )
             : Text(
                 l10n.settingsHelp,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 18,
-                ),
+                style: const TextStyle(fontWeight: FontWeight.w700),
               ),
         actions: [
-          // 搜索按钮
           IconButton(
             icon: Icon(_isSearching ? Icons.close : Icons.search),
-            tooltip: _isSearching ? '关闭搜索' : '搜索内容',
+            tooltip: _isSearching ? l10n.clear : l10n.manualSearchHint,
             onPressed: () {
               setState(() {
                 if (_isSearching) {
@@ -266,30 +332,24 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
               });
             },
           ),
-          // 中英文快速切换胶囊组件
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             child: Container(
-              height: 32,
-              padding: const EdgeInsets.all(2),
               decoration: BoxDecoration(
                 color: colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.6,
+                  alpha: 0.5,
                 ),
                 borderRadius: BorderRadius.circular(AppTokens.radiusChip),
-                border: Border.all(
-                  color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _LanguageBadge(
+                  _LanguageChip(
                     label: '中',
                     isActive: currentLang == 'zh',
                     onTap: () => _onLanguageChanged('zh'),
                   ),
-                  _LanguageBadge(
+                  _LanguageChip(
                     label: 'EN',
                     isActive: currentLang == 'en',
                     onTap: () => _onLanguageChanged('en'),
@@ -298,85 +358,43 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
               ),
             ),
           ),
-          const SizedBox(width: 4),
         ],
       ),
       body: _buildBody(context),
-      floatingActionButton: LayoutBuilder(
-        builder: (context, constraints) {
-          final isWide = MediaQuery.of(context).size.width >= 900;
-          if (isWide ||
-              _isLoading ||
-              _errorMessage != null ||
-              _tocItems.isEmpty) {
-            return const SizedBox.shrink();
-          }
-          return FloatingActionButton.extended(
-            onPressed: () => _showTocBottomSheet(context),
-            icon: const Icon(Icons.list_alt_rounded, size: 20),
-            label: Text(l10n.manualTOC),
-            elevation: 3,
-            backgroundColor: colorScheme.primaryContainer,
-            foregroundColor: colorScheme.onPrimaryContainer,
-          );
-        },
-      ),
+      floatingActionButton: (!isWide && !_isLoading && _errorMessage == null)
+          ? FloatingActionButton.extended(
+              onPressed: () => _showTocBottomSheet(context),
+              icon: const Icon(Icons.toc_rounded),
+              label: Text(l10n.manualTOC),
+            )
+          : null,
     );
   }
 
   Widget _buildBody(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
 
     if (_isLoading) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator.adaptive(
-              valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              l10n.manualLoading,
-              style: TextStyle(
-                fontSize: 14,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_errorMessage != null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.error_outline, size: 48, color: colorScheme.error),
               const SizedBox(height: 16),
               Text(
-                l10n.manualLoadFailed,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.error,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
                 _errorMessage!,
+                style: TextStyle(color: colorScheme.error),
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: colorScheme.onSurfaceVariant,
-                ),
               ),
               const SizedBox(height: 16),
-              FilledButton.tonal(
+              FilledButton(
                 onPressed: _loadManual,
                 child: const Text('重试'),
               ),
@@ -392,26 +410,37 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
         ? _blocks
         : _blocks.where((b) => b.matchesQuery(_searchQuery)).toList();
 
-    Widget contentList = ListView.builder(
+    // 正文滚动视图：采用 SingleChildScrollView + Column 挂载全部节点，
+    // 杜绝 ListView.builder 懒回收导致屏幕外节点 GlobalKey 无法定位的问题。
+    final contentScrollView = SingleChildScrollView(
       controller: _scrollController,
-      padding: EdgeInsets.symmetric(horizontal: isWide ? 40 : 20, vertical: 24),
-      itemCount: filteredBlocks.length,
-      itemBuilder: (context, index) {
-        final block = filteredBlocks[index];
-        GlobalKey? secKey;
-        if (block is _HeadingBlock) {
-          secKey = _sectionKeys[block.anchorId];
-        }
-        return _BlockWidget(
-          block: block,
-          sectionKey: secKey,
-          searchQuery: _searchQuery,
-        );
-      },
+      padding: EdgeInsets.symmetric(
+        horizontal: isWide ? 40 : 20,
+        vertical: 24,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ...filteredBlocks.map((block) {
+            GlobalKey? secKey;
+            if (block is _HeadingBlock) {
+              secKey = _headingKeys[block] ?? _sectionKeys[block.anchorId];
+            }
+            return _BlockWidget(
+              block: block,
+              sectionKey: secKey,
+              searchQuery: _searchQuery,
+              onLinkTap: _scrollToSection,
+            );
+          }),
+          // 底部追加弹性滚动空隙，确保末尾章节（如 FAQ）能平滑滚动至视口顶端
+          const SizedBox(height: 320),
+        ],
+      ),
     );
 
     if (!isWide) {
-      return contentList;
+      return contentScrollView;
     }
 
     // 宽屏模式：左侧常驻目录树 + 右侧居中正文
@@ -475,7 +504,7 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 860),
-              child: contentList,
+              child: contentScrollView,
             ),
           ),
         ),
@@ -521,10 +550,19 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
           final title = trimmed.substring(level + 1).trim();
           sectionCounter++;
           final anchorId = 'sec_$sectionCounter';
-          blocks.add(
-            _HeadingBlock(level: level, title: title, anchorId: anchorId),
+          final slug = _slugify(title);
+          final headingBlock = _HeadingBlock(
+            level: level,
+            title: title,
+            anchorId: anchorId,
+            slug: slug,
           );
-          if (level <= 3) {
+          blocks.add(headingBlock);
+
+          // 过滤掉文内“目录”标题本身，避免目录中递归展示“目录”
+          final isTocHeading = title.contains('目录') ||
+              title.toLowerCase().contains('table of contents');
+          if (level <= 3 && !isTocHeading) {
             tocItems.add(_TocItem(id: anchorId, title: title, level: level));
           }
           index++;
@@ -583,18 +621,34 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
       if (trimmed.startsWith('- ') ||
           trimmed.startsWith('* ') ||
           RegExp(r'^\d+\.\s').hasMatch(trimmed)) {
-        final listItems = <String>[];
+        final listItems = <_ListItem>[];
         bool isOrdered = RegExp(r'^\d+\.\s').hasMatch(trimmed);
 
         while (index < lines.length) {
-          final curTrimmed = lines[index].trim();
+          final rawLine = lines[index];
+          final curTrimmed = rawLine.trim();
           if (curTrimmed.isEmpty) break;
+
+          // 计算缩进层级 (2空格或tab算一级缩进)
+          int indent = 0;
+          if (rawLine.startsWith('    ') || rawLine.startsWith('\t\t')) {
+            indent = 2;
+          } else if (rawLine.startsWith('  ') || rawLine.startsWith('\t')) {
+            indent = 1;
+          }
+
           if (curTrimmed.startsWith('- ') || curTrimmed.startsWith('* ')) {
-            listItems.add(curTrimmed.substring(2).trim());
+            listItems.add(_ListItem(
+              text: curTrimmed.substring(2).trim(),
+              indent: indent,
+            ));
             index++;
           } else if (RegExp(r'^\d+\.\s').hasMatch(curTrimmed)) {
             final dotIdx = curTrimmed.indexOf('. ');
-            listItems.add(curTrimmed.substring(dotIdx + 2).trim());
+            listItems.add(_ListItem(
+              text: curTrimmed.substring(dotIdx + 2).trim(),
+              indent: indent,
+            ));
             index++;
           } else {
             break;
@@ -689,6 +743,17 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
 }
 
 // -------------------------------------------------------------
+// Slug 生成工具
+// -------------------------------------------------------------
+String _slugify(String input) {
+  return input
+      .toLowerCase()
+      .replaceAll(RegExp(r'[\*\`_\[\]\(\)\（\）\.\:\：\,\，\?\？\/\\\#]'), '')
+      .replaceAll(RegExp(r'\s+'), '-')
+      .trim();
+}
+
+// -------------------------------------------------------------
 // AST 块定义与数据模型
 // -------------------------------------------------------------
 abstract class _ManualBlock {
@@ -701,10 +766,12 @@ class _HeadingBlock extends _ManualBlock {
     required this.level,
     required this.title,
     required this.anchorId,
+    required this.slug,
   });
   final int level;
   final String title;
   final String anchorId;
+  final String slug;
 
   @override
   bool matchesQuery(String query) =>
@@ -732,14 +799,21 @@ class _CalloutBlock extends _ManualBlock {
       content.toLowerCase().contains(query.toLowerCase());
 }
 
+class _ListItem {
+  const _ListItem({required this.text, this.indent = 0});
+  final String text;
+  final int indent;
+}
+
 class _ListBlock extends _ManualBlock {
   const _ListBlock({required this.items, required this.isOrdered});
-  final List<String> items;
+  final List<_ListItem> items;
   final bool isOrdered;
 
   @override
-  bool matchesQuery(String query) =>
-      items.any((it) => it.toLowerCase().contains(query.toLowerCase()));
+  bool matchesQuery(String query) => items.any(
+        (item) => item.text.toLowerCase().contains(query.toLowerCase()),
+      );
 }
 
 class _TableBlock extends _ManualBlock {
@@ -750,8 +824,11 @@ class _TableBlock extends _ManualBlock {
   @override
   bool matchesQuery(String query) {
     final q = query.toLowerCase();
-    return headers.any((h) => h.toLowerCase().contains(q)) ||
-        rows.any((r) => r.any((c) => c.toLowerCase().contains(q)));
+    if (headers.any((h) => h.toLowerCase().contains(q))) return true;
+    for (final row in rows) {
+      if (row.any((cell) => cell.toLowerCase().contains(q))) return true;
+    }
+    return false;
   }
 }
 
@@ -767,30 +844,245 @@ class _CodeBlock extends _ManualBlock {
 
 class _DividerBlock extends _ManualBlock {
   const _DividerBlock();
+
   @override
   bool matchesQuery(String query) => false;
 }
 
 class _TocItem {
-  const _TocItem({required this.id, required this.title, required this.level});
+  const _TocItem({
+    required this.id,
+    required this.title,
+    required this.level,
+  });
   final String id;
   final String title;
   final int level;
 }
 
 class _ParsedManual {
-  _ParsedManual({required this.blocks, required this.tocItems});
+  const _ParsedManual({required this.blocks, required this.tocItems});
   final List<_ManualBlock> blocks;
   final List<_TocItem> tocItems;
 }
 
 // -------------------------------------------------------------
-// UI 子组件
+// 行内 Markdown 标记解析器 (加粗、斜体、代码、超链接锚点跳转)
+// -------------------------------------------------------------
+class _InlineToken {
+  const _InlineToken({
+    required this.text,
+    this.isBold = false,
+    this.isItalic = false,
+    this.isCode = false,
+    this.isStrikethrough = false,
+    this.linkUrl,
+  });
+
+  final String text;
+  final bool isBold;
+  final bool isItalic;
+  final bool isCode;
+  final bool isStrikethrough;
+  final String? linkUrl;
+}
+
+List<_InlineToken> _tokenizeInline(String input) {
+  final tokens = <_InlineToken>[];
+  // 匹配：
+  // 1) ***粗斜体*** (group 1, 2)
+  // 2) **粗体** (group 3, 4)
+  // 3) *斜体* (group 5, 6)
+  // 4) `代码` (group 7, 8)
+  // 5) [文本](链接) (group 9, 10, 11)
+  // 6) ~~删除线~~ (group 12, 13)
+  final regex = RegExp(
+    r'(\*\*\*(.+?)\*\*\*)|'
+    r'(\*\*(.+?)\*\*)|'
+    r'(\*(.+?)\*)|'
+    r'(`([^`]+)`)|'
+    r'(\[([^\]]+)\]\(([^)]+)\))|'
+    r'(~~(.+?)~~)',
+  );
+
+  int lastIndex = 0;
+  for (final match in regex.allMatches(input)) {
+    if (match.start > lastIndex) {
+      tokens.add(_InlineToken(text: input.substring(lastIndex, match.start)));
+    }
+    if (match.group(2) != null) {
+      tokens.add(_InlineToken(
+        text: match.group(2)!,
+        isBold: true,
+        isItalic: true,
+      ));
+    } else if (match.group(4) != null) {
+      tokens.add(_InlineToken(text: match.group(4)!, isBold: true));
+    } else if (match.group(6) != null) {
+      tokens.add(_InlineToken(text: match.group(6)!, isItalic: true));
+    } else if (match.group(8) != null) {
+      tokens.add(_InlineToken(text: match.group(8)!, isCode: true));
+    } else if (match.group(10) != null) {
+      tokens.add(_InlineToken(
+        text: match.group(10)!,
+        linkUrl: match.group(11)!,
+      ));
+    } else if (match.group(13) != null) {
+      tokens.add(_InlineToken(text: match.group(13)!, isStrikethrough: true));
+    }
+    lastIndex = match.end;
+  }
+  if (lastIndex < input.length) {
+    tokens.add(_InlineToken(text: input.substring(lastIndex)));
+  }
+  return tokens;
+}
+
+class _MarkdownInlineText extends StatefulWidget {
+  const _MarkdownInlineText({
+    required this.text,
+    required this.style,
+    required this.searchQuery,
+    this.onLinkTap,
+  });
+
+  final String text;
+  final TextStyle style;
+  final String searchQuery;
+  final void Function(String url)? onLinkTap;
+
+  @override
+  State<_MarkdownInlineText> createState() => _MarkdownInlineTextState();
+}
+
+class _MarkdownInlineTextState extends State<_MarkdownInlineText> {
+  final List<TapGestureRecognizer> _recognizers = [];
+
+  @override
+  void dispose() {
+    _clearRecognizers();
+    super.dispose();
+  }
+
+  void _clearRecognizers() {
+    for (final r in _recognizers) {
+      r.dispose();
+    }
+    _recognizers.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _clearRecognizers();
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    final tokens = _tokenizeInline(widget.text);
+    final spans = <InlineSpan>[];
+
+    for (final token in tokens) {
+      TextStyle tokenStyle = widget.style;
+      if (token.isBold) {
+        tokenStyle = tokenStyle.copyWith(
+          fontWeight: FontWeight.w700,
+          color: colorScheme.onSurface,
+        );
+      }
+      if (token.isItalic) {
+        tokenStyle = tokenStyle.copyWith(fontStyle: FontStyle.italic);
+      }
+      if (token.isStrikethrough) {
+        tokenStyle = tokenStyle.copyWith(
+          decoration: TextDecoration.lineThrough,
+        );
+      }
+      if (token.isCode) {
+        tokenStyle = tokenStyle.copyWith(
+          fontFamily: 'monospace',
+          fontSize: (tokenStyle.fontSize ?? 14.0) * 0.92,
+          color: colorScheme.primary,
+          backgroundColor: colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.8,
+          ),
+        );
+      }
+
+      TapGestureRecognizer? recognizer;
+      if (token.linkUrl != null) {
+        tokenStyle = tokenStyle.copyWith(
+          color: colorScheme.primary,
+          fontWeight: FontWeight.w600,
+          decoration: TextDecoration.underline,
+          decorationColor: colorScheme.primary.withValues(alpha: 0.5),
+        );
+        if (widget.onLinkTap != null) {
+          final r = TapGestureRecognizer()
+            ..onTap = () => widget.onLinkTap!(token.linkUrl!);
+          _recognizers.add(r);
+          recognizer = r;
+        }
+      }
+
+      // 处理搜索词高亮
+      if (widget.searchQuery.isNotEmpty &&
+          token.text.toLowerCase().contains(widget.searchQuery.toLowerCase())) {
+        final lowerText = token.text.toLowerCase();
+        final lowerQuery = widget.searchQuery.toLowerCase();
+        int start = 0;
+        while (true) {
+          final idx = lowerText.indexOf(lowerQuery, start);
+          if (idx < 0) {
+            if (start < token.text.length) {
+              spans.add(TextSpan(
+                text: token.text.substring(start),
+                style: tokenStyle,
+                recognizer: recognizer,
+              ));
+            }
+            break;
+          }
+          if (idx > start) {
+            spans.add(TextSpan(
+              text: token.text.substring(start, idx),
+              style: tokenStyle,
+              recognizer: recognizer,
+            ));
+          }
+          final matchText = token.text.substring(
+            idx,
+            idx + widget.searchQuery.length,
+          );
+          spans.add(TextSpan(
+            text: matchText,
+            style: tokenStyle.copyWith(
+              backgroundColor: Colors.amber.withValues(alpha: 0.4),
+              color: colorScheme.primary,
+              fontWeight: FontWeight.w800,
+            ),
+            recognizer: recognizer,
+          ));
+          start = idx + widget.searchQuery.length;
+        }
+      } else {
+        spans.add(TextSpan(
+          text: token.text,
+          style: tokenStyle,
+          recognizer: recognizer,
+        ));
+      }
+    }
+
+    return Text.rich(TextSpan(children: spans));
+  }
+}
+
+// -------------------------------------------------------------
+// UI 辅助小部件
 // -------------------------------------------------------------
 
-/// 语言切换徽章
-class _LanguageBadge extends StatelessWidget {
-  const _LanguageBadge({
+/// 语言切换胶囊按钮
+class _LanguageChip extends StatelessWidget {
+  const _LanguageChip({
     required this.label,
     required this.isActive,
     required this.onTap,
@@ -915,11 +1207,13 @@ class _BlockWidget extends StatelessWidget {
     required this.block,
     this.sectionKey,
     required this.searchQuery,
+    this.onLinkTap,
   });
 
   final _ManualBlock block;
   final GlobalKey? sectionKey;
   final String searchQuery;
+  final void Function(String url)? onLinkTap;
 
   @override
   Widget build(BuildContext context) {
@@ -953,8 +1247,8 @@ class _BlockWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHighlightText(
-              b.title,
+            _MarkdownInlineText(
+              text: b.title,
               style: TextStyle(
                 fontSize: fontSize,
                 fontWeight: FontWeight.w800,
@@ -962,7 +1256,7 @@ class _BlockWidget extends StatelessWidget {
                 letterSpacing: -0.2,
               ),
               searchQuery: searchQuery,
-              context: context,
+              onLinkTap: onLinkTap,
             ),
             if (b.level == 1)
               Container(
@@ -983,15 +1277,15 @@ class _BlockWidget extends StatelessWidget {
       final b = block as _ParagraphBlock;
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
-        child: _buildHighlightText(
-          b.text,
+        child: _MarkdownInlineText(
+          text: b.text,
           style: TextStyle(
             fontSize: 14.5,
             height: 1.65,
             color: colorScheme.onSurface.withValues(alpha: 0.92),
           ),
           searchQuery: searchQuery,
-          context: context,
+          onLinkTap: onLinkTap,
         ),
       );
     }
@@ -1055,8 +1349,8 @@ class _BlockWidget extends StatelessWidget {
                   ],
                 ),
               ),
-            _buildHighlightText(
-              b.content,
+            _MarkdownInlineText(
+              text: b.content,
               style: TextStyle(
                 fontSize: 13.5,
                 height: 1.6,
@@ -1066,7 +1360,7 @@ class _BlockWidget extends StatelessWidget {
                 color: colorScheme.onSurface,
               ),
               searchQuery: searchQuery,
-              context: context,
+              onLinkTap: onLinkTap,
             ),
           ],
         ),
@@ -1080,10 +1374,15 @@ class _BlockWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: List.generate(b.items.length, (idx) {
-            final text = b.items[idx];
+            final item = b.items[idx];
             final prefix = b.isOrdered ? '${idx + 1}. ' : '• ';
             return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2.5),
+              padding: EdgeInsets.fromLTRB(
+                item.indent * 18.0,
+                2.5,
+                0,
+                2.5,
+              ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1096,15 +1395,15 @@ class _BlockWidget extends StatelessWidget {
                     ),
                   ),
                   Expanded(
-                    child: _buildHighlightText(
-                      text,
+                    child: _MarkdownInlineText(
+                      text: item.text,
                       style: TextStyle(
                         fontSize: 14,
                         height: 1.55,
                         color: colorScheme.onSurface,
                       ),
                       searchQuery: searchQuery,
-                      context: context,
+                      onLinkTap: onLinkTap,
                     ),
                   ),
                 ],
@@ -1135,9 +1434,11 @@ class _BlockWidget extends StatelessWidget {
             columns: b.headers
                 .map(
                   (h) => DataColumn(
-                    label: Text(
-                      h,
+                    label: _MarkdownInlineText(
+                      text: h,
                       style: const TextStyle(fontWeight: FontWeight.w700),
+                      searchQuery: searchQuery,
+                      onLinkTap: onLinkTap,
                     ),
                   ),
                 )
@@ -1148,11 +1449,11 @@ class _BlockWidget extends StatelessWidget {
                     cells: r
                         .map(
                           (cell) => DataCell(
-                            _buildHighlightText(
-                              cell,
+                            _MarkdownInlineText(
+                              text: cell,
                               style: const TextStyle(fontSize: 13),
                               searchQuery: searchQuery,
-                              context: context,
+                              onLinkTap: onLinkTap,
                             ),
                           ),
                         )
@@ -1167,6 +1468,9 @@ class _BlockWidget extends StatelessWidget {
 
     if (block is _CodeBlock) {
       final b = block as _CodeBlock;
+      if (b.language.toLowerCase() == 'mermaid') {
+        return _MermaidFlowWidget(code: b.code);
+      }
       return Container(
         margin: const EdgeInsets.symmetric(vertical: 10),
         padding: const EdgeInsets.all(12),
@@ -1200,57 +1504,281 @@ class _BlockWidget extends StatelessWidget {
 
     return const SizedBox.shrink();
   }
+}
 
-  /// 高亮文本构建
-  Widget _buildHighlightText(
-    String text, {
-    required TextStyle style,
-    required String searchQuery,
-    required BuildContext context,
-  }) {
-    if (searchQuery.isEmpty) {
-      return Text(text, style: style);
-    }
+/// Mermaid 流程图原生可视化小部件
+class _MermaidFlowWidget extends StatefulWidget {
+  const _MermaidFlowWidget({required this.code});
+  final String code;
 
-    final lowerText = text.toLowerCase();
-    final lowerQuery = searchQuery.toLowerCase();
-    final spans = <InlineSpan>[];
+  @override
+  State<_MermaidFlowWidget> createState() => _MermaidFlowWidgetState();
+}
 
-    int start = 0;
-    while (true) {
-      final index = lowerText.indexOf(lowerQuery, start);
-      if (index < 0) {
-        spans.add(TextSpan(text: text.substring(start), style: style));
-        break;
-      }
+class _MermaidFlowWidgetState extends State<_MermaidFlowWidget> {
+  bool _showRawCode = false;
 
-      if (index > start) {
-        spans.add(TextSpan(text: text.substring(start, index), style: style));
-      }
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isEn = widget.code.contains('Subtasks Cluster Status');
 
-      spans.add(
-        WidgetSpan(
-          alignment: PlaceholderAlignment.middle,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
-            decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: 0.35),
-              borderRadius: BorderRadius.circular(3),
+    final title = isEn
+        ? 'Task State Derivation Flowchart'
+        : '子任务集群与父任务状态派生流向图';
+    final rootLabel = isEn ? 'Subtasks Cluster Status' : '子任务集群状态';
+    final ruleLabel = isEn ? 'Derivation Rules' : '状态联动规则判定';
+
+    final branches = isEn
+        ? [
+            (
+              '🟢 All [Done]',
+              'Parent becomes [Done] (100%)',
+              Colors.green,
             ),
-            child: Text(
-              text.substring(index, index + searchQuery.length),
-              style: style.copyWith(
-                fontWeight: FontWeight.w700,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+            (
+              '🟡 Any [In Progress] or partial',
+              'Parent becomes [In Progress] (shows ring)',
+              Colors.amber,
+            ),
+            (
+              '⚪ All [Todo]',
+              'Parent stays [Todo] (0%)',
+              Colors.blueGrey,
+            ),
+            (
+              '🔴 All [Canceled]',
+              'Parent becomes [Canceled]',
+              Colors.red,
+            ),
+          ]
+        : [
+            (
+              '🟢 全部子任务【已完成】',
+              '父任务自动变为【已完成】(100%)',
+              Colors.green,
+            ),
+            (
+              '🟡 任意子任务【进行中】或【部分完成】',
+              '父任务自动变为【进行中】(显示进度环)',
+              Colors.amber,
+            ),
+            (
+              '⚪ 全部子任务处于【待办】',
+              '父任务保持【待办】(0%)',
+              Colors.blueGrey,
+            ),
+            (
+              '🔴 全部子任务均为【已取消】',
+              '父任务自动变为【已取消】',
+              Colors.red,
+            ),
+          ];
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 顶部标头与源码切换
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 10, 8),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.account_tree_outlined,
+                  size: 18,
+                  color: colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _showRawCode = !_showRawCode;
+                    });
+                  },
+                  icon: Icon(
+                    _showRawCode ? Icons.visibility_off : Icons.code,
+                    size: 14,
+                  ),
+                  label: Text(
+                    _showRawCode
+                        ? (isEn ? 'Hide Code' : '隐藏源码')
+                        : (isEn ? 'View Code' : '查看源码'),
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-      );
+          const Divider(height: 1),
 
-      start = index + searchQuery.length;
-    }
+          // 核心可视化流程树
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            child: Column(
+              children: [
+                // 顶层根节点
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                    border: Border.all(
+                      color: colorScheme.primary.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.dashboard_customize_outlined,
+                        size: 16,
+                        color: colorScheme.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        rootLabel,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Icon(
+                  Icons.arrow_downward_rounded,
+                  size: 18,
+                  color: colorScheme.primary.withValues(alpha: 0.7),
+                ),
+                const SizedBox(height: 6),
 
-    return RichText(text: TextSpan(children: spans));
+                // 中间规则判定节点
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                    border: Border.all(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.alt_route_rounded,
+                        size: 15,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        ruleLabel,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // 4 个状态分支卡片
+                ...branches.map((b) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface,
+                      borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                      border: Border(
+                        left: BorderSide(color: b.$3, width: 3.5),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          b.$1,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 14,
+                          color: colorScheme.outlineVariant,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            b.$2,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+
+          // 源码展开抽屉
+          if (_showRawCode) ...[
+            const Divider(height: 1),
+            Container(
+              padding: const EdgeInsets.all(12),
+              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              child: SelectableText(
+                widget.code,
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }

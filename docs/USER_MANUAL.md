@@ -58,7 +58,7 @@
 * **Order & Priority**: Instead of drowning in endless to-do lists, gain control over your life and work through clear hierarchical breakdown and priority distinctions;
 * **Local-First, Total Control**: All your tasks, lists, tags, and settings are stored locally in an embedded SQLite database. Even completely offline, queries and updates occur with sub-millisecond response times;
 * **Pure & Unobtrusive**: No advertisements, no spam notifications, no cloud account lock-in. Your focus belongs to you;
-* **Minimalist Ergonomics**: Smooth continuous curvature (Squircle) styling coupled with physics-based spring transitions deliver a satisfying tactile experience on both touchscreens and desktop computers.
+* **Minimalist Aesthetics & Smooth Haptics**: Combines Squircle (continuous curvature continuous rounded corners) design with elastic motion to deliver a natural, comfortable tactile experience across both desktop and mobile.
 
 ### 1.2 Interface Layout & Navigation
 
@@ -112,11 +112,19 @@ To help you decompose major milestones into actionable steps, Ordo supports up t
 
 ### 2.3 Derived State Logic: Parent-Child Linkage
 
-In Ordo, **a parent task's state and progress are derived dynamically from its subtasks**:
-* **All Done**: When every subtask is `Done`, the parent task automatically turns `Done` (100%);
-* **In Progress Ring**: If any subtask is `In Progress` or partially completed, the parent displays an `In Progress` badge with a visual completion percentage ring;
-* **All Cancelled**: If all subtasks are `Cancelled`, the parent task is automatically marked `Cancelled`;
-* **Reactivation**: Toggling any subtask back to `Todo` automatically reactivates the parent task.
+In Ordo, **a parent task's state and progress are derived dynamically from its subtasks**, ensuring logical consistency:
+
+```mermaid
+flowchart TD
+    Subtasks["Subtasks Cluster Status"] --> Judge{Derivation Rule}
+    Judge -->|"All subtasks are [Done]"| Done["Parent automatically becomes [Done] (100%)"]
+    Judge -->|"Any subtask is [In Progress] or partially completed"| InProg["Parent automatically becomes [In Progress] (shows progress ring)"]
+    Judge -->|"All subtasks are [Canceled]"| Cancel["Parent automatically becomes [Canceled]"]
+    Judge -->|"All subtasks are [Todo]"| Todo["Parent stays [Todo] (0%)"]
+```
+
+* **Progress Ring Indicator**: The status indicator in front of the parent task displays a circular progress ring (e.g., if 2 of 4 subtasks are completed, the parent displays a 50% emerald green ring);
+* **Auto-completion & Awakening**: When you check off the final remaining subtask, the parent task is automatically marked as completed; when you uncheck any subtask back to todo, the parent task automatically re-awakens into the in-progress state.
 
 ### 2.4 Reordering, Indenting, and Outdenting
 
@@ -239,15 +247,29 @@ Ordo uses an offline-first **Relay Synchronization** mechanism:
 
 ### 6.2 Configuring WebDAV (Nutstore / Nextcloud, etc.)
 
-1. Obtain an **App-Specific Password** from your WebDAV provider (e.g., Nutstore or Nextcloud);
-2. Go to `Settings -> Sync Settings` and choose **WebDAV**;
-3. Fill in the Server URL, Username, and App Password;
-4. Click **Test Connection**, then toggle **Enable Sync**.
+Taking the widely used **Nutstore** as an example:
+1. Log in to the Nutstore official website, go to `Account Information -> Security` and generate an **App-Specific Password**;
+2. Open Ordo's `Settings -> Sync Settings` and select **WebDAV**;
+3. Fill in the parameters:
+   * **Server URL**: E.g., for Nutstore enter `https://dav.jianguoyun.com/dav/` (Ordo automatically adapts and creates the cloud `/todo/` directory; for self-hosted NAS or Nextcloud, you can directly append your custom path such as `https://example.com/dav/todo/`);
+   * **Username**: Your registered email (or WebDAV username);
+   * **Password**: The application-specific password generated above (not your web login password);
+   > [!NOTE]
+   > The WebDAV form does not require a separate "remote directory" field. For Nutstore root URLs, Ordo automatically establishes the `/todo/` cloud directory on initial sync via MKCOL; for self-hosted WebDAV services, simply specify your desired directory at the end of the Server URL.
+4. Click **Test Connection**, and once confirmed, switch on **Enable Sync**.
 
 ### 6.3 Configuring S3 Compatible Storage (MinIO / Cloudflare R2 / OSS)
 
-1. Select **S3 Compatible** in Sync Settings;
-2. Enter your **Endpoint**, **Bucket**, **Access Key**, **Secret Key**, and **Region**;
+> S3 sync has not been fully verified yet
+
+If you operate your own private cloud storage or use economical object storage services such as Cloudflare R2:
+1. In `Settings -> Sync Settings`, switch to **S3 Compatible**;
+2. Fill in the storage configuration:
+   * **Endpoint**: E.g., `https://<account_id>.r2.cloudflarestorage.com` or self-hosted `http://192.168.1.100:9000`;
+   * **Bucket**: E.g., `my-ordo-data`;
+   * **Access Key / Secret Key**: Object storage API credentials;
+   * **Region**: E.g., `auto` or `us-east-1`;
+   * **Prefix**: Defaults to `todo/` (sync data is stored as `data.json.gz` under this prefix);
 3. Click **Test Connection & Save**.
 
 ### 6.4 Credential Security & Hardware Protection

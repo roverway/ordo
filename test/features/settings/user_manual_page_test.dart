@@ -63,7 +63,7 @@ void main() {
     expect(find.text('目录'), findsOneWidget);
     expect(find.text('1. 快速入门'), findsWidgets);
 
-    // 验证首屏正文元素（标题、引言与目录）
+    // 验证首屏正文元素
     expect(find.textContaining('知序 Ordo 用户使用手册'), findsWidgets);
     expect(find.textContaining('知其轻重，行止有序'), findsWidgets);
     expect(find.textContaining('目录（Table of Contents）'), findsWidgets);
@@ -120,6 +120,74 @@ void main() {
 
     // 弹层已关闭
     expect(find.byType(DraggableScrollableSheet), findsNothing);
+  });
+
+  testWidgets('宽屏左侧目录点击后可平滑滚动定位到指定章节', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(buildTestApp(locale: const Locale('zh')));
+    await tester.pumpAndSettle();
+
+    // 找到正文的 SingleChildScrollView 控制器
+    final scrollable = tester.widget<SingleChildScrollView>(
+      find.byType(SingleChildScrollView).first,
+    );
+    final controller = scrollable.controller!;
+    expect(controller.offset, 0.0);
+
+    // 点击左侧目录栏中已渲染的章节「2. 核心概念与任务管理」
+    // 使用 Row 内包含该文本的条目点击
+    final sec2Finder = find.text('2. 核心概念与任务管理').first;
+    expect(sec2Finder, findsOneWidget);
+
+    await tester.tap(sec2Finder);
+    await tester.pumpAndSettle();
+
+    // 确认已触发正文向下平滑滚动定位
+    expect(controller.offset, greaterThan(150.0));
+  });
+
+  testWidgets('Markdown 行内语法被正确解析，不残留原生 ** 或超链接括号字符', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(buildTestApp(locale: const Locale('zh')));
+    await tester.pumpAndSettle();
+
+    // 查找包含加粗与链接语法的文本块，验证正文中不出现 raw markdown 标记字符
+    expect(find.textContaining('**“知其轻重'), findsNothing);
+    expect(find.textContaining('**本地优先（Local-First）**'), findsNothing);
+    expect(find.textContaining('](#1-快速入门)'), findsNothing);
+
+    // 验证解析后的富文本仍然完整展示了文本内容
+    expect(find.textContaining('知其轻重，行止有序'), findsWidgets);
+    expect(find.textContaining('本地优先（Local-First）'), findsWidgets);
+  });
+
+  testWidgets('Mermaid 流程图以原生可视化卡片呈现', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(buildTestApp(locale: const Locale('zh')));
+    await tester.pumpAndSettle();
+
+    // 滚动正文直至「查看源码」按钮进入视口
+    await tester.ensureVisible(find.text('查看源码'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('子任务集群与父任务状态派生流向图'), findsOneWidget);
+    expect(find.text('状态联动规则判定'), findsOneWidget);
+
+    // 点击「查看源码」切换展开源码
+    await tester.tap(find.text('查看源码'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('隐藏源码'), findsOneWidget);
+    expect(find.textContaining('flowchart TD'), findsOneWidget);
   });
 
   testWidgets('搜索框可过滤正文内容并高亮展示', (tester) async {
