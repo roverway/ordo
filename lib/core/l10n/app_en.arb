@@ -804,10 +804,16 @@
         "type": "String"
       }
     }
-  }
-,
+  },
   "snapshotTriggerDaily": "Daily Auto",
   "snapshotTriggerPreSync": "Pre-sync",
   "snapshotTriggerPreRestore": "Pre-restore",
-  "snapshotTriggerManual": "Manual"
+  "snapshotTriggerManual": "Manual",
+  "settingsHelp": "Help & Manual",
+  "settingsHelpSubtitle": "Explore Ordo features and user manual",
+  "manualTOC": "Table of Contents",
+  "manualSearchHint": "Search in manual...",
+  "manualLanguage": "Switch Language",
+  "manualLoading": "Loading manual...",
+  "manualLoadFailed": "Failed to load manual"
 }

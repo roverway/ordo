@@ -2636,6 +2636,48 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'手动创建快照'**
   String get snapshotTriggerManual;
+
+  /// No description provided for @settingsHelp.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用帮助'**
+  String get settingsHelp;
+
+  /// No description provided for @settingsHelpSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'了解知序的特性与操作使用方法'**
+  String get settingsHelpSubtitle;
+
+  /// No description provided for @manualTOC.
+  ///
+  /// In zh, this message translates to:
+  /// **'目录'**
+  String get manualTOC;
+
+  /// No description provided for @manualSearchHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'在手册中查找...'**
+  String get manualSearchHint;
+
+  /// No description provided for @manualLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'切换语言'**
+  String get manualLanguage;
+
+  /// No description provided for @manualLoading.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在加载手册...'**
+  String get manualLoading;
+
+  /// No description provided for @manualLoadFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'手册加载失败'**
+  String get manualLoadFailed;
 }
 
 class _AppLocalizationsDelegate

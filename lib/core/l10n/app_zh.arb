@@ -804,10 +804,16 @@
         "type": "String"
       }
     }
-  }
-,
+  },
   "snapshotTriggerDaily": "每日自动快照",
   "snapshotTriggerPreSync": "同步前快照",
   "snapshotTriggerPreRestore": "还原前快照",
-  "snapshotTriggerManual": "手动创建快照"
+  "snapshotTriggerManual": "手动创建快照",
+  "settingsHelp": "使用帮助",
+  "settingsHelpSubtitle": "了解知序的特性与操作使用方法",
+  "manualTOC": "目录",
+  "manualSearchHint": "在手册中查找...",
+  "manualLanguage": "切换语言",
+  "manualLoading": "正在加载手册...",
+  "manualLoadFailed": "手册加载失败"
 }

@@ -1376,4 +1376,25 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get snapshotTriggerManual => '手动创建快照';
+
+  @override
+  String get settingsHelp => '使用帮助';
+
+  @override
+  String get settingsHelpSubtitle => '了解知序的特性与操作使用方法';
+
+  @override
+  String get manualTOC => '目录';
+
+  @override
+  String get manualSearchHint => '在手册中查找...';
+
+  @override
+  String get manualLanguage => '切换语言';
+
+  @override
+  String get manualLoading => '正在加载手册...';
+
+  @override
+  String get manualLoadFailed => '手册加载失败';
 }

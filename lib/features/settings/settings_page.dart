@@ -38,6 +38,7 @@ class SettingsPage extends ConsumerWidget {
           child: SettingsBody(
             onOpenSync: () => context.push('/settings/sync'),
             onOpenTags: () => context.push('/tags'),
+            onOpenHelp: () => context.push('/settings/help'),
           ),
         ),
       ),
@@ -89,6 +90,7 @@ class SettingsDrawer extends ConsumerWidget {
               child: SettingsBody(
                 onOpenSync: () => context.push('/settings/sync'),
                 onOpenTags: () => context.push('/tags'),
+                onOpenHelp: () => context.push('/settings/help'),
               ),
             ),
           ],
@@ -104,10 +106,12 @@ class SettingsBody extends StatelessWidget {
     super.key,
     required this.onOpenSync,
     required this.onOpenTags,
+    this.onOpenHelp,
   });
 
   final VoidCallback onOpenSync;
   final VoidCallback onOpenTags;
+  final VoidCallback? onOpenHelp;
 
   @override
   Widget build(BuildContext context) {
@@ -134,7 +138,11 @@ class SettingsBody extends StatelessWidget {
         const BackupSection(),
         const SizedBox(height: 20),
 
-        // ── 6. 关于 ──
+        // ── 6. 使用帮助 ──
+        _HelpSection(onOpenHelp: onOpenHelp),
+        const SizedBox(height: 20),
+
+        // ── 7. 关于 ──
         const _AboutSection(),
       ],
     );
@@ -705,6 +713,85 @@ class _SyncSection extends ConsumerWidget {
       return '$target · ${l10n.syncLastSyncedAt(timeStr)}';
     }
     return target;
+  }
+}
+
+/// 使用帮助卡片
+class _HelpSection extends StatelessWidget {
+  const _HelpSection({this.onOpenHelp});
+
+  final VoidCallback? onOpenHelp;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(title: l10n.settingsHelp),
+        _SettingsCard(
+          padding: EdgeInsets.zero,
+          children: [
+            InkWell(
+              onTap: () {
+                if (onOpenHelp != null) {
+                  onOpenHelp!();
+                } else {
+                  context.push('/settings/help');
+                }
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                child: Row(
+                  children: [
+                    _IconBadge(
+                      icon: Icons.menu_book_outlined,
+                      color: colorScheme.primary,
+                    ),
+                    const SizedBox(width: 13),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.settingsHelp,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            l10n.settingsHelpSubtitle,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      size: 20,
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.6,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }
 

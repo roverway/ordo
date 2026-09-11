@@ -8,6 +8,7 @@ import 'features/custom_views/presentation/custom_view_page.dart';
 import 'features/projects/projects_page.dart';
 import 'features/search/search_page.dart';
 import 'features/settings/settings_page.dart';
+import 'features/settings/user_manual_page.dart';
 import 'features/sync_setup/sync_setup_page.dart';
 import 'features/tags/tags_page.dart';
 import 'features/tags/tags_detail_page.dart';
@@ -116,6 +117,12 @@ final GoRouter appRouter = GoRouter(
           path: 'sync',
           pageBuilder: (context, state) =>
               _slideFadePage(context, state, const SyncSetupPage()),
+        ),
+        // 使用手册帮助页（绝对路径 /settings/help）
+        GoRoute(
+          path: 'help',
+          pageBuilder: (context, state) =>
+              _slideFadePage(context, state, const UserManualPage()),
         ),
       ],
     ),

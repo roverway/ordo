@@ -1406,4 +1406,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get snapshotTriggerManual => 'Manual';
+
+  @override
+  String get settingsHelp => 'Help & Manual';
+
+  @override
+  String get settingsHelpSubtitle => 'Explore Ordo features and user manual';
+
+  @override
+  String get manualTOC => 'Table of Contents';
+
+  @override
+  String get manualSearchHint => 'Search in manual...';
+
+  @override
+  String get manualLanguage => 'Switch Language';
+
+  @override
+  String get manualLoading => 'Loading manual...';
+
+  @override
+  String get manualLoadFailed => 'Failed to load manual';
 }
