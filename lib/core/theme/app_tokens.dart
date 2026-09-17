@@ -102,6 +102,15 @@ abstract final class AppTokens {
   /// 磨砂 / 近实遮罩。
   static const double alphaOverlayHeavy = 0.88;
 
+  /// 磨砂玻璃卡片透明度（深色主题）。
+  static const double alphaCardFrostedDark = 0.72;
+
+  /// 磨砂玻璃卡片透明度（浅色主题）。
+  static const double alphaCardFrostedLight = 0.82;
+
+  /// 磨砂玻璃模糊半径（sigma）。
+  static const double blurFrostedGlass = 16.0;
+
   /// Subtle border (light) — ~4.7% black.
   static const Color borderSubtleLight = Color(0x0C000000);
 

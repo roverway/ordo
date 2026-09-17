@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,26 +28,28 @@ class SettingsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(
+    return AppBackgroundWrapper(
+      child: Scaffold(
         backgroundColor: Colors.transparent,
-        title: Text(
-          l10n.settings,
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: AppTokens.textTitleSize,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          title: Text(
+            l10n.settings,
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: AppTokens.textTitleSize,
+            ),
           ),
+          centerTitle: false,
         ),
-        centerTitle: false,
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 580),
-          child: SettingsBody(
-            onOpenSync: () => context.push('/settings/sync'),
-            onOpenTags: () => context.push('/tags'),
-            onOpenHelp: () => context.push('/settings/help'),
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 580),
+            child: SettingsBody(
+              onOpenSync: () => context.push('/settings/sync'),
+              onOpenTags: () => context.push('/tags'),
+              onOpenHelp: () => context.push('/settings/help'),
+            ),
           ),
         ),
       ),
@@ -1017,8 +1021,8 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-/// 圆角卡片容器（对齐原型中的 .card 视觉规范）。
-class _SettingsCard extends StatelessWidget {
+/// 圆角卡片容器（对齐原型中的 .card 视觉规范，当存在壁纸时自动启用半透明与磨砂毛玻璃）。
+class _SettingsCard extends ConsumerWidget {
   const _SettingsCard({
     required this.children,
     this.padding = const EdgeInsets.all(16),
@@ -1028,24 +1032,87 @@ class _SettingsCard extends StatelessWidget {
   final EdgeInsetsGeometry padding;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final hasWallpaper = ref.watch(appBackgroundConfigProvider).isEffective;
+
+    final baseCardColor = isDark
+        ? AppTokens.surfaceCardDark
+        : AppTokens.surfaceCardLight;
+    final cardColor = hasWallpaper
+        ? baseCardColor.withValues(
+            alpha: isDark
+                ? AppTokens.alphaCardFrostedDark
+                : AppTokens.alphaCardFrostedLight,
+          )
+        : baseCardColor;
+
+    final borderColor = isDark
+        ? Colors.white.withValues(
+            alpha: hasWallpaper
+                ? AppTokens.alphaTintStrong
+                : AppTokens.alphaTintFaint,
+          )
+        : Colors.black.withValues(
+            alpha: hasWallpaper
+                ? AppTokens.alphaTintSoft
+                : AppTokens.alphaTintFaint,
+          );
+
+    if (hasWallpaper) {
+      return Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(
+                alpha: isDark
+                    ? AppTokens.alphaBorderEmphasis
+                    : AppTokens.alphaTintFaint,
+              ),
+              blurRadius: 12,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(
+              sigmaX: AppTokens.blurFrostedGlass,
+              sigmaY: AppTokens.blurFrostedGlass,
+            ),
+            child: Container(
+              padding: padding,
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+                border: Border.all(color: borderColor, width: 1),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: children,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCardLight,
+        color: cardColor,
         borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
-              : Colors.black.withValues(alpha: AppTokens.alphaTintFaint),
-          width: 1,
-        ),
+        border: Border.all(color: borderColor, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
+            color: Colors.black.withValues(
+              alpha: isDark
+                  ? AppTokens.alphaBorderEmphasis
+                  : AppTokens.alphaTintFaint,
+            ),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

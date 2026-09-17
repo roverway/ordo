@@ -152,20 +152,21 @@ class _WallpaperPickerSheetState extends ConsumerState<WallpaperPickerSheet> {
     AppLocalizations l10n,
   ) {
     return Column(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Container(
-          width: 36,
-          height: 4,
+          width: AppTokens.sheetGrabberWidth,
+          height: AppTokens.sheetGrabberHeight,
           decoration: BoxDecoration(
             color: colorScheme.outlineVariant,
             borderRadius: BorderRadius.circular(AppTokens.sheetGrabberRadius),
           ),
         ),
-        const SizedBox(height: 8),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppTokens.spaceLg),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTokens.spaceLg,
+            vertical: AppTokens.spaceSm,
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -177,9 +178,9 @@ class _WallpaperPickerSheetState extends ConsumerState<WallpaperPickerSheet> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.close, size: 20),
+                icon: const Icon(Icons.close),
+                tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
                 onPressed: () => Navigator.of(context).pop(),
-                visualDensity: VisualDensity.compact,
               ),
             ],
           ),
@@ -188,113 +189,119 @@ class _WallpaperPickerSheetState extends ConsumerState<WallpaperPickerSheet> {
     );
   }
 
-  /// 实时小部件预览视图
+  /// 实时小部件卡片交互预览
   Widget _buildPreviewArea(
     bool isDark,
     ThemeData theme,
     AppLocalizations l10n,
   ) {
     return Container(
-      height: 140,
+      height: 180,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppTokens.radiusCard),
         border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(
-            alpha: AppTokens.alphaBorderSubtle,
-          ),
+          color: isDark
+              ? Colors.white.withValues(alpha: AppTokens.alphaBorderSubtle)
+              : Colors.black.withValues(alpha: AppTokens.alphaBorderSubtle),
         ),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // 底层壁纸
-          AppBackgroundWrapper(
-            overrideConfig: _currentConfig,
-            child: const SizedBox.expand(),
-          ),
-
-          // 上层覆盖待办卡片模拟 UI
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTokens.spaceLg,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
+      child: AppBackgroundWrapper(
+        overrideConfig: _currentConfig,
+        child: Padding(
+          padding: const EdgeInsets.all(AppTokens.spaceMd),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: AppTokens.spaceMd,
-                      vertical: AppTokens.spaceSm,
+                      horizontal: 8,
+                      vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? AppTokens.surfaceCardDark.withValues(
-                              alpha: AppTokens.alphaOverlayHeavy,
-                            )
-                          : AppTokens.surfaceCard.withValues(
-                              alpha: AppTokens.alphaOverlayHeavy,
-                            ),
-                      borderRadius: BorderRadius.circular(AppTokens.radiusList),
-                      border: Border.all(
-                        color: isDark ? Colors.white12 : Colors.black12,
+                      color: (isDark ? Colors.black : Colors.white).withValues(
+                        alpha: AppTokens.alphaContentMuted,
+                      ),
+                      borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                    ),
+                    child: Text(
+                      l10n.wallpaperPreviewBadge,
+                      style: TextStyle(
+                        fontSize: AppTokens.textMicroSize,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : Colors.black,
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.check_circle_outline,
-                          size: 18,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: AppTokens.spaceSm),
-                        Expanded(
-                          child: Text(
-                            l10n.wallpaperPreviewText,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withValues(
-                              alpha: AppTokens.alphaBorderSubtle,
-                            ),
-                            borderRadius: BorderRadius.circular(
-                              AppTokens.radiusChip,
-                            ),
-                          ),
-                          child: Text(
-                            l10n.wallpaperPreviewBadge,
-                            style: TextStyle(
-                              fontSize: AppTokens.textFootnoteSize,
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
+                  if (_currentConfig.isEffective)
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, size: 20),
+                      tooltip: l10n.delete,
+                      onPressed: () {
+                        _updateConfig(
+                          const BackgroundConfig(type: BackgroundType.none),
+                        );
+                      },
+                    ),
                 ],
               ),
-            ),
+              const Spacer(),
+              // 模拟任务卡片
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTokens.spaceMd,
+                  vertical: AppTokens.spaceSm,
+                ),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? AppTokens.surfaceCardDark.withValues(
+                          alpha: AppTokens.alphaOverlayHeavy,
+                        )
+                      : AppTokens.surfaceCard.withValues(
+                          alpha: AppTokens.alphaOverlayHeavy,
+                        ),
+                  borderRadius: BorderRadius.circular(AppTokens.radiusItem),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(
+                            alpha: AppTokens.alphaBorderSubtle,
+                          )
+                        : Colors.black.withValues(
+                            alpha: AppTokens.alphaBorderSubtle,
+                          ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle_outline,
+                      color: theme.colorScheme.primary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        l10n.wallpaperPreviewText,
+                        style: const TextStyle(
+                          fontSize: AppTokens.textBodySize,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  /// 壁纸来源选择区（跟随/纯色、预设网格、自定义导入）
+  /// 壁纸来源选择网格
   Widget _buildSourceSelector(
     AppLocalizations l10n,
     ColorScheme colorScheme,
@@ -400,7 +407,8 @@ class _WallpaperPickerSheetState extends ConsumerState<WallpaperPickerSheet> {
     bool isSelected,
     ColorScheme colorScheme,
   ) {
-    final title = preset.labelZh;
+    final langCode = Localizations.localeOf(context).languageCode;
+    final title = preset.localizedLabel(langCode);
     final config = BackgroundConfig(
       type: BackgroundType.preset,
       value: preset.assetPath,

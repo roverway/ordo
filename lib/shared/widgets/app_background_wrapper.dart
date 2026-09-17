@@ -205,12 +205,14 @@ class WallpaperThumbnail extends StatelessWidget {
   Widget _buildPlaceholder(bool isDark) {
     return Container(
       color: isDark
-          ? Colors.white10
+          ? Colors.white.withValues(alpha: AppTokens.alphaTintSoft)
           : Colors.black.withValues(alpha: AppTokens.alphaTintFaint),
       child: Icon(
         Icons.wallpaper,
         size: 18,
-        color: isDark ? Colors.white38 : Colors.black26,
+        color: isDark
+            ? Colors.white.withValues(alpha: AppTokens.alphaContentDisabled)
+            : Colors.black.withValues(alpha: AppTokens.alphaContentDisabled),
       ),
     );
   }

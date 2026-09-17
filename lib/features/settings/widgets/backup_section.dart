@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:ui';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -205,7 +206,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
                         Icons.chevron_right,
                         size: 20,
                         color: colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.6,
+                          alpha: AppTokens.alphaContentMuted,
                         ),
                       ),
                   ],
@@ -262,7 +263,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
                         Icons.chevron_right,
                         size: 20,
                         color: colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.6,
+                          alpha: AppTokens.alphaContentMuted,
                         ),
                       ),
                   ],
@@ -308,9 +309,11 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
                                   ),
                                   decoration: BoxDecoration(
                                     color: colorScheme.primary.withValues(
-                                      alpha: 0.12,
+                                      alpha: AppTokens.alphaBorderSubtle,
                                     ),
-                                    borderRadius: BorderRadius.circular(AppTokens.radiusItem),
+                                    borderRadius: BorderRadius.circular(
+                                      AppTokens.radiusItem,
+                                    ),
                                   ),
                                   child: Text(
                                     '${snaps.length}',
@@ -346,7 +349,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
                       Icons.chevron_right,
                       size: 20,
                       color: colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.6,
+                        alpha: AppTokens.alphaContentMuted,
                       ),
                     ),
                   ],
@@ -391,13 +394,21 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
-                          : Colors.black.withValues(alpha: AppTokens.alphaTintFaint),
+                          ? Colors.white.withValues(
+                              alpha: AppTokens.alphaTintFaint,
+                            )
+                          : Colors.black.withValues(
+                              alpha: AppTokens.alphaTintFaint,
+                            ),
                       borderRadius: BorderRadius.circular(AppTokens.radiusList),
                       border: Border.all(
                         color: isDark
-                            ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
-                            : Colors.black.withValues(alpha: AppTokens.alphaTintFaint),
+                            ? Colors.white.withValues(
+                                alpha: AppTokens.alphaTintFaint,
+                              )
+                            : Colors.black.withValues(
+                                alpha: AppTokens.alphaTintFaint,
+                              ),
                       ),
                     ),
                     child: DropdownButtonHideUnderline(
@@ -456,14 +467,16 @@ class _SectionHeader extends StatelessWidget {
           fontSize: AppTokens.textSectionLabelSize,
           fontWeight: AppTokens.textSectionLabelWeight,
           letterSpacing: AppTokens.textSectionLabelLetterSpacing,
-          color: isDark ? AppTokens.checkboxDisabledFgDark : AppTokens.checkboxDisabledFgLight,
+          color: isDark
+              ? AppTokens.checkboxDisabledFgDark
+              : AppTokens.checkboxDisabledFgLight,
         ),
       ),
     );
   }
 }
 
-class _SettingsCard extends StatelessWidget {
+class _SettingsCard extends ConsumerWidget {
   const _SettingsCard({
     required this.children,
     this.padding = const EdgeInsets.all(16),
@@ -473,24 +486,87 @@ class _SettingsCard extends StatelessWidget {
   final EdgeInsetsGeometry padding;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final hasWallpaper = ref.watch(appBackgroundConfigProvider).isEffective;
+
+    final baseCardColor = isDark
+        ? AppTokens.surfaceCardDark
+        : AppTokens.surfaceCardLight;
+    final cardColor = hasWallpaper
+        ? baseCardColor.withValues(
+            alpha: isDark
+                ? AppTokens.alphaCardFrostedDark
+                : AppTokens.alphaCardFrostedLight,
+          )
+        : baseCardColor;
+
+    final borderColor = isDark
+        ? Colors.white.withValues(
+            alpha: hasWallpaper
+                ? AppTokens.alphaTintStrong
+                : AppTokens.alphaTintFaint,
+          )
+        : Colors.black.withValues(
+            alpha: hasWallpaper
+                ? AppTokens.alphaTintSoft
+                : AppTokens.alphaTintFaint,
+          );
+
+    if (hasWallpaper) {
+      return Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(
+                alpha: isDark
+                    ? AppTokens.alphaBorderEmphasis
+                    : AppTokens.alphaTintFaint,
+              ),
+              blurRadius: 12,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(
+              sigmaX: AppTokens.blurFrostedGlass,
+              sigmaY: AppTokens.blurFrostedGlass,
+            ),
+            child: Container(
+              padding: padding,
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+                border: Border.all(color: borderColor, width: 1),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: children,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCardLight,
+        color: cardColor,
         borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
-              : Colors.black.withValues(alpha: AppTokens.alphaTintFaint),
-          width: 1,
-        ),
+        border: Border.all(color: borderColor, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
+            color: Colors.black.withValues(
+              alpha: isDark
+                  ? AppTokens.alphaBorderEmphasis
+                  : AppTokens.alphaTintFaint,
+            ),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
