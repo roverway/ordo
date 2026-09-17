@@ -8,6 +8,36 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/theme/background_config.dart';
 import '../../features/settings/settings_providers.dart';
 
+/// 提供当前上下文是否存在有效壁纸的 InheritedWidget
+class AppBackgroundScope extends InheritedWidget {
+  const AppBackgroundScope({
+    super.key,
+    required this.hasWallpaper,
+    required this.config,
+    required super.child,
+  });
+
+  final bool hasWallpaper;
+  final BackgroundConfig config;
+
+  static bool hasWallpaperOf(BuildContext context) {
+    final scope = context
+        .dependOnInheritedWidgetOfExactType<AppBackgroundScope>();
+    return scope?.hasWallpaper ?? false;
+  }
+
+  static BackgroundConfig? configOf(BuildContext context) {
+    final scope = context
+        .dependOnInheritedWidgetOfExactType<AppBackgroundScope>();
+    return scope?.config;
+  }
+
+  @override
+  bool updateShouldNotify(AppBackgroundScope oldWidget) {
+    return hasWallpaper != oldWidget.hasWallpaper || config != oldWidget.config;
+  }
+}
+
 /// 承载壁纸背景、毛玻璃模糊与黑白遮罩的通用外壳容器
 class AppBackgroundWrapper extends ConsumerWidget {
   const AppBackgroundWrapper({
@@ -33,46 +63,58 @@ class AppBackgroundWrapper extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    // 若无有效壁纸，直接渲染子组件
+    // 若无有效壁纸，直接渲染子组件并注入 hasWallpaper = false 作用域
     if (!config.isEffective) {
-      return child;
+      return AppBackgroundScope(
+        hasWallpaper: false,
+        config: config,
+        child: child,
+      );
     }
 
     final imageWidget = _buildImage(config);
     if (imageWidget == null) {
-      return child;
+      return AppBackgroundScope(
+        hasWallpaper: false,
+        config: config,
+        child: child,
+      );
     }
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        // 1. 底层壁纸图像
-        Positioned.fill(child: imageWidget),
+    return AppBackgroundScope(
+      hasWallpaper: true,
+      config: config,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 1. 底层壁纸图像
+          Positioned.fill(child: imageWidget),
 
-        // 2. 高斯模糊层
-        if (config.blur > 0)
-          Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(
-                sigmaX: config.blur,
-                sigmaY: config.blur,
+          // 2. 高斯模糊层
+          if (config.blur > 0)
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(
+                  sigmaX: config.blur,
+                  sigmaY: config.blur,
+                ),
+                child: const SizedBox.expand(),
               ),
-              child: const SizedBox.expand(),
+            ),
+
+          // 3. 动态明暗防花屏遮罩层（暗色叠加黑色、亮色叠加白色）
+          Positioned.fill(
+            child: Container(
+              color: (isDark ? Colors.black : Colors.white).withValues(
+                alpha: config.opacity.clamp(0.0, 0.9),
+              ),
             ),
           ),
 
-        // 3. 动态明暗防花屏遮罩层（暗色叠加黑色、亮色叠加白色）
-        Positioned.fill(
-          child: Container(
-            color: (isDark ? Colors.black : Colors.white).withValues(
-              alpha: config.opacity.clamp(0.0, 0.9),
-            ),
-          ),
-        ),
-
-        // 4. 前景子组件
-        child,
-      ],
+          // 4. 前景子组件
+          child,
+        ],
+      ),
     );
   }
 

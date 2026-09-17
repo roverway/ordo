@@ -1,14 +1,15 @@
-import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/theme/app_tokens.dart';
+import 'app_background_wrapper.dart';
 import 'checkbox_bounce.dart';
 
 /// Modern Minimal Checkbox matching prototype (`home.html` / `tasklist.html`).
 ///
 /// - Box: 22x22dp (or 20x20dp for compact), border radius 6dp.
-/// - Unchecked: 1.5dp border (onSurface 34% alpha), background surface.
-/// - Checked: background onSurface, checkmark drawn with smooth stroke animation.
+/// - Unchecked: 1.5dp border, background surface (semi-transparent when wallpaper active).
+/// - Checked: background primary (subtle alpha when wallpaper active), checkmark drawn with smooth stroke animation.
 /// - Integrated with [CheckboxBounce] for spring scale feedback.
 class ModernCheckbox extends StatefulWidget {
   const ModernCheckbox({
@@ -73,22 +74,69 @@ class _ModernCheckboxState extends State<ModernCheckbox>
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final isEnabled = widget.onChanged != null;
+    final hasWallpaper = AppBackgroundScope.hasWallpaperOf(context);
 
-    final fgColor = isEnabled
-        ? (widget.fillColor ?? theme.colorScheme.primary)
-        : (isDark
-              ? AppTokens.checkboxDisabledFgDark
-              : AppTokens.checkboxDisabledFgLight);
-    final uncheckedBorderColor = isEnabled
-        ? theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.38 : 0.34)
-        : (isDark
-              ? AppTokens.checkboxDisabledBorderDark
-              : AppTokens.checkboxDisabledBorderLight);
-    final surfaceColor = isEnabled
-        ? theme.colorScheme.surface
-        : (isDark
-              ? AppTokens.checkboxDisabledSurfaceDark
-              : AppTokens.checkboxDisabledSurfaceLight);
+    final Color fgColor;
+    final Color uncheckedBorderColor;
+    final Color surfaceColor;
+
+    if (hasWallpaper) {
+      final baseFg = widget.fillColor ?? theme.colorScheme.primary;
+      fgColor = isEnabled
+          ? baseFg.withValues(alpha: AppTokens.alphaCheckboxFrostedChecked)
+          : (isDark
+                    ? AppTokens.checkboxDisabledFgDark
+                    : AppTokens.checkboxDisabledFgLight)
+                .withValues(alpha: AppTokens.alphaCheckboxFrostedChecked);
+
+      uncheckedBorderColor = isEnabled
+          ? (isDark
+                ? Colors.white.withValues(
+                    alpha: AppTokens.alphaCheckboxFrostedBorder,
+                  )
+                : Colors.black.withValues(
+                    alpha: AppTokens.alphaCheckboxFrostedBorder,
+                  ))
+          : (isDark
+                ? Colors.white.withValues(alpha: AppTokens.alphaTintStrong)
+                : Colors.black.withValues(alpha: AppTokens.alphaTintStrong));
+
+      surfaceColor = isEnabled
+          ? (isDark
+                ? Colors.black.withValues(
+                    alpha: AppTokens.alphaCheckboxFrostedSurfaceDark,
+                  )
+                : Colors.white.withValues(
+                    alpha: AppTokens.alphaCheckboxFrostedSurfaceLight,
+                  ))
+          : (isDark
+                ? Colors.white.withValues(
+                    alpha: AppTokens.alphaCheckboxFrostedDisabledSurface,
+                  )
+                : Colors.black.withValues(
+                    alpha: AppTokens.alphaCheckboxFrostedDisabledSurface,
+                  ));
+    } else {
+      fgColor = isEnabled
+          ? (widget.fillColor ?? theme.colorScheme.primary)
+          : (isDark
+                ? AppTokens.checkboxDisabledFgDark
+                : AppTokens.checkboxDisabledFgLight);
+      uncheckedBorderColor = isEnabled
+          ? theme.colorScheme.onSurface.withValues(
+              alpha: isDark
+                  ? AppTokens.alphaContentDisabled
+                  : AppTokens.alphaBorderEmphasis,
+            )
+          : (isDark
+                ? AppTokens.checkboxDisabledBorderDark
+                : AppTokens.checkboxDisabledBorderLight);
+      surfaceColor = isEnabled
+          ? theme.colorScheme.surface
+          : (isDark
+                ? AppTokens.checkboxDisabledSurfaceDark
+                : AppTokens.checkboxDisabledSurfaceLight);
+    }
 
     final box = AnimatedBuilder(
       animation: _progress,

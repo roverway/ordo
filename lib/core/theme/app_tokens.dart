@@ -111,6 +111,21 @@ abstract final class AppTokens {
   /// 磨砂玻璃模糊半径（sigma）。
   static const double blurFrostedGlass = 16.0;
 
+  /// 壁纸背景下的复选框未勾选底色透明度（深色主题）。
+  static const double alphaCheckboxFrostedSurfaceDark = 0.30;
+
+  /// 壁纸背景下的复选框未勾选底色透明度（浅色主题）。
+  static const double alphaCheckboxFrostedSurfaceLight = 0.45;
+
+  /// 壁纸背景下的复选框勾选填充透明度。
+  static const double alphaCheckboxFrostedChecked = 0.85;
+
+  /// 壁纸背景下的复选框边框透明度。
+  static const double alphaCheckboxFrostedBorder = 0.40;
+
+  /// 壁纸背景下的禁用复选框底色透明度。
+  static const double alphaCheckboxFrostedDisabledSurface = 0.18;
+
   /// Subtle border (light) — ~4.7% black.
   static const Color borderSubtleLight = Color(0x0C000000);
 
