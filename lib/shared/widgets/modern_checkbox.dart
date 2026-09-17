@@ -15,7 +15,7 @@ class ModernCheckbox extends StatefulWidget {
     required this.checked,
     this.onChanged,
     this.size = 22.0,
-    this.borderRadius = 6.0,
+    this.borderRadius = AppTokens.checkboxRadius,
     this.fillColor,
     this.tapTargetSize = AppTokens.checkboxTapTargetSize,
     this.semanticLabel,
@@ -75,13 +75,19 @@ class _ModernCheckboxState extends State<ModernCheckbox>
 
     final fgColor = isEnabled
         ? (widget.fillColor ?? theme.colorScheme.primary)
-        : (isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF));
+        : (isDark
+              ? AppTokens.checkboxDisabledFgDark
+              : AppTokens.checkboxDisabledFgLight);
     final uncheckedBorderColor = isEnabled
         ? theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.38 : 0.34)
-        : (isDark ? const Color(0xFF4B5563) : const Color(0xFFD1D5DB));
+        : (isDark
+              ? AppTokens.checkboxDisabledBorderDark
+              : AppTokens.checkboxDisabledBorderLight);
     final surfaceColor = isEnabled
         ? theme.colorScheme.surface
-        : (isDark ? const Color(0xFF1E2026) : const Color(0xFFF3F4F6));
+        : (isDark
+              ? AppTokens.checkboxDisabledSurfaceDark
+              : AppTokens.checkboxDisabledSurfaceLight);
 
     final box = AnimatedBuilder(
       animation: _progress,
@@ -180,23 +186,26 @@ class _CheckmarkPainter extends CustomPainter {
 
     path.moveTo(p0.dx, p0.dy);
     if (currentLen <= firstSegLen) {
-      final ratio = currentLen / firstSegLen;
-      final cur = Offset.lerp(p0, p1, ratio)!;
-      path.lineTo(cur.dx, cur.dy);
+      final frac = currentLen / firstSegLen;
+      path.lineTo(
+        p0.dx + (p1.dx - p0.dx) * frac,
+        p0.dy + (p1.dy - p0.dy) * frac,
+      );
     } else {
       path.lineTo(p1.dx, p1.dy);
-      final ratio = (currentLen - firstSegLen) / secondSegLen;
-      final cur = Offset.lerp(p1, p2, ratio)!;
-      path.lineTo(cur.dx, cur.dy);
+      final frac = (currentLen - firstSegLen) / secondSegLen;
+      path.lineTo(
+        p1.dx + (p2.dx - p1.dx) * frac,
+        p1.dy + (p2.dy - p1.dy) * frac,
+      );
     }
 
     canvas.drawPath(path, _paint);
   }
 
   @override
-  bool shouldRepaint(covariant _CheckmarkPainter oldDelegate) {
-    return oldDelegate.progress != progress ||
-        oldDelegate.color != color ||
-        oldDelegate.strokeWidth != strokeWidth;
-  }
+  bool shouldRepaint(covariant _CheckmarkPainter oldDelegate) =>
+      oldDelegate.progress != progress ||
+      oldDelegate.color != color ||
+      oldDelegate.strokeWidth != strokeWidth;
 }

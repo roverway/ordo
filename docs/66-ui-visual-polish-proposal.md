@@ -3,6 +3,11 @@
 > 状态：**FINAL（已实施）**。本文档同时补上 `app_tokens.dart` 中悬空引用的
 > 「现代质感升级」出处（66 号此前未落盘，本次一并归档）。
 > 涉及令牌一律以 `lib/core/theme/app_tokens.dart` 为准，改代码必改文档。
+>
+> **[2026-09 架构演进说明]**：本文档记录 66 号提案历史。后续单列沉浸式重构中：
+> 1. 勾选框形态统一收敛为自研 `ModernCheckbox`（圆角矩形，`checkboxRadius = 6.0`），取代了早期的圆形 Checkbox；
+> 2. `PageHeroHeader`（集成大标题与 `ScopeSwitcherSheet` 范围切换模态）已全面推广作为今日、收集箱、项目详情等各主视图的标准统一头部；
+> 3. 大标题字阶统一采用 `textHeroSize = 31`，原 `textDisplaySize = 28` 已作为冗余令牌清理。最新设计系统与屏幕规范请以 `50-ui-ux.md` 为准。
 
 ## 1. 设计纲领
 

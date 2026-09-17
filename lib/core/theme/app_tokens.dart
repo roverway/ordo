@@ -130,8 +130,21 @@ abstract final class AppTokens {
   /// List row radius.
   static const double radiusList = 8;
 
-  /// Checkbox shape — circle (TickTick/Things-style).
-  static const OutlinedBorder checkboxShape = CircleBorder();
+  /// Checkbox border radius (ModernCheckbox & theme).
+  static const double checkboxRadius = 6.0;
+
+  /// Checkbox shape — rounded rectangle (ModernCheckbox style).
+  static const OutlinedBorder checkboxShape = RoundedRectangleBorder(
+    borderRadius: BorderRadius.all(Radius.circular(checkboxRadius)),
+  );
+
+  /// ModernCheckbox disabled states colors
+  static const Color checkboxDisabledFgLight = Color(0xFF9CA3AF);
+  static const Color checkboxDisabledFgDark = Color(0xFF6B7280);
+  static const Color checkboxDisabledBorderLight = Color(0xFFD1D5DB);
+  static const Color checkboxDisabledBorderDark = Color(0xFF4B5563);
+  static const Color checkboxDisabledSurfaceLight = Color(0xFFF3F4F6);
+  static const Color checkboxDisabledSurfaceDark = Color(0xFF1E2026);
 
   // ── Spacing ──
 
@@ -147,21 +160,14 @@ abstract final class AppTokens {
   // ── Typography ──
   //
   // 七档字阶（docs/66-ui-visual-polish-proposal.md §2）：
-  // display / heading / title / body / footnote / caption / micro。
-  // 新增 display、footnote、micro 三档收编此前散落的私有字号（10.5–13.5）。
+  // hero / heading / title / body / footnote / caption / micro。
+  // 新增 hero、footnote、micro 三档收编此前散落的私有字号（10.5–13.5）。
 
   /// Page hero large title: 31 / w700（原型 Things 式大标题头部：今日/收集箱/日历/概览/自定义视图）.
   static const double textHeroSize = 31;
   static const FontWeight textHeroWeight = FontWeight.w700;
   static const double textHeroLetterSpacing = -0.775; // -0.025em * 31
   static const double textHeroHeight = 1.1;
-
-  /// Page hero large title: 28 / w700（今日页大标题等 Things 式头部）。
-  static const double textDisplaySize = 28;
-  static const FontWeight textDisplayWeight = FontWeight.w700;
-
-  /// Display 级负字距：大字号下收紧排版，获得编辑感。
-  static const double textDisplayLetterSpacing = -0.5;
 
   /// Page heading: 22 / w600.
   static const double textHeadingSize = 22;
@@ -188,8 +194,7 @@ abstract final class AppTokens {
   static const double textMicroSize = 11;
   static const FontWeight textMicroWeight = FontWeight.w500;
 
-  // 行高（倍数）：display 紧凑有力，正文宽松以获得呼吸感。
-  static const double textDisplayHeight = 1.2;
+  // 行高（倍数）：hero 紧凑有力，正文宽松以获得呼吸感。
   static const double textBodyHeight = 1.45;
   static const double textCaptionHeight = 1.35;
 
@@ -241,10 +246,6 @@ abstract final class AppTokens {
   static const double fabPressScale = 0.9;
 
   // ── Elevation & Ambient Shadows ──
-
-  /// 卡片静止 elevation（浮层/弹层用；普通卡片一律走「细边框 + 弥散阴影」，
-  /// 不用 Material elevation，66 §4）。
-  static const double elevationCard = 1.0;
 
   /// Diffused ambient dual-shadow for light cards (resting).
   static const List<BoxShadow> cardShadowLight = [
@@ -345,9 +346,6 @@ abstract final class AppTokens {
   /// Expand/collapse arrow size.
   static const double expandArrowSize = 20;
 
-  /// Task tree indent per depth level.
-  static const double treeIndent = 28;
-
   /// Empty state icon size.
   static const double emptyIconSize = 56;
 
@@ -370,18 +368,9 @@ abstract final class AppTokens {
 
   // ── 任务列表扁平行（61-task-list-redesign.md §4/§7）──
 
-  /// 任务树每级缩进量（61 §4.3，替代 [treeIndent]=28 用于扁平行子任务缩进；
+  /// 任务树每级缩进量（61 §4.3，替代既往平铺任务缩进；
   /// 用户打磨要求 2：24 → 20 适度收紧）。
   static const double treeIndentLevel = 20;
-
-  /// 一级任务缩进（卡片顶格）
-  static const double treeIndentL1 = 0;
-
-  /// 二级任务缩进（对准一级复选框右侧）
-  static const double treeIndentL2 = 20;
-
-  /// 三级任务缩进（对准二级标题正文起始线）
-  static const double treeIndentL3 = 38;
 
   /// 一级任务标题字阶
   static const double textTaskL1Size = 16;
@@ -407,11 +396,11 @@ abstract final class AppTokens {
   static const Color colorDateRelative = Color(0xFFF4A74A);
 
   /// 任务行最小高度（一级任务行，61 §3.2；用户打磨要求 3：56 → 52，
-  /// 勾选框 48dp 触控不变，行高仍由内容撑起可点性下限）。
-  static const double taskRowMinHeight = 48;
+  /// 复选框 48dp 触控不变，行高仍由内容撑起可点性下限）。
+  static const double taskRowMinHeight = 52;
 
   /// 任务行最小高度（子任务行，61 §3.2；用户打磨要求 3：48 → 44——实际
-  /// 行高由 48dp 勾选框触控区撑起，最小高度下调不影响可点性）。
+  /// 行高由 48dp 复选框触控区撑起，最小高度下调不影响可点性）。
   static const double taskRowCompactMinHeight = 44;
 
   /// 已完成任务内容区透明度（降低与背景对比度）：完成态任务行内容区
@@ -453,9 +442,6 @@ abstract final class AppTokens {
   /// 每行上下各留 `spacing / 2`，des-2 需求 2b）。
   static const double folderTreeRowSpacing = 2;
 
-  /// 抽屉/项目页分组小标题图标尺寸（62-folder-nav.md §6.1/§6.4）。
-  static const double folderHeaderIconSize = 16;
-
   // ── 状态反馈（M5 任务 1，50-ui-ux.md §6.3）──
 
   /// 统一加载指示器尺寸（LoadingView）。
@@ -480,9 +466,6 @@ abstract final class AppTokens {
 
   /// Project card squircle badge border radius (10dp).
   static const double projectBadgeRadius = 10;
-
-  /// Project capsule badge border radius (6dp).
-  static const double projectCapsuleRadius = 6;
 
   // ── Preset Colors (project palette) ──
 

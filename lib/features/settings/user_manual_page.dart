@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/utils/app_breakpoints.dart';
 import 'settings_providers.dart';
 
 /// 知序 Ordo 用户使用手册页面
@@ -291,7 +292,7 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
     final l10n = AppLocalizations.of(context);
     final currentLang = _getEffectiveLanguage();
 
-    final isWide = MediaQuery.of(context).size.width >= 900;
+    final isWide = AppBreakpoints.isDualPane(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -405,7 +406,7 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
       );
     }
 
-    final isWide = MediaQuery.of(context).size.width >= 900;
+    final isWide = AppBreakpoints.isDualPane(context);
 
     final filteredBlocks = _searchQuery.isEmpty
         ? _blocks

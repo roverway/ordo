@@ -53,8 +53,8 @@ Page<void> _slideFadePage(
 ///
 /// 任务类入口（今日/收件箱/项目）统一渲染 `TaskListPage`（作用域驱动，
 /// 56-task-scope-page.md §3.1）；今日为启动默认页（D3）。
-/// 主页面统一挂载在 ShellRoute 下，外壳 AppShell（含 AppSidebar）常驻保活，
-/// 路由切换时左侧栏零动画、零重绘。
+/// 主页面统一挂载在 ShellRoute 下，AppShell 为直通容器组件，
+/// 视图与清单范围切换由 PageHeroHeader 与 ScopeSwitcherSheet 模态层承载。
 final GoRouter appRouter = GoRouter(
   initialLocation: '/today',
   routes: [
