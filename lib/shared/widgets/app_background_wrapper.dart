@@ -62,13 +62,16 @@ class AppBackgroundWrapper extends ConsumerWidget {
         ref.watch(effectiveBackgroundConfigProvider(projectId));
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final defaultPageBg = isDark
+        ? AppTokens.surfacePageDark
+        : AppTokens.surfacePageLight;
 
-    // 若无有效壁纸，直接渲染子组件并注入 hasWallpaper = false 作用域
+    // 若无有效壁纸，使用默认页面底色渲染并注入 hasWallpaper = false 作用域
     if (!config.isEffective) {
       return AppBackgroundScope(
         hasWallpaper: false,
         config: config,
-        child: child,
+        child: ColoredBox(color: defaultPageBg, child: child),
       );
     }
 
@@ -77,43 +80,46 @@ class AppBackgroundWrapper extends ConsumerWidget {
       return AppBackgroundScope(
         hasWallpaper: false,
         config: config,
-        child: child,
+        child: ColoredBox(color: defaultPageBg, child: child),
       );
     }
 
     return AppBackgroundScope(
       hasWallpaper: true,
       config: config,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // 1. 底层壁纸图像
-          Positioned.fill(child: imageWidget),
+      child: ColoredBox(
+        color: defaultPageBg,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 1. 底层壁纸图像
+            Positioned.fill(child: imageWidget),
 
-          // 2. 高斯模糊层
-          if (config.blur > 0)
-            Positioned.fill(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(
-                  sigmaX: config.blur,
-                  sigmaY: config.blur,
+            // 2. 高斯模糊层
+            if (config.blur > 0)
+              Positioned.fill(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(
+                    sigmaX: config.blur,
+                    sigmaY: config.blur,
+                  ),
+                  child: const SizedBox.expand(),
                 ),
-                child: const SizedBox.expand(),
+              ),
+
+            // 3. 动态明暗防花屏遮罩层（暗色叠加黑色、亮色叠加白色）
+            Positioned.fill(
+              child: Container(
+                color: (isDark ? Colors.black : Colors.white).withValues(
+                  alpha: config.opacity.clamp(0.0, 0.9),
+                ),
               ),
             ),
 
-          // 3. 动态明暗防花屏遮罩层（暗色叠加黑色、亮色叠加白色）
-          Positioned.fill(
-            child: Container(
-              color: (isDark ? Colors.black : Colors.white).withValues(
-                alpha: config.opacity.clamp(0.0, 0.9),
-              ),
-            ),
-          ),
-
-          // 4. 前景子组件
-          child,
-        ],
+            // 4. 前景子组件
+            child,
+          ],
+        ),
       ),
     );
   }
