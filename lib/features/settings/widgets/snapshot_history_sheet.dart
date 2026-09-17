@@ -121,10 +121,15 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTokens.radiusDialog)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+        ),
         title: Text(
           l10n.backupDeleteAction,
-          style: const TextStyle(fontSize: AppTokens.textSubtitleSize, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            fontSize: AppTokens.textSubtitleSize,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: Text(
           l10n.deleteProjectConfirm(_formatDateTime(snap.createdAt)),
@@ -178,7 +183,9 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
         borderRadius: AppTokens.sheetTopBorderRadius,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: AppTokens.alphaBorderEmphasis),
+            color: Colors.black.withValues(
+              alpha: AppTokens.alphaBorderEmphasis,
+            ),
             blurRadius: 16,
             offset: const Offset(0, -2),
           ),
@@ -198,9 +205,15 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                 height: 4,
                 decoration: BoxDecoration(
                   color: isDark
-                      ? Colors.white.withValues(alpha: AppTokens.alphaBorderEmphasis)
-                      : Colors.black.withValues(alpha: AppTokens.alphaTintStrong),
-                  borderRadius: BorderRadius.circular(AppTokens.sheetGrabberRadius),
+                      ? Colors.white.withValues(
+                          alpha: AppTokens.alphaBorderEmphasis,
+                        )
+                      : Colors.black.withValues(
+                          alpha: AppTokens.alphaTintStrong,
+                        ),
+                  borderRadius: BorderRadius.circular(
+                    AppTokens.sheetGrabberRadius,
+                  ),
                 ),
               ),
             ),
@@ -214,7 +227,9 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: colorScheme.primary.withValues(alpha: AppTokens.alphaBorderSubtle),
+                      color: colorScheme.primary.withValues(
+                        alpha: AppTokens.alphaBorderSubtle,
+                      ),
                       borderRadius: BorderRadius.circular(AppTokens.radiusItem),
                     ),
                     child: Icon(
@@ -262,7 +277,9 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                         : const Icon(Icons.add_rounded, size: 16),
                     label: Text(
                       l10n.backupCreateSnapshotManual,
-                      style: const TextStyle(fontSize: AppTokens.textCaptionSize),
+                      style: const TextStyle(
+                        fontSize: AppTokens.textCaptionSize,
+                      ),
                     ),
                     style: FilledButton.styleFrom(
                       backgroundColor: colorScheme.primary,
@@ -347,12 +364,18 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                         decoration: BoxDecoration(
                           color: isDark
                               ? AppTokens.surfaceSubtleDark
-                              : AppTokens.textPrimaryDark,
-                          borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                              : AppTokens.surfaceCard,
+                          borderRadius: BorderRadius.circular(
+                            AppTokens.radiusCard,
+                          ),
                           border: Border.all(
                             color: isDark
-                                ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
-                                : Colors.black.withValues(alpha: AppTokens.alphaTintFaint),
+                                ? Colors.white.withValues(
+                                    alpha: AppTokens.alphaTintFaint,
+                                  )
+                                : Colors.black.withValues(
+                                    alpha: AppTokens.alphaTintFaint,
+                                  ),
                           ),
                         ),
                         child: Row(
@@ -364,8 +387,12 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: badgeColor.withValues(alpha: AppTokens.alphaTintStrong),
-                                borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                                color: badgeColor.withValues(
+                                  alpha: AppTokens.alphaTintStrong,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  AppTokens.radiusChip,
+                                ),
                               ),
                               child: Text(
                                 snap.triggerType.localizedLabel(l10n),

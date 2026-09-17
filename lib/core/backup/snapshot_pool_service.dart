@@ -82,13 +82,20 @@ class SnapshotPoolService {
     required BackupRestoreService backupService,
     required SettingsDao settings,
     Future<Directory> Function()? getDirectory,
+    Future<void> Function(int days)? onRetentionDaysChanged,
   }) : _backupService = backupService,
        _settings = settings,
-       _getDirectory = getDirectory ?? _defaultDirectoryGetter;
+       _getDirectory = getDirectory ?? _defaultDirectoryGetter,
+       _onRetentionDaysChanged = onRetentionDaysChanged;
 
   final BackupRestoreService _backupService;
   final SettingsDao _settings;
   final Future<Directory> Function() _getDirectory;
+  final Future<void> Function(int days)? _onRetentionDaysChanged;
+
+  /// 缓存本地快照元数据，避免列表遍历时反复进行文件读取、Gzip 解压缩与 JSON 反序列化。
+  final Map<String, ({int size, int modifiedMs, LocalSnapshotInfo info})>
+  _snapshotCache = {};
 
   static Future<Directory> _defaultDirectoryGetter() async {
     final supportDir = await getApplicationSupportDirectory();
@@ -127,6 +134,7 @@ class SnapshotPoolService {
   /// 设置快照保留天数。
   Future<void> setRetentionDays(int days) async {
     await _settings.set(kSettingBackupRetentionDays, days.toString());
+    await _onRetentionDaysChanged?.call(days);
   }
 
   /// 生成一份新的本地快照并落盘，随后触发自动轮询清理过期快照。
@@ -151,7 +159,7 @@ class SnapshotPoolService {
     // 触发轮转清理（后台异步执行，不阻塞快照创建返回）
     unawaited(pruneExpiredSnapshots());
 
-    return LocalSnapshotInfo(
+    final info = LocalSnapshotInfo(
       filePath: filePath,
       fileName: fileName,
       createdAt: now,
@@ -163,9 +171,17 @@ class SnapshotPoolService {
       folderCount: summary.folderCount,
       customViewCount: summary.customViewCount,
     );
+
+    _snapshotCache[filePath] = (
+      size: bytes.length,
+      modifiedMs: now.millisecondsSinceEpoch,
+      info: info,
+    );
+
+    return info;
   }
 
-  /// 检索当前快照池内所有有效快照，按时间倒序排列（最新在前）。
+  /// 检索当前快照池内所有有效快照，按时间倒序排列（最新在最前）。
   Future<List<LocalSnapshotInfo>> listSnapshots() async {
     final dir = await _getDirectory();
     if (!await dir.exists()) {
@@ -196,22 +212,37 @@ class SnapshotPoolService {
       final trigger = SnapshotTriggerType.fromCode(triggerCode);
 
       try {
+        final stat = await entity.stat();
+        final cached = _snapshotCache[entity.path];
+        if (cached != null &&
+            cached.size == stat.size &&
+            cached.modifiedMs == stat.modified.millisecondsSinceEpoch) {
+          result.add(cached.info);
+          continue;
+        }
+
         final bytes = await entity.readAsBytes();
         final summary = _backupService.inspectBackup(bytes);
-        result.add(
-          LocalSnapshotInfo(
-            filePath: entity.path,
-            fileName: fileName,
-            createdAt: dt,
-            triggerType: trigger,
-            sizeBytes: bytes.length,
-            taskCount: summary.taskCount,
-            projectCount: summary.projectCount,
-            tagCount: summary.tagCount,
-            folderCount: summary.folderCount,
-            customViewCount: summary.customViewCount,
-          ),
+        final info = LocalSnapshotInfo(
+          filePath: entity.path,
+          fileName: fileName,
+          createdAt: dt,
+          triggerType: trigger,
+          sizeBytes: bytes.length,
+          taskCount: summary.taskCount,
+          projectCount: summary.projectCount,
+          tagCount: summary.tagCount,
+          folderCount: summary.folderCount,
+          customViewCount: summary.customViewCount,
         );
+
+        _snapshotCache[entity.path] = (
+          size: stat.size,
+          modifiedMs: stat.modified.millisecondsSinceEpoch,
+          info: info,
+        );
+
+        result.add(info);
       } catch (_) {
         // 若损坏或非标准文件则跳过
         continue;
@@ -225,6 +256,7 @@ class SnapshotPoolService {
 
   /// 删除指定快照。
   Future<void> deleteSnapshot(String filePath) async {
+    _snapshotCache.remove(filePath);
     final file = File(filePath);
     if (await file.exists()) {
       await file.delete();
@@ -278,6 +310,7 @@ class SnapshotPoolService {
         final item = validFiles[i];
         if (item.createdAt.isBefore(cutoff)) {
           try {
+            _snapshotCache.remove(item.file.path);
             await item.file.delete();
             deletedCount++;
           } catch (_) {}

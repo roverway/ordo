@@ -235,8 +235,8 @@ const int defaultBackupRetentionDays = 7;
 /// 快照保留天数 Notifier。
 final backupRetentionDaysProvider =
     NotifierProvider<BackupRetentionDaysNotifier, int>(
-  BackupRetentionDaysNotifier.new,
-);
+      BackupRetentionDaysNotifier.new,
+    );
 
 class BackupRetentionDaysNotifier extends Notifier<int> {
   @override
@@ -269,17 +269,26 @@ final backupRestoreServiceProvider = Provider<BackupRestoreService>((ref) {
 final snapshotPoolServiceProvider = Provider<SnapshotPoolService>((ref) {
   final backupService = ref.watch(backupRestoreServiceProvider);
   final repo = ref.watch(todoRepositoryProvider);
+  AppSettingsCache? cache;
+  try {
+    cache = ref.watch(appSettingsCacheProvider);
+  } catch (_) {
+    // 允许在未显式 override appSettingsCacheProvider 的测试环境中健壮降级
+  }
   return SnapshotPoolService(
     backupService: backupService,
     settings: repo.settings,
+    onRetentionDaysChanged: cache != null
+        ? (days) => cache!.set(backupRetentionDaysPrefKey, days.toString())
+        : null,
   );
 });
 
 /// 本地快照列表 Notifier。
 final localSnapshotsProvider =
     AsyncNotifierProvider<LocalSnapshotsNotifier, List<LocalSnapshotInfo>>(
-  LocalSnapshotsNotifier.new,
-);
+      LocalSnapshotsNotifier.new,
+    );
 
 class LocalSnapshotsNotifier extends AsyncNotifier<List<LocalSnapshotInfo>> {
   @override

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
@@ -21,10 +22,7 @@ import 'settings_providers.dart';
 /// 5. 目录与正文内锚点超链接点击 100% 精准平滑滚动跳转；
 /// 6. 零外部第三方排版依赖，100% 契合应用设计令牌（AppTokens）与动态深浅主题。
 class UserManualPage extends ConsumerStatefulWidget {
-  const UserManualPage({
-    super.key,
-    this.customContentLoader,
-  });
+  const UserManualPage({super.key, this.customContentLoader});
 
   /// 可选的手册内容加载器（用于单元测试或自定义数据源注入，若为空则从应用 AssetBundle 加载）
   final Future<String> Function(String lang)? customContentLoader;
@@ -51,6 +49,7 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
   String? _activeSectionId;
   String _searchQuery = '';
   bool _isSearching = false;
+  Timer? _searchDebounceTimer;
 
   @override
   void initState() {
@@ -60,6 +59,7 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
 
   @override
   void dispose() {
+    _searchDebounceTimer?.cancel();
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -166,6 +166,7 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
   void _scrollToSection(String sectionIdOrSlug) {
     // 若当前正在搜索状态，退出搜索以便展示全部内容
     if (_isSearching || _searchQuery.isNotEmpty) {
+      _searchDebounceTimer?.cancel();
       setState(() {
         _isSearching = false;
         _searchQuery = '';
@@ -225,7 +226,9 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
                       color: theme.colorScheme.outlineVariant.withValues(
                         alpha: 0.6,
                       ),
-                      borderRadius: BorderRadius.circular(AppTokens.sheetGrabberRadius),
+                      borderRadius: BorderRadius.circular(
+                        AppTokens.sheetGrabberRadius,
+                      ),
                     ),
                   ),
                   Padding(
@@ -300,18 +303,40 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                style: TextStyle(color: colorScheme.onSurface, fontSize: AppTokens.textSubtitleSize),
+                style: TextStyle(
+                  color: colorScheme.onSurface,
+                  fontSize: AppTokens.textSubtitleSize,
+                ),
                 decoration: InputDecoration(
                   hintText: l10n.manualSearchHint,
                   border: InputBorder.none,
                   hintStyle: TextStyle(
-                    color: colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaContentMuted),
+                    color: colorScheme.onSurfaceVariant.withValues(
+                      alpha: AppTokens.alphaContentMuted,
+                    ),
                   ),
                 ),
                 onChanged: (val) {
-                  setState(() {
-                    _searchQuery = val.trim();
-                  });
+                  _searchDebounceTimer?.cancel();
+                  final trimmed = val.trim();
+                  if (trimmed.isEmpty) {
+                    if (_searchQuery.isNotEmpty) {
+                      setState(() {
+                        _searchQuery = '';
+                      });
+                    }
+                  } else {
+                    _searchDebounceTimer = Timer(
+                      AppTokens.motionFast,
+                      () {
+                        if (mounted && _searchQuery != trimmed) {
+                          setState(() {
+                            _searchQuery = trimmed;
+                          });
+                        }
+                      },
+                    );
+                  }
                 },
               )
             : Text(
@@ -323,6 +348,7 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
             icon: Icon(_isSearching ? Icons.close : Icons.search),
             tooltip: _isSearching ? l10n.clear : l10n.manualSearchHint,
             onPressed: () {
+              _searchDebounceTimer?.cancel();
               setState(() {
                 if (_isSearching) {
                   _isSearching = false;
@@ -396,10 +422,7 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              FilledButton(
-                onPressed: _loadManual,
-                child: const Text('重试'),
-              ),
+              FilledButton(onPressed: _loadManual, child: const Text('重试')),
             ],
           ),
         ),
@@ -416,10 +439,7 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
     // 杜绝 ListView.builder 懒回收导致屏幕外节点 GlobalKey 无法定位的问题。
     final contentScrollView = SingleChildScrollView(
       controller: _scrollController,
-      padding: EdgeInsets.symmetric(
-        horizontal: isWide ? 40 : 20,
-        vertical: 24,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: isWide ? 40 : 20, vertical: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -455,7 +475,9 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
             decoration: BoxDecoration(
               border: Border(
                 right: BorderSide(
-                  color: colorScheme.outlineVariant.withValues(alpha: AppTokens.alphaBorderEmphasis),
+                  color: colorScheme.outlineVariant.withValues(
+                    alpha: AppTokens.alphaBorderEmphasis,
+                  ),
                 ),
               ),
             ),
@@ -566,7 +588,8 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
           blocks.add(headingBlock);
 
           // 过滤掉文内“目录”标题本身，避免目录中递归展示“目录”
-          final isTocHeading = title.contains('目录') ||
+          final isTocHeading =
+              title.contains('目录') ||
               title.toLowerCase().contains('table of contents');
           if (level <= 3 && !isTocHeading) {
             tocItems.add(_TocItem(id: anchorId, title: title, level: level));
@@ -635,20 +658,16 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
 
           if (curTrimmed.startsWith('- ') || curTrimmed.startsWith('* ')) {
             final t = curTrimmed.substring(2).trim();
-            listItems.add(_ListItem(
-              text: t,
-              tokens: _tokenizeInline(t),
-              indent: indent,
-            ));
+            listItems.add(
+              _ListItem(text: t, tokens: _tokenizeInline(t), indent: indent),
+            );
             index++;
           } else if (RegExp(r'^\d+\.\s').hasMatch(curTrimmed)) {
             final dotIdx = curTrimmed.indexOf('. ');
             final t = curTrimmed.substring(dotIdx + 2).trim();
-            listItems.add(_ListItem(
-              text: t,
-              tokens: _tokenizeInline(t),
-              indent: indent,
-            ));
+            listItems.add(
+              _ListItem(text: t, tokens: _tokenizeInline(t), indent: indent),
+            );
             index++;
           } else {
             break;
@@ -682,18 +701,19 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
 
       if (paragraphLines.isNotEmpty) {
         final pText = paragraphLines.join(' ');
-        blocks.add(_ParagraphBlock(
-          text: pText,
-          tokens: _tokenizeInline(pText),
-        ));
+        blocks.add(
+          _ParagraphBlock(text: pText, tokens: _tokenizeInline(pText)),
+        );
       } else {
         if (index < lines.length) {
           final singleLine = lines[index].trim();
           if (singleLine.isNotEmpty) {
-            blocks.add(_ParagraphBlock(
-              text: singleLine,
-              tokens: _tokenizeInline(singleLine),
-            ));
+            blocks.add(
+              _ParagraphBlock(
+                text: singleLine,
+                tokens: _tokenizeInline(singleLine),
+              ),
+            );
           }
           index++;
         }
@@ -835,11 +855,7 @@ class _CalloutBlock extends _ManualBlock {
 }
 
 class _ListItem {
-  const _ListItem({
-    required this.text,
-    required this.tokens,
-    this.indent = 0,
-  });
+  const _ListItem({required this.text, required this.tokens, this.indent = 0});
   final String text;
   final List<_InlineToken> tokens;
   final int indent;
@@ -852,8 +868,8 @@ class _ListBlock extends _ManualBlock {
 
   @override
   bool matchesQuery(String query) => items.any(
-        (item) => item.text.toLowerCase().contains(query.toLowerCase()),
-      );
+    (item) => item.text.toLowerCase().contains(query.toLowerCase()),
+  );
 }
 
 class _TableBlock extends _ManualBlock {
@@ -897,11 +913,7 @@ class _DividerBlock extends _ManualBlock {
 }
 
 class _TocItem {
-  const _TocItem({
-    required this.id,
-    required this.title,
-    required this.level,
-  });
+  const _TocItem({required this.id, required this.title, required this.level});
   final String id;
   final String title;
   final int level;
@@ -945,11 +957,9 @@ List<_InlineToken> _tokenizeInline(String input) {
       tokens.add(_InlineToken(text: input.substring(lastIndex, match.start)));
     }
     if (match.group(2) != null) {
-      tokens.add(_InlineToken(
-        text: match.group(2)!,
-        isBold: true,
-        isItalic: true,
-      ));
+      tokens.add(
+        _InlineToken(text: match.group(2)!, isBold: true, isItalic: true),
+      );
     } else if (match.group(4) != null) {
       tokens.add(_InlineToken(text: match.group(4)!, isBold: true));
     } else if (match.group(6) != null) {
@@ -957,10 +967,9 @@ List<_InlineToken> _tokenizeInline(String input) {
     } else if (match.group(8) != null) {
       tokens.add(_InlineToken(text: match.group(8)!, isCode: true));
     } else if (match.group(10) != null) {
-      tokens.add(_InlineToken(
-        text: match.group(10)!,
-        linkUrl: match.group(11)!,
-      ));
+      tokens.add(
+        _InlineToken(text: match.group(10)!, linkUrl: match.group(11)!),
+      );
     } else if (match.group(13) != null) {
       tokens.add(_InlineToken(text: match.group(13)!, isStrikethrough: true));
     }
@@ -1039,35 +1048,37 @@ class _MarkdownInlineText extends StatelessWidget {
           final idx = lowerText.indexOf(lowerQuery, start);
           if (idx < 0) {
             if (start < token.text.length) {
-              spans.add(TextSpan(
-                text: token.text.substring(start),
-                style: tokenStyle,
-              ));
+              spans.add(
+                TextSpan(text: token.text.substring(start), style: tokenStyle),
+              );
             }
             break;
           }
           if (idx > start) {
-            spans.add(TextSpan(
-              text: token.text.substring(start, idx),
-              style: tokenStyle,
-            ));
+            spans.add(
+              TextSpan(
+                text: token.text.substring(start, idx),
+                style: tokenStyle,
+              ),
+            );
           }
           final matchText = token.text.substring(idx, idx + searchQuery.length);
-          spans.add(TextSpan(
-            text: matchText,
-            style: tokenStyle.copyWith(
-              backgroundColor: Colors.amber.withValues(alpha: AppTokens.alphaContentDisabled),
-              color: colorScheme.primary,
-              fontWeight: FontWeight.w800,
+          spans.add(
+            TextSpan(
+              text: matchText,
+              style: tokenStyle.copyWith(
+                backgroundColor: Colors.amber.withValues(
+                  alpha: AppTokens.alphaContentDisabled,
+                ),
+                color: colorScheme.primary,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-          ));
+          );
           start = idx + searchQuery.length;
         }
       } else {
-        spans.add(TextSpan(
-          text: token.text,
-          style: tokenStyle,
-        ));
+        spans.add(TextSpan(text: token.text, style: tokenStyle));
       }
     }
 
@@ -1151,7 +1162,9 @@ class _MarkdownInteractiveInlineTextState
           color: colorScheme.primary,
           fontWeight: FontWeight.w600,
           decoration: TextDecoration.underline,
-          decorationColor: colorScheme.primary.withValues(alpha: AppTokens.alphaContentMuted),
+          decorationColor: colorScheme.primary.withValues(
+            alpha: AppTokens.alphaContentMuted,
+          ),
         );
         final r = TapGestureRecognizer()
           ..onTap = () => widget.onLinkTap(token.linkUrl!);
@@ -1169,42 +1182,48 @@ class _MarkdownInteractiveInlineTextState
           final idx = lowerText.indexOf(lowerQuery, start);
           if (idx < 0) {
             if (start < token.text.length) {
-              spans.add(TextSpan(
-                text: token.text.substring(start),
-                style: tokenStyle,
-                recognizer: recognizer,
-              ));
+              spans.add(
+                TextSpan(
+                  text: token.text.substring(start),
+                  style: tokenStyle,
+                  recognizer: recognizer,
+                ),
+              );
             }
             break;
           }
           if (idx > start) {
-            spans.add(TextSpan(
-              text: token.text.substring(start, idx),
-              style: tokenStyle,
-              recognizer: recognizer,
-            ));
+            spans.add(
+              TextSpan(
+                text: token.text.substring(start, idx),
+                style: tokenStyle,
+                recognizer: recognizer,
+              ),
+            );
           }
           final matchText = token.text.substring(
             idx,
             idx + widget.searchQuery.length,
           );
-          spans.add(TextSpan(
-            text: matchText,
-            style: tokenStyle.copyWith(
-              backgroundColor: Colors.amber.withValues(alpha: AppTokens.alphaContentDisabled),
-              color: colorScheme.primary,
-              fontWeight: FontWeight.w800,
+          spans.add(
+            TextSpan(
+              text: matchText,
+              style: tokenStyle.copyWith(
+                backgroundColor: Colors.amber.withValues(
+                  alpha: AppTokens.alphaContentDisabled,
+                ),
+                color: colorScheme.primary,
+                fontWeight: FontWeight.w800,
+              ),
+              recognizer: recognizer,
             ),
-            recognizer: recognizer,
-          ));
+          );
           start = idx + widget.searchQuery.length;
         }
       } else {
-        spans.add(TextSpan(
-          text: token.text,
-          style: tokenStyle,
-          recognizer: recognizer,
-        ));
+        spans.add(
+          TextSpan(text: token.text, style: tokenStyle, recognizer: recognizer),
+        );
       }
     }
 
@@ -1300,7 +1319,9 @@ class _TocListTile extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isSelected
                       ? colorScheme.primary
-                      : colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaContentMuted),
+                      : colorScheme.onSurfaceVariant.withValues(
+                          alpha: AppTokens.alphaContentMuted,
+                        ),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -1359,9 +1380,8 @@ class _BlockWidget extends StatelessWidget {
   Widget _buildContent(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final baseStyle = (theme.textTheme.bodyMedium ?? const TextStyle()).copyWith(
-      fontFamilyFallback: AppTheme.fontFamilyFallback,
-    );
+    final baseStyle = (theme.textTheme.bodyMedium ?? const TextStyle())
+        .copyWith(fontFamilyFallback: AppTheme.fontFamilyFallback);
 
     if (block is _HeadingBlock) {
       final b = block as _HeadingBlock;
@@ -1406,7 +1426,9 @@ class _BlockWidget extends StatelessWidget {
                 width: 42,
                 decoration: BoxDecoration(
                   color: colorScheme.primary,
-                  borderRadius: BorderRadius.circular(AppTokens.sheetGrabberRadius),
+                  borderRadius: BorderRadius.circular(
+                    AppTokens.sheetGrabberRadius,
+                  ),
                 ),
               ),
           ],
@@ -1423,7 +1445,9 @@ class _BlockWidget extends StatelessWidget {
           style: baseStyle.copyWith(
             fontSize: AppTokens.textSecondarySize,
             height: 1.65,
-            color: colorScheme.onSurface.withValues(alpha: AppTokens.alphaOverlayHeavy),
+            color: colorScheme.onSurface.withValues(
+              alpha: AppTokens.alphaOverlayHeavy,
+            ),
           ),
           searchQuery: searchQuery,
           onLinkTap: onLinkTap,
@@ -1461,7 +1485,9 @@ class _BlockWidget extends StatelessWidget {
           calloutTitle = 'WARNING';
         case _CalloutType.quote:
           borderColor = colorScheme.outlineVariant;
-          bgColor = colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaBorderEmphasis);
+          bgColor = colorScheme.surfaceContainerHighest.withValues(
+            alpha: AppTokens.alphaBorderEmphasis,
+          );
           iconData = Icons.format_quote;
           calloutTitle = '';
       }
@@ -1480,10 +1506,7 @@ class _BlockWidget extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                width: 4,
-                color: borderColor,
-              ),
+              Container(width: 4, color: borderColor),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(14),
@@ -1556,8 +1579,9 @@ class _BlockWidget extends StatelessWidget {
                       style: TextStyle(
                         fontSize: b.isOrdered ? 13 : 16,
                         height: 1.3,
-                        fontWeight:
-                            b.isOrdered ? FontWeight.w600 : FontWeight.w900,
+                        fontWeight: b.isOrdered
+                            ? FontWeight.w600
+                            : FontWeight.w900,
                         color: colorScheme.primary,
                       ),
                     ),
@@ -1589,7 +1613,9 @@ class _BlockWidget extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppTokens.radiusCard),
           border: Border.all(
-            color: colorScheme.outlineVariant.withValues(alpha: AppTokens.alphaContentMuted),
+            color: colorScheme.outlineVariant.withValues(
+              alpha: AppTokens.alphaContentMuted,
+            ),
           ),
         ),
         clipBehavior: Clip.antiAlias,
@@ -1597,7 +1623,9 @@ class _BlockWidget extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           child: DataTable(
             headingRowColor: WidgetStateProperty.all(
-              colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaContentMuted),
+              colorScheme.surfaceContainerHighest.withValues(
+                alpha: AppTokens.alphaContentMuted,
+              ),
             ),
             columns: List.generate(
               b.headers.length,
@@ -1646,10 +1674,14 @@ class _BlockWidget extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 10),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaContentMuted),
+          color: colorScheme.surfaceContainerHighest.withValues(
+            alpha: AppTokens.alphaContentMuted,
+          ),
           borderRadius: BorderRadius.circular(AppTokens.radiusCard),
           border: Border.all(
-            color: colorScheme.outlineVariant.withValues(alpha: AppTokens.alphaContentDisabled),
+            color: colorScheme.outlineVariant.withValues(
+              alpha: AppTokens.alphaContentDisabled,
+            ),
           ),
         ),
         width: double.infinity,
@@ -1669,7 +1701,9 @@ class _BlockWidget extends StatelessWidget {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 14),
         child: Divider(
-          color: colorScheme.outlineVariant.withValues(alpha: AppTokens.alphaBorderEmphasis),
+          color: colorScheme.outlineVariant.withValues(
+            alpha: AppTokens.alphaBorderEmphasis,
+          ),
         ),
       );
     }
@@ -1677,6 +1711,7 @@ class _BlockWidget extends StatelessWidget {
     return const SizedBox.shrink();
   }
 }
+
 class _MermaidFlowWidget extends StatefulWidget {
   const _MermaidFlowWidget({required this.code});
   final String code;
@@ -1694,65 +1729,39 @@ class _MermaidFlowWidgetState extends State<_MermaidFlowWidget> {
     final colorScheme = theme.colorScheme;
     final isEn = widget.code.contains('Subtasks Cluster Status');
 
-    final title = isEn
-        ? 'Task State Derivation Flowchart'
-        : '子任务集群与父任务状态派生流向图';
+    final title = isEn ? 'Task State Derivation Flowchart' : '子任务集群与父任务状态派生流向图';
     final rootLabel = isEn ? 'Subtasks Cluster Status' : '子任务集群状态';
     final ruleLabel = isEn ? 'Derivation Rules' : '状态联动规则判定';
 
     final branches = isEn
         ? [
-            (
-              '🟢 All [Done]',
-              'Parent becomes [Done] (100%)',
-              Colors.green,
-            ),
+            ('🟢 All [Done]', 'Parent becomes [Done] (100%)', Colors.green),
             (
               '🟡 Any [In Progress] or partial',
               'Parent becomes [In Progress] (shows ring)',
               Colors.amber,
             ),
-            (
-              '⚪ All [Todo]',
-              'Parent stays [Todo] (0%)',
-              Colors.blueGrey,
-            ),
-            (
-              '🔴 All [Canceled]',
-              'Parent becomes [Canceled]',
-              Colors.red,
-            ),
+            ('⚪ All [Todo]', 'Parent stays [Todo] (0%)', Colors.blueGrey),
+            ('🔴 All [Canceled]', 'Parent becomes [Canceled]', Colors.red),
           ]
         : [
-            (
-              '🟢 全部子任务【已完成】',
-              '父任务自动变为【已完成】(100%)',
-              Colors.green,
-            ),
-            (
-              '🟡 任意子任务【进行中】或【部分完成】',
-              '父任务自动变为【进行中】(显示进度环)',
-              Colors.amber,
-            ),
-            (
-              '⚪ 全部子任务处于【待办】',
-              '父任务保持【待办】(0%)',
-              Colors.blueGrey,
-            ),
-            (
-              '🔴 全部子任务均为【已取消】',
-              '父任务自动变为【已取消】',
-              Colors.red,
-            ),
+            ('🟢 全部子任务【已完成】', '父任务自动变为【已完成】(100%)', Colors.green),
+            ('🟡 任意子任务【进行中】或【部分完成】', '父任务自动变为【进行中】(显示进度环)', Colors.amber),
+            ('⚪ 全部子任务处于【待办】', '父任务保持【待办】(0%)', Colors.blueGrey),
+            ('🔴 全部子任务均为【已取消】', '父任务自动变为【已取消】', Colors.red),
           ];
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaBorderEmphasis),
+        color: colorScheme.surfaceContainerHighest.withValues(
+          alpha: AppTokens.alphaBorderEmphasis,
+        ),
         borderRadius: BorderRadius.circular(AppTokens.radiusCard),
         border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: AppTokens.alphaContentDisabled),
+          color: colorScheme.outlineVariant.withValues(
+            alpha: AppTokens.alphaContentDisabled,
+          ),
         ),
       ),
       child: Column(
@@ -1813,10 +1822,14 @@ class _MermaidFlowWidgetState extends State<_MermaidFlowWidget> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer.withValues(alpha: AppTokens.alphaContentMuted),
+                    color: colorScheme.primaryContainer.withValues(
+                      alpha: AppTokens.alphaContentMuted,
+                    ),
                     borderRadius: BorderRadius.circular(AppTokens.radiusChip),
                     border: Border.all(
-                      color: colorScheme.primary.withValues(alpha: AppTokens.alphaContentDisabled),
+                      color: colorScheme.primary.withValues(
+                        alpha: AppTokens.alphaContentDisabled,
+                      ),
                     ),
                   ),
                   child: Row(
@@ -1843,7 +1856,9 @@ class _MermaidFlowWidgetState extends State<_MermaidFlowWidget> {
                 Icon(
                   Icons.arrow_downward_rounded,
                   size: 18,
-                  color: colorScheme.primary.withValues(alpha: AppTokens.alphaScrim),
+                  color: colorScheme.primary.withValues(
+                    alpha: AppTokens.alphaScrim,
+                  ),
                 ),
                 const SizedBox(height: 6),
 
@@ -1857,7 +1872,9 @@ class _MermaidFlowWidgetState extends State<_MermaidFlowWidget> {
                     color: colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(AppTokens.radiusChip),
                     border: Border.all(
-                      color: colorScheme.outlineVariant.withValues(alpha: AppTokens.alphaContentMuted),
+                      color: colorScheme.outlineVariant.withValues(
+                        alpha: AppTokens.alphaContentMuted,
+                      ),
                     ),
                   ),
                   child: Row(
@@ -1893,9 +1910,7 @@ class _MermaidFlowWidgetState extends State<_MermaidFlowWidget> {
                     decoration: BoxDecoration(
                       color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-                      border: Border(
-                        left: BorderSide(color: b.$3, width: 3.5),
-                      ),
+                      border: Border(left: BorderSide(color: b.$3, width: 3.5)),
                     ),
                     child: Row(
                       children: [
@@ -1936,7 +1951,9 @@ class _MermaidFlowWidgetState extends State<_MermaidFlowWidget> {
             const Divider(height: 1),
             Container(
               padding: const EdgeInsets.all(12),
-              color: colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaContentMuted),
+              color: colorScheme.surfaceContainerHighest.withValues(
+                alpha: AppTokens.alphaContentMuted,
+              ),
               child: SelectableText(
                 widget.code,
                 style: const TextStyle(

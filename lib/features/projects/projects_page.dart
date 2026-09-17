@@ -88,105 +88,115 @@ class ProjectsPage extends ConsumerWidget {
                   child: CustomScrollView(
                     slivers: [
                       // 周完成条 (Week progress bar)
-                if (totalTasks > 0)
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 8,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                l10n.weeklyProgress,
-                                style: TextStyle(
-                                  fontSize: AppTokens.textCaptionSize,
-                                  fontWeight: FontWeight.w500,
-                                  color: colorScheme.onSurfaceVariant,
+                      if (totalTasks > 0)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 8,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      l10n.weeklyProgress,
+                                      style: TextStyle(
+                                        fontSize: AppTokens.textCaptionSize,
+                                        fontWeight: FontWeight.w500,
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${l10n.itemsProgress(totalCompleted, totalTasks)} (${(totalCompleted / totalTasks * 100).round()}%)',
+                                      style: TextStyle(
+                                        fontFeatures: AppTokens.fontTabular,
+                                        fontSize: AppTokens.textCaptionSize,
+                                        fontWeight: FontWeight.w600,
+                                        color: colorScheme.onSurface,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              Text(
-                                '${l10n.itemsProgress(totalCompleted, totalTasks)} (${(totalCompleted / totalTasks * 100).round()}%)',
-                                style: TextStyle(
-                                  fontFeatures: AppTokens.fontTabular,
-                                  fontSize: AppTokens.textCaptionSize,
-                                  fontWeight: FontWeight.w600,
-                                  color: colorScheme.onSurface,
+                                const SizedBox(height: 6),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(
+                                    AppTokens.radiusMicro,
+                                  ),
+                                  child: LinearProgressIndicator(
+                                    value: totalCompleted / totalTasks,
+                                    minHeight: 6,
+                                    backgroundColor: isDark
+                                        ? Colors.white.withValues(
+                                            alpha: AppTokens.alphaTintFaint,
+                                          )
+                                        : Colors.black.withValues(
+                                            alpha: AppTokens.alphaTintFaint,
+                                          ),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      totalCompleted == totalTasks
+                                          ? AppTokens.colorDone
+                                          : colorScheme.primary,
+                                    ),
+                                  ),
                                 ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                      // 分组项目列表
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 8,
+                        ),
+                        sliver: SliverList(
+                          delegate: SliverChildListDelegate([
+                            for (final folder in folders) ...[
+                              _FolderSectionHeader(
+                                title: folder.name,
+                                count:
+                                    grouping
+                                        .folderProjects[folder.id]
+                                        ?.length ??
+                                    0,
                               ),
+                              for (final project
+                                  in grouping.folderProjects[folder.id] ??
+                                      const <Project>[])
+                                StaggeredFadeSlide(
+                                  index: cardIndex++,
+                                  child: ProjectCard(
+                                    project: project,
+                                    onTap: () =>
+                                        context.push('/projects/${project.id}'),
+                                  ),
+                                ),
                             ],
-                          ),
-                          const SizedBox(height: 6),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
-                            child: LinearProgressIndicator(
-                              value: totalCompleted / totalTasks,
-                              minHeight: 6,
-                              backgroundColor: isDark
-                                  ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
-                                  : Colors.black.withValues(alpha: AppTokens.alphaTintFaint),
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                totalCompleted == totalTasks
-                                    ? AppTokens.colorDone
-                                    : colorScheme.primary,
+                            if (ungrouped.isNotEmpty) ...[
+                              _FolderSectionHeader(
+                                title: l10n.ungrouped,
+                                count: ungrouped.length,
                               ),
-                            ),
-                          ),
-                        ],
+                              for (final project in ungrouped)
+                                StaggeredFadeSlide(
+                                  index: cardIndex++,
+                                  child: ProjectCard(
+                                    project: project,
+                                    onTap: () =>
+                                        context.push('/projects/${project.id}'),
+                                  ),
+                                ),
+                            ],
+                          ]),
+                        ),
                       ),
-                    ),
-                  ),
 
-                // 分组项目列表
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 8,
-                  ),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      for (final folder in folders) ...[
-                        _FolderSectionHeader(
-                          title: folder.name,
-                          count:
-                              grouping.folderProjects[folder.id]?.length ?? 0,
-                        ),
-                        for (final project
-                            in grouping.folderProjects[folder.id] ??
-                                const <Project>[])
-                          StaggeredFadeSlide(
-                            index: cardIndex++,
-                            child: ProjectCard(
-                              project: project,
-                              onTap: () =>
-                                  context.push('/projects/${project.id}'),
-                            ),
-                          ),
-                      ],
-                      if (ungrouped.isNotEmpty) ...[
-                        _FolderSectionHeader(
-                          title: l10n.ungrouped,
-                          count: ungrouped.length,
-                        ),
-                        for (final project in ungrouped)
-                          StaggeredFadeSlide(
-                            index: cardIndex++,
-                            child: ProjectCard(
-                              project: project,
-                              onTap: () =>
-                                  context.push('/projects/${project.id}'),
-                            ),
-                          ),
-                      ],
-                    ]),
-                  ),
-                ),
-
-                const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                      const SliverToBoxAdapter(child: SizedBox(height: 100)),
                     ],
                   ),
                 ),
@@ -207,11 +217,16 @@ class ProjectsPage extends ConsumerWidget {
         tooltip: l10n.newProject,
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: theme.colorScheme.onPrimary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTokens.radiusPill)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+        ),
         icon: const Icon(Icons.add_rounded, size: 20),
         label: Text(
           l10n.newProject,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: AppTokens.textSecondarySize),
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: AppTokens.textSecondarySize,
+          ),
         ),
       ),
     );

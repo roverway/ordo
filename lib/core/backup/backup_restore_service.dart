@@ -320,21 +320,30 @@ class BackupRestoreService {
       ];
       final activeTaskMap = {for (final t in activeTasks) t.id: t};
 
-      int depthOf(TaskRecord task, Set<String> visited) {
-        if (task.parentId == null ||
-            !activeTaskMap.containsKey(task.parentId)) {
-          return 0;
+      // 记忆化预计算任务层级深度，避免在 sort 中每次两两比对均触发全树递归遍历 (O(N) vs O(N log N * depth))
+      final depthMap = <String, int>{};
+      int computeDepth(String taskId, Set<String> visited) {
+        if (depthMap.containsKey(taskId)) return depthMap[taskId]!;
+        final task = activeTaskMap[taskId];
+        if (task == null ||
+            task.parentId == null ||
+            !activeTaskMap.containsKey(task.parentId) ||
+            visited.contains(taskId)) {
+          return depthMap[taskId] = 0;
         }
-        if (visited.contains(task.id)) return 0;
-        visited.add(task.id);
-        final parent = activeTaskMap[task.parentId!];
-        if (parent == null) return 0;
-        return 1 + depthOf(parent, visited);
+        visited.add(taskId);
+        final depth = 1 + computeDepth(task.parentId!, visited);
+        visited.remove(taskId);
+        return depthMap[taskId] = depth;
+      }
+
+      for (final t in activeTasks) {
+        computeDepth(t.id, <String>{});
       }
 
       activeTasks.sort((a, b) {
-        final da = depthOf(a, <String>{});
-        final db = depthOf(b, <String>{});
+        final da = depthMap[a.id] ?? 0;
+        final db = depthMap[b.id] ?? 0;
         return da.compareTo(db);
       });
 
