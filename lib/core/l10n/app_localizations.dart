@@ -2678,6 +2678,90 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'手册加载失败'**
   String get manualLoadFailed;
+
+  /// 全局应用级背景壁纸设置标题
+  ///
+  /// In zh, this message translates to:
+  /// **'全局背景壁纸'**
+  String get wallpaperTitleApp;
+
+  /// 清单专属背景壁纸设置标题
+  ///
+  /// In zh, this message translates to:
+  /// **'清单背景壁纸'**
+  String get wallpaperTitleProject;
+
+  /// 已启用自定义壁纸状态文本
+  ///
+  /// In zh, this message translates to:
+  /// **'已启用自定义壁纸'**
+  String get wallpaperActive;
+
+  /// 全局默认纯色状态
+  ///
+  /// In zh, this message translates to:
+  /// **'默认纯色基底'**
+  String get wallpaperDefaultPure;
+
+  /// 清单跟随全局应用壁纸状态
+  ///
+  /// In zh, this message translates to:
+  /// **'跟随应用默认'**
+  String get wallpaperFollowApp;
+
+  /// 壁纸选择器跟随选项标签
+  ///
+  /// In zh, this message translates to:
+  /// **'跟随默认'**
+  String get wallpaperFollow;
+
+  /// 壁纸选择器无壁纸选项标签
+  ///
+  /// In zh, this message translates to:
+  /// **'无壁纸'**
+  String get wallpaperNone;
+
+  /// 壁纸预设与来源分组标题
+  ///
+  /// In zh, this message translates to:
+  /// **'精选预设与来源'**
+  String get wallpaperPresetLabel;
+
+  /// 选择本地图片提示
+  ///
+  /// In zh, this message translates to:
+  /// **'选择本地图片'**
+  String get wallpaperCustomUpload;
+
+  /// 本地图片选项标签
+  ///
+  /// In zh, this message translates to:
+  /// **'本地图片'**
+  String get wallpaperCustom;
+
+  /// 遮罩透明度调节滑块标签
+  ///
+  /// In zh, this message translates to:
+  /// **'遮罩暗度'**
+  String get wallpaperOpacityLabel;
+
+  /// 高斯模糊调节滑块标签
+  ///
+  /// In zh, this message translates to:
+  /// **'高斯模糊'**
+  String get wallpaperBlurLabel;
+
+  /// 壁纸实时预览模拟任务文本
+  ///
+  /// In zh, this message translates to:
+  /// **'这是背景效果实时预览'**
+  String get wallpaperPreviewText;
+
+  /// 壁纸实时预览微标
+  ///
+  /// In zh, this message translates to:
+  /// **'预览'**
+  String get wallpaperPreviewBadge;
 }
 
 class _AppLocalizationsDelegate

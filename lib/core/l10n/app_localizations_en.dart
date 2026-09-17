@@ -1427,4 +1427,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get manualLoadFailed => 'Failed to load manual';
+
+  @override
+  String get wallpaperTitleApp => 'App Background';
+
+  @override
+  String get wallpaperTitleProject => 'List Background';
+
+  @override
+  String get wallpaperActive => 'Custom wallpaper active';
+
+  @override
+  String get wallpaperDefaultPure => 'Default pure background';
+
+  @override
+  String get wallpaperFollowApp => 'Follow app default';
+
+  @override
+  String get wallpaperFollow => 'Follow';
+
+  @override
+  String get wallpaperNone => 'None';
+
+  @override
+  String get wallpaperPresetLabel => 'Presets & Source';
+
+  @override
+  String get wallpaperCustomUpload => 'Pick local image';
+
+  @override
+  String get wallpaperCustom => 'Local Image';
+
+  @override
+  String get wallpaperOpacityLabel => 'Mask Opacity';
+
+  @override
+  String get wallpaperBlurLabel => 'Gaussian Blur';
+
+  @override
+  String get wallpaperPreviewText => 'Live preview of wallpaper effect';
+
+  @override
+  String get wallpaperPreviewBadge => 'Preview';
 }

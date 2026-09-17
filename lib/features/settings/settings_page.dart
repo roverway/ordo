@@ -9,10 +9,12 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/utils/dates.dart';
 import '../../features/sync_setup/sync_setup_providers.dart';
 import '../../features/tags/tag_providers.dart';
+import '../../shared/widgets/app_background_wrapper.dart';
 import '../../shared/widgets/app_logo.dart';
 import '../../shared/widgets/modern_segmented_control.dart';
 import 'settings_providers.dart';
 import 'widgets/backup_section.dart';
+import 'widgets/wallpaper_picker_sheet.dart';
 
 const String appVersion = '1.0.0';
 
@@ -25,10 +27,15 @@ class SettingsPage extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
         title: Text(
           l10n.settings,
-          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppTokens.textTitleSize),
+          style: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: AppTokens.textTitleSize,
+          ),
         ),
         centerTitle: false,
       ),
@@ -149,7 +156,7 @@ class SettingsBody extends StatelessWidget {
   }
 }
 
-/// 外观配置卡片（主题模式、主题色、语言）
+/// 外观配置卡片（主题模式、主题色、语言、全局背景）
 class _AppearanceSection extends ConsumerWidget {
   const _AppearanceSection();
 
@@ -276,6 +283,13 @@ class _AppearanceSection extends ConsumerWidget {
             const Divider(height: 1),
             const SizedBox(height: 16),
 
+            // 全局背景壁纸行
+            const _GlobalWallpaperRow(),
+
+            const SizedBox(height: 16),
+            const Divider(height: 1),
+            const SizedBox(height: 16),
+
             // 语言选择行
             Row(
               children: [
@@ -329,6 +343,84 @@ class _AppearanceSection extends ConsumerWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// 全局背景壁纸设置行
+class _GlobalWallpaperRow extends ConsumerWidget {
+  const _GlobalWallpaperRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
+    final appBgConfig = ref.watch(appBackgroundConfigProvider);
+
+    return InkWell(
+      onTap: () async {
+        final result = await showWallpaperPickerSheet(
+          context: context,
+          initialConfig: appBgConfig,
+          isGlobal: true,
+        );
+        if (result != null) {
+          await ref
+              .read(appBackgroundConfigProvider.notifier)
+              .setConfig(result);
+        }
+      },
+      borderRadius: BorderRadius.circular(AppTokens.radiusList),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            _IconBadge(
+              icon: Icons.wallpaper_outlined,
+              color: colorScheme.primary,
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.wallpaperTitleApp,
+                    style: const TextStyle(
+                      fontSize: AppTokens.textBodySize,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    appBgConfig.isEffective
+                        ? l10n.wallpaperActive
+                        : l10n.wallpaperDefaultPure,
+                    style: TextStyle(
+                      fontSize: AppTokens.textCaptionSize,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            WallpaperThumbnail(
+              config: appBgConfig,
+              width: 38,
+              height: 38,
+              borderRadius: AppTokens.radiusChip,
+            ),
+            const SizedBox(width: 6),
+            Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: colorScheme.onSurfaceVariant.withValues(
+                alpha: AppTokens.alphaContentMuted,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -399,7 +491,7 @@ class _TagsSection extends ConsumerWidget {
                       Icons.chevron_right,
                       size: 20,
                       color: colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.6,
+                        alpha: AppTokens.alphaContentMuted,
                       ),
                     ),
                   ],
@@ -462,8 +554,9 @@ class _CalendarSection extends ConsumerWidget {
                 ),
                 Switch.adaptive(
                   value: showLunar,
-                  onChanged: (val) =>
-                      ref.read(calendarShowLunarProvider.notifier).setShowLunar(val),
+                  onChanged: (val) => ref
+                      .read(calendarShowLunarProvider.notifier)
+                      .setShowLunar(val),
                 ),
               ],
             ),
@@ -500,8 +593,9 @@ class _CalendarSection extends ConsumerWidget {
                 ),
                 Switch.adaptive(
                   value: showHolidays,
-                  onChanged: (val) =>
-                      ref.read(calendarShowHolidaysProvider.notifier).setShowHolidays(val),
+                  onChanged: (val) => ref
+                      .read(calendarShowHolidaysProvider.notifier)
+                      .setShowHolidays(val),
                 ),
               ],
             ),
@@ -589,7 +683,7 @@ class _SyncSection extends ConsumerWidget {
                       Icons.chevron_right,
                       size: 20,
                       color: colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.6,
+                        alpha: AppTokens.alphaContentMuted,
                       ),
                     ),
                   ],
@@ -654,17 +748,23 @@ class _SyncSection extends ConsumerWidget {
         label = l10n.syncStatusSyncing;
         icon = Icons.sync;
       case SyncStateStatus.success:
-        bg = AppTokens.colorSuccess.withValues(alpha: AppTokens.alphaBorderSubtle);
+        bg = AppTokens.colorSuccess.withValues(
+          alpha: AppTokens.alphaBorderSubtle,
+        );
         fg = AppTokens.colorSuccessText;
         label = l10n.syncStatusSuccess;
         icon = Icons.check_circle_outline;
       case SyncStateStatus.error:
-        bg = AppTokens.colorDanger.withValues(alpha: AppTokens.alphaBorderSubtle);
+        bg = AppTokens.colorDanger.withValues(
+          alpha: AppTokens.alphaBorderSubtle,
+        );
         fg = AppTokens.colorDangerText;
         label = l10n.syncStatusError;
         icon = Icons.error_outline;
       case SyncStateStatus.idle:
-        bg = colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaBorderSubtle);
+        bg = colorScheme.onSurfaceVariant.withValues(
+          alpha: AppTokens.alphaBorderSubtle,
+        );
         fg = colorScheme.onSurfaceVariant;
         label = l10n.syncStatusIdle;
         icon = Icons.cloud_outlined;
@@ -781,7 +881,7 @@ class _HelpSection extends StatelessWidget {
                       Icons.chevron_right,
                       size: 20,
                       color: colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.6,
+                        alpha: AppTokens.alphaContentMuted,
                       ),
                     ),
                   ],
@@ -854,10 +954,14 @@ class _AboutSection extends StatelessWidget {
                 vertical: AppTokens.spaceSm,
               ),
               decoration: BoxDecoration(
-                color: colorScheme.primary.withValues(alpha: AppTokens.alphaTintFaint),
+                color: colorScheme.primary.withValues(
+                  alpha: AppTokens.alphaTintFaint,
+                ),
                 borderRadius: BorderRadius.circular(AppTokens.radiusChip),
                 border: Border.all(
-                  color: colorScheme.primary.withValues(alpha: AppTokens.alphaTintStrong),
+                  color: colorScheme.primary.withValues(
+                    alpha: AppTokens.alphaTintStrong,
+                  ),
                   width: 0.8,
                 ),
               ),
@@ -904,7 +1008,9 @@ class _SectionHeader extends StatelessWidget {
           fontSize: AppTokens.textSectionLabelSize,
           fontWeight: AppTokens.textSectionLabelWeight,
           letterSpacing: AppTokens.textSectionLabelLetterSpacing,
-          color: isDark ? AppTokens.checkboxDisabledFgDark : AppTokens.checkboxDisabledFgLight,
+          color: isDark
+              ? AppTokens.checkboxDisabledFgDark
+              : AppTokens.checkboxDisabledFgLight,
         ),
       ),
     );
@@ -998,21 +1104,15 @@ class _ThemeColorPicker extends ConsumerWidget {
                 ref.read(themeSeedColorProvider.notifier).setSeedColor(color),
             borderRadius: BorderRadius.circular(AppTokens.radiusPill),
             child: Container(
-              width: 34,
-              height: 34,
-              padding: const EdgeInsets.all(2.5),
+              width: 28,
+              height: 28,
+              padding: const EdgeInsets.all(2),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected ? color : Colors.transparent,
-                  width: 2,
-                ),
+                border: isSelected ? Border.all(color: color, width: 2) : null,
               ),
               child: Container(
                 decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                child: isSelected
-                    ? const Icon(Icons.check, size: 16, color: Colors.white)
-                    : null,
               ),
             ),
           ),
@@ -1022,7 +1122,7 @@ class _ThemeColorPicker extends ConsumerWidget {
   }
 }
 
-/// 品牌寓意展示行。
+/// 品牌内涵图文单元
 class _BrandMeaningItem extends StatelessWidget {
   const _BrandMeaningItem({required this.title, required this.description});
 
@@ -1033,37 +1133,33 @@ class _BrandMeaningItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          margin: const EdgeInsets.only(top: 7),
-          width: 5,
-          height: 5,
-          decoration: BoxDecoration(
-            color: colorScheme.primary,
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: AppTokens.spaceSm),
+        Icon(Icons.auto_awesome, size: 16, color: colorScheme.primary),
+        const SizedBox(width: 8),
         Expanded(
-          child: RichText(
-            text: TextSpan(
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-                height: 1.45,
-              ),
-              children: [
-                TextSpan(
-                  text: '$title: ',
-                  style: TextStyle(
-                    color: colorScheme.onSurface,
-                    fontWeight: FontWeight.w600,
-                  ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: AppTokens.textCaptionSize,
+                  fontWeight: FontWeight.w600,
                 ),
-                TextSpan(text: description),
-              ],
-            ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                description,
+                style: TextStyle(
+                  fontSize: AppTokens.textMicroSize,
+                  color: colorScheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
+              ),
+            ],
           ),
         ),
       ],

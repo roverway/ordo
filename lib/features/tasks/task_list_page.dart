@@ -9,6 +9,7 @@ import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_breakpoints.dart';
 import '../../core/utils/dates.dart';
+import '../../shared/widgets/app_background_wrapper.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/filter_chips_bar.dart';
@@ -76,9 +77,22 @@ class TaskListPage extends ConsumerWidget {
             ),
     };
 
-    return Scaffold(
-      body: SafeArea(bottom: false, child: _buildBody(context, ref, isNarrow)),
-      floatingActionButton: showFab ? _buildFab(context) : null,
+    final projectId = switch (scope) {
+      ProjectTaskScope(:final projectId) => projectId,
+      InboxTaskScope() => inboxProjectId,
+      TodayTaskScope() => null,
+    };
+
+    return AppBackgroundWrapper(
+      projectId: projectId,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          bottom: false,
+          child: _buildBody(context, ref, isNarrow),
+        ),
+        floatingActionButton: showFab ? _buildFab(context) : null,
+      ),
     );
   }
 
@@ -118,11 +132,16 @@ class TaskListPage extends ConsumerWidget {
       backgroundColor: theme.colorScheme.primary,
       foregroundColor: theme.colorScheme.onPrimary,
       elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTokens.radiusPill)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+      ),
       icon: const Icon(Icons.add, size: 20),
       label: Text(
         l10n.newTask,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: AppTokens.textSecondarySize),
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: AppTokens.textSecondarySize,
+        ),
       ),
     );
   }
@@ -231,7 +250,7 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
           title: dateStr,
           onTitleTap: () => showScopeSwitcherSheet(context),
           subtitleWidget: Row(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: dynamicMainAxisSize(view),
             children: [
               Text(
                 weekdayStr,
@@ -452,6 +471,8 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
       ],
     );
   }
+
+  MainAxisSize dynamicMainAxisSize(TodayViewData view) => MainAxisSize.min;
 
   Widget _buildGroupHeader({
     required String title,

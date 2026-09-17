@@ -815,5 +815,61 @@
   "manualSearchHint": "在手册中查找...",
   "manualLanguage": "切换语言",
   "manualLoading": "正在加载手册...",
-  "manualLoadFailed": "手册加载失败"
+  "manualLoadFailed": "手册加载失败",
+  "wallpaperTitleApp": "全局背景壁纸",
+  "@wallpaperTitleApp": {
+    "description": "全局应用级背景壁纸设置标题"
+  },
+  "wallpaperTitleProject": "清单背景壁纸",
+  "@wallpaperTitleProject": {
+    "description": "清单专属背景壁纸设置标题"
+  },
+  "wallpaperActive": "已启用自定义壁纸",
+  "@wallpaperActive": {
+    "description": "已启用自定义壁纸状态文本"
+  },
+  "wallpaperDefaultPure": "默认纯色基底",
+  "@wallpaperDefaultPure": {
+    "description": "全局默认纯色状态"
+  },
+  "wallpaperFollowApp": "跟随应用默认",
+  "@wallpaperFollowApp": {
+    "description": "清单跟随全局应用壁纸状态"
+  },
+  "wallpaperFollow": "跟随默认",
+  "@wallpaperFollow": {
+    "description": "壁纸选择器跟随选项标签"
+  },
+  "wallpaperNone": "无壁纸",
+  "@wallpaperNone": {
+    "description": "壁纸选择器无壁纸选项标签"
+  },
+  "wallpaperPresetLabel": "精选预设与来源",
+  "@wallpaperPresetLabel": {
+    "description": "壁纸预设与来源分组标题"
+  },
+  "wallpaperCustomUpload": "选择本地图片",
+  "@wallpaperCustomUpload": {
+    "description": "选择本地图片提示"
+  },
+  "wallpaperCustom": "本地图片",
+  "@wallpaperCustom": {
+    "description": "本地图片选项标签"
+  },
+  "wallpaperOpacityLabel": "遮罩暗度",
+  "@wallpaperOpacityLabel": {
+    "description": "遮罩透明度调节滑块标签"
+  },
+  "wallpaperBlurLabel": "高斯模糊",
+  "@wallpaperBlurLabel": {
+    "description": "高斯模糊调节滑块标签"
+  },
+  "wallpaperPreviewText": "这是背景效果实时预览",
+  "@wallpaperPreviewText": {
+    "description": "壁纸实时预览模拟任务文本"
+  },
+  "wallpaperPreviewBadge": "预览",
+  "@wallpaperPreviewBadge": {
+    "description": "壁纸实时预览微标"
+  }
 }

@@ -815,5 +815,61 @@
   "manualSearchHint": "Search in manual...",
   "manualLanguage": "Switch Language",
   "manualLoading": "Loading manual...",
-  "manualLoadFailed": "Failed to load manual"
+  "manualLoadFailed": "Failed to load manual",
+  "wallpaperTitleApp": "App Background",
+  "@wallpaperTitleApp": {
+    "description": "Title for app-level global wallpaper"
+  },
+  "wallpaperTitleProject": "List Background",
+  "@wallpaperTitleProject": {
+    "description": "Title for project-level custom wallpaper"
+  },
+  "wallpaperActive": "Custom wallpaper active",
+  "@wallpaperActive": {
+    "description": "Status text when wallpaper is active"
+  },
+  "wallpaperDefaultPure": "Default pure background",
+  "@wallpaperDefaultPure": {
+    "description": "Status text for default background"
+  },
+  "wallpaperFollowApp": "Follow app default",
+  "@wallpaperFollowApp": {
+    "description": "Status text for project following app wallpaper"
+  },
+  "wallpaperFollow": "Follow",
+  "@wallpaperFollow": {
+    "description": "Label for follow option in picker"
+  },
+  "wallpaperNone": "None",
+  "@wallpaperNone": {
+    "description": "Label for none option in picker"
+  },
+  "wallpaperPresetLabel": "Presets & Source",
+  "@wallpaperPresetLabel": {
+    "description": "Header for preset wallpapers"
+  },
+  "wallpaperCustomUpload": "Pick local image",
+  "@wallpaperCustomUpload": {
+    "description": "Tooltip for picking local image"
+  },
+  "wallpaperCustom": "Local Image",
+  "@wallpaperCustom": {
+    "description": "Label for custom local image"
+  },
+  "wallpaperOpacityLabel": "Mask Opacity",
+  "@wallpaperOpacityLabel": {
+    "description": "Label for mask opacity slider"
+  },
+  "wallpaperBlurLabel": "Gaussian Blur",
+  "@wallpaperBlurLabel": {
+    "description": "Label for gaussian blur slider"
+  },
+  "wallpaperPreviewText": "Live preview of wallpaper effect",
+  "@wallpaperPreviewText": {
+    "description": "Preview task item text"
+  },
+  "wallpaperPreviewBadge": "Preview",
+  "@wallpaperPreviewBadge": {
+    "description": "Preview badge"
+  }
 }

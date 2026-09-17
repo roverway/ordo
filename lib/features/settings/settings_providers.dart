@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/db/daos/settings_dao.dart';
 import '../../core/backup/backup_restore_service.dart';
 import '../../core/backup/snapshot_pool_service.dart';
+import '../../core/services/wallpaper_storage_service.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/background_config.dart';
 import '../projects/project_providers.dart';
 
 /// 设备本地偏好缓存：settings 表在内存的同步镜像（docs/64-local-preferences.md §3.1）。
@@ -71,9 +73,6 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
   }
 
   /// 切换主题模式并持久化（写内存缓存 + 穿透 settings 表）。
-  ///
-  /// 评审跟进：先更新 [state]（UI 即时生效），穿透写失败仅丢失持久化、
-  /// 不阻断切换——偏好类写入失败不应让用户操作静默失效或产生未处理异步错误。
   Future<void> setThemeMode(ThemeMode mode) async {
     final cache = ref.read(appSettingsCacheProvider);
     state = mode;
@@ -105,8 +104,6 @@ class LocaleNotifier extends Notifier<Locale> {
   }
 
   /// 切换语言并持久化（写内存缓存 + 穿透 settings 表）。
-  ///
-  /// 评审跟进：先更新 [state]，穿透写失败仅丢失持久化、不阻断切换。
   Future<void> setLocale(Locale locale) async {
     final cache = ref.read(appSettingsCacheProvider);
     state = locale;
@@ -225,6 +222,93 @@ class CalendarShowHolidaysNotifier extends Notifier<bool> {
     }
   }
 }
+
+/// 全局应用级背景壁纸持久化 key。
+const String appBackgroundPrefKey = 'pref_app_background_config';
+
+/// 获取清单专属背景壁纸持久化 key。
+String projectBackgroundPrefKey(String projectId) =>
+    'pref_project_bg_$projectId';
+
+/// 壁纸沙箱存储服务 Provider。
+final wallpaperStorageServiceProvider = Provider<WallpaperStorageService>((
+  ref,
+) {
+  return WallpaperStorageService();
+});
+
+/// 应用级全局背景壁纸 Notifier。
+final appBackgroundConfigProvider =
+    NotifierProvider<AppBackgroundConfigNotifier, BackgroundConfig>(
+      AppBackgroundConfigNotifier.new,
+    );
+
+class AppBackgroundConfigNotifier extends Notifier<BackgroundConfig> {
+  @override
+  BackgroundConfig build() {
+    final raw = ref.watch(appSettingsCacheProvider).get(appBackgroundPrefKey);
+    return BackgroundConfig.deserialize(raw);
+  }
+
+  /// 设置并持久化全局壁纸配置。
+  Future<void> setConfig(BackgroundConfig config) async {
+    final cache = ref.read(appSettingsCacheProvider);
+    state = config;
+    try {
+      await cache.set(appBackgroundPrefKey, config.serialize());
+    } catch (e) {
+      debugPrint('setAppBackgroundConfig 持久化失败：${e.runtimeType}');
+    }
+  }
+}
+
+/// 清单/项目专属背景壁纸 Notifier Family。
+final projectBackgroundConfigProvider =
+    NotifierProvider.family<
+      ProjectBackgroundConfigNotifier,
+      BackgroundConfig,
+      String
+    >((arg) => ProjectBackgroundConfigNotifier(arg));
+
+class ProjectBackgroundConfigNotifier extends Notifier<BackgroundConfig> {
+  ProjectBackgroundConfigNotifier(this.projectId);
+
+  final String projectId;
+
+  @override
+  BackgroundConfig build() {
+    final raw = ref
+        .watch(appSettingsCacheProvider)
+        .get(projectBackgroundPrefKey(projectId));
+    return BackgroundConfig.deserialize(raw);
+  }
+
+  /// 设置并持久化清单壁纸配置。
+  Future<void> setConfig(BackgroundConfig config) async {
+    final cache = ref.read(appSettingsCacheProvider);
+    state = config;
+    try {
+      await cache.set(projectBackgroundPrefKey(projectId), config.serialize());
+    } catch (e) {
+      debugPrint('setProjectBackgroundConfig 持久化失败：${e.runtimeType}');
+    }
+  }
+}
+
+/// 统一计算当前视图最终生效的背景壁纸 Provider（优先级：清单专属 > 应用全局 > none）。
+final effectiveBackgroundConfigProvider =
+    Provider.family<BackgroundConfig, String?>((ref, projectId) {
+      final appBg = ref.watch(appBackgroundConfigProvider);
+      if (projectId != null && projectId.trim().isNotEmpty) {
+        final projectBg = ref.watch(
+          projectBackgroundConfigProvider(projectId.trim()),
+        );
+        if (projectBg.isEffective) {
+          return projectBg;
+        }
+      }
+      return appBg;
+    });
 
 /// 快照保留天数持久化 key（settings 表）。
 const String backupRetentionDaysPrefKey = 'backup_retention_days';

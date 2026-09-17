@@ -1397,4 +1397,46 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get manualLoadFailed => '手册加载失败';
+
+  @override
+  String get wallpaperTitleApp => '全局背景壁纸';
+
+  @override
+  String get wallpaperTitleProject => '清单背景壁纸';
+
+  @override
+  String get wallpaperActive => '已启用自定义壁纸';
+
+  @override
+  String get wallpaperDefaultPure => '默认纯色基底';
+
+  @override
+  String get wallpaperFollowApp => '跟随应用默认';
+
+  @override
+  String get wallpaperFollow => '跟随默认';
+
+  @override
+  String get wallpaperNone => '无壁纸';
+
+  @override
+  String get wallpaperPresetLabel => '精选预设与来源';
+
+  @override
+  String get wallpaperCustomUpload => '选择本地图片';
+
+  @override
+  String get wallpaperCustom => '本地图片';
+
+  @override
+  String get wallpaperOpacityLabel => '遮罩暗度';
+
+  @override
+  String get wallpaperBlurLabel => '高斯模糊';
+
+  @override
+  String get wallpaperPreviewText => '这是背景效果实时预览';
+
+  @override
+  String get wallpaperPreviewBadge => '预览';
 }

@@ -6,7 +6,11 @@ import '../../../core/db/database.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/platform/keyboard_inset_bridge.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../core/theme/background_config.dart';
 import '../../../core/theme/preset_icons.dart';
+import '../../../shared/widgets/app_background_wrapper.dart';
+import '../../settings/settings_providers.dart';
+import '../../settings/widgets/wallpaper_picker_sheet.dart';
 import '../project_providers.dart';
 
 /// 模式：清单 vs 文件夹
@@ -89,6 +93,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
   late PresetIconCategory _selectedCategory;
   late PresetIconItem _selectedIcon;
   String? _selectedFolderId;
+  BackgroundConfig _backgroundConfig = BackgroundConfig.none;
   bool _isSubmitting = false;
 
   bool get _isEditing =>
@@ -100,6 +105,9 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
 
     if (widget.editingProject != null) {
       _createType = CreateType.list;
+      _backgroundConfig = ref.read(
+        projectBackgroundConfigProvider(widget.editingProject!.id),
+      );
     } else if (widget.editingFolder != null) {
       _createType = CreateType.folder;
     } else {
@@ -216,6 +224,9 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
           icon: _selectedIcon.id,
           folderId: Value(normalizedFolderId),
         );
+        await ref
+            .read(projectBackgroundConfigProvider(targetProject.id).notifier)
+            .setConfig(_backgroundConfig);
         final updatedProject =
             (await repo.projects.getById(targetProject.id)) ?? targetProject;
         if (mounted) {
@@ -257,6 +268,9 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
           icon: _selectedIcon.id,
           folderId: normalizedFolderId,
         );
+        await ref
+            .read(projectBackgroundConfigProvider(newProject.id).notifier)
+            .setConfig(_backgroundConfig);
         if (mounted) {
           Navigator.of(context).pop(newProject);
           messenger?.showSnackBar(
@@ -307,7 +321,6 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context);
 
@@ -348,13 +361,13 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
       decoration: BoxDecoration(
         color: isDark ? AppTokens.surfacePageDark : AppTokens.surfacePageLight,
         borderRadius: BorderRadius.vertical(
-          top: Radius.circular(isFocused ? 16 : 24),
+          top: Radius.circular(isFocused ? 0 : AppTokens.radiusDialog),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: AppTokens.alphaBorderEmphasis),
-            blurRadius: 40,
-            offset: const Offset(0, -10),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
           ),
         ],
       ),
@@ -362,26 +375,12 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ── 顶部状态栏安全距离（聚焦全屏时生效） ──
-          if (isFocused)
-            SizedBox(height: topClearance)
-          else
-            // ── 拖拽手柄（非全屏时显示） ──
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 10, bottom: 6),
-                width: 36,
-                height: 4.5,
-                decoration: BoxDecoration(
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaContentDisabled),
-                  borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
-                ),
-              ),
-            ),
+          // 聚焦全屏时添加真实物理状态栏避让高度
+          if (topClearance > 0) SizedBox(height: topClearance),
 
-          // ── 顶栏导航 ──
+          // ── 顶部操作栏 ──
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 2, 16, 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -389,9 +388,11 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
                   style: TextButton.styleFrom(
-                    foregroundColor: isDark ? AppTokens.textMutedDark : AppTokens.textMutedLight,
+                    foregroundColor: isDark
+                        ? AppTokens.textMutedDark
+                        : AppTokens.textMutedLight,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
+                      horizontal: 12,
                       vertical: 6,
                     ),
                     minimumSize: Size.zero,
@@ -418,7 +419,9 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                     style: TextStyle(
                       fontSize: AppTokens.textSubtitleSize,
                       fontWeight: FontWeight.w600,
-                      color: isDark ? AppTokens.textPrimaryDark : AppTokens.textPrimaryLight,
+                      color: isDark
+                          ? AppTokens.textPrimaryDark
+                          : AppTokens.textPrimaryLight,
                     ),
                   )
                 else
@@ -429,7 +432,9 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                   onPressed: isNameValid && !_isSubmitting ? _submit : null,
                   style: TextButton.styleFrom(
                     foregroundColor: activeAccent,
-                    disabledForegroundColor: isDark ? AppTokens.checkboxDisabledBorderDark : AppTokens.checkboxDisabledBorderLight,
+                    disabledForegroundColor: isDark
+                        ? AppTokens.checkboxDisabledBorderDark
+                        : AppTokens.checkboxDisabledBorderLight,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 14,
                       vertical: 6,
@@ -437,10 +442,14 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     backgroundColor: isNameValid
-                        ? activeAccent.withValues(alpha: AppTokens.alphaBorderSubtle)
+                        ? activeAccent.withValues(
+                            alpha: AppTokens.alphaBorderSubtle,
+                          )
                         : Colors.transparent,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+                      borderRadius: BorderRadius.circular(
+                        AppTokens.radiusDialog,
+                      ),
                     ),
                   ),
                   child: _isSubmitting
@@ -500,6 +509,12 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                     ),
                   ],
 
+                  // 5. 背景壁纸（仅在清单模式展示）
+                  if (isList) ...[
+                    const SizedBox(height: 24),
+                    _buildWallpaperSelector(l10n, isDark, activeAccent),
+                  ],
+
                   const SizedBox(height: 24),
                 ],
               ),
@@ -515,7 +530,9 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: isDark ? AppTokens.surfaceSubtleDark : AppTokens.surfaceSubtleLight,
+        color: isDark
+            ? AppTokens.surfaceSubtleDark
+            : AppTokens.surfaceSubtleLight,
         borderRadius: BorderRadius.circular(AppTokens.radiusCard),
       ),
       child: Row(
@@ -552,7 +569,9 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected
-              ? (isDark ? AppTokens.borderSubtleNeutralDark : AppTokens.surfaceDialogLight)
+              ? (isDark
+                    ? AppTokens.borderSubtleNeutralDark
+                    : AppTokens.surfaceDialogLight)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(AppTokens.radiusList),
           boxShadow: isSelected
@@ -571,7 +590,9 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
             fontSize: AppTokens.textFootnoteSize,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
             color: isSelected
-                ? (isDark ? AppTokens.textPrimaryDark : AppTokens.textPrimaryLight)
+                ? (isDark
+                      ? AppTokens.textPrimaryDark
+                      : AppTokens.textPrimaryLight)
                 : (isDark ? AppTokens.textMutedDark : AppTokens.textMutedLight),
           ),
         ),
@@ -602,7 +623,9 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                 fontSize: AppTokens.textCaptionSize,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.6,
-                color: isDark ? AppTokens.checkboxDisabledFgDark : AppTokens.checkboxDisabledFgLight,
+                color: isDark
+                    ? AppTokens.checkboxDisabledFgDark
+                    : AppTokens.checkboxDisabledFgLight,
               ),
             ),
             Text(
@@ -623,7 +646,9 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
-                color: isDark ? AppTokens.surfaceSubtleDark : AppTokens.borderSubtleNeutralLight,
+                color: isDark
+                    ? AppTokens.surfaceSubtleDark
+                    : AppTokens.borderSubtleNeutralLight,
                 width: 1.0,
               ),
             ),
@@ -641,7 +666,9 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                   borderRadius: BorderRadius.circular(AppTokens.radiusItem),
                   boxShadow: [
                     BoxShadow(
-                      color: activeAccent.withValues(alpha: AppTokens.alphaBorderEmphasis),
+                      color: activeAccent.withValues(
+                        alpha: AppTokens.alphaBorderEmphasis,
+                      ),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -676,14 +703,18 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                   style: TextStyle(
                     fontSize: AppTokens.textSubtitleSize,
                     fontWeight: FontWeight.w500,
-                    color: isDark ? AppTokens.textPrimaryDark : AppTokens.textPrimaryLight,
+                    color: isDark
+                        ? AppTokens.textPrimaryDark
+                        : AppTokens.textPrimaryLight,
                   ),
                   decoration: InputDecoration(
                     hintText: hintTitle,
                     hintStyle: TextStyle(
                       fontSize: AppTokens.textSubtitleSize,
                       fontWeight: FontWeight.w400,
-                      color: isDark ? AppTokens.checkboxDisabledBorderDark : AppTokens.checkboxDisabledFgLight,
+                      color: isDark
+                          ? AppTokens.checkboxDisabledBorderDark
+                          : AppTokens.checkboxDisabledFgLight,
                     ),
                     isDense: true,
                     filled: false,
@@ -712,13 +743,17 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                     width: 22,
                     height: 22,
                     decoration: BoxDecoration(
-                      color: isDark ? AppTokens.borderSubtleNeutralDark : AppTokens.checkboxDisabledBorderLight,
+                      color: isDark
+                          ? AppTokens.borderSubtleNeutralDark
+                          : AppTokens.checkboxDisabledBorderLight,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       Icons.close_rounded,
                       size: 14,
-                      color: isDark ? AppTokens.textMutedDark : AppTokens.textMutedLight,
+                      color: isDark
+                          ? AppTokens.textMutedDark
+                          : AppTokens.textMutedLight,
                     ),
                   ),
                 ),
@@ -743,7 +778,9 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                 fontSize: AppTokens.textCaptionSize,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.6,
-                color: isDark ? AppTokens.checkboxDisabledFgDark : AppTokens.checkboxDisabledFgLight,
+                color: isDark
+                    ? AppTokens.checkboxDisabledFgDark
+                    : AppTokens.checkboxDisabledFgLight,
               ),
             ),
             Text(
@@ -778,7 +815,9 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: item.color.withValues(alpha: AppTokens.alphaContentDisabled),
+                            color: item.color.withValues(
+                              alpha: AppTokens.alphaContentDisabled,
+                            ),
                             blurRadius: 8,
                             spreadRadius: 2,
                           ),
@@ -826,14 +865,18 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                 fontSize: AppTokens.textCaptionSize,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.6,
-                color: isDark ? AppTokens.checkboxDisabledFgDark : AppTokens.checkboxDisabledFgLight,
+                color: isDark
+                    ? AppTokens.checkboxDisabledFgDark
+                    : AppTokens.checkboxDisabledFgLight,
               ),
             ),
             Text(
               l10n.instantApply,
               style: TextStyle(
                 fontSize: AppTokens.textCaptionSize,
-                color: isDark ? AppTokens.checkboxDisabledFgDark : AppTokens.checkboxDisabledFgLight,
+                color: isDark
+                    ? AppTokens.checkboxDisabledFgDark
+                    : AppTokens.checkboxDisabledFgLight,
               ),
             ),
           ],
@@ -866,9 +909,11 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                       color: isSelected
                           ? activeAccent
                           : (isDark
-                              ? AppTokens.surfaceSubtleDark
-                              : AppTokens.surfaceSubtleLight),
-                      borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+                                ? AppTokens.surfaceSubtleDark
+                                : AppTokens.surfaceSubtleLight),
+                      borderRadius: BorderRadius.circular(
+                        AppTokens.radiusDialog,
+                      ),
                     ),
                     child: Text(
                       _getCategoryName(cat, l10n),
@@ -880,8 +925,8 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                         color: isSelected
                             ? Colors.white
                             : (isDark
-                                ? AppTokens.textMutedDark
-                                : AppTokens.textMutedLight),
+                                  ? AppTokens.textMutedDark
+                                  : AppTokens.textMutedLight),
                       ),
                     ),
                   ),
@@ -897,7 +942,9 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCardLight,
+            color: isDark
+                ? AppTokens.surfaceCardDark
+                : AppTokens.surfaceCardLight,
             borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
             border: Border.all(
               color: isDark
@@ -938,17 +985,21 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                       height: itemWidth,
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? activeAccent.withValues(alpha: AppTokens.alphaTintStrong)
+                            ? activeAccent.withValues(
+                                alpha: AppTokens.alphaTintStrong,
+                              )
                             : (isDark
-                                ? AppTokens.surfaceSubtleDark
-                                : AppTokens.surfaceLight),
-                        borderRadius: BorderRadius.circular(AppTokens.radiusItem),
+                                  ? AppTokens.surfaceSubtleDark
+                                  : AppTokens.surfaceLight),
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusItem,
+                        ),
                         border: Border.all(
                           color: isSelected
                               ? activeAccent
                               : (isDark
-                                  ? AppTokens.borderSubtleNeutralDark
-                                  : AppTokens.borderSubtleNeutralLight),
+                                    ? AppTokens.borderSubtleNeutralDark
+                                    : AppTokens.borderSubtleNeutralLight),
                           width: isSelected ? 1.5 : 1.0,
                         ),
                       ),
@@ -959,8 +1010,8 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                           color: isSelected
                               ? activeAccent
                               : (isDark
-                                  ? AppTokens.checkboxDisabledBorderLight
-                                  : AppTokens.checkboxDisabledBorderDark),
+                                    ? AppTokens.checkboxDisabledBorderLight
+                                    : AppTokens.checkboxDisabledBorderDark),
                         ),
                       ),
                     ),
@@ -1014,14 +1065,18 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                 fontSize: AppTokens.textCaptionSize,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.6,
-                color: isDark ? AppTokens.checkboxDisabledFgDark : AppTokens.checkboxDisabledFgLight,
+                color: isDark
+                    ? AppTokens.checkboxDisabledFgDark
+                    : AppTokens.checkboxDisabledFgLight,
               ),
             ),
             Text(
               l10n.singleChoiceBelonging,
               style: TextStyle(
                 fontSize: AppTokens.textCaptionSize,
-                color: isDark ? AppTokens.checkboxDisabledFgDark : AppTokens.checkboxDisabledFgLight,
+                color: isDark
+                    ? AppTokens.checkboxDisabledFgDark
+                    : AppTokens.checkboxDisabledFgLight,
               ),
             ),
           ],
@@ -1029,12 +1084,11 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
         const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
-            color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCardLight,
+            color: isDark
+                ? AppTokens.surfaceCardDark
+                : AppTokens.surfaceCardLight,
             borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-            border: Border.all(
-              color: borderColor,
-              width: 1.0,
-            ),
+            border: Border.all(color: borderColor, width: 1.0),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
@@ -1101,6 +1155,140 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                   ],
                 );
               },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 5. 清单专属背景壁纸选择器行
+  Widget _buildWallpaperSelector(
+    AppLocalizations l10n,
+    bool isDark,
+    Color activeAccent,
+  ) {
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
+        : Colors.black.withValues(alpha: AppTokens.alphaTintFaint);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              l10n.wallpaperTitleProject.toUpperCase(),
+              style: TextStyle(
+                fontSize: AppTokens.textCaptionSize,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
+                color: isDark
+                    ? AppTokens.checkboxDisabledFgDark
+                    : AppTokens.checkboxDisabledFgLight,
+              ),
+            ),
+            Text(
+              _backgroundConfig.isEffective
+                  ? l10n.wallpaperActive
+                  : l10n.wallpaperFollowApp,
+              style: TextStyle(
+                fontSize: AppTokens.textCaptionSize,
+                color: isDark
+                    ? AppTokens.checkboxDisabledFgDark
+                    : AppTokens.checkboxDisabledFgLight,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Container(
+          decoration: BoxDecoration(
+            color: isDark
+                ? AppTokens.surfaceCardDark
+                : AppTokens.surfaceCardLight,
+            borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+            border: Border.all(color: borderColor, width: 1.0),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+            child: InkWell(
+              onTap: () async {
+                final result = await showWallpaperPickerSheet(
+                  context: context,
+                  initialConfig: _backgroundConfig,
+                  isGlobal: false,
+                  title: l10n.wallpaperTitleProject,
+                );
+                if (result != null && mounted) {
+                  setState(() => _backgroundConfig = result);
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.wallpaper_outlined,
+                      size: 20,
+                      color: activeAccent,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.wallpaperTitleProject,
+                            style: TextStyle(
+                              fontSize: AppTokens.textSecondarySize,
+                              fontWeight: FontWeight.w600,
+                              color: isDark
+                                  ? AppTokens.textPrimaryDark
+                                  : AppTokens.textPrimaryLight,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _backgroundConfig.isEffective
+                                ? l10n.wallpaperActive
+                                : l10n.wallpaperFollowApp,
+                            style: TextStyle(
+                              fontSize: AppTokens.textCaptionSize,
+                              color: isDark
+                                  ? AppTokens.textMutedDark
+                                  : AppTokens.textMutedLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    WallpaperThumbnail(
+                      config: _backgroundConfig,
+                      width: 38,
+                      height: 38,
+                      borderRadius: AppTokens.radiusChip,
+                    ),
+                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.chevron_right,
+                      size: 18,
+                      color: isDark ? Colors.white38 : Colors.black38,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
