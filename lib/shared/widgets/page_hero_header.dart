@@ -102,9 +102,8 @@ class PageHeroHeader extends StatelessWidget {
           Text(
             subtitle!,
             style: TextStyle(
-              fontFamily: 'monospace',
               fontFeatures: AppTokens.fontTabular,
-              fontSize: 12.5,
+              fontSize: AppTokens.textCaptionSize,
               color: colorScheme.onSurfaceVariant,
               letterSpacing: 0.2,
             ),

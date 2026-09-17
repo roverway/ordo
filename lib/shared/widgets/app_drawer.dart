@@ -132,7 +132,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
     final colorScheme = Theme.of(context).colorScheme;
     return isInvalid
         ? colorScheme.errorContainer
-        : colorScheme.primaryContainer.withValues(alpha: 0.5);
+        : colorScheme.primaryContainer.withValues(alpha: AppTokens.alphaContentMuted);
   }
 
   /// 拖拽反馈浮层（半透明 + 阴影，复用 task_tree 视觉）。
@@ -153,7 +153,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
             borderRadius: BorderRadius.circular(AppTokens.radiusList),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
+                color: Colors.black.withValues(alpha: AppTokens.alphaTintStrong),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
@@ -246,7 +246,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
                   l10n.appTitle,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w800,
-                    fontSize: 24,
+                    fontSize: AppTokens.textHeadingSize,
                     letterSpacing: 0.3,
                   ),
                 ),
@@ -344,7 +344,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
 
     Widget statusIcon;
     String statusText;
-    Color textColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.7);
+    Color textColor = colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaScrim);
 
     switch (syncState.status) {
       case SyncStateStatus.syncing:
@@ -398,7 +398,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
           Text(
             '$protocol · $statusText',
             style: theme.textTheme.bodySmall?.copyWith(
-              fontSize: 11,
+              fontSize: AppTokens.textMicroSize,
               color: textColor,
             ),
           ),
@@ -507,7 +507,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
               fontSize: AppTokens.textMicroSize,
               letterSpacing: 0.4,
               fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaScrim),
             ),
           ),
           const Spacer(),
@@ -1006,7 +1006,7 @@ class _AppSidebarContentState extends ConsumerState<AppSidebarContent> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Color(project.color).withValues(alpha: 0.35),
+                    color: Color(project.color).withValues(alpha: AppTokens.alphaBorderEmphasis),
                     blurRadius: 3,
                   ),
                 ],
@@ -1246,9 +1246,9 @@ class _DrawerTile extends StatelessWidget {
       child: Material(
         color:
             dragHighlightColor ?? (selected ? selectedBg : Colors.transparent),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppTokens.radiusItem),
         child: InkWell(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppTokens.radiusItem),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(
@@ -1299,8 +1299,8 @@ class _ProjectUncompletedBadge extends ConsumerWidget {
     return Text(
       '$count',
       style: theme.textTheme.labelMedium?.copyWith(
-        fontSize: 12,
-        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+        fontSize: AppTokens.textCaptionSize,
+        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaScrim),
       ),
     );
   }
@@ -1320,8 +1320,8 @@ class _FolderUncompletedBadge extends ConsumerWidget {
     return Text(
       '$sum',
       style: theme.textTheme.labelMedium?.copyWith(
-        fontSize: 12,
-        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+        fontSize: AppTokens.textCaptionSize,
+        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaScrim),
       ),
     );
   }

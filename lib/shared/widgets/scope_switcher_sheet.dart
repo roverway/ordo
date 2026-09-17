@@ -87,10 +87,10 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
       ),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+        borderRadius: AppTokens.sheetTopBorderRadius,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
+            color: Colors.black.withValues(alpha: AppTokens.alphaTintStrong),
             blurRadius: 36,
             offset: const Offset(0, -10),
           ),
@@ -103,12 +103,12 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
           children: [
             // 顶部抓手 (Grabber)
             Container(
-              width: 36,
-              height: 4,
+              width: AppTokens.sheetGrabberWidth,
+              height: AppTokens.sheetGrabberHeight,
               margin: const EdgeInsets.only(top: 8, bottom: 8),
               decoration: BoxDecoration(
-                color: colorScheme.onSurface.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(2),
+                color: colorScheme.onSurface.withValues(alpha: AppTokens.alphaTintStrong),
+                borderRadius: BorderRadius.circular(AppTokens.sheetGrabberRadius),
               ),
             ),
 
@@ -320,9 +320,9 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                                         decoration: isHovered
                                             ? BoxDecoration(
                                                 color: colorScheme.primary
-                                                    .withValues(alpha: 0.08),
+                                                    .withValues(alpha: AppTokens.alphaTintFaint),
                                                 borderRadius:
-                                                    BorderRadius.circular(6),
+                                                    BorderRadius.circular(AppTokens.radiusChip),
                                               )
                                             : null,
                                         child: _buildSubHeader(l10n.ungrouped),
@@ -416,10 +416,10 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
       child: Text(
         title,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: AppTokens.textMicroSize,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.1,
-          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+          color: colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaScrim),
         ),
       ),
     );
@@ -439,10 +439,10 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
           Text(
             title,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: AppTokens.textMicroSize,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.1,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+              color: colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaScrim),
             ),
           ),
           SizedBox.square(
@@ -470,10 +470,10 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
       child: Text(
         title,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: AppTokens.textMicroSize,
           fontWeight: FontWeight.w500,
           letterSpacing: 0.1,
-          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+          color: colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaContentMuted),
         ),
       ),
     );
@@ -495,11 +495,11 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
       padding: const EdgeInsets.symmetric(vertical: 1),
       child: Material(
         color: isSelected
-            ? colorScheme.primary.withValues(alpha: 0.08)
+            ? colorScheme.primary.withValues(alpha: AppTokens.alphaTintFaint)
             : Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppTokens.radiusItem),
         child: InkWell(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppTokens.radiusItem),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
@@ -509,8 +509,8 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                   width: 26,
                   height: 26,
                   decoration: BoxDecoration(
-                    color: iconColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
+                    color: iconColor.withValues(alpha: AppTokens.alphaBorderSubtle),
+                    borderRadius: BorderRadius.circular(AppTokens.radiusList),
                   ),
                   child: Icon(icon, color: iconColor, size: 15),
                 ),
@@ -519,7 +519,7 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                   child: Text(
                     title,
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: AppTokens.textBodySize,
                       fontWeight: isSelected
                           ? FontWeight.w600
                           : FontWeight.w500,
@@ -534,7 +534,7 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                   Text(
                     '$badgeCount',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppTokens.textCaptionSize,
                       fontFeatures: AppTokens.fontTabular,
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -627,11 +627,11 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
           padding: const EdgeInsets.symmetric(vertical: 2),
           child: Material(
             color: isHovered
-                ? folderColor.withValues(alpha: 0.12)
+                ? folderColor.withValues(alpha: AppTokens.alphaBorderSubtle)
                 : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppTokens.radiusItem),
             child: InkWell(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(AppTokens.radiusItem),
               onTap: onToggleCollapse,
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -644,8 +644,8 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                       width: 26,
                       height: 26,
                       decoration: BoxDecoration(
-                        color: folderColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8),
+                        color: folderColor.withValues(alpha: AppTokens.alphaBorderSubtle),
+                        borderRadius: BorderRadius.circular(AppTokens.radiusList),
                       ),
                       child: Icon(folderIcon, color: folderColor, size: 15),
                     ),
@@ -654,7 +654,7 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                       child: Text(
                         folder.name,
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: AppTokens.textBodySize,
                           fontWeight: FontWeight.w500,
                           color: colorScheme.onSurface,
                         ),
@@ -665,7 +665,7 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                       Text(
                         '$uncompletedCount',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppTokens.textCaptionSize,
                           fontFeatures: AppTokens.fontTabular,
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -673,7 +673,7 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                     const SizedBox(width: 4),
                     AnimatedRotation(
                       turns: isCollapsed ? -0.25 : 0,
-                      duration: const Duration(milliseconds: 200),
+                      duration: AppTokens.motionFast,
                       child: Icon(
                         Icons.keyboard_arrow_down,
                         size: 18,
@@ -717,11 +717,11 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
       padding: EdgeInsets.only(left: isIndented ? 16 : 0, top: 1, bottom: 1),
       child: Material(
         color: isSelected
-            ? colorScheme.primary.withValues(alpha: 0.08)
+            ? colorScheme.primary.withValues(alpha: AppTokens.alphaTintFaint)
             : Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppTokens.radiusItem),
         child: InkWell(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppTokens.radiusItem),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -732,8 +732,8 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                   height: 22,
                   margin: const EdgeInsets.only(right: 10),
                   decoration: BoxDecoration(
-                    color: projectColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(6),
+                    color: projectColor.withValues(alpha: AppTokens.alphaBorderSubtle),
+                    borderRadius: BorderRadius.circular(AppTokens.radiusChip),
                   ),
                   child: Icon(projectIcon, color: projectColor, size: 13),
                 ),
@@ -741,7 +741,7 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                   child: Text(
                     project.name,
                     style: TextStyle(
-                      fontSize: 14.5,
+                      fontSize: AppTokens.textSecondarySize,
                       fontWeight: isSelected
                           ? FontWeight.w600
                           : FontWeight.w500,
@@ -756,7 +756,7 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                   Text(
                     '$uncompleted',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppTokens.textCaptionSize,
                       fontFeatures: AppTokens.fontTabular,
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -784,16 +784,16 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
     final feedback = Material(
       color: Colors.transparent,
       elevation: 6,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(AppTokens.radiusItem),
       child: Container(
         width: 240,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppTokens.radiusItem),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.18),
+              color: Colors.black.withValues(alpha: AppTokens.alphaTintStrong),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -814,7 +814,7 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
               child: Text(
                 project.name,
                 style: TextStyle(
-                  fontSize: 14.5,
+                  fontSize: AppTokens.textSecondarySize,
                   fontWeight: FontWeight.w600,
                   color: colorScheme.onSurface,
                 ),
@@ -854,7 +854,7 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     return InkWell(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppTokens.radiusList),
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -866,7 +866,7 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
             Text(
               label,
               style: TextStyle(
-                fontSize: 12.5,
+                fontSize: AppTokens.textCaptionSize,
                 fontWeight: FontWeight.w500,
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -906,7 +906,7 @@ class _SlidableActionTileState extends State<_SlidableActionTile>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 200),
+      duration: AppTokens.motionFast,
     );
     _animation = Tween<double>(begin: 0, end: 0).animate(_controller);
   }
@@ -960,7 +960,7 @@ class _SlidableActionTileState extends State<_SlidableActionTile>
     showMenu<String>(
       context: context,
       position: rect,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTokens.radiusCard)),
       items: [
         PopupMenuItem<String>(
           value: 'edit',
@@ -971,7 +971,7 @@ class _SlidableActionTileState extends State<_SlidableActionTile>
               const SizedBox(width: 10),
               Text(
                 l10n.edit,
-                style: TextStyle(fontSize: 13.5, color: colorScheme.onSurface),
+                style: TextStyle(fontSize: AppTokens.textFootnoteSize, color: colorScheme.onSurface),
               ),
             ],
           ),
@@ -986,7 +986,7 @@ class _SlidableActionTileState extends State<_SlidableActionTile>
               Text(
                 l10n.delete,
                 style: TextStyle(
-                  fontSize: 13.5,
+                  fontSize: AppTokens.textFootnoteSize,
                   color: colorScheme.error,
                   fontWeight: FontWeight.w500,
                 ),
@@ -1069,7 +1069,7 @@ class _SlidableActionTileState extends State<_SlidableActionTile>
                               _close();
                               widget.onEdit();
                             },
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(AppTokens.radiusList),
                             child: Container(
                               width: 42,
                               height: 34,
@@ -1077,7 +1077,7 @@ class _SlidableActionTileState extends State<_SlidableActionTile>
                                 color: colorScheme.primary.withValues(
                                   alpha: 0.12,
                                 ),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(AppTokens.radiusList),
                               ),
                               alignment: Alignment.center,
                               child: Icon(
@@ -1096,7 +1096,7 @@ class _SlidableActionTileState extends State<_SlidableActionTile>
                               _close();
                               widget.onDelete();
                             },
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(AppTokens.radiusList),
                             child: Container(
                               width: 42,
                               height: 34,
@@ -1104,7 +1104,7 @@ class _SlidableActionTileState extends State<_SlidableActionTile>
                                 color: colorScheme.error.withValues(
                                   alpha: 0.12,
                                 ),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(AppTokens.radiusList),
                               ),
                               alignment: Alignment.center,
                               child: Icon(

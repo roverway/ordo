@@ -94,7 +94,7 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
       child: Container(
         decoration: BoxDecoration(
           color: _hovered
-              ? colorScheme.onSurface.withValues(alpha: 0.035)
+              ? colorScheme.onSurface.withValues(alpha: AppTokens.alphaTintFaint)
               : Colors.transparent,
           border: Border(bottom: BorderSide(color: borderColor, width: 1)),
         ),
@@ -191,7 +191,7 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                                 ?.copyWith(
                                                   color: colorScheme
                                                       .onSurfaceVariant,
-                                                  fontSize: 12.5,
+                                                  fontSize: AppTokens.textCaptionSize,
                                                 ),
                                           ),
                                         ],
@@ -221,7 +221,7 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                                   fontWeight: widget.isOverdue
                                                       ? FontWeight.w600
                                                       : FontWeight.normal,
-                                                  fontSize: 12.5,
+                                                  fontSize: AppTokens.textCaptionSize,
                                                   fontFeatures:
                                                       AppTokens.fontTabular,
                                                 ),
@@ -264,7 +264,7 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                                   ?.copyWith(
                                                     color: colorScheme
                                                         .onSurfaceVariant,
-                                                    fontSize: 11.5,
+                                                    fontSize: AppTokens.textMicroSize,
                                                   ),
                                             ),
                                           ],
@@ -299,7 +299,7 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                               widget.subtaskProgressText!,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
-                                fontSize: 11.5,
+                                fontSize: AppTokens.textMicroSize,
                                 fontFeatures: AppTokens.fontTabular,
                               ),
                             ),

@@ -225,7 +225,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
           Container(
             decoration: BoxDecoration(
               color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
               border: Border.all(color: borderColor, width: 1.0),
               boxShadow: isDark
                   ? AppTokens.cardShadowDarkList
@@ -249,15 +249,15 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                           setState(() => _icon = selected);
                         }
                       },
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(AppTokens.radiusCard),
                       child: Container(
                         width: 52,
                         height: 52,
                         decoration: BoxDecoration(
-                          color: Color(_color).withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(14),
+                          color: Color(_color).withValues(alpha: AppTokens.alphaBorderSubtle),
+                          borderRadius: BorderRadius.circular(AppTokens.radiusCard),
                           border: Border.all(
-                            color: Color(_color).withValues(alpha: 0.26),
+                            color: Color(_color).withValues(alpha: AppTokens.alphaBorderEmphasis),
                             width: 1.0,
                           ),
                         ),
@@ -276,19 +276,18 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                           Text(
                             l10n.viewName,
                             style: TextStyle(
-                              fontSize: 11,
-                              fontFamily: 'monospace',
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 1.1,
+                              fontSize: AppTokens.textSectionLabelSize,
+                              fontWeight: AppTokens.textSectionLabelWeight,
+                              letterSpacing: AppTokens.textSectionLabelLetterSpacing,
                               color: theme.colorScheme.onSurfaceVariant
-                                  .withValues(alpha: 0.7),
+                                  .withValues(alpha: AppTokens.alphaScrim),
                             ),
                           ),
                           const SizedBox(height: 2),
                           TextField(
                             controller: _nameController,
                             style: const TextStyle(
-                              fontSize: 16.5,
+                              fontSize: AppTokens.textSubtitleSize,
                               fontWeight: FontWeight.w600,
                               letterSpacing: -0.2,
                             ),
@@ -343,7 +342,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                         onTap: () => setState(() => _color = preset),
                         customBorder: const CircleBorder(),
                         child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
+                          duration: AppTokens.motionFast,
                           width: 30,
                           height: 30,
                           decoration: BoxDecoration(
@@ -360,7 +359,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                                     BoxShadow(
                                       color: Color(
                                         preset,
-                                      ).withValues(alpha: 0.4),
+                                      ).withValues(alpha: AppTokens.alphaContentDisabled),
                                       blurRadius: 6,
                                       spreadRadius: 1,
                                     ),
@@ -390,7 +389,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
           Container(
             decoration: BoxDecoration(
               color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
               border: Border.all(color: borderColor, width: 1.0),
               boxShadow: isDark
                   ? AppTokens.cardShadowDarkList
@@ -403,7 +402,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                 Text(
                   l10n.displayMode,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: AppTokens.textSecondarySize,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -414,8 +413,8 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                         ? theme.colorScheme.surfaceContainerHighest.withValues(
                             alpha: 0.35,
                           )
-                        : const Color(0xFFF1F3F5),
-                    borderRadius: BorderRadius.circular(11),
+                        : AppTokens.surfaceSubtleLight,
+                    borderRadius: BorderRadius.circular(AppTokens.radiusItem),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -458,14 +457,14 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                       );
                     });
                   },
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(AppTokens.radiusCard),
                   child: Container(
                     padding: const EdgeInsets.all(13),
                     decoration: BoxDecoration(
                       color: isDark
                           ? AppTokens.surfaceCardDark
                           : AppTokens.surfaceCard,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(AppTokens.radiusCard),
                       border: Border.all(color: borderColor),
                     ),
                     child: Column(
@@ -482,7 +481,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                             Text(
                               l10n.statusKanbanName,
                               style: const TextStyle(
-                                fontSize: 13,
+                                fontSize: AppTokens.textFootnoteSize,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -492,7 +491,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                         Text(
                           l10n.statusKanbanDesc,
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: AppTokens.textMicroSize,
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
@@ -514,14 +513,14 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                       );
                     });
                   },
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(AppTokens.radiusCard),
                   child: Container(
                     padding: const EdgeInsets.all(13),
                     decoration: BoxDecoration(
                       color: isDark
                           ? AppTokens.surfaceCardDark
                           : AppTokens.surfaceCard,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(AppTokens.radiusCard),
                       border: Border.all(color: borderColor),
                     ),
                     child: Column(
@@ -538,7 +537,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                             Text(
                               l10n.priorityKanbanName,
                               style: const TextStyle(
-                                fontSize: 13,
+                                fontSize: AppTokens.textFootnoteSize,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -548,7 +547,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                         Text(
                           l10n.priorityKanbanDesc,
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: AppTokens.textMicroSize,
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
@@ -566,7 +565,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
             title: '${l10n.panelTitle} (${_panels.length})',
             trailing: InkWell(
               onTap: _addNewPanel,
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(AppTokens.radiusPill),
               child: Container(
                 height: 34,
                 padding: const EdgeInsets.symmetric(horizontal: 13),
@@ -575,8 +574,8 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                       ? theme.colorScheme.surfaceContainerHighest.withValues(
                           alpha: 0.35,
                         )
-                      : const Color(0xFFF1F3F5),
-                  borderRadius: BorderRadius.circular(999),
+                      : AppTokens.surfaceSubtleLight,
+                  borderRadius: BorderRadius.circular(AppTokens.radiusPill),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -590,7 +589,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                     Text(
                       l10n.addPanel,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: AppTokens.textFootnoteSize,
                         fontWeight: FontWeight.w600,
                         color: theme.colorScheme.onSurface,
                       ),
@@ -605,7 +604,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
           Container(
             decoration: BoxDecoration(
               color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
               border: Border.all(color: borderColor, width: 1.0),
               boxShadow: isDark
                   ? AppTokens.cardShadowDarkList
@@ -653,7 +652,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                                 Icons.drag_indicator,
                                 size: 17,
                                 color: theme.colorScheme.onSurfaceVariant
-                                    .withValues(alpha: 0.35),
+                                    .withValues(alpha: AppTokens.alphaBorderEmphasis),
                               ),
                             ),
                           ),
@@ -667,7 +666,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                             Text(
                               panel.title,
                               style: const TextStyle(
-                                fontSize: 14,
+                                fontSize: AppTokens.textSecondarySize,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -775,10 +774,10 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: 13.5,
+                  fontSize: AppTokens.textFootnoteSize,
                   fontWeight: FontWeight.w600,
                   letterSpacing: -0.1,
-                  color: isDark ? Colors.white70 : const Color(0xFF1E293B),
+                  color: isDark ? Colors.white70 : AppTokens.surfaceSubtleDark,
                 ),
               ),
             ],
@@ -802,14 +801,14 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
     return GestureDetector(
       onTap: () => setState(() => _layoutMode = mode),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+        duration: AppTokens.motionFast,
         height: 32,
         padding: const EdgeInsets.symmetric(horizontal: 13),
         decoration: BoxDecoration(
           color: isSelected
               ? (isDark ? colorScheme.surfaceContainerHighest : Colors.white)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppTokens.radiusList),
           boxShadow: isSelected
               ? [
                   BoxShadow(
@@ -834,7 +833,7 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
             Text(
               label,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppTokens.textFootnoteSize,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 color: isSelected
                     ? colorScheme.onSurface
@@ -874,13 +873,13 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
         decoration: BoxDecoration(
           color: Theme.of(
             context,
-          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(999),
+          ).colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaContentDisabled),
+          borderRadius: BorderRadius.circular(AppTokens.radiusPill),
         ),
         child: Text(
           l10n.allTasksLabel,
           style: TextStyle(
-            fontSize: 10.5,
+            fontSize: AppTokens.textNanoSize,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
@@ -896,13 +895,13 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
           decoration: BoxDecoration(
             color: Theme.of(
               context,
-            ).colorScheme.primary.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(999),
+            ).colorScheme.primary.withValues(alpha: AppTokens.alphaBorderSubtle),
+            borderRadius: BorderRadius.circular(AppTokens.radiusPill),
           ),
           child: Text(
             c,
             style: TextStyle(
-              fontSize: 10.5,
+              fontSize: AppTokens.textNanoSize,
               fontWeight: FontWeight.w500,
               color: Theme.of(context).colorScheme.primary,
             ),

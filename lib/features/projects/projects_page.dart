@@ -104,7 +104,7 @@ class ProjectsPage extends ConsumerWidget {
                               Text(
                                 l10n.weeklyProgress,
                                 style: TextStyle(
-                                  fontSize: 12.5,
+                                  fontSize: AppTokens.textCaptionSize,
                                   fontWeight: FontWeight.w500,
                                   color: colorScheme.onSurfaceVariant,
                                 ),
@@ -112,9 +112,8 @@ class ProjectsPage extends ConsumerWidget {
                               Text(
                                 '${l10n.itemsProgress(totalCompleted, totalTasks)} (${(totalCompleted / totalTasks * 100).round()}%)',
                                 style: TextStyle(
-                                  fontFamily: 'monospace',
                                   fontFeatures: AppTokens.fontTabular,
-                                  fontSize: 12,
+                                  fontSize: AppTokens.textCaptionSize,
                                   fontWeight: FontWeight.w600,
                                   color: colorScheme.onSurface,
                                 ),
@@ -123,13 +122,13 @@ class ProjectsPage extends ConsumerWidget {
                           ),
                           const SizedBox(height: 6),
                           ClipRRect(
-                            borderRadius: BorderRadius.circular(3),
+                            borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
                             child: LinearProgressIndicator(
                               value: totalCompleted / totalTasks,
                               minHeight: 6,
                               backgroundColor: isDark
-                                  ? Colors.white.withValues(alpha: 0.08)
-                                  : Colors.black.withValues(alpha: 0.06),
+                                  ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
+                                  : Colors.black.withValues(alpha: AppTokens.alphaTintFaint),
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 totalCompleted == totalTasks
                                     ? AppTokens.colorDone
@@ -208,11 +207,11 @@ class ProjectsPage extends ConsumerWidget {
         tooltip: l10n.newProject,
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: theme.colorScheme.onPrimary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTokens.radiusPill)),
         icon: const Icon(Icons.add_rounded, size: 20),
         label: Text(
           l10n.newProject,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5),
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: AppTokens.textSecondarySize),
         ),
       ),
     );
@@ -247,20 +246,18 @@ class _FolderSectionHeader extends StatelessWidget {
           Text(
             title.toUpperCase(),
             style: TextStyle(
-              fontFamily: 'monospace',
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 1.4,
+              fontSize: AppTokens.textSectionLabelSize,
+              fontWeight: AppTokens.textSectionLabelWeight,
+              letterSpacing: AppTokens.textSectionLabelLetterSpacing,
               color: colorScheme.onSurfaceVariant,
             ),
           ),
           Text(
             '$count',
             style: TextStyle(
-              fontFamily: 'monospace',
               fontFeatures: AppTokens.fontTabular,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w600,
+              fontSize: AppTokens.textSectionLabelSize,
+              fontWeight: AppTokens.textSectionLabelWeight,
               color: colorScheme.onSurfaceVariant,
             ),
           ),

@@ -64,14 +64,14 @@ class FilterChipsBar extends StatelessWidget {
           // 搜索按钮
           InkWell(
             onTap: onToggleSearch,
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: BorderRadius.circular(AppTokens.radiusPill),
             child: AnimatedContainer(
               duration: AppTokens.motionFast,
               width: 36,
               height: 36,
               decoration: BoxDecoration(
                 color: isSearchOpen ? colorScheme.primary : Colors.transparent,
-                borderRadius: BorderRadius.circular(999),
+                borderRadius: BorderRadius.circular(AppTokens.radiusPill),
               ),
               child: Icon(
                 Icons.search_rounded,
@@ -99,18 +99,18 @@ class FilterChipsBar extends StatelessWidget {
 
     return InkWell(
       onTap: () => onModeChanged(mode),
-      borderRadius: BorderRadius.circular(999),
+      borderRadius: BorderRadius.circular(AppTokens.radiusPill),
       child: AnimatedContainer(
         duration: AppTokens.motionFast,
         height: 34,
         padding: const EdgeInsets.symmetric(horizontal: 13),
         decoration: BoxDecoration(
           color: isSelected ? colorScheme.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(AppTokens.radiusPill),
           border: Border.all(
             color: isSelected
                 ? colorScheme.primary
-                : colorScheme.onSurface.withValues(alpha: 0.12),
+                : colorScheme.onSurface.withValues(alpha: AppTokens.alphaBorderSubtle),
             width: 1,
           ),
         ),
@@ -121,7 +121,7 @@ class FilterChipsBar extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: AppTokens.textFootnoteSize,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color: isSelected
                       ? colorScheme.onPrimary
@@ -132,13 +132,12 @@ class FilterChipsBar extends StatelessWidget {
               Text(
                 '$count',
                 style: TextStyle(
-                  fontFamily: 'monospace',
                   fontFeatures: AppTokens.fontTabular,
-                  fontSize: 11.5,
+                  fontSize: AppTokens.textMicroSize,
                   fontWeight: FontWeight.w600,
                   color: isSelected
-                      ? colorScheme.onPrimary.withValues(alpha: 0.85)
-                      : colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                      ? colorScheme.onPrimary.withValues(alpha: AppTokens.alphaOverlayHeavy)
+                      : colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaScrim),
                 ),
               ),
             ],

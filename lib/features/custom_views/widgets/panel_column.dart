@@ -120,14 +120,14 @@ class PanelColumn extends ConsumerWidget {
                                 Icons.inbox_outlined,
                                 size: 36,
                                 color: theme.colorScheme.onSurfaceVariant
-                                    .withValues(alpha: 0.35),
+                                    .withValues(alpha: AppTokens.alphaBorderEmphasis),
                               ),
                               const SizedBox(height: AppTokens.spaceXs),
                               Text(
                                 l10n.noTasksInPanel,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant
-                                      .withValues(alpha: 0.6),
+                                      .withValues(alpha: AppTokens.alphaContentMuted),
                                 ),
                               ),
                             ],
@@ -369,7 +369,7 @@ class PanelColumn extends ConsumerWidget {
                         color: theme.colorScheme.primary.withValues(
                           alpha: 0.12,
                         ),
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(AppTokens.radiusChip),
                       ),
                       child: Icon(
                         Icons.view_column_outlined,
@@ -383,7 +383,7 @@ class PanelColumn extends ConsumerWidget {
                         panel.title,
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
-                          fontSize: 14.5,
+                          fontSize: AppTokens.textSecondarySize,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -396,13 +396,13 @@ class PanelColumn extends ConsumerWidget {
                       ),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(999),
+                            .withValues(alpha: AppTokens.alphaContentMuted),
+                        borderRadius: BorderRadius.circular(AppTokens.radiusPill),
                       ),
                       child: Text(
                         count.toString(),
                         style: TextStyle(
-                          fontSize: 11.5,
+                          fontSize: AppTokens.textMicroSize,
                           fontWeight: FontWeight.w600,
                           fontFeatures: AppTokens.fontTabular,
                           color: theme.colorScheme.onSurfaceVariant,
@@ -512,20 +512,20 @@ class PanelColumn extends ConsumerWidget {
     required VoidCallback onTap,
   }) {
     return InkWell(
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(AppTokens.radiusChip),
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
         decoration: BoxDecoration(
           color: isActive
-              ? (AppTokens.colorPriorityHigh.withValues(alpha: 0.12))
+              ? (AppTokens.colorPriorityHigh.withValues(alpha: AppTokens.alphaBorderSubtle))
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(AppTokens.radiusChip),
         ),
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 11,
+            fontSize: AppTokens.textMicroSize,
             fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
             color: isActive ? AppTokens.colorPriorityHigh : null,
           ),
@@ -662,11 +662,11 @@ class PanelColumn extends ConsumerWidget {
                   : null,
             );
           },
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppTokens.radiusItem),
           child: Container(
             height: 38,
             padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppTokens.radiusItem)),
             child: Row(
               children: [
                 Icon(Icons.add, size: 16, color: mutedColor),
@@ -674,7 +674,7 @@ class PanelColumn extends ConsumerWidget {
                 Text(
                   l10n.addTask,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppTokens.textFootnoteSize,
                     color: mutedColor,
                     fontWeight: FontWeight.normal,
                   ),
@@ -787,7 +787,7 @@ class KanbanTaskCard extends ConsumerWidget {
                                 ? theme.colorScheme.onSurfaceVariant
                                 : theme.colorScheme.onSurface,
                             fontWeight: FontWeight.normal,
-                            fontSize: 14.5,
+                            fontSize: AppTokens.textSecondarySize,
                             height: 1.3,
                           ),
                         ),
@@ -815,7 +815,7 @@ class KanbanTaskCard extends ConsumerWidget {
                           decoration: BoxDecoration(
                             color: Color(
                               project!.color,
-                            ).withValues(alpha: 0.10),
+                            ).withValues(alpha: AppTokens.alphaTintSoft),
                             borderRadius: BorderRadius.circular(
                               AppTokens.radiusChip,
                             ),
@@ -860,7 +860,7 @@ class KanbanTaskCard extends ConsumerWidget {
     final feedback = Material(
       color: Colors.transparent,
       elevation: 6,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppTokens.radiusCard),
       child: SizedBox(width: 290, child: Opacity(opacity: 0.9, child: card)),
     );
 
@@ -900,7 +900,7 @@ class KanbanTaskCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
+        color: color.withValues(alpha: AppTokens.alphaTintSoft),
         borderRadius: BorderRadius.circular(AppTokens.radiusChip),
       ),
       child: Row(
@@ -932,8 +932,8 @@ class KanbanTaskCard extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: BoxDecoration(
         color: isOverdue
-            ? AppTokens.colorOverdue.withValues(alpha: 0.12)
-            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+            ? AppTokens.colorOverdue.withValues(alpha: AppTokens.alphaBorderSubtle)
+            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaContentMuted),
         borderRadius: BorderRadius.circular(AppTokens.radiusChip),
       ),
       child: Row(

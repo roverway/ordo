@@ -133,7 +133,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
                           ),
                           border: Border.all(
                             color: isDark
-                                ? Colors.white.withValues(alpha: 0.08)
+                                ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
                                 : theme.colorScheme.outlineVariant.withValues(
                                     alpha: 0.35,
                                   ),
@@ -254,14 +254,14 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
               foregroundColor: theme.colorScheme.onPrimary,
               elevation: 4,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(100),
+                borderRadius: BorderRadius.circular(AppTokens.radiusPill),
               ),
               icon: const Icon(Icons.add, size: 20),
               label: Text(
                 l10n.newTask,
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
-                  fontSize: 14.5,
+                  fontSize: AppTokens.textSecondarySize,
                 ),
               ),
             ),
@@ -306,14 +306,14 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
               foregroundColor: theme.colorScheme.onPrimary,
               elevation: 4,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(100),
+                borderRadius: BorderRadius.circular(AppTokens.radiusPill),
               ),
               icon: const Icon(Icons.add, size: 20),
               label: Text(
                 l10n.newTask,
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
-                  fontSize: 14.5,
+                  fontSize: AppTokens.textSecondarySize,
                 ),
               ),
             ),

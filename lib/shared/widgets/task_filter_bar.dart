@@ -199,7 +199,7 @@ class _FilterDropdown extends StatelessWidget {
       margin: const EdgeInsets.only(right: AppTokens.spaceXs),
       padding: const EdgeInsets.only(left: AppTokens.spaceSm),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaContentMuted),
         borderRadius: BorderRadius.circular(AppTokens.radiusChip),
       ),
       child: Row(

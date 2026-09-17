@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/backup/backup_restore_service.dart';
 import '../../../core/backup/snapshot_pool_service.dart';
 import '../../../core/l10n/app_localizations.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../settings_providers.dart';
 import 'import_confirm_dialog.dart';
 import 'snapshot_history_sheet.dart';
@@ -157,7 +158,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
             InkWell(
               onTap: _isExporting ? null : _handleExport,
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
+                top: Radius.circular(AppTokens.radiusDialog),
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -178,7 +179,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
                           Text(
                             l10n.backupExportTitle,
                             style: const TextStyle(
-                              fontSize: 15,
+                              fontSize: AppTokens.textBodySize,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -186,7 +187,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
                           Text(
                             l10n.backupExportSubtitle,
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: AppTokens.textCaptionSize,
                               color: colorScheme.onSurfaceVariant,
                             ),
                           ),
@@ -235,7 +236,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
                           Text(
                             l10n.backupImportTitle,
                             style: const TextStyle(
-                              fontSize: 15,
+                              fontSize: AppTokens.textBodySize,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -243,7 +244,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
                           Text(
                             l10n.backupImportSubtitle,
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: AppTokens.textCaptionSize,
                               color: colorScheme.onSurfaceVariant,
                             ),
                           ),
@@ -294,7 +295,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
                               Text(
                                 l10n.backupSnapshotPoolTitle,
                                 style: const TextStyle(
-                                  fontSize: 15,
+                                  fontSize: AppTokens.textBodySize,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -309,12 +310,12 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
                                     color: colorScheme.primary.withValues(
                                       alpha: 0.12,
                                     ),
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(AppTokens.radiusItem),
                                   ),
                                   child: Text(
                                     '${snaps.length}',
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: AppTokens.textMicroSize,
                                       fontWeight: FontWeight.w700,
                                       color: colorScheme.primary,
                                     ),
@@ -334,7 +335,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
                               error: (_, _) => '点击查看本地快照',
                             ),
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: AppTokens.textCaptionSize,
                               color: colorScheme.onSurfaceVariant,
                             ),
                           ),
@@ -371,7 +372,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
                         Text(
                           l10n.backupRetentionDaysTitle,
                           style: const TextStyle(
-                            fontSize: 15,
+                            fontSize: AppTokens.textBodySize,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -379,7 +380,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
                         Text(
                           l10n.backupRetentionDaysSubtitle,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: AppTokens.textCaptionSize,
                             color: colorScheme.onSurfaceVariant,
                           ),
                         ),
@@ -390,13 +391,13 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? Colors.white.withValues(alpha: 0.06)
-                          : Colors.black.withValues(alpha: 0.04),
-                      borderRadius: BorderRadius.circular(8),
+                          ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
+                          : Colors.black.withValues(alpha: AppTokens.alphaTintFaint),
+                      borderRadius: BorderRadius.circular(AppTokens.radiusList),
                       border: Border.all(
                         color: isDark
-                            ? Colors.white.withValues(alpha: 0.08)
-                            : Colors.black.withValues(alpha: 0.06),
+                            ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
+                            : Colors.black.withValues(alpha: AppTokens.alphaTintFaint),
                       ),
                     ),
                     child: DropdownButtonHideUnderline(
@@ -407,7 +408,7 @@ class _BackupSectionState extends ConsumerState<BackupSection> {
                         icon: const Icon(Icons.arrow_drop_down, size: 20),
                         isDense: true,
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: AppTokens.textFootnoteSize,
                           fontWeight: FontWeight.w600,
                           color: colorScheme.primary,
                         ),
@@ -452,10 +453,10 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         title.toUpperCase(),
         style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.6,
-          color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
+          fontSize: AppTokens.textSectionLabelSize,
+          fontWeight: AppTokens.textSectionLabelWeight,
+          letterSpacing: AppTokens.textSectionLabelLetterSpacing,
+          color: isDark ? AppTokens.checkboxDisabledFgDark : AppTokens.checkboxDisabledFgLight,
         ),
       ),
     );
@@ -479,12 +480,12 @@ class _SettingsCard extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E24) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCardLight,
+        borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
         border: Border.all(
           color: isDark
-              ? Colors.white.withValues(alpha: 0.07)
-              : Colors.black.withValues(alpha: 0.06),
+              ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
+              : Colors.black.withValues(alpha: AppTokens.alphaTintFaint),
           width: 1,
         ),
         boxShadow: [
@@ -516,8 +517,8 @@ class _IconBadge extends StatelessWidget {
       width: 32,
       height: 32,
       decoration: BoxDecoration(
-        color: effectiveColor.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(9),
+        color: effectiveColor.withValues(alpha: AppTokens.alphaBorderSubtle),
+        borderRadius: BorderRadius.circular(AppTokens.radiusList),
       ),
       alignment: Alignment.center,
       child: Icon(icon, size: 17, color: effectiveColor),

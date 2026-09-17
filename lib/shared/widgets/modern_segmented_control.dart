@@ -51,8 +51,8 @@ class ModernSegmentedControl<T> extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final containerBg = isDark
-        ? colorScheme.onSurface.withValues(alpha: 0.08)
-        : colorScheme.onSurface.withValues(alpha: 0.06);
+        ? colorScheme.onSurface.withValues(alpha: AppTokens.alphaTintFaint)
+        : colorScheme.onSurface.withValues(alpha: AppTokens.alphaTintFaint);
 
     final widgetList = items.map((item) {
       final isSelected = item.value == selectedValue;
@@ -66,7 +66,7 @@ class ModernSegmentedControl<T> extends StatelessWidget {
             EdgeInsets.symmetric(horizontal: isExpanded ? 8 : 14),
         decoration: BoxDecoration(
           color: isSelected ? colorScheme.surface : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppTokens.radiusList),
           boxShadow: isSelected
               ? [
                   BoxShadow(
@@ -115,9 +115,9 @@ class ModernSegmentedControl<T> extends StatelessWidget {
         label: item.label,
         child: InkWell(
           onTap: () => onChanged(item.value),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppTokens.radiusList),
           splashColor: Colors.transparent,
-          highlightColor: colorScheme.onSurface.withValues(alpha: 0.04),
+          highlightColor: colorScheme.onSurface.withValues(alpha: AppTokens.alphaTintFaint),
           child: buttonContent,
         ),
       );
@@ -132,7 +132,7 @@ class ModernSegmentedControl<T> extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: containerBg,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppTokens.radiusItem),
       ),
       child: isExpanded
           ? Row(mainAxisSize: MainAxisSize.max, children: widgetList)

@@ -16,7 +16,7 @@ Future<T?> showModalSideSheet<T>({
   double width = AppTokens.sideSheetWidth,
   Color? barrierColor,
   bool barrierDismissible = true,
-  Duration transitionDuration = const Duration(milliseconds: 250),
+  Duration transitionDuration = AppTokens.motionNormal,
 }) {
   final l10n = AppLocalizations.of(context);
   final theme = Theme.of(context);
@@ -25,7 +25,7 @@ Future<T?> showModalSideSheet<T>({
     context: context,
     barrierDismissible: barrierDismissible,
     barrierLabel: l10n.cancel,
-    barrierColor: barrierColor ?? Colors.black.withValues(alpha: 0.25),
+    barrierColor: barrierColor ?? Colors.black.withValues(alpha: AppTokens.alphaBorderEmphasis),
     transitionDuration: transitionDuration,
     pageBuilder: (dialogContext, animation, secondaryAnimation) {
       return Align(

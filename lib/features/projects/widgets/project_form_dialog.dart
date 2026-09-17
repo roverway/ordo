@@ -196,8 +196,8 @@ class _ProjectFormState extends State<_ProjectForm> {
             border: Border(
               bottom: BorderSide(
                 color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xFF262830)
-                    : const Color(0xFFE2E8F0),
+                    ? AppTokens.surfaceSubtleDark
+                    : AppTokens.borderSubtleNeutralLight,
                 width: 1.0,
               ),
             ),

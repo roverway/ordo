@@ -179,7 +179,7 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
       if (ctx != null && ctx.mounted) {
         Scrollable.ensureVisible(
           ctx,
-          duration: const Duration(milliseconds: 400),
+          duration: AppTokens.motionSlow,
           curve: Curves.easeOutCubic,
           alignment: 0.0,
         );
@@ -205,7 +205,7 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
       isScrollControlled: true,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: AppTokens.sheetTopBorderRadius,
       ),
       builder: (ctx) {
         return SafeArea(
@@ -225,7 +225,7 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
                       color: theme.colorScheme.outlineVariant.withValues(
                         alpha: 0.6,
                       ),
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(AppTokens.sheetGrabberRadius),
                     ),
                   ),
                   Padding(
@@ -244,7 +244,7 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
                         Text(
                           l10n.manualTOC,
                           style: const TextStyle(
-                            fontSize: 16,
+                            fontSize: AppTokens.textSubtitleSize,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -300,12 +300,12 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                style: TextStyle(color: colorScheme.onSurface, fontSize: 16),
+                style: TextStyle(color: colorScheme.onSurface, fontSize: AppTokens.textSubtitleSize),
                 decoration: InputDecoration(
                   hintText: l10n.manualSearchHint,
                   border: InputBorder.none,
                   hintStyle: TextStyle(
-                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaContentMuted),
                   ),
                 ),
                 onChanged: (val) {
@@ -455,7 +455,7 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
             decoration: BoxDecoration(
               border: Border(
                 right: BorderSide(
-                  color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                  color: colorScheme.outlineVariant.withValues(alpha: AppTokens.alphaBorderEmphasis),
                 ),
               ),
             ),
@@ -476,7 +476,7 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
                         child: Text(
                           l10n.manualTOC,
                           style: const TextStyle(
-                            fontSize: 14,
+                            fontSize: AppTokens.textSecondarySize,
                             fontWeight: FontWeight.w700,
                           ),
                           overflow: TextOverflow.ellipsis,
@@ -1019,7 +1019,8 @@ class _MarkdownInlineText extends StatelessWidget {
       }
       if (token.isCode) {
         tokenStyle = tokenStyle.copyWith(
-          fontFamily: 'monospace',
+          fontFamily: AppTokens.fontMonoFamily,
+          fontFamilyFallback: AppTokens.fontMonoFallback,
           fontSize: (tokenStyle.fontSize ?? 14.0) * 0.92,
           color: colorScheme.primary,
           backgroundColor: colorScheme.surfaceContainerHighest.withValues(
@@ -1055,7 +1056,7 @@ class _MarkdownInlineText extends StatelessWidget {
           spans.add(TextSpan(
             text: matchText,
             style: tokenStyle.copyWith(
-              backgroundColor: Colors.amber.withValues(alpha: 0.4),
+              backgroundColor: Colors.amber.withValues(alpha: AppTokens.alphaContentDisabled),
               color: colorScheme.primary,
               fontWeight: FontWeight.w800,
             ),
@@ -1134,7 +1135,8 @@ class _MarkdownInteractiveInlineTextState
       }
       if (token.isCode) {
         tokenStyle = tokenStyle.copyWith(
-          fontFamily: 'monospace',
+          fontFamily: AppTokens.fontMonoFamily,
+          fontFamilyFallback: AppTokens.fontMonoFallback,
           fontSize: (tokenStyle.fontSize ?? 14.0) * 0.92,
           color: colorScheme.primary,
           backgroundColor: colorScheme.surfaceContainerHighest.withValues(
@@ -1149,7 +1151,7 @@ class _MarkdownInteractiveInlineTextState
           color: colorScheme.primary,
           fontWeight: FontWeight.w600,
           decoration: TextDecoration.underline,
-          decorationColor: colorScheme.primary.withValues(alpha: 0.5),
+          decorationColor: colorScheme.primary.withValues(alpha: AppTokens.alphaContentMuted),
         );
         final r = TapGestureRecognizer()
           ..onTap = () => widget.onLinkTap(token.linkUrl!);
@@ -1189,7 +1191,7 @@ class _MarkdownInteractiveInlineTextState
           spans.add(TextSpan(
             text: matchText,
             style: tokenStyle.copyWith(
-              backgroundColor: Colors.amber.withValues(alpha: 0.4),
+              backgroundColor: Colors.amber.withValues(alpha: AppTokens.alphaContentDisabled),
               color: colorScheme.primary,
               fontWeight: FontWeight.w800,
             ),
@@ -1238,7 +1240,7 @@ class _LanguageChip extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: AppTokens.textCaptionSize,
             fontWeight: FontWeight.w700,
             color: isActive
                 ? colorScheme.onPrimary
@@ -1283,7 +1285,7 @@ class _TocListTile extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: isSelected
-              ? colorScheme.primary.withValues(alpha: 0.1)
+              ? colorScheme.primary.withValues(alpha: AppTokens.alphaTintSoft)
               : Colors.transparent,
           border: isSelected
               ? Border(left: BorderSide(color: colorScheme.primary, width: 3))
@@ -1298,7 +1300,7 @@ class _TocListTile extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isSelected
                       ? colorScheme.primary
-                      : colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                      : colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaContentMuted),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -1404,7 +1406,7 @@ class _BlockWidget extends StatelessWidget {
                 width: 42,
                 decoration: BoxDecoration(
                   color: colorScheme.primary,
-                  borderRadius: BorderRadius.circular(1.5),
+                  borderRadius: BorderRadius.circular(AppTokens.sheetGrabberRadius),
                 ),
               ),
           ],
@@ -1419,9 +1421,9 @@ class _BlockWidget extends StatelessWidget {
         child: _MarkdownInlineText(
           tokens: b.tokens,
           style: baseStyle.copyWith(
-            fontSize: 14.5,
+            fontSize: AppTokens.textSecondarySize,
             height: 1.65,
-            color: colorScheme.onSurface.withValues(alpha: 0.92),
+            color: colorScheme.onSurface.withValues(alpha: AppTokens.alphaOverlayHeavy),
           ),
           searchQuery: searchQuery,
           onLinkTap: onLinkTap,
@@ -1439,27 +1441,27 @@ class _BlockWidget extends StatelessWidget {
       switch (b.type) {
         case _CalloutType.note:
           borderColor = Colors.blue;
-          bgColor = Colors.blue.withValues(alpha: 0.08);
+          bgColor = Colors.blue.withValues(alpha: AppTokens.alphaTintFaint);
           iconData = Icons.info_outline;
           calloutTitle = 'NOTE';
         case _CalloutType.tip:
           borderColor = Colors.teal;
-          bgColor = Colors.teal.withValues(alpha: 0.08);
+          bgColor = Colors.teal.withValues(alpha: AppTokens.alphaTintFaint);
           iconData = Icons.lightbulb_outline;
           calloutTitle = 'TIP';
         case _CalloutType.important:
           borderColor = Colors.purple;
-          bgColor = Colors.purple.withValues(alpha: 0.08);
+          bgColor = Colors.purple.withValues(alpha: AppTokens.alphaTintFaint);
           iconData = Icons.priority_high;
           calloutTitle = 'IMPORTANT';
         case _CalloutType.warning:
           borderColor = Colors.amber.shade700;
-          bgColor = Colors.amber.withValues(alpha: 0.08);
+          bgColor = Colors.amber.withValues(alpha: AppTokens.alphaTintFaint);
           iconData = Icons.warning_amber_rounded;
           calloutTitle = 'WARNING';
         case _CalloutType.quote:
           borderColor = colorScheme.outlineVariant;
-          bgColor = colorScheme.surfaceContainerHighest.withValues(alpha: 0.3);
+          bgColor = colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaBorderEmphasis);
           iconData = Icons.format_quote;
           calloutTitle = '';
       }
@@ -1470,7 +1472,7 @@ class _BlockWidget extends StatelessWidget {
           color: bgColor,
           borderRadius: BorderRadius.circular(AppTokens.radiusCard),
           border: Border.all(
-            color: borderColor.withValues(alpha: 0.3),
+            color: borderColor.withValues(alpha: AppTokens.alphaBorderEmphasis),
           ),
         ),
         clipBehavior: Clip.antiAlias,
@@ -1498,7 +1500,7 @@ class _BlockWidget extends StatelessWidget {
                               Text(
                                 calloutTitle,
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: AppTokens.textCaptionSize,
                                   fontWeight: FontWeight.w800,
                                   color: borderColor,
                                   letterSpacing: 0.5,
@@ -1510,7 +1512,7 @@ class _BlockWidget extends StatelessWidget {
                       _MarkdownInlineText(
                         tokens: b.tokens,
                         style: baseStyle.copyWith(
-                          fontSize: 13.5,
+                          fontSize: AppTokens.textFootnoteSize,
                           height: 1.6,
                           fontStyle: b.type == _CalloutType.quote
                               ? FontStyle.italic
@@ -1564,7 +1566,7 @@ class _BlockWidget extends StatelessWidget {
                     child: _MarkdownInlineText(
                       tokens: item.tokens,
                       style: baseStyle.copyWith(
-                        fontSize: 14,
+                        fontSize: AppTokens.textSecondarySize,
                         height: 1.55,
                         color: colorScheme.onSurface,
                       ),
@@ -1587,7 +1589,7 @@ class _BlockWidget extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppTokens.radiusCard),
           border: Border.all(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+            color: colorScheme.outlineVariant.withValues(alpha: AppTokens.alphaContentMuted),
           ),
         ),
         clipBehavior: Clip.antiAlias,
@@ -1595,7 +1597,7 @@ class _BlockWidget extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           child: DataTable(
             headingRowColor: WidgetStateProperty.all(
-              colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaContentMuted),
             ),
             columns: List.generate(
               b.headers.length,
@@ -1620,7 +1622,7 @@ class _BlockWidget extends StatelessWidget {
                     _MarkdownInlineText(
                       tokens: b.rowTokens[rowIdx][colIdx],
                       style: baseStyle.copyWith(
-                        fontSize: 13,
+                        fontSize: AppTokens.textFootnoteSize,
                         color: colorScheme.onSurface,
                       ),
                       searchQuery: searchQuery,
@@ -1644,18 +1646,19 @@ class _BlockWidget extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 10),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+          color: colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaContentMuted),
           borderRadius: BorderRadius.circular(AppTokens.radiusCard),
           border: Border.all(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+            color: colorScheme.outlineVariant.withValues(alpha: AppTokens.alphaContentDisabled),
           ),
         ),
         width: double.infinity,
         child: SelectableText(
           b.code,
           style: const TextStyle(
-            fontFamily: 'monospace',
-            fontSize: 12.5,
+            fontFamily: AppTokens.fontMonoFamily,
+            fontFamilyFallback: AppTokens.fontMonoFallback,
+            fontSize: AppTokens.textCaptionSize,
             height: 1.45,
           ),
         ),
@@ -1666,7 +1669,7 @@ class _BlockWidget extends StatelessWidget {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 14),
         child: Divider(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+          color: colorScheme.outlineVariant.withValues(alpha: AppTokens.alphaBorderEmphasis),
         ),
       );
     }
@@ -1746,10 +1749,10 @@ class _MermaidFlowWidgetState extends State<_MermaidFlowWidget> {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaBorderEmphasis),
         borderRadius: BorderRadius.circular(AppTokens.radiusCard),
         border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+          color: colorScheme.outlineVariant.withValues(alpha: AppTokens.alphaContentDisabled),
         ),
       ),
       child: Column(
@@ -1770,7 +1773,7 @@ class _MermaidFlowWidgetState extends State<_MermaidFlowWidget> {
                   child: Text(
                     title,
                     style: TextStyle(
-                      fontSize: 13.5,
+                      fontSize: AppTokens.textFootnoteSize,
                       fontWeight: FontWeight.w700,
                       color: colorScheme.onSurface,
                     ),
@@ -1790,7 +1793,7 @@ class _MermaidFlowWidgetState extends State<_MermaidFlowWidget> {
                     _showRawCode
                         ? (isEn ? 'Hide Code' : '隐藏源码')
                         : (isEn ? 'View Code' : '查看源码'),
-                    style: const TextStyle(fontSize: 12),
+                    style: const TextStyle(fontSize: AppTokens.textCaptionSize),
                   ),
                 ),
               ],
@@ -1810,10 +1813,10 @@ class _MermaidFlowWidgetState extends State<_MermaidFlowWidget> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer.withValues(alpha: 0.6),
+                    color: colorScheme.primaryContainer.withValues(alpha: AppTokens.alphaContentMuted),
                     borderRadius: BorderRadius.circular(AppTokens.radiusChip),
                     border: Border.all(
-                      color: colorScheme.primary.withValues(alpha: 0.4),
+                      color: colorScheme.primary.withValues(alpha: AppTokens.alphaContentDisabled),
                     ),
                   ),
                   child: Row(
@@ -1828,7 +1831,7 @@ class _MermaidFlowWidgetState extends State<_MermaidFlowWidget> {
                       Text(
                         rootLabel,
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: AppTokens.textFootnoteSize,
                           fontWeight: FontWeight.w700,
                           color: colorScheme.primary,
                         ),
@@ -1840,7 +1843,7 @@ class _MermaidFlowWidgetState extends State<_MermaidFlowWidget> {
                 Icon(
                   Icons.arrow_downward_rounded,
                   size: 18,
-                  color: colorScheme.primary.withValues(alpha: 0.7),
+                  color: colorScheme.primary.withValues(alpha: AppTokens.alphaScrim),
                 ),
                 const SizedBox(height: 6),
 
@@ -1854,7 +1857,7 @@ class _MermaidFlowWidgetState extends State<_MermaidFlowWidget> {
                     color: colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(AppTokens.radiusChip),
                     border: Border.all(
-                      color: colorScheme.outlineVariant.withValues(alpha: 0.6),
+                      color: colorScheme.outlineVariant.withValues(alpha: AppTokens.alphaContentMuted),
                     ),
                   ),
                   child: Row(
@@ -1869,7 +1872,7 @@ class _MermaidFlowWidgetState extends State<_MermaidFlowWidget> {
                       Text(
                         ruleLabel,
                         style: TextStyle(
-                          fontSize: 12.5,
+                          fontSize: AppTokens.textCaptionSize,
                           fontWeight: FontWeight.w600,
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -1899,7 +1902,7 @@ class _MermaidFlowWidgetState extends State<_MermaidFlowWidget> {
                         Text(
                           b.$1,
                           style: TextStyle(
-                            fontSize: 12.5,
+                            fontSize: AppTokens.textCaptionSize,
                             fontWeight: FontWeight.w700,
                             color: colorScheme.onSurface,
                           ),
@@ -1915,7 +1918,7 @@ class _MermaidFlowWidgetState extends State<_MermaidFlowWidget> {
                           child: Text(
                             b.$2,
                             style: TextStyle(
-                              fontSize: 12.5,
+                              fontSize: AppTokens.textCaptionSize,
                               color: colorScheme.onSurfaceVariant,
                             ),
                           ),
@@ -1933,12 +1936,13 @@ class _MermaidFlowWidgetState extends State<_MermaidFlowWidget> {
             const Divider(height: 1),
             Container(
               padding: const EdgeInsets.all(12),
-              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              color: colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaContentMuted),
               child: SelectableText(
                 widget.code,
                 style: const TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 12,
+                  fontFamily: AppTokens.fontMonoFamily,
+                  fontFamilyFallback: AppTokens.fontMonoFallback,
+                  fontSize: AppTokens.textCaptionSize,
                   height: 1.4,
                 ),
               ),

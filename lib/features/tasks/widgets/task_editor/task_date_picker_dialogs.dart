@@ -194,7 +194,7 @@ class DatePresetChip extends StatelessWidget {
       ),
       backgroundColor: isDark
           ? AppTokens.surfaceCardDark
-          : colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+          : colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaBorderEmphasis),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTokens.radiusChip),
         side: BorderSide(

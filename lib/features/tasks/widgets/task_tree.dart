@@ -427,7 +427,7 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
               borderRadius: BorderRadius.circular(AppTokens.radiusList),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
+                  color: Colors.black.withValues(alpha: AppTokens.alphaTintStrong),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -687,8 +687,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
             padding: const EdgeInsets.all(AppTokens.spaceMd),
             decoration: BoxDecoration(
               color: active
-                  ? colorScheme.primaryContainer.withValues(alpha: 0.4)
-                  : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                  ? colorScheme.primaryContainer.withValues(alpha: AppTokens.alphaContentDisabled)
+                  : colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaBorderEmphasis),
               borderRadius: BorderRadius.circular(AppTokens.radiusList),
               border: Border.all(
                 color: active

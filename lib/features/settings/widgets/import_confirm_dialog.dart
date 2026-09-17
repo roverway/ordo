@@ -82,8 +82,8 @@ class _ImportConfirmDialogState extends State<ImportConfirmDialog> {
     final isDark = theme.brightness == Brightness.dark;
 
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      backgroundColor: isDark ? const Color(0xFF1E1E24) : Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(AppTokens.radiusDialog))),
+      backgroundColor: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCardLight,
       titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
       contentPadding: const EdgeInsets.symmetric(horizontal: 24),
       actionsPadding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
@@ -93,8 +93,8 @@ class _ImportConfirmDialogState extends State<ImportConfirmDialog> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: colorScheme.primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
+              color: colorScheme.primary.withValues(alpha: AppTokens.alphaBorderSubtle),
+              borderRadius: BorderRadius.circular(AppTokens.radiusItem),
             ),
             child: Icon(
               Icons.restore_page_outlined,
@@ -106,7 +106,7 @@ class _ImportConfirmDialogState extends State<ImportConfirmDialog> {
           Expanded(
             child: Text(
               l10n.backupImportDialogTitle,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              style: const TextStyle(fontSize: AppTokens.textTitleSize, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -120,7 +120,7 @@ class _ImportConfirmDialogState extends State<ImportConfirmDialog> {
               Text(
                 widget.sourceTitle!,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppTokens.textCaptionSize,
                   color: colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w500,
                 ),
@@ -133,10 +133,10 @@ class _ImportConfirmDialogState extends State<ImportConfirmDialog> {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: colorScheme.primary.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(12),
+                color: colorScheme.primary.withValues(alpha: AppTokens.alphaTintFaint),
+                borderRadius: BorderRadius.circular(AppTokens.radiusCard),
                 border: Border.all(
-                  color: colorScheme.primary.withValues(alpha: 0.15),
+                  color: colorScheme.primary.withValues(alpha: AppTokens.alphaTintStrong),
                   width: 1,
                 ),
               ),
@@ -150,10 +150,10 @@ class _ImportConfirmDialogState extends State<ImportConfirmDialog> {
                   widget.summary.customViewCount,
                 ),
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppTokens.textCaptionSize,
                   color: isDark
-                      ? const Color(0xFFD1D5DB)
-                      : const Color(0xFF4B5563),
+                      ? AppTokens.checkboxDisabledBorderLight
+                      : AppTokens.checkboxDisabledBorderDark,
                   height: 1.4,
                 ),
               ),
@@ -174,7 +174,7 @@ class _ImportConfirmDialogState extends State<ImportConfirmDialog> {
               title: l10n.backupImportModeReplace,
               subtitle: l10n.backupImportModeReplaceDesc,
               isSelected: _selectedMode == ImportMode.replace,
-              accentColor: const Color(0xFFEF4444),
+              accentColor: AppTokens.colorDanger,
               onTap: () => setState(() => _selectedMode = ImportMode.replace),
             ),
 
@@ -183,12 +183,12 @@ class _ImportConfirmDialogState extends State<ImportConfirmDialog> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.red.withValues(alpha: AppTokens.alphaTintSoft),
+                  borderRadius: BorderRadius.circular(AppTokens.radiusList),
                 ),
                 child: Text(
                   l10n.backupOperationFailed(_errorMessage!),
-                  style: const TextStyle(fontSize: 12, color: Colors.red),
+                  style: const TextStyle(fontSize: AppTokens.textCaptionSize, color: Colors.red),
                 ),
               ),
             ],
@@ -207,7 +207,7 @@ class _ImportConfirmDialogState extends State<ImportConfirmDialog> {
           onPressed: _isLoading ? null : _handleConfirm,
           style: FilledButton.styleFrom(
             backgroundColor: _selectedMode == ImportMode.replace
-                ? const Color(0xFFDC2626)
+                ? AppTokens.colorDangerText
                 : colorScheme.primary,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
@@ -252,23 +252,23 @@ class _ModeSelectCard extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppTokens.radiusCard),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+        duration: AppTokens.motionFast,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isSelected
               ? accentColor.withValues(alpha: isDark ? 0.15 : 0.08)
               : (isDark
-                    ? Colors.white.withValues(alpha: 0.04)
-                    : Colors.black.withValues(alpha: 0.02)),
-          borderRadius: BorderRadius.circular(12),
+                    ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
+                    : Colors.black.withValues(alpha: AppTokens.alphaTintFaint)),
+          borderRadius: BorderRadius.circular(AppTokens.radiusCard),
           border: Border.all(
             color: isSelected
                 ? accentColor
                 : (isDark
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : Colors.black.withValues(alpha: 0.08)),
+                      ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
+                      : Colors.black.withValues(alpha: AppTokens.alphaTintFaint)),
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -295,7 +295,7 @@ class _ModeSelectCard extends StatelessWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: AppTokens.textSecondarySize,
                       fontWeight: FontWeight.w600,
                       color: isSelected
                           ? accentColor
@@ -306,7 +306,7 @@ class _ModeSelectCard extends StatelessWidget {
                   Text(
                     subtitle,
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: AppTokens.textMicroSize,
                       color: theme.colorScheme.onSurfaceVariant,
                       height: 1.35,
                     ),

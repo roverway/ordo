@@ -121,10 +121,10 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTokens.radiusDialog)),
         title: Text(
           l10n.backupDeleteAction,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontSize: AppTokens.textSubtitleSize, fontWeight: FontWeight.bold),
         ),
         content: Text(
           l10n.deleteProjectConfirm(_formatDateTime(snap.createdAt)),
@@ -137,7 +137,7 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
+              backgroundColor: AppTokens.colorDanger,
             ),
             child: Text(l10n.delete),
           ),
@@ -154,9 +154,9 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
 
   Color _badgeColorForTrigger(SnapshotTriggerType trigger, ColorScheme cs) {
     return switch (trigger) {
-      SnapshotTriggerType.dailyAuto => const Color(0xFF3B82F6),
-      SnapshotTriggerType.preSync => const Color(0xFF10B981),
-      SnapshotTriggerType.preRestore => const Color(0xFFF59E0B),
+      SnapshotTriggerType.dailyAuto => AppTokens.colorInfo,
+      SnapshotTriggerType.preSync => AppTokens.colorSuccess,
+      SnapshotTriggerType.preRestore => AppTokens.colorWarning,
       SnapshotTriggerType.manual => cs.primary,
     };
   }
@@ -174,11 +174,11 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
         maxHeight: MediaQuery.of(context).size.height * 0.85,
       ),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF18181B) : Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        color: isDark ? AppTokens.surfaceDark : AppTokens.surfaceCardLight,
+        borderRadius: AppTokens.sheetTopBorderRadius,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: Colors.black.withValues(alpha: AppTokens.alphaBorderEmphasis),
             blurRadius: 16,
             offset: const Offset(0, -2),
           ),
@@ -198,9 +198,9 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                 height: 4,
                 decoration: BoxDecoration(
                   color: isDark
-                      ? Colors.white.withValues(alpha: 0.2)
-                      : Colors.black.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(2),
+                      ? Colors.white.withValues(alpha: AppTokens.alphaBorderEmphasis)
+                      : Colors.black.withValues(alpha: AppTokens.alphaTintStrong),
+                  borderRadius: BorderRadius.circular(AppTokens.sheetGrabberRadius),
                 ),
               ),
             ),
@@ -214,8 +214,8 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: colorScheme.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
+                      color: colorScheme.primary.withValues(alpha: AppTokens.alphaBorderSubtle),
+                      borderRadius: BorderRadius.circular(AppTokens.radiusItem),
                     ),
                     child: Icon(
                       Icons.history_toggle_off_rounded,
@@ -231,7 +231,7 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                         Text(
                           l10n.backupSnapshotSheetTitle,
                           style: const TextStyle(
-                            fontSize: 16,
+                            fontSize: AppTokens.textSubtitleSize,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -241,7 +241,7 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                             snapshotsAsync.value?.length ?? 0,
                           ),
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: AppTokens.textMicroSize,
                             color: colorScheme.onSurfaceVariant,
                           ),
                         ),
@@ -262,7 +262,7 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                         : const Icon(Icons.add_rounded, size: 16),
                     label: Text(
                       l10n.backupCreateSnapshotManual,
-                      style: const TextStyle(fontSize: 12),
+                      style: const TextStyle(fontSize: AppTokens.textCaptionSize),
                     ),
                     style: FilledButton.styleFrom(
                       backgroundColor: colorScheme.primary,
@@ -317,7 +317,7 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                             Text(
                               l10n.backupSnapshotEmpty,
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: AppTokens.textSecondarySize,
                                 color: colorScheme.onSurfaceVariant,
                               ),
                             ),
@@ -346,13 +346,13 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: isDark
-                              ? const Color(0xFF222228)
-                              : const Color(0xFFF9FAFB),
-                          borderRadius: BorderRadius.circular(12),
+                              ? AppTokens.surfaceSubtleDark
+                              : AppTokens.textPrimaryDark,
+                          borderRadius: BorderRadius.circular(AppTokens.radiusCard),
                           border: Border.all(
                             color: isDark
-                                ? Colors.white.withValues(alpha: 0.06)
-                                : Colors.black.withValues(alpha: 0.05),
+                                ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
+                                : Colors.black.withValues(alpha: AppTokens.alphaTintFaint),
                           ),
                         ),
                         child: Row(
@@ -364,15 +364,15 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: badgeColor.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(6),
+                                color: badgeColor.withValues(alpha: AppTokens.alphaTintStrong),
+                                borderRadius: BorderRadius.circular(AppTokens.radiusChip),
                               ),
                               child: Text(
                                 snap.triggerType.localizedLabel(l10n),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontSize: 10,
+                                  fontSize: AppTokens.textNanoSize,
                                   fontWeight: FontWeight.w700,
                                   color: badgeColor,
                                 ),
@@ -387,7 +387,7 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                                   Text(
                                     _formatDateTime(snap.createdAt),
                                     style: const TextStyle(
-                                      fontSize: 13,
+                                      fontSize: AppTokens.textFootnoteSize,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -395,7 +395,7 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
                                   Text(
                                     '${snap.projectCount} · ${snap.taskCount} · $sizeKb KB',
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: AppTokens.textMicroSize,
                                       color: colorScheme.onSurfaceVariant,
                                     ),
                                   ),

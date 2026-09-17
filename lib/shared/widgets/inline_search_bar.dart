@@ -78,11 +78,11 @@ class _InlineSearchBarState extends State<InlineSearchBar> {
                       color: _isFocused
                           ? colorScheme.surface
                           : (isDark
-                                ? colorScheme.onSurface.withValues(alpha: 0.08)
+                                ? colorScheme.onSurface.withValues(alpha: AppTokens.alphaTintFaint)
                                 : colorScheme.onSurface.withValues(
                                     alpha: 0.06,
                                   )),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppTokens.radiusCard),
                       border: Border.all(
                         color: _isFocused
                             ? colorScheme.onSurface.withValues(
@@ -109,13 +109,13 @@ class _InlineSearchBarState extends State<InlineSearchBar> {
                             autofocus: true,
                             onChanged: widget.onChanged,
                             style: TextStyle(
-                              fontSize: 14.5,
+                              fontSize: AppTokens.textSecondarySize,
                               color: colorScheme.onSurface,
                             ),
                             decoration: InputDecoration(
                               hintText: widget.hintText ?? l10n.searchTasks,
                               hintStyle: TextStyle(
-                                fontSize: 14.5,
+                                fontSize: AppTokens.textSecondarySize,
                                 color: colorScheme.onSurfaceVariant.withValues(
                                   alpha: 0.6,
                                 ),
@@ -136,7 +136,7 @@ class _InlineSearchBarState extends State<InlineSearchBar> {
                               widget.controller.clear();
                               widget.onClear();
                             },
-                            borderRadius: BorderRadius.circular(999),
+                            borderRadius: BorderRadius.circular(AppTokens.radiusPill),
                             child: Container(
                               width: 26,
                               height: 26,
@@ -164,7 +164,7 @@ class _InlineSearchBarState extends State<InlineSearchBar> {
                       child: Text(
                         l10n.searchMatchCount(widget.matchCount!),
                         style: TextStyle(
-                          fontSize: 11.5,
+                          fontSize: AppTokens.textMicroSize,
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),

@@ -88,11 +88,11 @@ class CalendarPage extends ConsumerWidget {
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
         elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTokens.radiusPill)),
         icon: const Icon(Icons.add, size: 20),
         label: Text(
           l10n.newTask,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5),
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: AppTokens.textSecondarySize),
         ),
       ),
     );
@@ -138,7 +138,7 @@ class CalendarPage extends ConsumerWidget {
         VerticalDivider(
           width: 1,
           thickness: 1,
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
+          color: theme.colorScheme.outlineVariant.withValues(alpha: AppTokens.alphaBorderEmphasis),
         ),
         Expanded(child: _CalendarAgendaList(state: state)),
       ],
@@ -310,7 +310,7 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
                         );
                       }(),
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: AppTokens.textBodySize,
                         fontWeight: FontWeight.w600,
                         color: colorScheme.onSurface,
                         fontFeatures: AppTokens.fontTabular,
@@ -339,7 +339,7 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
                     color: colorScheme.surfaceContainerHighest.withValues(
                       alpha: 0.45,
                     ),
-                    borderRadius: BorderRadius.circular(9),
+                    borderRadius: BorderRadius.circular(AppTokens.radiusList),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -475,8 +475,8 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
                   width: 34,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: colorScheme.onSurface.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(3),
+                    color: colorScheme.onSurface.withValues(alpha: AppTokens.alphaTintStrong),
+                    borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
                   ),
                 ),
               ),
@@ -484,7 +484,7 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
           Divider(
             height: 1,
             thickness: 1,
-            color: colorScheme.outlineVariant.withValues(alpha: 0.25),
+            color: colorScheme.outlineVariant.withValues(alpha: AppTokens.alphaBorderEmphasis),
           ),
         ],
       ),
@@ -501,17 +501,17 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
     final colorScheme = theme.colorScheme;
 
     return InkWell(
-      borderRadius: BorderRadius.circular(7),
+      borderRadius: BorderRadius.circular(AppTokens.radiusChip),
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
           color: isActive ? colorScheme.surface : Colors.transparent,
-          borderRadius: BorderRadius.circular(7),
+          borderRadius: BorderRadius.circular(AppTokens.radiusChip),
           boxShadow: isActive
               ? [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
+                    color: Colors.black.withValues(alpha: AppTokens.alphaTintFaint),
                     blurRadius: 3,
                     offset: const Offset(0, 1),
                   ),
@@ -521,7 +521,7 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 12.5,
+            fontSize: AppTokens.textCaptionSize,
             fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
             color: isActive
                 ? colorScheme.onSurface
@@ -695,9 +695,9 @@ class _DayCell extends StatelessWidget {
         border: Border.all(color: colorScheme.primary, width: 1.5),
       );
     } else if (!inMonth) {
-      numColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.35);
+      numColor = colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaBorderEmphasis);
     } else if (isWeekend) {
-      numColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.75);
+      numColor = colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaScrim);
     } else {
       numColor = colorScheme.onSurface;
     }
@@ -713,15 +713,15 @@ class _DayCell extends StatelessWidget {
 
     Color subTextColor;
     if (isSelected && isToday) {
-      subTextColor = colorScheme.onPrimary.withValues(alpha: 0.85);
+      subTextColor = colorScheme.onPrimary.withValues(alpha: AppTokens.alphaOverlayHeavy);
     } else if (isSelected) {
-      subTextColor = colorScheme.onPrimaryContainer.withValues(alpha: 0.85);
+      subTextColor = colorScheme.onPrimaryContainer.withValues(alpha: AppTokens.alphaOverlayHeavy);
     } else if (!inMonth) {
-      subTextColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.25);
+      subTextColor = colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaBorderEmphasis);
     } else if (decoration.isSpecialSubText) {
       subTextColor = colorScheme.primary;
     } else {
-      subTextColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.7);
+      subTextColor = colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaScrim);
     }
 
     return AspectRatio(
@@ -762,7 +762,7 @@ class _DayCell extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 9.0,
+                            fontSize: AppTokens.textCalendarCellMicro,
                             fontWeight: decoration.isSpecialSubText
                                 ? FontWeight.w600
                                 : FontWeight.normal,
@@ -786,17 +786,17 @@ class _DayCell extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: decoration.isRestBadge
                           ? (isDark
-                              ? Colors.redAccent.withValues(alpha: 0.25)
-                              : Colors.red.withValues(alpha: 0.12))
+                              ? Colors.redAccent.withValues(alpha: AppTokens.alphaBorderEmphasis)
+                              : Colors.red.withValues(alpha: AppTokens.alphaBorderSubtle))
                           : (isDark
                               ? colorScheme.surfaceContainerHighest
                               : colorScheme.surfaceContainerHigh),
-                      borderRadius: BorderRadius.circular(3),
+                      borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
                     ),
                     child: Text(
                       decoration.badgeText!,
                       style: TextStyle(
-                        fontSize: 8.5,
+                        fontSize: AppTokens.textCalendarCellMicro,
                         fontWeight: FontWeight.w700,
                         color: decoration.isRestBadge
                             ? (isDark ? Colors.redAccent.shade100 : Colors.red.shade700)
@@ -852,7 +852,7 @@ class _DayCell extends StatelessWidget {
       height: 4.5,
       margin: const EdgeInsets.symmetric(horizontal: 1),
       decoration: BoxDecoration(
-        color: isDone ? color.withValues(alpha: 0.35) : color,
+        color: isDone ? color.withValues(alpha: AppTokens.alphaBorderEmphasis) : color,
         shape: BoxShape.circle,
       ),
     );
@@ -1037,7 +1037,7 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
                         Text(
                           dateHeader,
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: AppTokens.textSubtitleSize,
                             fontWeight: FontWeight.w600,
                             color: isHighlighted
                                 ? theme.colorScheme.primary
@@ -1049,7 +1049,7 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
                           Text(
                             dayDecoration.agendaDescription!,
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: AppTokens.textCaptionSize,
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
                           ),
@@ -1063,17 +1063,17 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
                             decoration: BoxDecoration(
                               color: dayDecoration.isRestBadge
                                   ? (isDark
-                                      ? Colors.redAccent.withValues(alpha: 0.25)
-                                      : Colors.red.withValues(alpha: 0.12))
+                                      ? Colors.redAccent.withValues(alpha: AppTokens.alphaBorderEmphasis)
+                                      : Colors.red.withValues(alpha: AppTokens.alphaBorderSubtle))
                                   : (isDark
                                       ? theme.colorScheme.surfaceContainerHighest
                                       : theme.colorScheme.surfaceContainerHigh),
-                              borderRadius: BorderRadius.circular(3),
+                              borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
                             ),
                             child: Text(
                               dayDecoration.badgeText!,
                               style: TextStyle(
-                                fontSize: 9.5,
+                                fontSize: AppTokens.textCalendarCellMicro,
                                 fontWeight: FontWeight.w700,
                                 color: dayDecoration.isRestBadge
                                     ? (isDark ? Colors.redAccent.shade100 : Colors.red.shade700)
@@ -1095,12 +1095,12 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
                             ? AppTokens.borderSubtleDark
                             : AppTokens.borderSubtleLight,
                       ),
-                      borderRadius: BorderRadius.circular(999),
+                      borderRadius: BorderRadius.circular(AppTokens.radiusPill),
                     ),
                     child: Text(
                       l10n.itemCount(tasks.length),
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: AppTokens.textMicroSize,
                         fontWeight: FontWeight.w600,
                         fontFeatures: AppTokens.fontTabular,
                         color: theme.colorScheme.onSurfaceVariant,
@@ -1221,7 +1221,7 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
     final colorScheme = theme.colorScheme;
 
     return InkWell(
-      borderRadius: BorderRadius.circular(999),
+      borderRadius: BorderRadius.circular(AppTokens.radiusPill),
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
@@ -1229,7 +1229,7 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
           color: isActive
               ? colorScheme.primary
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(AppTokens.radiusPill),
           border: Border.all(
             color: isActive
                 ? colorScheme.primary
@@ -1242,7 +1242,7 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 12.5,
+            fontSize: AppTokens.textCaptionSize,
             fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
             color: isActive
                 ? colorScheme.onPrimary

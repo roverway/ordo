@@ -510,7 +510,7 @@ class _ProjectPickerSheetState extends ConsumerState<ProjectPickerSheet> {
                   item.folderName!,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
-                    fontSize: 11,
+                    fontSize: AppTokens.textMicroSize,
                   ),
                 )
               : null,

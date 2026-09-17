@@ -339,7 +339,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
     final topClearance = isFocused ? (effectiveStatusBarHeight + 10.0) : 0.0;
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
+      duration: AppTokens.motionFast,
       curve: Curves.easeOutCubic,
       constraints: BoxConstraints(
         // 聚焦后全屏，非聚焦时对齐导航弹窗（0.85）
@@ -352,7 +352,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: Colors.black.withValues(alpha: AppTokens.alphaBorderEmphasis),
             blurRadius: 40,
             offset: const Offset(0, -10),
           ),
@@ -373,8 +373,8 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                 width: 36,
                 height: 4.5,
                 decoration: BoxDecoration(
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(3),
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaContentDisabled),
+                  borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
                 ),
               ),
             ),
@@ -389,9 +389,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
                   style: TextButton.styleFrom(
-                    foregroundColor: isDark
-                        ? const Color(0xFF9CA3AF)
-                        : const Color(0xFF6B7280),
+                    foregroundColor: isDark ? AppTokens.textMutedDark : AppTokens.textMutedLight,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
                       vertical: 6,
@@ -399,13 +397,13 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(AppTokens.radiusList),
                     ),
                   ),
                   child: Text(
                     l10n.cancel,
                     style: const TextStyle(
-                      fontSize: 15,
+                      fontSize: AppTokens.textBodySize,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
@@ -418,11 +416,9 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                         ? l10n.editList
                         : l10n.editFolder,
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: AppTokens.textSubtitleSize,
                       fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? const Color(0xFFF3F4F6)
-                          : const Color(0xFF111827),
+                      color: isDark ? AppTokens.textPrimaryDark : AppTokens.textPrimaryLight,
                     ),
                   )
                 else
@@ -433,9 +429,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                   onPressed: isNameValid && !_isSubmitting ? _submit : null,
                   style: TextButton.styleFrom(
                     foregroundColor: activeAccent,
-                    disabledForegroundColor: isDark
-                        ? const Color(0xFF4B5563)
-                        : const Color(0xFFD1D5DB),
+                    disabledForegroundColor: isDark ? AppTokens.checkboxDisabledBorderDark : AppTokens.checkboxDisabledBorderLight,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 14,
                       vertical: 6,
@@ -443,10 +437,10 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     backgroundColor: isNameValid
-                        ? activeAccent.withValues(alpha: 0.12)
+                        ? activeAccent.withValues(alpha: AppTokens.alphaBorderSubtle)
                         : Colors.transparent,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
                     ),
                   ),
                   child: _isSubmitting
@@ -461,7 +455,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                       : Text(
                           l10n.done,
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: AppTokens.textBodySize,
                             fontWeight: isNameValid
                                 ? FontWeight.w600
                                 : FontWeight.w400,
@@ -521,8 +515,8 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF262830) : const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(12),
+        color: isDark ? AppTokens.surfaceSubtleDark : AppTokens.surfaceSubtleLight,
+        borderRadius: BorderRadius.circular(AppTokens.radiusCard),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -553,14 +547,14 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
     return GestureDetector(
       onTap: () => _switchType(type),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
+        duration: AppTokens.motionFast,
         curve: Curves.easeOutCubic,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected
-              ? (isDark ? const Color(0xFF374151) : const Color(0xFFFFFFFF))
+              ? (isDark ? AppTokens.borderSubtleNeutralDark : AppTokens.surfaceDialogLight)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(9),
+          borderRadius: BorderRadius.circular(AppTokens.radiusList),
           boxShadow: isSelected
               ? [
                   BoxShadow(
@@ -574,11 +568,11 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 13.5,
+            fontSize: AppTokens.textFootnoteSize,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
             color: isSelected
-                ? (isDark ? const Color(0xFFF9FAFB) : const Color(0xFF111827))
-                : (isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280)),
+                ? (isDark ? AppTokens.textPrimaryDark : AppTokens.textPrimaryLight)
+                : (isDark ? AppTokens.textMutedDark : AppTokens.textMutedLight),
           ),
         ),
       ),
@@ -605,23 +599,20 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
             Text(
               labelTitle.toUpperCase(),
               style: TextStyle(
-                fontSize: 12,
+                fontSize: AppTokens.textCaptionSize,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.6,
-                color: isDark
-                    ? const Color(0xFF6B7280)
-                    : const Color(0xFF9CA3AF),
+                color: isDark ? AppTokens.checkboxDisabledFgDark : AppTokens.checkboxDisabledFgLight,
               ),
             ),
             Text(
               '${name.length}/$_maxNameLength',
               style: TextStyle(
-                fontSize: 12,
-                fontFamily: 'monospace',
+                fontSize: AppTokens.textCaptionSize,
                 fontFeatures: AppTokens.fontTabular,
                 color: isDark
-                    ? const Color(0xFF6B7280)
-                    : const Color(0xFF9CA3AF),
+                    ? AppTokens.checkboxDisabledFgDark
+                    : AppTokens.checkboxDisabledFgLight,
               ),
             ),
           ],
@@ -632,9 +623,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
-                color: isDark
-                    ? const Color(0xFF262830)
-                    : const Color(0xFFE2E8F0),
+                color: isDark ? AppTokens.surfaceSubtleDark : AppTokens.borderSubtleNeutralLight,
                 width: 1.0,
               ),
             ),
@@ -643,16 +632,16 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
             children: [
               // 选中的图标与色彩预览徽章
               AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+                duration: AppTokens.motionFast,
                 curve: Curves.easeOutCubic,
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
                   color: activeAccent,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(AppTokens.radiusItem),
                   boxShadow: [
                     BoxShadow(
-                      color: activeAccent.withValues(alpha: 0.3),
+                      color: activeAccent.withValues(alpha: AppTokens.alphaBorderEmphasis),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -685,20 +674,16 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                         required maxLength,
                       }) => null,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppTokens.textSubtitleSize,
                     fontWeight: FontWeight.w500,
-                    color: isDark
-                        ? const Color(0xFFF3F4F6)
-                        : const Color(0xFF111827),
+                    color: isDark ? AppTokens.textPrimaryDark : AppTokens.textPrimaryLight,
                   ),
                   decoration: InputDecoration(
                     hintText: hintTitle,
                     hintStyle: TextStyle(
-                      fontSize: 16,
+                      fontSize: AppTokens.textSubtitleSize,
                       fontWeight: FontWeight.w400,
-                      color: isDark
-                          ? const Color(0xFF4B5563)
-                          : const Color(0xFF9CA3AF),
+                      color: isDark ? AppTokens.checkboxDisabledBorderDark : AppTokens.checkboxDisabledFgLight,
                     ),
                     isDense: true,
                     filled: false,
@@ -727,17 +712,13 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                     width: 22,
                     height: 22,
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? const Color(0xFF374151)
-                          : const Color(0xFFE5E7EB),
+                      color: isDark ? AppTokens.borderSubtleNeutralDark : AppTokens.checkboxDisabledBorderLight,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       Icons.close_rounded,
                       size: 14,
-                      color: isDark
-                          ? const Color(0xFF9CA3AF)
-                          : const Color(0xFF6B7280),
+                      color: isDark ? AppTokens.textMutedDark : AppTokens.textMutedLight,
                     ),
                   ),
                 ),
@@ -759,18 +740,16 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
             Text(
               l10n.modalThemeColor.toUpperCase(),
               style: TextStyle(
-                fontSize: 12,
+                fontSize: AppTokens.textCaptionSize,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.6,
-                color: isDark
-                    ? const Color(0xFF6B7280)
-                    : const Color(0xFF9CA3AF),
+                color: isDark ? AppTokens.checkboxDisabledFgDark : AppTokens.checkboxDisabledFgLight,
               ),
             ),
             Text(
               _selectedColor.localizedName(context),
               style: TextStyle(
-                fontSize: 12,
+                fontSize: AppTokens.textCaptionSize,
                 fontWeight: FontWeight.w500,
                 color: _selectedColor.color,
               ),
@@ -789,7 +768,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                 });
               },
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
+                duration: AppTokens.motionFast,
                 curve: Curves.easeOutCubic,
                 width: 34,
                 height: 34,
@@ -799,7 +778,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: item.color.withValues(alpha: 0.45),
+                            color: item.color.withValues(alpha: AppTokens.alphaContentDisabled),
                             blurRadius: 8,
                             spreadRadius: 2,
                           ),
@@ -807,9 +786,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                       : null,
                   border: isSelected
                       ? Border.all(
-                          color: isDark
-                              ? const Color(0xFF18191D)
-                              : Colors.white,
+                          color: isDark ? AppTokens.surfaceDark : Colors.white,
                           width: 2.5,
                         )
                       : null,
@@ -846,21 +823,17 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
             Text(
               l10n.selectIcon.toUpperCase(),
               style: TextStyle(
-                fontSize: 12,
+                fontSize: AppTokens.textCaptionSize,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.6,
-                color: isDark
-                    ? const Color(0xFF6B7280)
-                    : const Color(0xFF9CA3AF),
+                color: isDark ? AppTokens.checkboxDisabledFgDark : AppTokens.checkboxDisabledFgLight,
               ),
             ),
             Text(
               l10n.instantApply,
               style: TextStyle(
-                fontSize: 12,
-                color: isDark
-                    ? const Color(0xFF6B7280)
-                    : const Color(0xFF9CA3AF),
+                fontSize: AppTokens.textCaptionSize,
+                color: isDark ? AppTokens.checkboxDisabledFgDark : AppTokens.checkboxDisabledFgLight,
               ),
             ),
           ],
@@ -883,7 +856,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                     });
                   },
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
+                    duration: AppTokens.motionFast,
                     curve: Curves.easeOutCubic,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -893,22 +866,22 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                       color: isSelected
                           ? activeAccent
                           : (isDark
-                              ? const Color(0xFF262830)
-                              : const Color(0xFFF1F5F9)),
-                      borderRadius: BorderRadius.circular(16),
+                              ? AppTokens.surfaceSubtleDark
+                              : AppTokens.surfaceSubtleLight),
+                      borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
                     ),
                     child: Text(
                       _getCategoryName(cat, l10n),
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: AppTokens.textFootnoteSize,
                         fontWeight: isSelected
                             ? FontWeight.w600
                             : FontWeight.w500,
                         color: isSelected
                             ? Colors.white
                             : (isDark
-                                ? const Color(0xFF9CA3AF)
-                                : const Color(0xFF6B7280)),
+                                ? AppTokens.textMutedDark
+                                : AppTokens.textMutedLight),
                       ),
                     ),
                   ),
@@ -924,12 +897,12 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E1E24) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCardLight,
+            borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
             border: Border.all(
               color: isDark
-                  ? Colors.white.withValues(alpha: 0.07)
-                  : Colors.black.withValues(alpha: 0.06),
+                  ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
+                  : Colors.black.withValues(alpha: AppTokens.alphaTintFaint),
               width: 1.0,
             ),
             boxShadow: [
@@ -959,23 +932,23 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                       });
                     },
                     child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
+                      duration: AppTokens.motionFast,
                       curve: Curves.easeOutCubic,
                       width: itemWidth,
                       height: itemWidth,
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? activeAccent.withValues(alpha: 0.14)
+                            ? activeAccent.withValues(alpha: AppTokens.alphaTintStrong)
                             : (isDark
-                                ? const Color(0xFF262830)
-                                : const Color(0xFFF8FAFC)),
-                        borderRadius: BorderRadius.circular(10),
+                                ? AppTokens.surfaceSubtleDark
+                                : AppTokens.surfaceLight),
+                        borderRadius: BorderRadius.circular(AppTokens.radiusItem),
                         border: Border.all(
                           color: isSelected
                               ? activeAccent
                               : (isDark
-                                  ? const Color(0xFF333640)
-                                  : const Color(0xFFE2E8F0)),
+                                  ? AppTokens.borderSubtleNeutralDark
+                                  : AppTokens.borderSubtleNeutralLight),
                           width: isSelected ? 1.5 : 1.0,
                         ),
                       ),
@@ -986,8 +959,8 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                           color: isSelected
                               ? activeAccent
                               : (isDark
-                                  ? const Color(0xFFD1D5DB)
-                                  : const Color(0xFF4B5563)),
+                                  ? AppTokens.checkboxDisabledBorderLight
+                                  : AppTokens.checkboxDisabledBorderDark),
                         ),
                       ),
                     ),
@@ -1026,8 +999,8 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
     AsyncValue<ProjectGrouping> groupingAsync,
   ) {
     final borderColor = isDark
-        ? Colors.white.withValues(alpha: 0.07)
-        : Colors.black.withValues(alpha: 0.06);
+        ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
+        : Colors.black.withValues(alpha: AppTokens.alphaTintFaint);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1038,21 +1011,17 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
             Text(
               l10n.belongingFolder.toUpperCase(),
               style: TextStyle(
-                fontSize: 12,
+                fontSize: AppTokens.textCaptionSize,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.6,
-                color: isDark
-                    ? const Color(0xFF6B7280)
-                    : const Color(0xFF9CA3AF),
+                color: isDark ? AppTokens.checkboxDisabledFgDark : AppTokens.checkboxDisabledFgLight,
               ),
             ),
             Text(
               l10n.singleChoiceBelonging,
               style: TextStyle(
-                fontSize: 12,
-                color: isDark
-                    ? const Color(0xFF6B7280)
-                    : const Color(0xFF9CA3AF),
+                fontSize: AppTokens.textCaptionSize,
+                color: isDark ? AppTokens.checkboxDisabledFgDark : AppTokens.checkboxDisabledFgLight,
               ),
             ),
           ],
@@ -1060,8 +1029,8 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
         const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E1E24) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCardLight,
+            borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
             border: Border.all(
               color: borderColor,
               width: 1.0,
@@ -1075,7 +1044,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
             child: groupingAsync.when(
               loading: () => const Padding(
                 padding: EdgeInsets.all(16),
@@ -1152,7 +1121,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
   }) {
     final iconColor =
         folderColor ??
-        (isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280));
+        (isDark ? AppTokens.textMutedDark : AppTokens.textMutedLight);
     return InkWell(
       onTap: () {
         setState(() {
@@ -1162,7 +1131,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         color: isSelected
-            ? activeAccent.withValues(alpha: 0.08)
+            ? activeAccent.withValues(alpha: AppTokens.alphaTintFaint)
             : Colors.transparent,
         child: Row(
           children: [
@@ -1172,11 +1141,11 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
               child: Text(
                 name,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppTokens.textSecondarySize,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color: isDark
-                      ? const Color(0xFFF3F4F6)
-                      : const Color(0xFF111827),
+                      ? AppTokens.textPrimaryDark
+                      : AppTokens.textPrimaryLight,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -1186,17 +1155,17 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
               Text(
                 l10n.listsCount(count),
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppTokens.textCaptionSize,
                   fontFeatures: AppTokens.fontTabular,
                   color: isDark
-                      ? const Color(0xFF6B7280)
-                      : const Color(0xFF9CA3AF),
+                      ? AppTokens.textMutedLight
+                      : AppTokens.textMutedDark,
                 ),
               ),
               const SizedBox(width: 8),
             ],
             AnimatedOpacity(
-              duration: const Duration(milliseconds: 150),
+              duration: AppTokens.motionFast,
               opacity: isSelected ? 1.0 : 0.0,
               child: Icon(Icons.check_rounded, size: 18, color: activeAccent),
             ),

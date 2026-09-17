@@ -191,8 +191,8 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
             border: Border(
               bottom: BorderSide(
                 color: isDark
-                    ? const Color(0xFF262830)
-                    : const Color(0xFFE2E8F0),
+                    ? AppTokens.surfaceSubtleDark
+                    : AppTokens.borderSubtleNeutralLight,
                 width: 1.0,
               ),
             ),
@@ -203,7 +203,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
             autofocus: widget.autofocus,
             maxLines: null,
             style: theme.textTheme.headlineSmall?.copyWith(
-              fontSize: 31,
+              fontSize: AppTokens.textHeroSize,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.5,
               height: 1.25,
@@ -212,9 +212,9 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
             decoration: InputDecoration(
               hintText: l10n.taskTitleHint,
               hintStyle: TextStyle(
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                color: colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaContentDisabled),
                 fontWeight: FontWeight.w700,
-                fontSize: 31,
+                fontSize: AppTokens.textHeroSize,
               ),
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
@@ -260,7 +260,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                       style: TextStyle(
                         color: colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
-                        fontSize: 12.5,
+                        fontSize: AppTokens.textCaptionSize,
                       ),
                     ),
                   ],
@@ -281,7 +281,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                       timeText,
                       style: TextStyle(
                         color: colorScheme.onSurfaceVariant,
-                        fontSize: 12.5,
+                        fontSize: AppTokens.textCaptionSize,
                         fontFeatures: AppTokens.fontTabular,
                       ),
                     ),
@@ -307,7 +307,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                       style: TextStyle(
                         color: priorityColor(priority),
                         fontWeight: FontWeight.w600,
-                        fontSize: 12,
+                        fontSize: AppTokens.textCaptionSize,
                       ),
                     ),
                   ],
@@ -323,15 +323,15 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
           maxLines: null,
           minLines: 2,
           style: theme.textTheme.bodyMedium?.copyWith(
-            fontSize: 15,
+            fontSize: AppTokens.textBodySize,
             height: 1.6,
             color: colorScheme.onSurface,
           ),
           decoration: InputDecoration(
             hintText: l10n.descriptionHint,
             hintStyle: TextStyle(
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.45),
-              fontSize: 15,
+              color: colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaContentDisabled),
+              fontSize: AppTokens.textBodySize,
             ),
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
@@ -370,8 +370,8 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: startAt != null || endAt != null
                         ? colorScheme.onSurface
-                        : colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                    fontSize: 13.5,
+                        : colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaContentMuted),
+                    fontSize: AppTokens.textFootnoteSize,
                     fontFeatures: AppTokens.fontTabular,
                   ),
                 ),
@@ -407,8 +407,8 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                             ? colorScheme.surfaceContainerHighest.withValues(
                                 alpha: 0.5,
                               )
-                            : colorScheme.onSurface.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(8),
+                            : colorScheme.onSurface.withValues(alpha: AppTokens.alphaTintFaint),
+                        borderRadius: BorderRadius.circular(AppTokens.radiusList),
                       ),
                       padding: const EdgeInsets.all(2),
                       child: Row(
@@ -424,7 +424,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                               onTap: () => ref
                                   .read(taskFormProvider.notifier)
                                   .updatePriority(p),
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(AppTokens.radiusChip),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 10,
@@ -436,15 +436,15 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                                             ? colorScheme.surface
                                             : priorityColor(
                                                 p,
-                                              ).withValues(alpha: 0.15))
+                                              ).withValues(alpha: AppTokens.alphaTintStrong))
                                       : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(6),
+                                  borderRadius: BorderRadius.circular(AppTokens.radiusChip),
                                   border:
                                       priority == p && p != TaskPriority.none
                                       ? Border.all(
                                           color: priorityColor(
                                             p,
-                                          ).withValues(alpha: 0.4),
+                                          ).withValues(alpha: AppTokens.alphaContentDisabled),
                                           width: 1,
                                         )
                                       : null,
@@ -452,7 +452,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                                 child: Text(
                                   priorityLabel(l10n, p),
                                   style: TextStyle(
-                                    fontSize: 12.5,
+                                    fontSize: AppTokens.textCaptionSize,
                                     fontWeight: priority == p
                                         ? FontWeight.w600
                                         : FontWeight.normal,
@@ -510,7 +510,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                         projectDisplayName,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: colorScheme.onSurface,
-                          fontSize: 13.5,
+                          fontSize: AppTokens.textFootnoteSize,
                         ),
                       ),
                     ],
@@ -534,7 +534,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                           color: colorScheme.onSurfaceVariant.withValues(
                             alpha: 0.6,
                           ),
-                          fontSize: 13.5,
+                          fontSize: AppTokens.textFootnoteSize,
                         ),
                       )
                     else
@@ -549,7 +549,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                               ),
                               decoration: BoxDecoration(
                                 color: colorScheme.surface,
-                                borderRadius: BorderRadius.circular(100),
+                                borderRadius: BorderRadius.circular(AppTokens.radiusPill),
                                 border: Border.all(
                                   color: borderColor,
                                   width: 1,
@@ -571,7 +571,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                                     tag.name,
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: colorScheme.onSurfaceVariant,
-                                      fontSize: 11.5,
+                                      fontSize: AppTokens.textMicroSize,
                                     ),
                                   ),
                                 ],
@@ -643,7 +643,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                     style: TextStyle(
                       color: colorScheme.error,
                       fontWeight: FontWeight.w600,
-                      fontSize: 13.5,
+                      fontSize: AppTokens.textFootnoteSize,
                     ),
                   ),
                 ),
@@ -680,8 +680,8 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
             border: Border(
               bottom: BorderSide(
                 color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xFF262830)
-                    : const Color(0xFFE2E8F0),
+                    ? AppTokens.surfaceSubtleDark
+                    : AppTokens.borderSubtleNeutralLight,
                 width: 1.0,
               ),
             ),
@@ -914,7 +914,7 @@ class _DetailsRow extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppTokens.radiusList),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
         child: Row(
@@ -934,7 +934,7 @@ class _DetailsRow extends StatelessWidget {
             Icon(
               Icons.chevron_right,
               size: 16,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+              color: colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaContentMuted),
             ),
           ],
         ),
@@ -997,8 +997,8 @@ class TaskMetadataFooter extends ConsumerWidget {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: theme.textTheme.bodySmall?.copyWith(
-        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-        fontSize: 12,
+        color: colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaContentMuted),
+        fontSize: AppTokens.textCaptionSize,
       ),
     );
   }

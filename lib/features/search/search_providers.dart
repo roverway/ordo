@@ -1,3 +1,4 @@
+import '../../core/theme/app_tokens.dart';
 // 搜索与筛选状态管理（FR-VIEW-05 / FR-VIEW-06，M3）。
 //
 // - searchQueryProvider：防抖搜索（输入即搜，防抖 300ms，FR-VIEW-05 AC）；
@@ -72,7 +73,7 @@ enum TimeRange { all, today, week, month }
 /// dispose 时取消未触发的计时器。
 class SearchQueryNotifier extends Notifier<String> {
   /// 防抖时长（FR-VIEW-05 AC）。
-  static const Duration debounceDuration = Duration(milliseconds: 300);
+  static const Duration debounceDuration = AppTokens.searchDebounceDuration;
 
   Timer? _debounce;
 

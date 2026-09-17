@@ -108,12 +108,12 @@ class _SubtaskRowTileState extends State<SubtaskRowTile> {
                   vertical: -4,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(AppTokens.radiusChip),
                 ),
                 side: BorderSide(
                   color: isDone
                       ? theme.colorScheme.onSurface
-                      : theme.colorScheme.onSurface.withValues(alpha: 0.34),
+                      : theme.colorScheme.onSurface.withValues(alpha: AppTokens.alphaBorderEmphasis),
                   width: 1.5,
                 ),
                 activeColor: theme.colorScheme.onSurface,
@@ -149,7 +149,7 @@ class _SubtaskRowTileState extends State<SubtaskRowTile> {
                                 color: colorScheme.onSurfaceVariant.withValues(
                                   alpha: 0.45,
                                 ),
-                                fontSize: 14,
+                                fontSize: AppTokens.textSecondarySize,
                               ),
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
@@ -181,7 +181,7 @@ class _SubtaskRowTileState extends State<SubtaskRowTile> {
                                         color: theme
                                             .colorScheme
                                             .onSurfaceVariant
-                                            .withValues(alpha: 0.6),
+                                            .withValues(alpha: AppTokens.alphaContentMuted),
                                       )
                                     : theme.textTheme.bodyMedium?.copyWith(
                                         decoration: isDone

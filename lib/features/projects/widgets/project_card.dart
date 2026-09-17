@@ -118,7 +118,7 @@ class _ProjectCardState extends ConsumerState<ProjectCard> {
                             value: projectProgress,
                             minHeight: 4,
                             backgroundColor: colorScheme.surfaceContainerHighest
-                                .withValues(alpha: 0.5),
+                                .withValues(alpha: AppTokens.alphaContentMuted),
                             valueColor: AlwaysStoppedAnimation<Color>(
                               projectProgress >= 1.0
                                   ? AppTokens.colorDone
@@ -162,7 +162,7 @@ class _ProjectCardState extends ConsumerState<ProjectCard> {
                 Icon(
                   Icons.chevron_right,
                   size: 20,
-                  color: colorScheme.outline.withValues(alpha: 0.3),
+                  color: colorScheme.outline.withValues(alpha: AppTokens.alphaBorderEmphasis),
                 ),
               ],
             ),

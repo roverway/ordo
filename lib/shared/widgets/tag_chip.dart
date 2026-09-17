@@ -21,10 +21,10 @@ class TagChip extends StatelessWidget {
         vertical: 2,
       ),
       decoration: BoxDecoration(
-        color: Color(tag.color).withValues(alpha: 0.10),
+        color: Color(tag.color).withValues(alpha: AppTokens.alphaTintSoft),
         borderRadius: BorderRadius.circular(AppTokens.radiusChip),
         border: Border.all(
-          color: Color(tag.color).withValues(alpha: 0.22),
+          color: Color(tag.color).withValues(alpha: AppTokens.alphaBorderEmphasis),
           width: 0.5,
         ),
       ),

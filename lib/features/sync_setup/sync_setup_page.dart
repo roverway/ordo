@@ -551,7 +551,7 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
         border: Border.all(color: borderColor, width: 1),
         boxShadow: isDark
             ? AppTokens.cardShadowDarkList
@@ -646,7 +646,7 @@ class _SettingsCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
         border: Border.all(color: borderColor, width: 1),
         boxShadow: isDark
             ? AppTokens.cardShadowDarkList

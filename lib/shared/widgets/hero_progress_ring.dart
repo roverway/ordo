@@ -66,9 +66,8 @@ class HeroProgressRing extends StatelessWidget {
               Text(
                 labelText,
                 style: TextStyle(
-                  fontFamily: 'monospace',
                   fontFeatures: AppTokens.fontTabular,
-                  fontSize: 12.5,
+                  fontSize: AppTokens.textCaptionSize,
                   fontWeight: FontWeight.w600,
                   color: colorScheme.onSurface,
                 ),

@@ -28,7 +28,7 @@ class SettingsPage extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           l10n.settings,
-          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppTokens.textTitleSize),
         ),
         centerTitle: false,
       ),
@@ -184,7 +184,7 @@ class _AppearanceSection extends ConsumerWidget {
                       Text(
                         l10n.themeMode,
                         style: const TextStyle(
-                          fontSize: 15,
+                          fontSize: AppTokens.textBodySize,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -196,7 +196,7 @@ class _AppearanceSection extends ConsumerWidget {
                           ThemeMode.dark => l10n.themeModeDark,
                         },
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppTokens.textCaptionSize,
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -250,7 +250,7 @@ class _AppearanceSection extends ConsumerWidget {
                       Text(
                         l10n.themeColor,
                         style: const TextStyle(
-                          fontSize: 15,
+                          fontSize: AppTokens.textBodySize,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -258,7 +258,7 @@ class _AppearanceSection extends ConsumerWidget {
                       Text(
                         l10n.seedColorSubtitle,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppTokens.textCaptionSize,
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -288,7 +288,7 @@ class _AppearanceSection extends ConsumerWidget {
                       Text(
                         l10n.language,
                         style: const TextStyle(
-                          fontSize: 15,
+                          fontSize: AppTokens.textBodySize,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -298,7 +298,7 @@ class _AppearanceSection extends ConsumerWidget {
                             ? l10n.languageZh
                             : l10n.languageEn,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppTokens.textCaptionSize,
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -354,7 +354,7 @@ class _TagsSection extends ConsumerWidget {
           children: [
             InkWell(
               onTap: onOpenTags,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -374,7 +374,7 @@ class _TagsSection extends ConsumerWidget {
                           Text(
                             l10n.taskTags,
                             style: const TextStyle(
-                              fontSize: 15,
+                              fontSize: AppTokens.textBodySize,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -388,7 +388,7 @@ class _TagsSection extends ConsumerWidget {
                                         ))
                                 : l10n.emptyTags,
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: AppTokens.textCaptionSize,
                               color: colorScheme.onSurfaceVariant,
                             ),
                           ),
@@ -445,7 +445,7 @@ class _CalendarSection extends ConsumerWidget {
                       Text(
                         l10n.showLunar,
                         style: const TextStyle(
-                          fontSize: 15,
+                          fontSize: AppTokens.textBodySize,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -453,7 +453,7 @@ class _CalendarSection extends ConsumerWidget {
                       Text(
                         l10n.showLunarSubtitle,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppTokens.textCaptionSize,
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -483,7 +483,7 @@ class _CalendarSection extends ConsumerWidget {
                       Text(
                         l10n.showHolidays,
                         style: const TextStyle(
-                          fontSize: 15,
+                          fontSize: AppTokens.textBodySize,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -491,7 +491,7 @@ class _CalendarSection extends ConsumerWidget {
                       Text(
                         l10n.showHolidaysSubtitle,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: AppTokens.textCaptionSize,
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -535,7 +535,7 @@ class _SyncSection extends ConsumerWidget {
             InkWell(
               onTap: onOpenSync,
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
+                top: Radius.circular(AppTokens.radiusDialog),
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -558,7 +558,7 @@ class _SyncSection extends ConsumerWidget {
                               Text(
                                 l10n.syncSettings,
                                 style: const TextStyle(
-                                  fontSize: 15,
+                                  fontSize: AppTokens.textBodySize,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -578,7 +578,7 @@ class _SyncSection extends ConsumerWidget {
                               syncConfigAsync.value,
                             ),
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: AppTokens.textCaptionSize,
                               color: colorScheme.onSurfaceVariant,
                             ),
                           ),
@@ -605,7 +605,7 @@ class _SyncSection extends ConsumerWidget {
                     child: Text(
                       l10n.syncAutoOnStart,
                       style: const TextStyle(
-                        fontSize: 15,
+                        fontSize: AppTokens.textBodySize,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -649,22 +649,22 @@ class _SyncSection extends ConsumerWidget {
 
     switch (status) {
       case SyncStateStatus.syncing:
-        bg = colorScheme.primary.withValues(alpha: 0.12);
+        bg = colorScheme.primary.withValues(alpha: AppTokens.alphaBorderSubtle);
         fg = colorScheme.primary;
         label = l10n.syncStatusSyncing;
         icon = Icons.sync;
       case SyncStateStatus.success:
-        bg = const Color(0xFF10B981).withValues(alpha: 0.12);
-        fg = const Color(0xFF059669);
+        bg = AppTokens.colorSuccess.withValues(alpha: AppTokens.alphaBorderSubtle);
+        fg = AppTokens.colorSuccessText;
         label = l10n.syncStatusSuccess;
         icon = Icons.check_circle_outline;
       case SyncStateStatus.error:
-        bg = const Color(0xFFEF4444).withValues(alpha: 0.12);
-        fg = const Color(0xFFDC2626);
+        bg = AppTokens.colorDanger.withValues(alpha: AppTokens.alphaBorderSubtle);
+        fg = AppTokens.colorDangerText;
         label = l10n.syncStatusError;
         icon = Icons.error_outline;
       case SyncStateStatus.idle:
-        bg = colorScheme.onSurfaceVariant.withValues(alpha: 0.12);
+        bg = colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaBorderSubtle);
         fg = colorScheme.onSurfaceVariant;
         label = l10n.syncStatusIdle;
         icon = Icons.cloud_outlined;
@@ -674,7 +674,7 @@ class _SyncSection extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(AppTokens.radiusChip),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -684,7 +684,7 @@ class _SyncSection extends ConsumerWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: AppTokens.textMicroSize,
               fontWeight: FontWeight.w600,
               color: fg,
             ),
@@ -742,7 +742,7 @@ class _HelpSection extends StatelessWidget {
                   context.push('/settings/help');
                 }
               },
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -762,7 +762,7 @@ class _HelpSection extends StatelessWidget {
                           Text(
                             l10n.settingsHelp,
                             style: const TextStyle(
-                              fontSize: 15,
+                              fontSize: AppTokens.textBodySize,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -770,7 +770,7 @@ class _HelpSection extends StatelessWidget {
                           Text(
                             l10n.settingsHelpSubtitle,
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: AppTokens.textCaptionSize,
                               color: colorScheme.onSurfaceVariant,
                             ),
                           ),
@@ -822,7 +822,7 @@ class _AboutSection extends StatelessWidget {
                       Text(
                         l10n.appTitle,
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: AppTokens.textSubtitleSize,
                           fontWeight: FontWeight.w700,
                           letterSpacing: -0.2,
                         ),
@@ -831,8 +831,8 @@ class _AboutSection extends StatelessWidget {
                       Text(
                         '${l10n.aboutVersion} v$appVersion',
                         style: TextStyle(
-                          fontSize: 12,
-                          fontFamily: 'monospace',
+                          fontSize: AppTokens.textCaptionSize,
+                          fontFeatures: AppTokens.fontTabular,
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -854,10 +854,10 @@ class _AboutSection extends StatelessWidget {
                 vertical: AppTokens.spaceSm,
               ),
               decoration: BoxDecoration(
-                color: colorScheme.primary.withValues(alpha: 0.06),
+                color: colorScheme.primary.withValues(alpha: AppTokens.alphaTintFaint),
                 borderRadius: BorderRadius.circular(AppTokens.radiusChip),
                 border: Border.all(
-                  color: colorScheme.primary.withValues(alpha: 0.15),
+                  color: colorScheme.primary.withValues(alpha: AppTokens.alphaTintStrong),
                   width: 0.8,
                 ),
               ),
@@ -901,10 +901,10 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         title.toUpperCase(),
         style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.6,
-          color: isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF),
+          fontSize: AppTokens.textSectionLabelSize,
+          fontWeight: AppTokens.textSectionLabelWeight,
+          letterSpacing: AppTokens.textSectionLabelLetterSpacing,
+          color: isDark ? AppTokens.checkboxDisabledFgDark : AppTokens.checkboxDisabledFgLight,
         ),
       ),
     );
@@ -929,12 +929,12 @@ class _SettingsCard extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E24) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCardLight,
+        borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
         border: Border.all(
           color: isDark
-              ? Colors.white.withValues(alpha: 0.07)
-              : Colors.black.withValues(alpha: 0.06),
+              ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
+              : Colors.black.withValues(alpha: AppTokens.alphaTintFaint),
           width: 1,
         ),
         boxShadow: [
@@ -967,8 +967,8 @@ class _IconBadge extends StatelessWidget {
       width: 32,
       height: 32,
       decoration: BoxDecoration(
-        color: effectiveColor.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(9),
+        color: effectiveColor.withValues(alpha: AppTokens.alphaBorderSubtle),
+        borderRadius: BorderRadius.circular(AppTokens.radiusList),
       ),
       alignment: Alignment.center,
       child: Icon(icon, size: 17, color: effectiveColor),
@@ -996,7 +996,7 @@ class _ThemeColorPicker extends ConsumerWidget {
           child: InkWell(
             onTap: () =>
                 ref.read(themeSeedColorProvider.notifier).setSeedColor(color),
-            borderRadius: BorderRadius.circular(100),
+            borderRadius: BorderRadius.circular(AppTokens.radiusPill),
             child: Container(
               width: 34,
               height: 34,

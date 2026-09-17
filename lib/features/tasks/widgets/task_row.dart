@@ -102,17 +102,17 @@ class _TaskRowState extends State<TaskRow> {
   /// 行背景（61 §2/§4.7）：扁平行无自身卡片底，透明底 + 仅拖拽/悬停态叠加色。
   Color _rowColor(ColorScheme colorScheme) {
     if (widget.isInvalidDragTarget) {
-      return colorScheme.errorContainer.withValues(alpha: 0.4);
+      return colorScheme.errorContainer.withValues(alpha: AppTokens.alphaContentDisabled);
     }
     if (widget.isDragTarget) {
-      return colorScheme.primaryContainer.withValues(alpha: 0.25);
+      return colorScheme.primaryContainer.withValues(alpha: AppTokens.alphaBorderEmphasis);
     }
     if (widget.isDragging) {
-      return colorScheme.surfaceContainerHighest.withValues(alpha: 0.5);
+      return colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaContentMuted);
     }
     if (_hovered) {
       // 扁平行：悬停给轻微底色反馈（替代卡片阴影抬升）。
-      return colorScheme.surfaceContainerHighest.withValues(alpha: 0.4);
+      return colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaContentDisabled);
     }
     return Colors.transparent;
   }
@@ -165,8 +165,8 @@ class _TaskRowState extends State<TaskRow> {
         isDone
             ? colorScheme.onSurfaceVariant
             : (isDark
-                  ? Colors.white.withValues(alpha: 0.90)
-                  : colorScheme.onSurface.withValues(alpha: 0.88)),
+                  ? Colors.white.withValues(alpha: AppTokens.alphaOverlayHeavy)
+                  : colorScheme.onSurface.withValues(alpha: AppTokens.alphaOverlayHeavy)),
       ),
       _ => (
         AppTokens.textTaskL3Size,
@@ -174,8 +174,8 @@ class _TaskRowState extends State<TaskRow> {
         isDone
             ? colorScheme.onSurfaceVariant
             : (isDark
-                  ? Colors.white.withValues(alpha: 0.90)
-                  : colorScheme.onSurface.withValues(alpha: 0.88)),
+                  ? Colors.white.withValues(alpha: AppTokens.alphaOverlayHeavy)
+                  : colorScheme.onSurface.withValues(alpha: AppTokens.alphaOverlayHeavy)),
       ),
     };
 
@@ -437,10 +437,10 @@ class _TaskRowState extends State<TaskRow> {
                                     Text(
                                       '${widget.incompleteChildCount}/${widget.childCount}',
                                       style: TextStyle(
-                                        fontSize: 11.5,
+                                        fontSize: AppTokens.textMicroSize,
                                         fontFeatures: AppTokens.fontTabular,
                                         color: colorScheme.onSurfaceVariant
-                                            .withValues(alpha: 0.75),
+                                            .withValues(alpha: AppTokens.alphaScrim),
                                       ),
                                     ),
                                     const SizedBox(width: 3),
@@ -452,7 +452,7 @@ class _TaskRowState extends State<TaskRow> {
                                         Icons.chevron_right,
                                         size: 16,
                                         color: colorScheme.onSurfaceVariant
-                                            .withValues(alpha: 0.7),
+                                            .withValues(alpha: AppTokens.alphaScrim),
                                       ),
                                     ),
                                   ],

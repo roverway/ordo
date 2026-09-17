@@ -47,7 +47,7 @@ class SubtaskList extends StatelessWidget {
                   Text(
                     l10n.subtasks,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 11,
+                      fontSize: AppTokens.textMicroSize,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 1.2,
                       color: colorScheme.onSurfaceVariant.withValues(
@@ -59,7 +59,7 @@ class SubtaskList extends StatelessWidget {
                     Text(
                       '$doneCount/$totalCount',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 11.5,
+                        fontSize: AppTokens.textMicroSize,
                         fontWeight: FontWeight.w600,
                         color: colorScheme.onSurfaceVariant,
                         fontFeatures: AppTokens.fontTabular,
@@ -107,7 +107,7 @@ class SubtaskList extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: InkWell(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppTokens.radiusList),
                 onTap: onAddSubtaskAndFocus,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
@@ -120,7 +120,7 @@ class SubtaskList extends StatelessWidget {
                         width: 20,
                         height: 20,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(AppTokens.radiusChip),
                           border: Border.all(
                             color: colorScheme.onSurfaceVariant.withValues(
                               alpha: 0.4,
@@ -140,7 +140,7 @@ class SubtaskList extends StatelessWidget {
                       Text(
                         l10n.addSubtask,
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: AppTokens.textSecondarySize,
                           color: colorScheme.onSurfaceVariant.withValues(
                             alpha: 0.6,
                           ),

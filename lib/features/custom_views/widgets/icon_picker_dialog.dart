@@ -68,18 +68,18 @@ Future<String?> showCustomViewIconPicker(
               final isSelected = entry.key == currentIcon;
               return InkWell(
                 onTap: () => Navigator.of(dialogContext).pop(entry.key),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppTokens.radiusCard),
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
+                  duration: AppTokens.motionFast,
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? Color(color).withValues(alpha: 0.15)
+                        ? Color(color).withValues(alpha: AppTokens.alphaTintStrong)
                         : (isDark
                               ? theme.colorScheme.surfaceContainerHigh
                               : theme.colorScheme.surfaceContainerLowest),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppTokens.radiusCard),
                     border: Border.all(
                       color: isSelected
                           ? Color(color)
@@ -91,7 +91,7 @@ Future<String?> showCustomViewIconPicker(
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: Color(color).withValues(alpha: 0.25),
+                              color: Color(color).withValues(alpha: AppTokens.alphaBorderEmphasis),
                               blurRadius: 6,
                               offset: const Offset(0, 2),
                             ),

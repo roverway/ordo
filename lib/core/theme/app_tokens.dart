@@ -81,8 +81,26 @@ abstract final class AppTokens {
   /// 淡罩染：选中态低饱和染底、数量徽章底（对应既往 10–12% 档）。
   static const double alphaTintSoft = 0.10;
 
+  /// 轻描边 / 分隔线。
+  static const double alphaBorderSubtle = 0.12;
+
   /// 强罩染：强选中/拖拽悬停等最高强调档（对应既往 15–16% 档）。
   static const double alphaTintStrong = 0.16;
+
+  /// 强描边：勾选框边框 / 强调态容器边框。
+  static const double alphaBorderEmphasis = 0.34;
+
+  /// 禁用态文本 / 次级图标。
+  static const double alphaContentDisabled = 0.38;
+
+  /// 完成态内容淡化 / 次级说明文字（符合 WCAG AAA 正文底线 >= 0.55）。
+  static const double alphaContentMuted = 0.55;
+
+  /// 模态遮罩（BottomSheet / Dialog 背景遮罩）。
+  static const double alphaScrim = 0.70;
+
+  /// 磨砂 / 近实遮罩。
+  static const double alphaOverlayHeavy = 0.88;
 
   /// Subtle border (light) — ~4.7% black.
   static const Color borderSubtleLight = Color(0x0C000000);
@@ -115,20 +133,32 @@ abstract final class AppTokens {
 
   // ── Border Radius ──
 
+  /// Micro badge / progress indicator radius (3dp).
+  static const double radiusMicro = 3;
+
+  /// Chip / tag badge radius (6dp).
+  static const double radiusChip = 6;
+
+  /// List row radius (8dp).
+  static const double radiusList = 8;
+
+  /// Item / secondary container radius (10dp).
+  static const double radiusItem = 10;
+
   /// Card / surface radius (refined modern 12dp).
   static const double radiusCard = 12;
 
-  /// Button radius.
+  /// Button radius (12dp).
   static const double radiusButton = 12;
 
-  /// Chip / tag badge radius.
-  static const double radiusChip = 6;
-
-  /// Dialog / bottom sheet radius.
+  /// Dialog radius (16dp).
   static const double radiusDialog = 16;
 
-  /// List row radius.
-  static const double radiusList = 8;
+  /// Bottom sheet top corner radius (22dp).
+  static const double radiusSheet = 22;
+
+  /// Pill / capsule radius (search button, filter pill, tag capsule).
+  static const double radiusPill = 999;
 
   /// Checkbox border radius (ModernCheckbox & theme).
   static const double checkboxRadius = 6.0;
@@ -138,6 +168,17 @@ abstract final class AppTokens {
     borderRadius: BorderRadius.all(Radius.circular(checkboxRadius)),
   );
 
+  /// Bottom sheet top rounded corners.
+  static const BorderRadius sheetTopBorderRadius = BorderRadius.only(
+    topLeft: Radius.circular(radiusSheet),
+    topRight: Radius.circular(radiusSheet),
+  );
+
+  /// Bottom sheet grabber dimensions.
+  static const double sheetGrabberWidth = 36;
+  static const double sheetGrabberHeight = 4;
+  static const double sheetGrabberRadius = 2;
+
   /// ModernCheckbox disabled states colors
   static const Color checkboxDisabledFgLight = Color(0xFF9CA3AF);
   static const Color checkboxDisabledFgDark = Color(0xFF6B7280);
@@ -146,8 +187,43 @@ abstract final class AppTokens {
   static const Color checkboxDisabledSurfaceLight = Color(0xFFF3F4F6);
   static const Color checkboxDisabledSurfaceDark = Color(0xFF1E2026);
 
+  // ── Status Semantic Colors (状态提示与快照触发色) ──
+  static const Color colorSuccess = Color(0xFF10B981);
+  static const Color colorSuccessText = Color(0xFF059669);
+  static const Color colorDanger = Color(0xFFEF4444);
+  static const Color colorDangerText = Color(0xFFDC2626);
+  static const Color colorWarning = Color(0xFFF59E0B);
+  static const Color colorInfo = Color(0xFF3B82F6);
+
+  // ── Neutral Gray Scale (弹层与表单中性灰阶) ──
+  /// Muted / secondary text neutral gray.
+  static const Color textMutedLight = Color(0xFF6B7280);
+  static const Color textMutedDark = Color(0xFF9CA3AF);
+
+  /// Primary text / high-contrast neutral.
+  static const Color textPrimaryLight = Color(0xFF111827);
+  static const Color textPrimaryDark = Color(0xFFF3F4F6);
+
+  /// Subtle container / segmented pill surface.
+  static const Color surfaceSubtleLight = Color(0xFFF1F5F9);
+  static const Color surfaceSubtleDark = Color(0xFF262830);
+
+  /// Surface neutral background.
+  static const Color surfaceLight = Color(0xFFF8FAFC);
+  static const Color surfaceDark = Color(0xFF18191D);
+
+  /// Card / dialog solid background neutral.
+  static const Color surfaceCardLight = Colors.white;
+  static const Color surfaceDialogLight = Colors.white;
+  static const Color surfaceDialogDark = Color(0xFF1E1E24);
+
+  /// Border subtle neutral.
+  static const Color borderSubtleNeutralLight = Color(0xFFE2E8F0);
+  static const Color borderSubtleNeutralDark = Color(0xFF374151);
+
   // ── Spacing ──
 
+  static const double spaceMicro = 2;
   static const double spaceXxs = 4;
   static const double spaceXs = 8;
   static const double spaceSm = 12;
@@ -177,9 +253,17 @@ abstract final class AppTokens {
   static const double textTitleSize = 18;
   static const FontWeight textTitleWeight = FontWeight.w600;
 
+  /// Subtitle: 16 / w600 (收编 16.5).
+  static const double textSubtitleSize = 16;
+  static const FontWeight textSubtitleWeight = FontWeight.w600;
+
   /// Body: 15 / w400.
   static const double textBodySize = 15;
   static const FontWeight textBodyWeight = FontWeight.w400;
+
+  /// Secondary body: 14 / w400 (收编 14.5).
+  static const double textSecondarySize = 14;
+  static const FontWeight textSecondaryWeight = FontWeight.w400;
 
   /// Footnote: 13 / w400（正文与说明之间的辅助说明层，如抽屉组头说明）。
   static const double textFootnoteSize = 13;
@@ -194,9 +278,35 @@ abstract final class AppTokens {
   static const double textMicroSize = 11;
   static const FontWeight textMicroWeight = FontWeight.w500;
 
+  /// Nano: 10 / w500 (收编 10.5).
+  static const double textNanoSize = 10;
+  static const FontWeight textNanoWeight = FontWeight.w500;
+
+  /// Calendar cell micro: 9 (日历月视图数字与农历专用特例，收编 8.5/9.0/9.5).
+  static const double textCalendarCellMicro = 9;
+
   // 行高（倍数）：hero 紧凑有力，正文宽松以获得呼吸感。
   static const double textBodyHeight = 1.45;
   static const double textCaptionHeight = 1.35;
+
+  /// Section / eyebrow label: 分组头、大写小标题（11 / w600 / ls 0.8）。
+  static const double textSectionLabelSize = 11;
+  static const FontWeight textSectionLabelWeight = FontWeight.w600;
+  static const double textSectionLabelLetterSpacing = 0.8;
+
+  /// 等宽字体栈（用户手册代码、路径示例专用，带完整 CJK 跨平台回退）。
+  static const String fontMonoFamily = 'ui-monospace';
+  static const List<String> fontMonoFallback = [
+    'SF Mono',
+    'Roboto Mono',
+    'JetBrains Mono',
+    'Menlo',
+    'Consolas',
+    'PingFang SC',
+    'Microsoft YaHei UI',
+    'Noto Sans CJK SC',
+    'monospace',
+  ];
 
   /// 表格数字（tabular figures）：日期、计数、进度等数字纵向对齐用，
   /// 配 `TextStyle(fontFeatures: AppTokens.fontTabular)` 使用。
@@ -218,6 +328,9 @@ abstract final class AppTokens {
 
   /// Staggered list entrance delay per item.
   static const Duration motionStaggerDelay = Duration(milliseconds: 50);
+
+  /// 搜索输入防抖时长（300ms）。
+  static const Duration searchDebounceDuration = Duration(milliseconds: 300);
 
   /// 列表错落入场上限：超过该数量的列表不再错落（长列表直接平铺，
   /// 控制总错落时长 ≤ 15×50ms + 250ms ≈ 1s，docs/63-motion-polish.md §5 B）。

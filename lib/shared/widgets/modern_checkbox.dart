@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_tokens.dart';
@@ -43,7 +44,7 @@ class _ModernCheckboxState extends State<ModernCheckbox>
     super.initState();
     _checkAnim = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 200),
+      duration: AppTokens.motionFast,
       value: widget.checked ? 1.0 : 0.0,
     );
     _progress = CurvedAnimation(parent: _checkAnim, curve: Curves.easeInOut);
@@ -143,7 +144,10 @@ class _ModernCheckboxState extends State<ModernCheckbox>
       checked: widget.checked,
       button: true,
       child: InkWell(
-        onTap: () => widget.onChanged?.call(!widget.checked),
+        onTap: () {
+          HapticFeedback.lightImpact();
+          widget.onChanged?.call(!widget.checked);
+        },
         borderRadius: BorderRadius.circular(widget.borderRadius + 2),
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
