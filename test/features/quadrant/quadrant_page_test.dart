@@ -49,6 +49,7 @@ Task _createMockTask({
   String projectId = inboxProjectId,
   String? parentId,
   TaskPriority priority = TaskPriority.none,
+  TaskStatus status = TaskStatus.todo,
   int? endAt,
 }) {
   final now = DateTime.now().millisecondsSinceEpoch;
@@ -59,7 +60,7 @@ Task _createMockTask({
     title: title,
     description: '',
     notes: '',
-    status: TaskStatus.todo,
+    status: status,
     sortOrder: 0,
     priority: priority,
     endAt: endAt,
@@ -202,6 +203,12 @@ void main() {
         priority: TaskPriority.high,
       ),
       _createMockTask(
+        id: 't-a-done',
+        title: '清单A已完成任务',
+        projectId: 'proj-a',
+        status: TaskStatus.done,
+      ),
+      _createMockTask(
         id: 't-b',
         title: '清单B的任务',
         projectId: 'proj-b',
@@ -237,6 +244,13 @@ void main() {
     expect(find.text('清单A的任务'), findsOneWidget);
     expect(find.text('清单B的任务'), findsOneWidget);
 
+    // 初始未筛选时：进度环统计全量任务 (3个任务，1个已完成)
+    final ringFinder = find.byType(HeroProgressRing);
+    expect(ringFinder, findsOneWidget);
+    var ring = tester.widget<HeroProgressRing>(ringFinder);
+    expect(ring.completed, 1);
+    expect(ring.total, 3);
+
     // 点击左侧项目范围筛选胶囊
     final filterBtn = find.text('全部项目');
     expect(filterBtn, findsOneWidget);
@@ -263,6 +277,11 @@ void main() {
     // 筛选后仅清单A的任务可见
     expect(find.text('清单A的任务'), findsOneWidget);
     expect(find.text('清单B的任务'), findsNothing);
+
+    // 进度环动态随当前所选范围实时变化 (清单A仅2个任务，1个已完成)
+    ring = tester.widget<HeroProgressRing>(ringFinder);
+    expect(ring.completed, 1);
+    expect(ring.total, 2);
   });
 
   testWidgets('点击象限聚焦按钮可打开 QuadrantFocusSheet 沉浸视图', (tester) async {

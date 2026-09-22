@@ -414,6 +414,92 @@ void main() {
         );
       },
     );
+
+    test(
+      'totalAllCount and completedCount dynamically match selectedProjectIds (folders/lists)',
+      () {
+        final t1 = createTask(
+          id: '1',
+          priority: TaskPriority.high,
+          endAt: endOfTodayMs,
+          projectId: 'projectA',
+        );
+        final t2Done = Task(
+          id: '2',
+          projectId: 'projectA',
+          parentId: null,
+          title: 'Done A',
+          description: '',
+          notes: '',
+          status: TaskStatus.done,
+          priority: TaskPriority.high,
+          endAt: endOfTodayMs,
+          sortOrder: 0,
+          createdAt: now.millisecondsSinceEpoch,
+          updatedAt: now.millisecondsSinceEpoch,
+          deleted: 0,
+        );
+        final t3 = createTask(
+          id: '3',
+          priority: TaskPriority.low,
+          endAt: null,
+          projectId: 'projectB',
+        );
+        final t4Done = Task(
+          id: '4',
+          projectId: 'projectB',
+          parentId: null,
+          title: 'Done B',
+          description: '',
+          notes: '',
+          status: TaskStatus.done,
+          priority: TaskPriority.low,
+          endAt: null,
+          sortOrder: 0,
+          createdAt: now.millisecondsSinceEpoch,
+          updatedAt: now.millisecondsSinceEpoch,
+          deleted: 0,
+        );
+
+        final allTasks = [t1, t2Done, t3, t4Done];
+
+        // 1. 无筛选（全部项目）：包含全量 4 个任务，2 个已完成
+        final dataAll = buildQuadrantData(
+          tasks: allTasks,
+          now: now,
+          filter: const QuadrantFilterState(),
+          taskTagsMap: {},
+          projects: [],
+        );
+        expect(dataAll.totalAllCount, 4);
+        expect(dataAll.completedCount, 2);
+        expect(dataAll.activeTotalCount, 2);
+
+        // 2. 筛选 projectA：仅统计 projectA 的 2 个任务，1 个已完成
+        final dataA = buildQuadrantData(
+          tasks: allTasks,
+          now: now,
+          filter: const QuadrantFilterState(selectedProjectIds: {'projectA'}),
+          taskTagsMap: {},
+          projects: [],
+        );
+        expect(dataA.totalAllCount, 2);
+        expect(dataA.completedCount, 1);
+        expect(dataA.activeTotalCount, 1);
+
+        // 3. 筛选 projectB：仅统计 projectB 的 2 个任务，1 个已完成
+        final dataB = buildQuadrantData(
+          tasks: allTasks,
+          now: now,
+          filter: const QuadrantFilterState(selectedProjectIds: {'projectB'}),
+          taskTagsMap: {},
+          projects: [],
+        );
+        expect(dataB.totalAllCount, 2);
+        expect(dataB.completedCount, 1);
+        expect(dataB.activeTotalCount, 1);
+      },
+    );
   });
 
   group('QuadrantFilterNotifier tests', () {

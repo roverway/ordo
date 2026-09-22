@@ -149,7 +149,7 @@ class QuadrantListView extends ConsumerWidget {
           _buildPillItem(
             context: context,
             label: l10n.quadrantTabAll,
-            count: data.totalAllCount,
+            count: data.activeTotalCount,
             isSelected: selectedTab == null,
             onTap: () => onSelect(null),
           ),

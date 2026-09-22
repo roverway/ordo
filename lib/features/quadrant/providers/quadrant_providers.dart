@@ -141,21 +141,24 @@ QuadrantData buildQuadrantData({
     now.day,
   ).millisecondsSinceEpoch;
 
-  int completedCount = 0;
+  int totalScopedCount = 0;
+  int completedScopedCount = 0;
   for (final task in tasks) {
-    if (task.status == TaskStatus.done) completedCount++;
-
-    // 清单范围过滤
+    // 清单/文件夹范围过滤：仅统计与纳入当前选定作用域的任务
     if (!filter.matches(task)) continue;
 
     final directChildren = childrenIndex[task.id] ?? const <Task>[];
     final effectiveStatus = derivedStatus(task, directChildren, childrenIndex);
 
-    // 取消的任务不纳入四象限
+    // 取消的任务不纳入四象限统计与展示
     if (effectiveStatus == TaskStatus.cancelled) continue;
 
-    // 默认不展示已完成任务
-    if (!filter.showCompleted && effectiveStatus == TaskStatus.done) continue;
+    totalScopedCount++;
+    if (effectiveStatus == TaskStatus.done) {
+      completedScopedCount++;
+      // 默认不展示已完成任务
+      if (!filter.showCompleted) continue;
+    }
 
     final tags = taskTagsMap[task.id] ?? const [];
     final project = projectsMap[task.projectId];
@@ -242,8 +245,8 @@ QuadrantData buildQuadrantData({
     q2NotUrgentImportant: q2,
     q3UrgentUnimportant: q3,
     q4NotUrgentUnimportant: q4,
-    totalAllCount: tasks.length,
-    completedCount: completedCount,
+    totalAllCount: totalScopedCount,
+    completedCount: completedScopedCount,
   );
 }
 
