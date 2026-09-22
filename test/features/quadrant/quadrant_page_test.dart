@@ -237,8 +237,8 @@ void main() {
     expect(find.text('清单A的任务'), findsOneWidget);
     expect(find.text('清单B的任务'), findsOneWidget);
 
-    // 点击右上角筛选按钮
-    final filterBtn = find.byIcon(Icons.tune_rounded);
+    // 点击左侧项目范围筛选胶囊
+    final filterBtn = find.text('全部项目');
     expect(filterBtn, findsOneWidget);
     await tester.tap(filterBtn);
     await tester.pumpAndSettle();

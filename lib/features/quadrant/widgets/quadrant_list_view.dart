@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -327,21 +328,19 @@ class QuadrantListView extends ConsumerWidget {
           )
         : (isDark ? colorScheme.surface : Colors.white);
 
-    final borderColor = isDark
-        ? AppTokens.borderSubtleDark.withValues(
-            alpha: AppTokens.alphaBorderSubtle,
+    final defaultBorderColor = isDark
+        ? Colors.white.withValues(
+            alpha: hasWallpaper
+                ? AppTokens.alphaTintStrong
+                : AppTokens.alphaTintFaint,
           )
-        : (hasWallpaper
-              ? Colors.white.withValues(alpha: AppTokens.alphaBorderSubtle)
-              : AppTokens.borderSubtleNeutralLight);
+        : Colors.black.withValues(
+            alpha: hasWallpaper
+                ? AppTokens.alphaTintSoft
+                : AppTokens.alphaTintFaint,
+          );
 
-    final dividerColor = isDark
-        ? AppTokens.borderSubtleDark.withValues(
-            alpha: AppTokens.alphaBorderSubtle,
-          )
-        : (hasWallpaper
-              ? Colors.white.withValues(alpha: AppTokens.alphaBorderSubtle)
-              : AppTokens.borderSubtleNeutralLight);
+    final dividerColor = defaultBorderColor;
 
     return DragTarget<QuadrantTaskView>(
       onWillAcceptWithDetails: (details) => details.data.quadrant != type,
@@ -352,24 +351,10 @@ class QuadrantListView extends ConsumerWidget {
       },
       builder: (context, candidateData, rejectedData) {
         final isHovered = candidateData.isNotEmpty;
+        final effectiveBorderColor = isHovered ? accentColor : defaultBorderColor;
+        final effectiveBorderWidth = isHovered ? 1.5 : 1.0;
 
-        return Container(
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-            border: Border.all(
-              color: isHovered
-                  ? accentColor
-                  : (hasWallpaper
-                        ? borderColor.withValues(
-                            alpha: AppTokens.alphaBorderEmphasis,
-                          )
-                        : borderColor),
-              width: isHovered ? 1.5 : 0.6,
-            ),
-          ),
-          child: Column(
+        final groupContent = Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // 头部栏
@@ -491,7 +476,68 @@ class QuadrantListView extends ConsumerWidget {
                   ),
                 ),
             ],
+        );
+
+        if (hasWallpaper) {
+          return Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(
+                    alpha: isDark
+                        ? AppTokens.alphaBorderEmphasis
+                        : AppTokens.alphaTintFaint,
+                  ),
+                  blurRadius: 12,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(
+                  sigmaX: AppTokens.blurFrostedGlass,
+                  sigmaY: AppTokens.blurFrostedGlass,
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: cardColor,
+                    borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+                    border: Border.all(
+                      color: effectiveBorderColor,
+                      width: effectiveBorderWidth,
+                    ),
+                  ),
+                  child: groupContent,
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Container(
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+            border: Border.all(
+              color: effectiveBorderColor,
+              width: effectiveBorderWidth,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(
+                  alpha: isDark
+                      ? AppTokens.alphaBorderEmphasis
+                      : AppTokens.alphaTintFaint,
+                ),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
+          child: groupContent,
         );
       },
     );
@@ -500,17 +546,13 @@ class QuadrantListView extends ConsumerWidget {
   void _openCreateTask(BuildContext context, WidgetRef ref, QuadrantType type) {
     final now = DateTime.now();
     final filter = ref.read(quadrantFilterProvider);
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => TaskCreateSheet(
-        initialPriority: type.initialPriority,
-        initialEndAt: type.initialEndAt(now),
-        projectId: filter.selectedProjectIds?.length == 1
-            ? filter.selectedProjectIds!.first
-            : null,
-      ),
+    TaskCreateSheet.show(
+      context,
+      initialPriority: type.initialPriority,
+      initialEndAt: type.initialEndAt(now),
+      projectId: filter.selectedProjectIds?.length == 1
+          ? filter.selectedProjectIds!.first
+          : null,
     );
   }
 }

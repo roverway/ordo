@@ -2856,7 +2856,7 @@ abstract class AppLocalizations {
   /// Quadrant 4 title
   ///
   /// In zh, this message translates to:
-  /// **'不重要不紧急'**
+  /// **'不急不重要'**
   String get quadrantQ4Title;
 
   /// Quadrant 4 subtitle

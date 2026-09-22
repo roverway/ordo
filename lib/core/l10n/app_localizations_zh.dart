@@ -1486,7 +1486,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get quadrantQ3Subtitle => '授权做 · 琐事与临时干扰';
 
   @override
-  String get quadrantQ4Title => '不重要不紧急';
+  String get quadrantQ4Title => '不急不重要';
 
   @override
   String get quadrantQ4Subtitle => '尽量少做 · 闲散消遣与琐碎';

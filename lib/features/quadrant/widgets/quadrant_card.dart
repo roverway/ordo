@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,11 +13,12 @@ import 'quadrant_task_tile.dart';
 
 /// 2x2 网格中的单个象限卡片组件。
 ///
-/// 遵循极简高信噪比规范：
-/// 1. 紧凑头部：高度 38dp，左侧语义色块条 + 粗体标题 + 语义色数字圆角徽标 + 右侧聚焦与新增按钮；
+/// 遵循极简高信噪比规范与设置页面卡片视觉规范：
+/// 1. 紧凑头部：高度 38dp，左侧语义色块条 + 粗体象限完整名称 + 语义色数字圆角徽标 + 右侧微型聚焦与新增按钮；
 /// 2. 去卡片化任务行：任务项不使用独立实线外边框与卡片背景，仅由发丝级分割线分隔；
-/// 3. 支持壁纸与深浅色模式：在有壁纸时启用半透明毛玻璃材质底色与微边框；
-/// 4. 跨象限拖拽交互：作为 [DragTarget] 接收其他象限拖入的任务并自动更新属性。
+/// 3. 设置页面卡片样式：支持圆角、外阴影与自适应壁纸毛玻璃（BackdropFilter）；
+/// 4. 跨象限拖拽交互：作为 [DragTarget] 接收其他象限拖入的任务并自动更新属性；
+/// 5. 点击新增：直接调起全局 [TaskCreateSheet.show] 并预填优先级与截止日期。
 class QuadrantCard extends ConsumerWidget {
   const QuadrantCard({
     super.key,
@@ -47,19 +50,21 @@ class QuadrantCard extends ConsumerWidget {
                 ? AppTokens.alphaCardFrostedDark
                 : AppTokens.alphaCardFrostedLight,
           )
-        : (isDark ? colorScheme.surface : Colors.white);
+        : baseCardColor;
 
     final defaultBorderColor = isDark
-        ? AppTokens.borderSubtleDark
-        : AppTokens.borderSubtleNeutralLight;
-
-    final dividerColor = isDark
-        ? AppTokens.borderSubtleDark.withValues(
-            alpha: AppTokens.alphaBorderSubtle,
+        ? Colors.white.withValues(
+            alpha: hasWallpaper
+                ? AppTokens.alphaTintStrong
+                : AppTokens.alphaTintFaint,
           )
-        : (hasWallpaper
-              ? Colors.white.withValues(alpha: AppTokens.alphaBorderSubtle)
-              : AppTokens.borderSubtleNeutralLight);
+        : Colors.black.withValues(
+            alpha: hasWallpaper
+                ? AppTokens.alphaTintSoft
+                : AppTokens.alphaTintFaint,
+          );
+
+    final dividerColor = defaultBorderColor;
 
     return DragTarget<QuadrantTaskView>(
       onWillAcceptWithDetails: (details) =>
@@ -71,62 +76,107 @@ class QuadrantCard extends ConsumerWidget {
       },
       builder: (context, candidateData, rejectedData) {
         final isHovered = candidateData.isNotEmpty;
+        final effectiveBorderColor = isHovered ? accentColor : defaultBorderColor;
+        final effectiveBorderWidth = isHovered ? 1.5 : 1.0;
 
-        return AnimatedContainer(
-          duration: AppTokens.motionFast,
-          curve: Curves.easeOutCubic,
+        final cardContent = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 紧凑卡片头部 (38dp)
+            _buildCompactHeader(
+              context: context,
+              ref: ref,
+              colorScheme: colorScheme,
+              l10n: l10n,
+              accentColor: accentColor,
+              filter: filter,
+            ),
+
+            Divider(height: 0.5, thickness: 0.5, color: dividerColor),
+
+            // 任务列表或精炼空状态
+            Expanded(
+              child: tasks.isEmpty
+                  ? _buildEmptyPlaceholder(
+                      context: context,
+                      ref: ref,
+                      colorScheme: colorScheme,
+                      l10n: l10n,
+                      accentColor: accentColor,
+                      filter: filter,
+                    )
+                  : ListView.builder(
+                      padding: EdgeInsets.zero,
+                      itemCount: tasks.length,
+                      itemBuilder: (context, index) => QuadrantTaskTile(
+                        taskView: tasks[index],
+                        showDivider: index < tasks.length - 1,
+                      ),
+                    ),
+            ),
+          ],
+        );
+
+        if (hasWallpaper) {
+          return Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(
+                    alpha: isDark
+                        ? AppTokens.alphaBorderEmphasis
+                        : AppTokens.alphaTintFaint,
+                  ),
+                  blurRadius: 12,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(
+                  sigmaX: AppTokens.blurFrostedGlass,
+                  sigmaY: AppTokens.blurFrostedGlass,
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: cardColor,
+                    borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+                    border: Border.all(
+                      color: effectiveBorderColor,
+                      width: effectiveBorderWidth,
+                    ),
+                  ),
+                  child: cardContent,
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Container(
           decoration: BoxDecoration(
             color: cardColor,
-            borderRadius: BorderRadius.circular(AppTokens.radiusDialog), // 16dp
+            borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
             border: Border.all(
-              color: isHovered
-                  ? accentColor
-                  : (hasWallpaper
-                        ? defaultBorderColor.withValues(
-                            alpha: AppTokens.alphaBorderEmphasis,
-                          )
-                        : defaultBorderColor),
-              width: isHovered ? 1.5 : 0.6,
+              color: effectiveBorderColor,
+              width: effectiveBorderWidth,
             ),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // 紧凑卡片头部 (38dp)
-              _buildCompactHeader(
-                context: context,
-                ref: ref,
-                colorScheme: colorScheme,
-                l10n: l10n,
-                accentColor: accentColor,
-                filter: filter,
-              ),
-
-              Divider(height: 0.5, thickness: 0.5, color: dividerColor),
-
-              // 任务列表或精炼空状态
-              Expanded(
-                child: tasks.isEmpty
-                    ? _buildEmptyPlaceholder(
-                        context: context,
-                        ref: ref,
-                        colorScheme: colorScheme,
-                        l10n: l10n,
-                        accentColor: accentColor,
-                        filter: filter,
-                      )
-                    : ListView.builder(
-                        padding: EdgeInsets.zero,
-                        itemCount: tasks.length,
-                        itemBuilder: (context, index) => QuadrantTaskTile(
-                          taskView: tasks[index],
-                          showDivider: index < tasks.length - 1,
-                        ),
-                      ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(
+                  alpha: isDark
+                      ? AppTokens.alphaBorderEmphasis
+                      : AppTokens.alphaTintFaint,
+                ),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
+          child: cardContent,
         );
       },
     );
@@ -167,16 +217,13 @@ class QuadrantCard extends ConsumerWidget {
             ),
             const SizedBox(width: AppTokens.spaceXs),
 
-            // 象限标题 (12sp 粗体)
-            Flexible(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: AppTokens.textCaptionSize,
-                  fontWeight: FontWeight.w700,
-                  color: colorScheme.onSurface,
-                ),
-                overflow: TextOverflow.ellipsis,
+            // 象限名称：完整展示
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: AppTokens.textMicroSize,
+                fontWeight: FontWeight.w700,
+                color: colorScheme.onSurface,
               ),
             ),
             const SizedBox(width: AppTokens.spaceXxs),
@@ -194,7 +241,7 @@ class QuadrantCard extends ConsumerWidget {
               child: Text(
                 '${tasks.length}',
                 style: TextStyle(
-                  fontSize: AppTokens.textMicroSize,
+                  fontSize: AppTokens.textNanoSize,
                   fontWeight: FontWeight.w700,
                   fontFeatures: AppTokens.fontTabular,
                   color: badgeText,
@@ -204,25 +251,49 @@ class QuadrantCard extends ConsumerWidget {
 
             const Spacer(),
 
-            // 全屏聚焦按钮 ⛶
-            if (onFocus != null)
-              IconButton(
-                icon: const Icon(Icons.fullscreen_outlined, size: 18),
+            // 缩小在右侧的聚焦与添加按钮 (22x22 紧凑按钮)
+            if (onFocus != null) ...[
+              _buildMiniHeaderButton(
                 tooltip: l10n.quadrantFocusMode,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                onPressed: onFocus,
+                icon: Icons.fullscreen_outlined,
+                iconSize: 15,
+                color: colorScheme.onSurfaceVariant,
+                onTap: onFocus!,
               ),
+              const SizedBox(width: AppTokens.spaceMicro),
+            ],
 
-            // 快速新增按钮 +
-            IconButton(
-              icon: const Icon(Icons.add_rounded, size: 18),
+            _buildMiniHeaderButton(
               tooltip: l10n.quadrantAddTask,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-              onPressed: () => _openCreateTask(context, filter),
+              icon: Icons.add_rounded,
+              iconSize: 16,
+              color: colorScheme.onSurfaceVariant,
+              onTap: () => _openCreateTask(context, filter),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniHeaderButton({
+    required String tooltip,
+    required IconData icon,
+    required double iconSize,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppTokens.radiusItem),
+        onTap: onTap,
+        child: SizedBox(
+          width: 22,
+          height: 22,
+          child: Center(
+            child: Icon(icon, size: iconSize, color: color),
+          ),
         ),
       ),
     );
@@ -251,7 +322,7 @@ class QuadrantCard extends ConsumerWidget {
               height: 32,
               decoration: BoxDecoration(
                 color: accentColor.withValues(
-                  alpha: AppTokens.alphaTintSoft * 0.7,
+                  alpha: AppTokens.alphaTintFaint,
                 ),
                 shape: BoxShape.circle,
               ),
@@ -259,9 +330,7 @@ class QuadrantCard extends ConsumerWidget {
                 child: Icon(
                   Icons.inbox_outlined,
                   size: 16,
-                  color: accentColor.withValues(
-                    alpha: AppTokens.alphaBorderEmphasis,
-                  ),
+                  color: accentColor,
                 ),
               ),
             ),
@@ -322,17 +391,13 @@ class QuadrantCard extends ConsumerWidget {
 
   void _openCreateTask(BuildContext context, QuadrantFilterState filter) {
     final now = DateTime.now();
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => TaskCreateSheet(
-        initialPriority: quadrantType.initialPriority,
-        initialEndAt: quadrantType.initialEndAt(now),
-        projectId: filter.selectedProjectIds?.length == 1
-            ? filter.selectedProjectIds!.first
-            : null,
-      ),
+    TaskCreateSheet.show(
+      context,
+      initialPriority: quadrantType.initialPriority,
+      initialEndAt: quadrantType.initialEndAt(now),
+      projectId: filter.selectedProjectIds?.length == 1
+          ? filter.selectedProjectIds!.first
+          : null,
     );
   }
 }

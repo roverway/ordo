@@ -932,7 +932,7 @@
   "@quadrantQ3Subtitle": {
     "description": "Quadrant 3 subtitle"
   },
-  "quadrantQ4Title": "不重要不紧急",
+  "quadrantQ4Title": "不急不重要",
   "@quadrantQ4Title": {
     "description": "Quadrant 4 title"
   },
