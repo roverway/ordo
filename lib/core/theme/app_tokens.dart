@@ -48,6 +48,11 @@ abstract final class AppTokens {
   /// Overview signature accent — emerald green.
   static const Color colorNavOverview = Color(0xFF10B981);
 
+  /// Four quadrants signature accent — vivid sky blue / cyan.
+  static const Color colorNavQuadrant = Color(0xFF0284C7);
+  /// Q4 quadrant accent — slate neutral gray.
+  static const Color colorQuadrantQ4 = Color(0xFF64748B);
+
   /// Page surface (light) — pure crisp cool off-white.
   /// (docs/66-ui-visual-polish-proposal.md)
   static const Color surfacePageLight = Color(0xFFF8F9FA);
