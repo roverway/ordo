@@ -6,7 +6,6 @@ import 'package:todo/core/db/repositories/todo_repository.dart';
 import 'package:todo/core/db/tables.dart';
 import 'package:todo/core/l10n/app_localizations.dart';
 import 'package:todo/features/projects/project_providers.dart';
-import 'package:todo/features/settings/settings_providers.dart';
 import 'package:todo/features/quadrant/models/quadrant_models.dart';
 import 'package:todo/features/quadrant/presentation/quadrant_page.dart';
 import 'package:todo/features/quadrant/providers/quadrant_providers.dart';
@@ -14,6 +13,7 @@ import 'package:todo/features/quadrant/widgets/quadrant_card.dart';
 import 'package:todo/features/quadrant/widgets/quadrant_focus_sheet.dart';
 import 'package:todo/features/quadrant/widgets/quadrant_grid.dart';
 import 'package:todo/features/quadrant/widgets/quadrant_scope_filter_sheet.dart';
+import 'package:todo/features/settings/settings_providers.dart';
 
 import '../../helpers/db_test_setup.dart';
 
@@ -33,6 +33,32 @@ Widget _buildTestApp({
       locale: const Locale('zh'),
       home: child,
     ),
+  );
+}
+
+Task _createMockTask({
+  required String id,
+  required String title,
+  String projectId = inboxProjectId,
+  String? parentId,
+  TaskPriority priority = TaskPriority.none,
+  int? endAt,
+}) {
+  final now = DateTime.now().millisecondsSinceEpoch;
+  return Task(
+    id: id,
+    projectId: projectId,
+    parentId: parentId,
+    title: title,
+    description: '',
+    notes: '',
+    status: TaskStatus.todo,
+    sortOrder: 0,
+    priority: priority,
+    endAt: endAt,
+    createdAt: now,
+    updatedAt: now,
+    deleted: 0,
   );
 }
 
@@ -80,23 +106,41 @@ void main() {
       0,
     ).millisecondsSinceEpoch;
 
-    // 预置 4 个不同象限的任务
-    await repo.createTask(
-      title: '紧急重要任务',
-      priority: TaskPriority.high,
-      endAt: todayEnd,
+    final tasks = [
+      _createMockTask(
+        id: 't1',
+        title: '紧急重要任务',
+        priority: TaskPriority.high,
+        endAt: todayEnd,
+      ),
+      _createMockTask(id: 't2', title: '重要不紧急任务', priority: TaskPriority.high),
+      _createMockTask(
+        id: 't3',
+        title: '紧急不重要任务',
+        priority: TaskPriority.low,
+        endAt: todayEnd,
+      ),
+      _createMockTask(id: 't4', title: '不重要不紧急任务', priority: TaskPriority.none),
+    ];
+
+    final defaultQuadrantData = buildQuadrantData(
+      tasks: tasks,
+      now: now,
+      filter: const QuadrantFilterState(),
+      taskTagsMap: const {},
+      projects: const [],
     );
-    await repo.createTask(title: '重要不紧急任务', priority: TaskPriority.high);
-    await repo.createTask(
-      title: '紧急不重要任务',
-      priority: TaskPriority.low,
-      endAt: todayEnd,
-    );
-    await repo.createTask(title: '不重要不紧急任务', priority: TaskPriority.none);
 
     await tester.pumpWidget(
       _buildTestApp(
-        overrides: [todoRepositoryProvider.overrideWithValue(repo)],
+        overrides: [
+          todoRepositoryProvider.overrideWithValue(repo),
+          quadrantDataProvider.overrideWith(
+            (ref) => Stream.value(defaultQuadrantData),
+          ),
+          projectsStreamProvider.overrideWithValue(const AsyncData([])),
+          foldersStreamProvider.overrideWithValue(const AsyncData([])),
+        ],
         child: const QuadrantPage(),
       ),
     );
@@ -128,46 +172,61 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
-    // 插入测试清单
-    await db
-        .into(db.projects)
-        .insert(
-          ProjectsCompanion.insert(
-            id: 'proj-a',
-            name: '清单A',
-            color: 0xFF2563EB,
-            sortOrder: 1,
-            createdAt: 0,
-            updatedAt: 0,
-          ),
-        );
-    await db
-        .into(db.projects)
-        .insert(
-          ProjectsCompanion.insert(
-            id: 'proj-b',
-            name: '清单B',
-            color: 0xFF10B981,
-            sortOrder: 2,
-            createdAt: 0,
-            updatedAt: 0,
-          ),
-        );
+    final projA = Project(
+      id: 'proj-a',
+      name: '清单A',
+      color: 0xFF2563EB,
+      description: '',
+      sortOrder: 1,
+      createdAt: 0,
+      updatedAt: 0,
+      deleted: 0,
+    );
+    final projB = Project(
+      id: 'proj-b',
+      name: '清单B',
+      color: 0xFF10B981,
+      description: '',
+      sortOrder: 2,
+      createdAt: 0,
+      updatedAt: 0,
+      deleted: 0,
+    );
 
-    await repo.createTask(
-      title: '清单A的任务',
-      projectId: 'proj-a',
-      priority: TaskPriority.high,
-    );
-    await repo.createTask(
-      title: '清单B的任务',
-      projectId: 'proj-b',
-      priority: TaskPriority.high,
-    );
+    final tasks = [
+      _createMockTask(
+        id: 't-a',
+        title: '清单A的任务',
+        projectId: 'proj-a',
+        priority: TaskPriority.high,
+      ),
+      _createMockTask(
+        id: 't-b',
+        title: '清单B的任务',
+        projectId: 'proj-b',
+        priority: TaskPriority.high,
+      ),
+    ];
 
     await tester.pumpWidget(
       _buildTestApp(
-        overrides: [todoRepositoryProvider.overrideWithValue(repo)],
+        overrides: [
+          todoRepositoryProvider.overrideWithValue(repo),
+          projectsStreamProvider.overrideWithValue(AsyncData([projA, projB])),
+          foldersStreamProvider.overrideWithValue(const AsyncData([])),
+          quadrantDataProvider.overrideWith((ref) {
+            final filter = ref.watch(quadrantFilterProvider);
+            return Stream.value(
+              buildQuadrantData(
+                tasks: tasks,
+                now: DateTime.now(),
+                filter: filter,
+                taskTagsMap: const {},
+                projects: [projA, projB],
+              ),
+            );
+          }),
+        ],
         child: const QuadrantPage(),
       ),
     );
@@ -187,8 +246,13 @@ void main() {
     expect(find.byType(QuadrantScopeFilterSheet), findsOneWidget);
     expect(find.text('范围筛选'), findsOneWidget);
 
-    // 勾选仅「清单A」
-    await tester.tap(find.text('清单A'));
+    // 勾选弹层中的「清单A」
+    final sheetProjA = find.descendant(
+      of: find.byType(QuadrantScopeFilterSheet),
+      matching: find.text('清单A'),
+    );
+    expect(sheetProjA, findsOneWidget);
+    await tester.tap(sheetProjA);
     await tester.pumpAndSettle();
 
     // 点击完成关闭弹层
@@ -208,11 +272,32 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
-    await repo.createTask(title: '深度规划长远目标', priority: TaskPriority.high);
+    final tasks = [
+      _createMockTask(
+        id: 't-deep',
+        title: '深度规划长远目标',
+        priority: TaskPriority.high,
+      ),
+    ];
+
+    final defaultQuadrantData = buildQuadrantData(
+      tasks: tasks,
+      now: DateTime.now(),
+      filter: const QuadrantFilterState(),
+      taskTagsMap: const {},
+      projects: const [],
+    );
 
     await tester.pumpWidget(
       _buildTestApp(
-        overrides: [todoRepositoryProvider.overrideWithValue(repo)],
+        overrides: [
+          todoRepositoryProvider.overrideWithValue(repo),
+          quadrantDataProvider.overrideWith(
+            (ref) => Stream.value(defaultQuadrantData),
+          ),
+          projectsStreamProvider.overrideWithValue(const AsyncData([])),
+          foldersStreamProvider.overrideWithValue(const AsyncData([])),
+        ],
         child: const QuadrantPage(),
       ),
     );
@@ -226,9 +311,13 @@ void main() {
     await tester.tap(focusButtons.at(1)); // 第二个卡片 Q2
     await tester.pumpAndSettle();
 
-    // 聚焦弹层出现
+    // 聚焦弹层出现，且包含该任务
     expect(find.byType(QuadrantFocusSheet), findsOneWidget);
-    expect(find.text('深度规划长远目标'), findsOneWidget);
+    final focusTask = find.descendant(
+      of: find.byType(QuadrantFocusSheet),
+      matching: find.text('深度规划长远目标'),
+    );
+    expect(focusTask, findsOneWidget);
   });
 
   test('QuadrantActionController.moveTaskToQuadrant 严格保证只修改优先级和到期日', () async {
