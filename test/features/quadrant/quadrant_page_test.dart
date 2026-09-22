@@ -246,13 +246,13 @@ void main() {
     expect(find.byType(QuadrantScopeFilterSheet), findsOneWidget);
     expect(find.text('范围筛选'), findsOneWidget);
 
-    // 勾选弹层中的「清单A」
-    final sheetProjA = find.descendant(
+    // 反选弹层中的「清单B」，使得仅剩下「清单A」生效
+    final sheetProjB = find.descendant(
       of: find.byType(QuadrantScopeFilterSheet),
-      matching: find.text('清单A'),
+      matching: find.text('清单B'),
     );
-    expect(sheetProjA, findsOneWidget);
-    await tester.tap(sheetProjA);
+    expect(sheetProjB, findsOneWidget);
+    await tester.tap(sheetProjB);
     await tester.pumpAndSettle();
 
     // 点击完成关闭弹层
