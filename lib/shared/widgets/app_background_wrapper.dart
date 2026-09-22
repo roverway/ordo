@@ -141,13 +141,11 @@ class AppBackgroundWrapper extends ConsumerWidget {
 
     if (config.type == BackgroundType.custom && config.value != null) {
       final file = File(config.value!);
-      if (file.existsSync()) {
-        return Image.file(
-          file,
-          fit: fit,
-          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-        );
-      }
+      return Image.file(
+        file,
+        fit: fit,
+        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+      );
     }
 
     return null;
@@ -188,16 +186,11 @@ class WallpaperThumbnail extends StatelessWidget {
       );
     } else if (config.type == BackgroundType.custom && config.value != null) {
       final file = File(config.value!);
-      if (file.existsSync()) {
-        imageWidget = Image.file(
-          file,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) =>
-              _buildPlaceholder(isDark),
-        );
-      } else {
-        imageWidget = _buildPlaceholder(isDark);
-      }
+      imageWidget = Image.file(
+        file,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(isDark),
+      );
     } else {
       imageWidget = _buildPlaceholder(isDark);
     }

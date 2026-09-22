@@ -105,14 +105,10 @@ QuadrantData buildQuadrantData({
   final q3 = <QuadrantTaskView>[];
   final q4 = <QuadrantTaskView>[];
 
-  final endOfToday = DateTime(
+  final todayStartMs = DateTime(
     now.year,
     now.month,
     now.day,
-    23,
-    59,
-    59,
-    999,
   ).millisecondsSinceEpoch;
 
   for (final task in tasks) {
@@ -132,7 +128,7 @@ QuadrantData buildQuadrantData({
     final project = projectsMap[task.projectId];
     final isParent = parentIds.contains(task.id);
     final counts = isParent ? taskSubtreeCounts(task, tasks) : null;
-    final isPastDeadline = task.endAt != null && task.endAt! < endOfToday;
+    final isPastDeadline = task.endAt != null && task.endAt! < todayStartMs;
 
     final quadrant = classifyTask(task, now);
     final viewItem = QuadrantTaskView(
