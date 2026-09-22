@@ -1499,4 +1499,27 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get quadrantDragHint => '长按任务卡片可拖拽至目标象限调整优先级与截止时间';
+
+  @override
+  String quadrantSummarySubtitle(int count) {
+    return '共 4 个象限 · $count 项待办';
+  }
+
+  @override
+  String get quadrantViewMatrix => '2x2 矩阵';
+
+  @override
+  String get quadrantViewList => '聚焦列表';
+
+  @override
+  String get quadrantAllProjects => '全部项目';
+
+  @override
+  String get quadrantTabAll => '全部';
+
+  @override
+  String get quadrantAddTask => '添加任务';
+
+  @override
+  String get quadrantListEmpty => '该象限当前无待办任务';
 }

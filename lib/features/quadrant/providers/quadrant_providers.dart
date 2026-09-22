@@ -2,11 +2,41 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/db/database.dart';
-import '../../projects/project_providers.dart';
 import '../../../core/db/tables.dart';
 import '../../../core/utils/derived.dart';
 import '../../../core/utils/tree.dart';
+import '../../projects/project_providers.dart';
 import '../models/quadrant_models.dart';
+
+/// 四象限视图模式管理（2x2 矩阵 vs 列表模式）。
+class QuadrantViewModeNotifier extends Notifier<QuadrantViewMode> {
+  @override
+  QuadrantViewMode build() => QuadrantViewMode.matrix;
+
+  void setMode(QuadrantViewMode mode) => state = mode;
+  void toggleMode() => state = state == QuadrantViewMode.matrix
+      ? QuadrantViewMode.list
+      : QuadrantViewMode.matrix;
+}
+
+final quadrantViewModeProvider =
+    NotifierProvider<QuadrantViewModeNotifier, QuadrantViewMode>(
+      QuadrantViewModeNotifier.new,
+    );
+
+/// 聚焦列表模式下选中的象限（null 表示全部象限）。
+class QuadrantFocusTabNotifier extends Notifier<QuadrantType?> {
+  @override
+  QuadrantType? build() => null;
+
+  void select(QuadrantType? type) => state = type;
+  void setTab(QuadrantType? type) => select(type);
+}
+
+final quadrantFocusTabProvider =
+    NotifierProvider<QuadrantFocusTabNotifier, QuadrantType?>(
+      QuadrantFocusTabNotifier.new,
+    );
 
 /// 四象限筛选器状态管理器。
 class QuadrantFilterNotifier extends Notifier<QuadrantFilterState> {
@@ -111,7 +141,10 @@ QuadrantData buildQuadrantData({
     now.day,
   ).millisecondsSinceEpoch;
 
+  int completedCount = 0;
   for (final task in tasks) {
+    if (task.status == TaskStatus.done) completedCount++;
+
     // 清单范围过滤
     if (!filter.matches(task)) continue;
 
@@ -209,6 +242,8 @@ QuadrantData buildQuadrantData({
     q2NotUrgentImportant: q2,
     q3UrgentUnimportant: q3,
     q4NotUrgentUnimportant: q4,
+    totalAllCount: tasks.length,
+    completedCount: completedCount,
   );
 }
 

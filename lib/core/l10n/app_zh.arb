@@ -951,5 +951,38 @@
   "quadrantDragHint": "长按任务卡片可拖拽至目标象限调整优先级与截止时间",
   "@quadrantDragHint": {
     "description": "Drag hint for Eisenhower Matrix"
+  },
+  "quadrantSummarySubtitle": "共 4 个象限 · {count} 项待办",
+  "@quadrantSummarySubtitle": {
+    "description": "Subtitle showing quadrant and task counts",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "quadrantViewMatrix": "2x2 矩阵",
+  "@quadrantViewMatrix": {
+    "description": "2x2 matrix view toggle button label"
+  },
+  "quadrantViewList": "聚焦列表",
+  "@quadrantViewList": {
+    "description": "Focus list view toggle button label"
+  },
+  "quadrantAllProjects": "全部项目",
+  "@quadrantAllProjects": {
+    "description": "All projects option in quadrant filter bar"
+  },
+  "quadrantTabAll": "全部",
+  "@quadrantTabAll": {
+    "description": "All tab in quadrant focus list"
+  },
+  "quadrantAddTask": "添加任务",
+  "@quadrantAddTask": {
+    "description": "Button label to add task in quadrant"
+  },
+  "quadrantListEmpty": "该象限当前无待办任务",
+  "@quadrantListEmpty": {
+    "description": "Empty state description for quadrant in list view"
   }
 }

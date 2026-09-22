@@ -2882,6 +2882,48 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'长按任务卡片可拖拽至目标象限调整优先级与截止时间'**
   String get quadrantDragHint;
+
+  /// Subtitle showing quadrant and task counts
+  ///
+  /// In zh, this message translates to:
+  /// **'共 4 个象限 · {count} 项待办'**
+  String quadrantSummarySubtitle(int count);
+
+  /// 2x2 matrix view toggle button label
+  ///
+  /// In zh, this message translates to:
+  /// **'2x2 矩阵'**
+  String get quadrantViewMatrix;
+
+  /// Focus list view toggle button label
+  ///
+  /// In zh, this message translates to:
+  /// **'聚焦列表'**
+  String get quadrantViewList;
+
+  /// All projects option in quadrant filter bar
+  ///
+  /// In zh, this message translates to:
+  /// **'全部项目'**
+  String get quadrantAllProjects;
+
+  /// All tab in quadrant focus list
+  ///
+  /// In zh, this message translates to:
+  /// **'全部'**
+  String get quadrantTabAll;
+
+  /// Button label to add task in quadrant
+  ///
+  /// In zh, this message translates to:
+  /// **'添加任务'**
+  String get quadrantAddTask;
+
+  /// Empty state description for quadrant in list view
+  ///
+  /// In zh, this message translates to:
+  /// **'该象限当前无待办任务'**
+  String get quadrantListEmpty;
 }
 
 class _AppLocalizationsDelegate

@@ -1530,4 +1530,27 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get quadrantDragHint =>
       'Long press task card to drag into another quadrant';
+
+  @override
+  String quadrantSummarySubtitle(int count) {
+    return '4 Quadrants · $count Tasks';
+  }
+
+  @override
+  String get quadrantViewMatrix => '2x2 Matrix';
+
+  @override
+  String get quadrantViewList => 'Focus List';
+
+  @override
+  String get quadrantAllProjects => 'All Projects';
+
+  @override
+  String get quadrantTabAll => 'All';
+
+  @override
+  String get quadrantAddTask => 'Add Task';
+
+  @override
+  String get quadrantListEmpty => 'No tasks in this quadrant';
 }

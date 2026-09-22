@@ -951,5 +951,38 @@
   "quadrantDragHint": "Long press task card to drag into another quadrant",
   "@quadrantDragHint": {
     "description": "Drag hint for Eisenhower Matrix"
+  },
+  "quadrantSummarySubtitle": "4 Quadrants · {count} Tasks",
+  "@quadrantSummarySubtitle": {
+    "description": "Subtitle showing quadrant and task counts",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "quadrantViewMatrix": "2x2 Matrix",
+  "@quadrantViewMatrix": {
+    "description": "2x2 matrix view toggle button label"
+  },
+  "quadrantViewList": "Focus List",
+  "@quadrantViewList": {
+    "description": "Focus list view toggle button label"
+  },
+  "quadrantAllProjects": "All Projects",
+  "@quadrantAllProjects": {
+    "description": "All projects option in quadrant filter bar"
+  },
+  "quadrantTabAll": "All",
+  "@quadrantTabAll": {
+    "description": "All tab in quadrant focus list"
+  },
+  "quadrantAddTask": "Add Task",
+  "@quadrantAddTask": {
+    "description": "Button label to add task in quadrant"
+  },
+  "quadrantListEmpty": "No tasks in this quadrant",
+  "@quadrantListEmpty": {
+    "description": "Empty state description for quadrant in list view"
   }
 }

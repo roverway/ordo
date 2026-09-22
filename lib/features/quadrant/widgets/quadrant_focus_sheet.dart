@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../projects/project_providers.dart';
@@ -98,7 +97,7 @@ class QuadrantFocusSheet extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _getQuadrantTitle(l10n),
+                          quadrantType.title(l10n),
                           style: TextStyle(
                             fontSize: AppTokens.textTitleSize,
                             fontWeight: FontWeight.w700,
@@ -106,7 +105,7 @@ class QuadrantFocusSheet extends ConsumerWidget {
                           ),
                         ),
                         Text(
-                          _getQuadrantSubtitle(l10n),
+                          quadrantType.subtitle(l10n),
                           style: TextStyle(
                             fontSize: AppTokens.textMicroSize,
                             color: colorScheme.onSurfaceVariant.withValues(
@@ -179,12 +178,27 @@ class QuadrantFocusSheet extends ConsumerWidget {
 
             // 底部快速添加按钮
             Padding(
-              padding: const EdgeInsets.all(AppTokens.spaceSm),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTokens.spaceMd,
+                vertical: AppTokens.spaceSm,
+              ),
               child: SizedBox(
                 width: double.infinity,
-                child: FilledButton.tonalIcon(
-                  icon: const Icon(Icons.add),
-                  label: Text(l10n.newTask),
+                child: FilledButton.icon(
+                  icon: const Icon(Icons.add_rounded),
+                  label: Text(l10n.quadrantAddTask),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppTokens.spaceSm,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        AppTokens.radiusButton,
+                      ),
+                    ),
+                  ),
                   onPressed: () => _openCreateTask(context, filter),
                 ),
               ),
@@ -197,56 +211,17 @@ class QuadrantFocusSheet extends ConsumerWidget {
 
   void _openCreateTask(BuildContext context, QuadrantFilterState filter) {
     final now = DateTime.now();
-    final endOfToday = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      23,
-      59,
-      59,
-    ).millisecondsSinceEpoch;
-
     final targetProjectId =
         (filter.selectedProjectIds != null &&
             filter.selectedProjectIds!.length == 1)
         ? filter.selectedProjectIds!.first
         : inboxProjectId;
 
-    final targetPriority =
-        (quadrantType == QuadrantType.urgentImportant ||
-            quadrantType == QuadrantType.notUrgentImportant)
-        ? TaskPriority.high
-        : TaskPriority.none;
-
-    final targetEndAt =
-        (quadrantType == QuadrantType.urgentImportant ||
-            quadrantType == QuadrantType.urgentUnimportant)
-        ? endOfToday
-        : null;
-
     TaskCreateSheet.show(
       context,
       projectId: targetProjectId,
-      initialPriority: targetPriority,
-      initialEndAt: targetEndAt,
+      initialPriority: quadrantType.initialPriority,
+      initialEndAt: quadrantType.initialEndAt(now),
     );
-  }
-
-  String _getQuadrantTitle(AppLocalizations l10n) {
-    return switch (quadrantType) {
-      QuadrantType.urgentImportant => l10n.quadrantQ1Title,
-      QuadrantType.notUrgentImportant => l10n.quadrantQ2Title,
-      QuadrantType.urgentUnimportant => l10n.quadrantQ3Title,
-      QuadrantType.notUrgentUnimportant => l10n.quadrantQ4Title,
-    };
-  }
-
-  String _getQuadrantSubtitle(AppLocalizations l10n) {
-    return switch (quadrantType) {
-      QuadrantType.urgentImportant => l10n.quadrantQ1Subtitle,
-      QuadrantType.notUrgentImportant => l10n.quadrantQ2Subtitle,
-      QuadrantType.urgentUnimportant => l10n.quadrantQ3Subtitle,
-      QuadrantType.notUrgentUnimportant => l10n.quadrantQ4Subtitle,
-    };
   }
 }

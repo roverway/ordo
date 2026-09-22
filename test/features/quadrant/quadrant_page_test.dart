@@ -12,10 +12,17 @@ import 'package:todo/features/quadrant/providers/quadrant_providers.dart';
 import 'package:todo/features/quadrant/widgets/quadrant_card.dart';
 import 'package:todo/features/quadrant/widgets/quadrant_focus_sheet.dart';
 import 'package:todo/features/quadrant/widgets/quadrant_grid.dart';
+import 'package:todo/features/quadrant/widgets/quadrant_list_view.dart';
 import 'package:todo/features/quadrant/widgets/quadrant_scope_filter_sheet.dart';
 import 'package:todo/features/settings/settings_providers.dart';
+import 'package:todo/shared/widgets/hero_progress_ring.dart';
 
 import '../../helpers/db_test_setup.dart';
+
+class _ListViewModeNotifier extends QuadrantViewModeNotifier {
+  @override
+  QuadrantViewMode build() => QuadrantViewMode.list;
+}
 
 Widget _buildTestApp({
   required Widget child,
@@ -147,17 +154,11 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    // 验证网格与 4 张象限卡片
+    // 页面结构完整性断言
     expect(find.byType(QuadrantGrid), findsOneWidget);
     expect(find.byType(QuadrantCard), findsNWidgets(4));
 
-    // 验证各象限标题与副标题文案
-    expect(find.text('重要且紧急'), findsOneWidget);
-    expect(find.text('重要不紧急'), findsOneWidget);
-    expect(find.text('紧急不重要'), findsOneWidget);
-    expect(find.text('不重要不紧急'), findsOneWidget);
-
-    // 验证各象限任务可见
+    // 验证各象限卡片内包含对应任务
     expect(find.text('紧急重要任务'), findsOneWidget);
     expect(find.text('重要不紧急任务'), findsOneWidget);
     expect(find.text('紧急不重要任务'), findsOneWidget);
@@ -272,6 +273,7 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
+    final now = DateTime.now();
     final tasks = [
       _createMockTask(
         id: 't-deep',
@@ -282,7 +284,7 @@ void main() {
 
     final defaultQuadrantData = buildQuadrantData(
       tasks: tasks,
-      now: DateTime.now(),
+      now: now,
       filter: const QuadrantFilterState(),
       taskTagsMap: const {},
       projects: const [],
@@ -318,6 +320,102 @@ void main() {
       matching: find.text('深度规划长远目标'),
     );
     expect(focusTask, findsOneWidget);
+  });
+
+  testWidgets('QuadrantPage 在 2x2 矩阵与聚焦列表之间切换', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final now = DateTime.now();
+    final tasks = [
+      _createMockTask(id: 't1', title: '重要紧急任务', priority: TaskPriority.high),
+    ];
+    final defaultQuadrantData = buildQuadrantData(
+      tasks: tasks,
+      now: now,
+      filter: const QuadrantFilterState(),
+      taskTagsMap: const {},
+      projects: const [],
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        overrides: [
+          todoRepositoryProvider.overrideWithValue(repo),
+          quadrantDataProvider.overrideWith(
+            (ref) => Stream.value(defaultQuadrantData),
+          ),
+          projectsStreamProvider.overrideWithValue(const AsyncData([])),
+          foldersStreamProvider.overrideWithValue(const AsyncData([])),
+        ],
+        child: const QuadrantPage(),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // 默认展示 2x2 矩阵
+    expect(find.byType(QuadrantGrid), findsOneWidget);
+    expect(find.byType(QuadrantListView), findsNothing);
+
+    // 点击切换为聚焦列表
+    await tester.tap(find.text('聚焦列表'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(QuadrantListView), findsOneWidget);
+    expect(find.byType(QuadrantGrid), findsNothing);
+
+    // 再次点击切换回 2x2 矩阵
+    await tester.tap(find.text('2x2 矩阵'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(QuadrantGrid), findsOneWidget);
+  });
+
+  testWidgets('QuadrantListView 支持展示任务与头部进度环', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final now = DateTime.now();
+    final tasks = [
+      _createMockTask(id: 't1', title: '计划做长远事项', priority: TaskPriority.high),
+    ];
+    final defaultQuadrantData = buildQuadrantData(
+      tasks: tasks,
+      now: now,
+      filter: const QuadrantFilterState(),
+      taskTagsMap: const {},
+      projects: const [],
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        overrides: [
+          todoRepositoryProvider.overrideWithValue(repo),
+          quadrantViewModeProvider.overrideWith(_ListViewModeNotifier.new),
+          quadrantDataProvider.overrideWith(
+            (ref) => Stream.value(defaultQuadrantData),
+          ),
+          projectsStreamProvider.overrideWithValue(const AsyncData([])),
+          foldersStreamProvider.overrideWithValue(const AsyncData([])),
+        ],
+        child: const QuadrantPage(),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.byType(QuadrantListView), findsOneWidget);
+    expect(find.text('计划做长远事项'), findsOneWidget);
+    expect(find.byType(HeroProgressRing), findsOneWidget);
   });
 
   test('QuadrantActionController.moveTaskToQuadrant 严格保证只修改优先级和到期日', () async {

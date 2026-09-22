@@ -2,7 +2,17 @@ import 'package:flutter/material.dart';
 
 import '../../../core/db/database.dart';
 import '../../../core/db/tables.dart';
+import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
+
+/// 象限视图模式：2x2 田字矩阵 / 聚焦列表
+enum QuadrantViewMode {
+  /// 经典 2x2 矩阵模式
+  matrix,
+
+  /// 单列分栏纵向聚焦列表模式
+  list,
+}
 
 /// 四象限类型枚举（艾森豪威尔矩阵）。
 enum QuadrantType {
@@ -33,6 +43,47 @@ extension QuadrantTypeX on QuadrantType {
       case QuadrantType.notUrgentUnimportant:
         return AppTokens.colorQuadrantQ4;
     }
+  }
+
+  /// 标题文案。
+  String title(AppLocalizations l10n) {
+    switch (this) {
+      case QuadrantType.urgentImportant:
+        return l10n.quadrantQ1Title;
+      case QuadrantType.notUrgentImportant:
+        return l10n.quadrantQ2Title;
+      case QuadrantType.urgentUnimportant:
+        return l10n.quadrantQ3Title;
+      case QuadrantType.notUrgentUnimportant:
+        return l10n.quadrantQ4Title;
+    }
+  }
+
+  /// 副标题文案。
+  String subtitle(AppLocalizations l10n) {
+    switch (this) {
+      case QuadrantType.urgentImportant:
+        return l10n.quadrantQ1Subtitle;
+      case QuadrantType.notUrgentImportant:
+        return l10n.quadrantQ2Subtitle;
+      case QuadrantType.urgentUnimportant:
+        return l10n.quadrantQ3Subtitle;
+      case QuadrantType.notUrgentUnimportant:
+        return l10n.quadrantQ4Subtitle;
+    }
+  }
+
+  /// 象限计数徽标背景色（语义令牌派生，自适应明暗模式）。
+  Color badgeBackgroundColor(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return accentColor.withValues(
+      alpha: isDark ? AppTokens.alphaTintStrong : AppTokens.alphaTintSoft,
+    );
+  }
+
+  /// 象限计数徽标文字色。
+  Color badgeTextColor(BuildContext context) {
+    return accentColor;
   }
 
   /// 语义图标。
@@ -107,6 +158,8 @@ class QuadrantTaskView {
   final int? projectColor;
   final double? progressValue;
   final String? subtaskProgressText;
+
+  bool get isDone => effectiveStatus == TaskStatus.done;
 }
 
 /// 四个象限的任务聚合数据容器。
@@ -116,12 +169,20 @@ class QuadrantData {
     required this.q2NotUrgentImportant,
     required this.q3UrgentUnimportant,
     required this.q4NotUrgentUnimportant,
+    this.totalAllCount = 0,
+    this.completedCount = 0,
   });
 
   final List<QuadrantTaskView> q1UrgentImportant;
   final List<QuadrantTaskView> q2NotUrgentImportant;
   final List<QuadrantTaskView> q3UrgentUnimportant;
   final List<QuadrantTaskView> q4NotUrgentUnimportant;
+
+  /// 全量任务总数（含未显示已完成任务）
+  final int totalAllCount;
+
+  /// 已完成任务总数
+  final int completedCount;
 
   List<QuadrantTaskView> tasksOf(QuadrantType type) => forType(type);
 
@@ -138,13 +199,17 @@ class QuadrantData {
     }
   }
 
-  int get totalCount =>
+  /// 当前象限内处于活跃/待办的任务总数
+  int get activeTotalCount =>
       q1UrgentImportant.length +
       q2NotUrgentImportant.length +
       q3UrgentUnimportant.length +
       q4NotUrgentUnimportant.length;
 
-  bool get isEmpty => totalCount == 0;
+  /// 界面展示的统计总数
+  int get totalCount => totalAllCount > 0 ? totalAllCount : activeTotalCount;
+
+  bool get isEmpty => activeTotalCount == 0;
 }
 
 /// 四象限筛选器状态配置。
