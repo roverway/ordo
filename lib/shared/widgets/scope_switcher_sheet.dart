@@ -171,6 +171,17 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                       router.go('/projects');
                     },
                   ),
+                  _buildScopeTile(
+                    icon: Icons.grid_view_rounded,
+                    iconColor: AppTokens.colorNavQuadrant,
+                    title: l10n.navQuadrant,
+                    isSelected: currentRoute == '/matrix',
+                    onTap: () {
+                      final router = GoRouter.of(context);
+                      Navigator.of(context).maybePop();
+                      router.go('/matrix');
+                    },
+                  ),
 
                   const SizedBox(height: 12),
 

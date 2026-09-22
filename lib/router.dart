@@ -6,6 +6,7 @@ import 'features/calendar/calendar_page.dart';
 import 'features/custom_views/presentation/custom_view_editor_page.dart';
 import 'features/custom_views/presentation/custom_view_page.dart';
 import 'features/projects/projects_page.dart';
+import 'features/quadrant/presentation/quadrant_page.dart';
 import 'features/search/search_page.dart';
 import 'features/settings/settings_page.dart';
 import 'features/settings/user_manual_page.dart';
@@ -161,6 +162,11 @@ final GoRouter appRouter = GoRouter(
           path: '/calendar',
           pageBuilder: (context, state) =>
               const NoTransitionPage(child: CalendarPage()),
+        ),
+        GoRoute(
+          path: '/matrix',
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: QuadrantPage()),
         ),
         GoRoute(
           path: '/projects',

@@ -134,8 +134,10 @@ QuadrantData buildQuadrantData({
     final counts = isParent ? taskSubtreeCounts(task, tasks) : null;
     final isPastDeadline = task.endAt != null && task.endAt! < endOfToday;
 
+    final quadrant = classifyTask(task, now);
     final viewItem = QuadrantTaskView(
       task: task,
+      quadrant: quadrant,
       tags: tags,
       effectiveStatus: effectiveStatus,
       hasChildren: isParent,
@@ -147,8 +149,6 @@ QuadrantData buildQuadrantData({
           ? '${counts.done}/${counts.total}'
           : null,
     );
-
-    final quadrant = classifyTask(task, now);
     switch (quadrant) {
       case QuadrantType.urgentImportant:
         q1.add(viewItem);

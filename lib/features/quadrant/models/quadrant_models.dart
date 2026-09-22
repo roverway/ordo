@@ -86,6 +86,7 @@ extension QuadrantTypeX on QuadrantType {
 class QuadrantTaskView {
   const QuadrantTaskView({
     required this.task,
+    required this.quadrant,
     required this.tags,
     required this.effectiveStatus,
     required this.hasChildren,
@@ -97,6 +98,7 @@ class QuadrantTaskView {
   });
 
   final Task task;
+  final QuadrantType quadrant;
   final List<Tag> tags;
   final TaskStatus effectiveStatus;
   final bool hasChildren;
@@ -120,6 +122,8 @@ class QuadrantData {
   final List<QuadrantTaskView> q2NotUrgentImportant;
   final List<QuadrantTaskView> q3UrgentUnimportant;
   final List<QuadrantTaskView> q4NotUrgentUnimportant;
+
+  List<QuadrantTaskView> tasksOf(QuadrantType type) => forType(type);
 
   List<QuadrantTaskView> forType(QuadrantType type) {
     switch (type) {
