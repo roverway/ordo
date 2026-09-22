@@ -1469,4 +1469,65 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wallpaperPreviewBadge => 'Preview';
+
+  @override
+  String get navQuadrant => 'Matrix';
+
+  @override
+  String get quadrantScopeFilter => 'Scope Filter';
+
+  @override
+  String get quadrantAllScopes => 'All Lists & Scopes';
+
+  @override
+  String get quadrantUngroupedLists => 'Ungrouped Lists';
+
+  @override
+  String get quadrantSelectAll => 'Select All';
+
+  @override
+  String get quadrantReset => 'Reset';
+
+  @override
+  String get quadrantDone => 'Done';
+
+  @override
+  String get quadrantShowCompleted => 'Show Completed Tasks';
+
+  @override
+  String get quadrantEmpty => 'No tasks in this quadrant';
+
+  @override
+  String get quadrantQ1Title => 'Urgent & Important';
+
+  @override
+  String get quadrantQ1Subtitle => 'Do First · Crises & Deadlines';
+
+  @override
+  String get quadrantQ2Title => 'Important, Not Urgent';
+
+  @override
+  String get quadrantQ2Subtitle => 'Schedule · Planning & Growth';
+
+  @override
+  String get quadrantQ3Title => 'Urgent, Not Important';
+
+  @override
+  String get quadrantQ3Subtitle => 'Delegate · Interruptions & Busywork';
+
+  @override
+  String get quadrantQ4Title => 'Neither Urgent nor Important';
+
+  @override
+  String get quadrantQ4Subtitle => 'Don\'t Do · Distractions & Waste';
+
+  @override
+  String get quadrantFocusMode => 'Focus Mode';
+
+  @override
+  String get quadrantExitFocus => 'Exit Focus';
+
+  @override
+  String get quadrantDragHint =>
+      'Long press task card to drag into another quadrant';
 }

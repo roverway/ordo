@@ -871,5 +871,85 @@
   "wallpaperPreviewBadge": "预览",
   "@wallpaperPreviewBadge": {
     "description": "壁纸实时预览微标"
+  },
+  "navQuadrant": "四象限",
+  "@navQuadrant": {
+    "description": "Navigation item for Eisenhower Matrix / Quadrants"
+  },
+  "quadrantScopeFilter": "范围筛选",
+  "@quadrantScopeFilter": {
+    "description": "Title for quadrant scope filter sheet"
+  },
+  "quadrantAllScopes": "全部清单与范围",
+  "@quadrantAllScopes": {
+    "description": "All lists option in quadrant scope filter"
+  },
+  "quadrantUngroupedLists": "未分组清单",
+  "@quadrantUngroupedLists": {
+    "description": "Ungrouped lists section header"
+  },
+  "quadrantSelectAll": "全选",
+  "@quadrantSelectAll": {
+    "description": "Select all button"
+  },
+  "quadrantReset": "重置",
+  "@quadrantReset": {
+    "description": "Reset button"
+  },
+  "quadrantDone": "完成",
+  "@quadrantDone": {
+    "description": "Done button"
+  },
+  "quadrantShowCompleted": "显示已完成任务",
+  "@quadrantShowCompleted": {
+    "description": "Toggle to show completed tasks in quadrant"
+  },
+  "quadrantEmpty": "此象限暂无任务",
+  "@quadrantEmpty": {
+    "description": "Empty message for quadrant"
+  },
+  "quadrantQ1Title": "重要且紧急",
+  "@quadrantQ1Title": {
+    "description": "Quadrant 1 title"
+  },
+  "quadrantQ1Subtitle": "马上做 · 危机与核心要务",
+  "@quadrantQ1Subtitle": {
+    "description": "Quadrant 1 subtitle"
+  },
+  "quadrantQ2Title": "重要不紧急",
+  "@quadrantQ2Title": {
+    "description": "Quadrant 2 title"
+  },
+  "quadrantQ2Subtitle": "计划做 · 规划与深度成长",
+  "@quadrantQ2Subtitle": {
+    "description": "Quadrant 2 subtitle"
+  },
+  "quadrantQ3Title": "紧急不重要",
+  "@quadrantQ3Title": {
+    "description": "Quadrant 3 title"
+  },
+  "quadrantQ3Subtitle": "授权做 · 琐事与临时干扰",
+  "@quadrantQ3Subtitle": {
+    "description": "Quadrant 3 subtitle"
+  },
+  "quadrantQ4Title": "不重要不紧急",
+  "@quadrantQ4Title": {
+    "description": "Quadrant 4 title"
+  },
+  "quadrantQ4Subtitle": "尽量少做 · 闲散消遣与琐碎",
+  "@quadrantQ4Subtitle": {
+    "description": "Quadrant 4 subtitle"
+  },
+  "quadrantFocusMode": "聚焦象限",
+  "@quadrantFocusMode": {
+    "description": "Focus mode header title"
+  },
+  "quadrantExitFocus": "退出聚焦",
+  "@quadrantExitFocus": {
+    "description": "Exit focus mode button tooltip"
+  },
+  "quadrantDragHint": "长按任务卡片可拖拽至目标象限调整优先级与截止时间",
+  "@quadrantDragHint": {
+    "description": "Drag hint for Eisenhower Matrix"
   }
 }

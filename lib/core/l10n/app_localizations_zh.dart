@@ -1439,4 +1439,64 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get wallpaperPreviewBadge => '预览';
+
+  @override
+  String get navQuadrant => '四象限';
+
+  @override
+  String get quadrantScopeFilter => '范围筛选';
+
+  @override
+  String get quadrantAllScopes => '全部清单与范围';
+
+  @override
+  String get quadrantUngroupedLists => '未分组清单';
+
+  @override
+  String get quadrantSelectAll => '全选';
+
+  @override
+  String get quadrantReset => '重置';
+
+  @override
+  String get quadrantDone => '完成';
+
+  @override
+  String get quadrantShowCompleted => '显示已完成任务';
+
+  @override
+  String get quadrantEmpty => '此象限暂无任务';
+
+  @override
+  String get quadrantQ1Title => '重要且紧急';
+
+  @override
+  String get quadrantQ1Subtitle => '马上做 · 危机与核心要务';
+
+  @override
+  String get quadrantQ2Title => '重要不紧急';
+
+  @override
+  String get quadrantQ2Subtitle => '计划做 · 规划与深度成长';
+
+  @override
+  String get quadrantQ3Title => '紧急不重要';
+
+  @override
+  String get quadrantQ3Subtitle => '授权做 · 琐事与临时干扰';
+
+  @override
+  String get quadrantQ4Title => '不重要不紧急';
+
+  @override
+  String get quadrantQ4Subtitle => '尽量少做 · 闲散消遣与琐碎';
+
+  @override
+  String get quadrantFocusMode => '聚焦象限';
+
+  @override
+  String get quadrantExitFocus => '退出聚焦';
+
+  @override
+  String get quadrantDragHint => '长按任务卡片可拖拽至目标象限调整优先级与截止时间';
 }

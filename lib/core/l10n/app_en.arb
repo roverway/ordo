@@ -871,5 +871,85 @@
   "wallpaperPreviewBadge": "Preview",
   "@wallpaperPreviewBadge": {
     "description": "Preview badge"
+  },
+  "navQuadrant": "Matrix",
+  "@navQuadrant": {
+    "description": "Navigation item for Eisenhower Matrix / Quadrants"
+  },
+  "quadrantScopeFilter": "Scope Filter",
+  "@quadrantScopeFilter": {
+    "description": "Title for quadrant scope filter sheet"
+  },
+  "quadrantAllScopes": "All Lists & Scopes",
+  "@quadrantAllScopes": {
+    "description": "All lists option in quadrant scope filter"
+  },
+  "quadrantUngroupedLists": "Ungrouped Lists",
+  "@quadrantUngroupedLists": {
+    "description": "Ungrouped lists section header"
+  },
+  "quadrantSelectAll": "Select All",
+  "@quadrantSelectAll": {
+    "description": "Select all button"
+  },
+  "quadrantReset": "Reset",
+  "@quadrantReset": {
+    "description": "Reset button"
+  },
+  "quadrantDone": "Done",
+  "@quadrantDone": {
+    "description": "Done button"
+  },
+  "quadrantShowCompleted": "Show Completed Tasks",
+  "@quadrantShowCompleted": {
+    "description": "Toggle to show completed tasks in quadrant"
+  },
+  "quadrantEmpty": "No tasks in this quadrant",
+  "@quadrantEmpty": {
+    "description": "Empty message for quadrant"
+  },
+  "quadrantQ1Title": "Urgent & Important",
+  "@quadrantQ1Title": {
+    "description": "Quadrant 1 title"
+  },
+  "quadrantQ1Subtitle": "Do First · Crises & Deadlines",
+  "@quadrantQ1Subtitle": {
+    "description": "Quadrant 1 subtitle"
+  },
+  "quadrantQ2Title": "Important, Not Urgent",
+  "@quadrantQ2Title": {
+    "description": "Quadrant 2 title"
+  },
+  "quadrantQ2Subtitle": "Schedule · Planning & Growth",
+  "@quadrantQ2Subtitle": {
+    "description": "Quadrant 2 subtitle"
+  },
+  "quadrantQ3Title": "Urgent, Not Important",
+  "@quadrantQ3Title": {
+    "description": "Quadrant 3 title"
+  },
+  "quadrantQ3Subtitle": "Delegate · Interruptions & Busywork",
+  "@quadrantQ3Subtitle": {
+    "description": "Quadrant 3 subtitle"
+  },
+  "quadrantQ4Title": "Neither Urgent nor Important",
+  "@quadrantQ4Title": {
+    "description": "Quadrant 4 title"
+  },
+  "quadrantQ4Subtitle": "Don't Do · Distractions & Waste",
+  "@quadrantQ4Subtitle": {
+    "description": "Quadrant 4 subtitle"
+  },
+  "quadrantFocusMode": "Focus Mode",
+  "@quadrantFocusMode": {
+    "description": "Focus mode header title"
+  },
+  "quadrantExitFocus": "Exit Focus",
+  "@quadrantExitFocus": {
+    "description": "Exit focus mode button tooltip"
+  },
+  "quadrantDragHint": "Long press task card to drag into another quadrant",
+  "@quadrantDragHint": {
+    "description": "Drag hint for Eisenhower Matrix"
   }
 }

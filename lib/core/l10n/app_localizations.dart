@@ -2762,6 +2762,126 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'预览'**
   String get wallpaperPreviewBadge;
+
+  /// Navigation item for Eisenhower Matrix / Quadrants
+  ///
+  /// In zh, this message translates to:
+  /// **'四象限'**
+  String get navQuadrant;
+
+  /// Title for quadrant scope filter sheet
+  ///
+  /// In zh, this message translates to:
+  /// **'范围筛选'**
+  String get quadrantScopeFilter;
+
+  /// All lists option in quadrant scope filter
+  ///
+  /// In zh, this message translates to:
+  /// **'全部清单与范围'**
+  String get quadrantAllScopes;
+
+  /// Ungrouped lists section header
+  ///
+  /// In zh, this message translates to:
+  /// **'未分组清单'**
+  String get quadrantUngroupedLists;
+
+  /// Select all button
+  ///
+  /// In zh, this message translates to:
+  /// **'全选'**
+  String get quadrantSelectAll;
+
+  /// Reset button
+  ///
+  /// In zh, this message translates to:
+  /// **'重置'**
+  String get quadrantReset;
+
+  /// Done button
+  ///
+  /// In zh, this message translates to:
+  /// **'完成'**
+  String get quadrantDone;
+
+  /// Toggle to show completed tasks in quadrant
+  ///
+  /// In zh, this message translates to:
+  /// **'显示已完成任务'**
+  String get quadrantShowCompleted;
+
+  /// Empty message for quadrant
+  ///
+  /// In zh, this message translates to:
+  /// **'此象限暂无任务'**
+  String get quadrantEmpty;
+
+  /// Quadrant 1 title
+  ///
+  /// In zh, this message translates to:
+  /// **'重要且紧急'**
+  String get quadrantQ1Title;
+
+  /// Quadrant 1 subtitle
+  ///
+  /// In zh, this message translates to:
+  /// **'马上做 · 危机与核心要务'**
+  String get quadrantQ1Subtitle;
+
+  /// Quadrant 2 title
+  ///
+  /// In zh, this message translates to:
+  /// **'重要不紧急'**
+  String get quadrantQ2Title;
+
+  /// Quadrant 2 subtitle
+  ///
+  /// In zh, this message translates to:
+  /// **'计划做 · 规划与深度成长'**
+  String get quadrantQ2Subtitle;
+
+  /// Quadrant 3 title
+  ///
+  /// In zh, this message translates to:
+  /// **'紧急不重要'**
+  String get quadrantQ3Title;
+
+  /// Quadrant 3 subtitle
+  ///
+  /// In zh, this message translates to:
+  /// **'授权做 · 琐事与临时干扰'**
+  String get quadrantQ3Subtitle;
+
+  /// Quadrant 4 title
+  ///
+  /// In zh, this message translates to:
+  /// **'不重要不紧急'**
+  String get quadrantQ4Title;
+
+  /// Quadrant 4 subtitle
+  ///
+  /// In zh, this message translates to:
+  /// **'尽量少做 · 闲散消遣与琐碎'**
+  String get quadrantQ4Subtitle;
+
+  /// Focus mode header title
+  ///
+  /// In zh, this message translates to:
+  /// **'聚焦象限'**
+  String get quadrantFocusMode;
+
+  /// Exit focus mode button tooltip
+  ///
+  /// In zh, this message translates to:
+  /// **'退出聚焦'**
+  String get quadrantExitFocus;
+
+  /// Drag hint for Eisenhower Matrix
+  ///
+  /// In zh, this message translates to:
+  /// **'长按任务卡片可拖拽至目标象限调整优先级与截止时间'**
+  String get quadrantDragHint;
 }
 
 class _AppLocalizationsDelegate
