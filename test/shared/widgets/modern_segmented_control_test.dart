@@ -17,6 +17,8 @@ void main() {
                   return SizedBox(
                     width: 300,
                     child: ModernSegmentedControl<String>(
+                      height: 34,
+                      padding: const EdgeInsets.all(3),
                       selectedValue: selected,
                       onChanged: (val) {
                         setState(() {
@@ -42,7 +44,10 @@ void main() {
         expect(animatedPositionedFinder, findsOneWidget);
 
         AnimatedPositioned indicator = tester.widget(animatedPositionedFinder);
-        expect(indicator.left, closeTo(3.0, 0.5));
+        // Indicator starts at (0.0, 0.0) within Stack, zero internal top offset!
+        expect(indicator.left, 0.0);
+        expect(indicator.top, 0.0);
+        expect(indicator.height, 34.0);
 
         // Tap Tab 2
         await tester.tap(find.text('Tab 2'));
@@ -51,14 +56,16 @@ void main() {
           const Duration(milliseconds: 100),
         ); // Midway animation
 
-        // Should be moving
+        // Should be moving horizontally, while top stays strictly 0.0
         indicator = tester.widget(animatedPositionedFinder);
-        expect(indicator.left, greaterThan(3.0));
+        expect(indicator.left, greaterThan(0.0));
+        expect(indicator.top, 0.0);
 
         await tester.pumpAndSettle(); // Complete spring animation
 
         indicator = tester.widget(animatedPositionedFinder);
         expect(indicator.left, greaterThan(100.0));
+        expect(indicator.top, 0.0);
         expect(selected, 'tab2');
       },
     );
@@ -74,6 +81,8 @@ void main() {
             body: StatefulBuilder(
               builder: (context, setState) {
                 return ModernSegmentedControl<String>(
+                  height: 28,
+                  padding: const EdgeInsets.all(2),
                   isExpanded: false,
                   selectedValue: selected,
                   onChanged: (val) {
@@ -101,6 +110,8 @@ void main() {
 
       AnimatedPositioned indicator = tester.widget(animatedPositionedFinder);
       final initialLeft = indicator.left;
+      expect(indicator.top, 0.0);
+      expect(indicator.height, 28.0);
 
       // Tap Beta
       await tester.tap(find.text('Beta'));
@@ -109,6 +120,8 @@ void main() {
 
       indicator = tester.widget(animatedPositionedFinder);
       expect(indicator.left, greaterThan(initialLeft!));
+      expect(indicator.top, 0.0);
+      expect(indicator.height, 28.0);
       expect(selected, 'b');
     });
   });

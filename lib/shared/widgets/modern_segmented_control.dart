@@ -20,6 +20,7 @@ class ModernSegmentItem<T> {
 /// 特性：
 /// - 胶囊底槽（可自定义背景色、边框、圆角）
 /// - 点击时滑块底色物理滑动过渡（[AppTokens.motionNormal] + [AppTokens.motionSpring]）
+/// - 严格零纵向偏置：滑块在垂直方向严格居中贴合，杜绝任何额外内部上边距与向下偏移
 /// - 自适应等宽展开（[isExpanded] = true）或内容包裹（[isExpanded] = false）
 /// - 支持图标与文字混排、语义化与无障碍聚焦
 class ModernSegmentedControl<T> extends StatefulWidget {
@@ -66,11 +67,11 @@ class ModernSegmentedControl<T> extends StatefulWidget {
 }
 
 class _ModernSegmentedControlState<T> extends State<ModernSegmentedControl<T>> {
-  final GlobalKey _containerKey = GlobalKey();
+  final GlobalKey _stackKey = GlobalKey();
   final Map<T, GlobalKey> _itemKeys = {};
 
   Rect? _indicatorRect;
-  bool _initialized = false;
+  bool _animate = false;
   late T _activeValue;
 
   @override
@@ -82,8 +83,6 @@ class _ModernSegmentedControlState<T> extends State<ModernSegmentedControl<T>> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _updateIndicator(animate: false);
       });
-    } else {
-      _initialized = true;
     }
   }
 
@@ -94,6 +93,7 @@ class _ModernSegmentedControlState<T> extends State<ModernSegmentedControl<T>> {
     if (widget.selectedValue != oldWidget.selectedValue ||
         widget.items.length != oldWidget.items.length) {
       _activeValue = widget.selectedValue;
+      _animate = true;
       if (!widget.isExpanded) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _updateIndicator(animate: true);
@@ -110,30 +110,26 @@ class _ModernSegmentedControlState<T> extends State<ModernSegmentedControl<T>> {
 
   void _updateIndicator({required bool animate}) {
     if (!mounted) return;
-    final containerBox =
-        _containerKey.currentContext?.findRenderObject() as RenderBox?;
+    final stackBox = _stackKey.currentContext?.findRenderObject() as RenderBox?;
     final targetKey = _itemKeys[_activeValue];
     final targetBox =
         targetKey?.currentContext?.findRenderObject() as RenderBox?;
 
-    if (containerBox != null &&
+    if (stackBox != null &&
         targetBox != null &&
-        containerBox.hasSize &&
+        stackBox.hasSize &&
         targetBox.hasSize) {
-      final offset = targetBox.localToGlobal(
-        Offset.zero,
-        ancestor: containerBox,
-      );
+      final offset = targetBox.localToGlobal(Offset.zero, ancestor: stackBox);
       final newRect = Rect.fromLTWH(
         offset.dx,
-        offset.dy,
+        0.0,
         targetBox.size.width,
-        targetBox.size.height,
+        widget.height,
       );
       if (_indicatorRect != newRect) {
         setState(() {
           _indicatorRect = newRect;
-          _initialized = true;
+          _animate = animate;
         });
       }
     }
@@ -145,30 +141,28 @@ class _ModernSegmentedControlState<T> extends State<ModernSegmentedControl<T>> {
     if (widget.isExpanded) {
       setState(() {
         _activeValue = value;
+        _animate = true;
       });
     } else {
-      final containerBox =
-          _containerKey.currentContext?.findRenderObject() as RenderBox?;
+      final stackBox =
+          _stackKey.currentContext?.findRenderObject() as RenderBox?;
       final itemKey = _itemKeys[value];
       final itemBox = itemKey?.currentContext?.findRenderObject() as RenderBox?;
 
       setState(() {
         _activeValue = value;
-        if (containerBox != null &&
+        _animate = true;
+        if (stackBox != null &&
             itemBox != null &&
-            containerBox.hasSize &&
+            stackBox.hasSize &&
             itemBox.hasSize) {
-          final offset = itemBox.localToGlobal(
-            Offset.zero,
-            ancestor: containerBox,
-          );
+          final offset = itemBox.localToGlobal(Offset.zero, ancestor: stackBox);
           _indicatorRect = Rect.fromLTWH(
             offset.dx,
-            offset.dy,
+            0.0,
             itemBox.size.width,
-            itemBox.size.height,
+            widget.height,
           );
-          _initialized = true;
         }
       });
     }
@@ -195,130 +189,119 @@ class _ModernSegmentedControlState<T> extends State<ModernSegmentedControl<T>> {
     final indicatorRadius =
         widget.indicatorRadius ?? BorderRadius.circular(AppTokens.radiusList);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (!widget.isExpanded) {
-          // 尺寸变化时自动对齐包裹指示器
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _updateIndicator(animate: false);
-          });
-        }
-
-        final resolvedPadding = widget.padding.resolve(
-          Directionality.of(context),
-        );
-
-        Rect? activeRect;
-        if (widget.isExpanded) {
-          final availableWidth =
-              (constraints.maxWidth - resolvedPadding.horizontal).clamp(
-                0.0,
-                double.infinity,
-              );
-          final itemWidth = widget.items.isEmpty
-              ? 0.0
-              : availableWidth / widget.items.length;
-          final activeIndex = widget.items.indexWhere(
-            (it) => it.value == _activeValue,
-          );
-          if (activeIndex >= 0) {
-            activeRect = Rect.fromLTWH(
-              resolvedPadding.left + activeIndex * itemWidth,
-              resolvedPadding.top,
-              itemWidth,
-              widget.height,
-            );
+    return Container(
+      padding: widget.padding,
+      decoration: BoxDecoration(
+        color: containerBg,
+        borderRadius: borderRadius,
+        border: widget.border,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (!widget.isExpanded) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _updateIndicator(animate: false);
+            });
           }
-        } else {
-          activeRect = _indicatorRect;
-        }
 
-        final itemsWidgets = widget.items.map((item) {
-          final isSelected = item.value == _activeValue;
+          Rect? activeRect;
+          if (widget.isExpanded) {
+            final availableWidth = constraints.maxWidth;
+            final itemWidth = widget.items.isEmpty
+                ? 0.0
+                : availableWidth / widget.items.length;
+            final activeIndex = widget.items.indexWhere(
+              (it) => it.value == _activeValue,
+            );
+            if (activeIndex >= 0) {
+              activeRect = Rect.fromLTWH(
+                activeIndex * itemWidth,
+                0.0,
+                itemWidth,
+                widget.height,
+              );
+            }
+          } else {
+            activeRect = _indicatorRect;
+          }
 
-          Widget buttonContent = Container(
-            key: widget.isExpanded ? null : _itemKeys[item.value],
-            height: widget.height,
-            padding:
-                widget.itemPadding ??
-                EdgeInsets.symmetric(horizontal: widget.isExpanded ? 8 : 14),
-            alignment: Alignment.center,
-            child: Row(
-              mainAxisSize: widget.isExpanded
-                  ? MainAxisSize.max
-                  : MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (item.icon != null) ...[
-                  Icon(
-                    item.icon,
-                    size: 15,
-                    color: isSelected ? selectedColor : unselectedColor,
-                  ),
-                  const SizedBox(width: 6),
-                ],
-                Flexible(
-                  child: AnimatedDefaultTextStyle(
-                    duration: AppTokens.motionFast,
-                    style: TextStyle(
-                      fontFamily: theme.textTheme.bodyMedium?.fontFamily,
-                      fontSize: widget.fontSize,
-                      fontWeight: isSelected
-                          ? FontWeight.w600
-                          : FontWeight.w500,
+          final itemsWidgets = widget.items.map((item) {
+            final isSelected = item.value == _activeValue;
+
+            Widget buttonContent = Container(
+              key: widget.isExpanded ? null : _itemKeys[item.value],
+              height: widget.height,
+              padding:
+                  widget.itemPadding ??
+                  EdgeInsets.symmetric(horizontal: widget.isExpanded ? 8 : 14),
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisSize: widget.isExpanded
+                    ? MainAxisSize.max
+                    : MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  if (item.icon != null) ...[
+                    Icon(
+                      item.icon,
+                      size: 15,
                       color: isSelected ? selectedColor : unselectedColor,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    child: Text(item.label),
+                    const SizedBox(width: 6),
+                  ],
+                  Flexible(
+                    child: Text(
+                      item.label,
+                      style: TextStyle(
+                        fontSize: widget.fontSize,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                        color: isSelected ? selectedColor : unselectedColor,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          );
+                ],
+              ),
+            );
 
-          final clickableItem = Semantics(
-            selected: isSelected,
-            button: true,
-            label: item.label,
-            child: InkWell(
-              onTap: () => _onItemTapped(item.value),
-              borderRadius: indicatorRadius,
-              splashColor: Colors.transparent,
-              highlightColor: Colors.transparent,
-              hoverColor: Colors.transparent,
-              child: buttonContent,
-            ),
-          );
+            final clickableItem = Semantics(
+              selected: isSelected,
+              button: true,
+              label: item.label,
+              child: InkWell(
+                onTap: () => _onItemTapped(item.value),
+                borderRadius: indicatorRadius,
+                splashColor: Colors.transparent,
+                highlightColor: Colors.transparent,
+                hoverColor: Colors.transparent,
+                child: buttonContent,
+              ),
+            );
 
-          if (widget.isExpanded) {
-            return Expanded(child: clickableItem);
-          }
-          return clickableItem;
-        }).toList();
+            if (widget.isExpanded) {
+              return Expanded(child: clickableItem);
+            }
+            return clickableItem;
+          }).toList();
 
-        return Container(
-          key: _containerKey,
-          padding: widget.padding,
-          decoration: BoxDecoration(
-            color: containerBg,
-            borderRadius: borderRadius,
-            border: widget.border,
-          ),
-          child: Stack(
+          return Stack(
+            key: _stackKey,
+            clipBehavior: Clip.none,
             alignment: Alignment.centerLeft,
             children: [
               // 滑动滑块指示器
               if (activeRect != null)
                 AnimatedPositioned(
-                  duration: _initialized
-                      ? AppTokens.motionNormal
-                      : Duration.zero,
+                  duration: _animate ? AppTokens.motionNormal : Duration.zero,
                   curve: AppTokens.motionSpring,
                   left: activeRect.left,
-                  top: activeRect.top,
+                  top: 0.0,
                   width: activeRect.width,
-                  height: activeRect.height,
+                  height: widget.height,
                   child: IgnorePointer(
                     child: Container(
                       decoration: BoxDecoration(
@@ -343,12 +326,20 @@ class _ModernSegmentedControlState<T> extends State<ModernSegmentedControl<T>> {
                 ),
               // 选项行
               widget.isExpanded
-                  ? Row(mainAxisSize: MainAxisSize.max, children: itemsWidgets)
-                  : Row(mainAxisSize: MainAxisSize.min, children: itemsWidgets),
+                  ? Row(
+                      mainAxisSize: MainAxisSize.max,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: itemsWidgets,
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: itemsWidgets,
+                    ),
             ],
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
