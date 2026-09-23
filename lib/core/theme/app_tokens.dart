@@ -165,6 +165,9 @@ abstract final class AppTokens {
   /// Micro badge / progress indicator radius (3dp).
   static const double radiusMicro = 3;
 
+  /// Extra small radius (4dp).
+  static const double radiusXs = 4;
+
   /// Chip / tag badge radius (6dp).
   static const double radiusChip = 6;
 
@@ -249,6 +252,19 @@ abstract final class AppTokens {
   /// Border subtle neutral.
   static const Color borderSubtleNeutralLight = Color(0xFFE2E8F0);
   static const Color borderSubtleNeutralDark = Color(0xFF374151);
+
+  // ── Slate Neutral Palette (Design Prototypes & Filter System) ──
+  static const Color slate900 = Color(0xFF0F172A);
+  static const Color slate800 = Color(0xFF1E293B);
+  static const Color slate700 = Color(0xFF334155);
+  static const Color slate600 = Color(0xFF475569);
+  static const Color slate500 = Color(0xFF64748B);
+  static const Color slate400 = Color(0xFF94A3B8);
+  static const Color slate300 = Color(0xFFCBD5E1);
+  static const Color slate200 = Color(0xFFE2E8F0);
+  static const Color slate100 = Color(0xFFF1F5F9);
+  static const Color slate50 = Color(0xFFF8FAFC);
+  static const Color blue600 = Color(0xFF2563EB);
 
   // ── Spacing ──
 

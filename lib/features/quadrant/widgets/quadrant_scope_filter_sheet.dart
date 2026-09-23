@@ -4,16 +4,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/db/database.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
-import '../../../core/theme/preset_icons.dart';
+import '../../../shared/widgets/settings_card.dart';
+import '../../../shared/widgets/unified_hierarchical_folder_selector.dart';
 import '../../projects/project_providers.dart';
 import '../../tasks/task_providers.dart';
-import '../models/quadrant_models.dart';
 import '../providers/quadrant_providers.dart';
 
 /// 四象限范围筛选底部抽屉弹层。
 ///
-/// 允许用户按清单和文件夹层级（支持多选、级联与三态显示）
-/// 自定义四象限目标任务范围。
+/// 遵循统一设计规范与 FILTER_DESIGN_SPEC.md：
+/// 1. 顶部 Header 包含「范围筛选」标题、动态计数徽标、右上角「重置」与「完成」主操作胶囊按钮；
+/// 2. 顶部主预设栏「全部清单与范围」支持一键全选/反选；
+/// 3. 四象限与自定义视图完全统一的单圆角矩形层级容器 UnifiedHierarchicalFolderContainer；
+/// 4. 底部设置风格圆角卡片承载「显示已完成任务」开关；
+/// 5. 完全对齐当前设置页面的 SettingsCard 圆角矩形风格与 AppTokens 设计系统。
 class QuadrantScopeFilterSheet extends ConsumerStatefulWidget {
   const QuadrantScopeFilterSheet({super.key});
 
@@ -33,12 +37,11 @@ class QuadrantScopeFilterSheet extends ConsumerStatefulWidget {
 
 class _QuadrantScopeFilterSheetState
     extends ConsumerState<QuadrantScopeFilterSheet> {
-  final Set<String> _collapsedFolderIds = <String>{};
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context);
 
     final filter = ref.watch(quadrantFilterProvider);
@@ -46,6 +49,10 @@ class _QuadrantScopeFilterSheetState
 
     final groupingAsync = ref.watch(projectsByFolderProvider);
     final inboxProjectAsync = ref.watch(inboxProjectProvider);
+
+    final dividerColor = isDark
+        ? AppTokens.borderSubtleNeutralDark
+        : AppTokens.slate100;
 
     return groupingAsync.when(
       loading: () => Container(
@@ -65,7 +72,8 @@ class _QuadrantScopeFilterSheetState
         child: Center(child: Text(e.toString())),
       ),
       data: (grouping) {
-        final inboxId = inboxProjectAsync.value?.id ?? inboxProjectId;
+        final inbox = inboxProjectAsync.value;
+        final inboxId = inbox?.id ?? inboxProjectId;
 
         // 计算所有可用清单的 ID 集合
         final allAvailableIds = <String>{
@@ -76,10 +84,18 @@ class _QuadrantScopeFilterSheetState
         };
 
         final isAllSelected = !filter.isCustomScoped;
+        final selectedIds = isAllSelected
+            ? allAvailableIds
+            : (filter.selectedProjectIds ?? const <String>{});
+
+        final selectedCount = selectedIds.length;
+
+        // 顶层未分组项目集合（包含收件箱与独立项目）
+        final unassignedProjects = <Project>[?inbox, ...grouping.ungrouped];
 
         return Container(
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+            maxHeight: MediaQuery.sizeOf(context).height * 0.88,
           ),
           decoration: BoxDecoration(
             color: colorScheme.surface,
@@ -99,201 +115,360 @@ class _QuadrantScopeFilterSheetState
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 顶部抓手 (Grabber)
-                Container(
-                  width: AppTokens.sheetGrabberWidth,
-                  height: AppTokens.sheetGrabberHeight,
-                  margin: const EdgeInsets.only(
-                    top: AppTokens.spaceSm,
-                    bottom: AppTokens.spaceSm,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colorScheme.onSurface.withValues(
-                      alpha: AppTokens.alphaTintStrong,
+                // 顶部拖拽手柄 (Grabber)
+                Center(
+                  child: Container(
+                    width: AppTokens.sheetGrabberWidth,
+                    height: AppTokens.sheetGrabberHeight,
+                    margin: const EdgeInsets.only(
+                      top: AppTokens.spaceSm,
+                      bottom: AppTokens.spaceXxs,
                     ),
-                    borderRadius: BorderRadius.circular(
-                      AppTokens.sheetGrabberRadius,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppTokens.slate600
+                          : AppTokens.slate300,
+                      borderRadius: BorderRadius.circular(
+                        AppTokens.sheetGrabberRadius,
+                      ),
                     ),
                   ),
                 ),
 
-                // 标题栏
+                // 1. 顶部 Header 栏：标题 + 动态计数徽标 + 右侧「重置」与「完成」主按钮
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppTokens.spaceLg,
-                    vertical: AppTokens.spaceSm,
+                    vertical: 10,
                   ),
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        l10n.quadrantScopeFilter,
-                        style: TextStyle(
-                          fontSize: AppTokens.textTitleSize,
-                          fontWeight: FontWeight.w600,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                      const Spacer(),
-                      if (filter.isCustomScoped)
-                        TextButton(
-                          onPressed: () => filterNotifier.resetAll(),
-                          child: Text(
-                            l10n.quadrantReset,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            l10n.quadrantScopeFilter,
                             style: TextStyle(
-                              fontSize: AppTokens.textCaptionSize,
-                              color: colorScheme.primary,
+                              fontSize: AppTokens.textTitleSize,
+                              fontWeight: FontWeight.w700,
+                              color: isDark
+                                  ? AppTokens.textPrimaryDark
+                                  : AppTokens.slate900,
                             ),
                           ),
-                        ),
-                      TextButton(
-                        onPressed: () => Navigator.of(context).maybePop(),
-                        child: Text(
-                          l10n.quadrantDone,
-                          style: TextStyle(
-                            fontSize: AppTokens.textBodySize,
-                            fontWeight: FontWeight.w600,
-                            color: colorScheme.primary,
+                          if (filter.isCustomScoped && selectedCount > 0) ...[
+                            const SizedBox(width: AppTokens.spaceXs),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? AppTokens.surfaceSubtleDark
+                                    : AppTokens.slate100,
+                                borderRadius: BorderRadius.circular(AppTokens.radiusItem),
+                              ),
+                              child: Text(
+                                '已选 $selectedCount 项',
+                                style: TextStyle(
+                                  fontSize: AppTokens.textMicroSize,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark
+                                      ? AppTokens.textPrimaryDark
+                                      : AppTokens.slate900,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (filter.isCustomScoped)
+                            TextButton(
+                              onPressed: () => filterNotifier.resetAll(),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: Text(
+                                l10n.quadrantReset,
+                                style: TextStyle(
+                                  fontSize: AppTokens.textFootnoteSize,
+                                  fontWeight: FontWeight.w500,
+                                  color: isDark
+                                      ? AppTokens.textMutedDark
+                                      : AppTokens.slate500,
+                                ),
+                              ),
+                            ),
+                          const SizedBox(width: 8),
+                          // 主操作胶囊「完成」按钮 (32dp 高度，16dp 圆角)
+                          SizedBox(
+                            height: 32,
+                            child: ElevatedButton(
+                              onPressed: () => Navigator.of(context).maybePop(),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isDark
+                                    ? colorScheme.primary
+                                    : AppTokens.slate900,
+                                foregroundColor: isDark
+                                    ? colorScheme.onPrimary
+                                    : Colors.white,
+                                elevation: 1.5,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+                                ),
+                              ),
+                              child: Text(
+                                l10n.quadrantDone,
+                                style: const TextStyle(
+                                  fontSize: AppTokens.textCaptionSize,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ],
                   ),
                 ),
 
-                const Divider(height: 1),
+                Divider(height: 1, thickness: 0.8, color: dividerColor),
 
-                // 可滚动内容区
+                // 2. 可滚动的主体内容
                 Flexible(
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppTokens.spaceMd,
-                      AppTokens.spaceSm,
-                      AppTokens.spaceMd,
-                      AppTokens.spaceLg,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTokens.spaceLg,
+                      vertical: AppTokens.spaceMd,
                     ),
                     children: [
-                      // 全选 / 全部范围
-                      _buildTile(
-                        icon: Icons.layers_outlined,
-                        iconColor: AppTokens.colorNavQuadrant,
-                        title: l10n.quadrantAllScopes,
-                        isChecked: isAllSelected,
-                        onTap: () => filterNotifier.resetAll(),
-                      ),
-
-                      const Padding(
-                        padding: EdgeInsets.symmetric(
-                          vertical: AppTokens.spaceXxs,
-                        ),
-                        child: Divider(height: 1),
-                      ),
-
-                      // 收集箱
-                      _buildTile(
-                        icon: Icons.inbox_outlined,
-                        iconColor: AppTokens.colorNavInbox,
-                        title: l10n.inbox,
-                        isChecked:
-                            isAllSelected ||
-                            filter.selectedProjectIds!.contains(inboxId),
-                        onTap: () => filterNotifier.toggleProject(
-                          inboxId,
-                          allAvailableIds,
-                        ),
-                      ),
-
-                      // 文件夹与下属清单
-                      for (final folder in grouping.folders) ...[
-                        _buildFolderSection(
-                          folder: folder,
-                          projects:
-                              grouping.folderProjects[folder.id] ?? const [],
-                          filter: filter,
-                          filterNotifier: filterNotifier,
-                          allAvailableIds: allAvailableIds,
-                        ),
-                      ],
-
-                      // 未分组清单
-                      if (grouping.ungrouped.isNotEmpty) ...[
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(
-                            AppTokens.spaceMd,
-                            AppTokens.spaceMd,
-                            AppTokens.spaceMd,
-                            AppTokens.spaceXs,
+                      // 顶部大预设栏：「全部清单与范围」
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            if (isAllSelected) {
+                              filterNotifier.setProjectSelection(<String>{});
+                            } else {
+                              filterNotifier.resetAll();
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(
+                            AppTokens.radiusCard,
                           ),
-                          child: Text(
-                            l10n.quadrantUngroupedLists,
-                            style: TextStyle(
-                              fontSize: AppTokens.textMicroSize,
-                              fontWeight: FontWeight.w600,
-                              color: colorScheme.onSurfaceVariant.withValues(
-                                alpha: AppTokens.alphaContentMuted,
+                          child: AnimatedContainer(
+                            duration: AppTokens.motionFast,
+                            height: 44,
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            decoration: BoxDecoration(
+                              color: isAllSelected
+                                  ? (isDark
+                                        ? colorScheme.primary
+                                        : AppTokens.slate900)
+                                  : (isDark
+                                        ? AppTokens.surfaceSubtleDark
+                                        : AppTokens.slate50),
+                              borderRadius: BorderRadius.circular(
+                                AppTokens.radiusCard,
                               ),
+                              border: Border.all(
+                                color: isAllSelected
+                                    ? (isDark
+                                          ? colorScheme.primary
+                                          : AppTokens.slate900)
+                                    : (isDark
+                                          ? AppTokens.borderSubtleNeutralDark
+                                          : AppTokens.slate200),
+                                width: 0.8,
+                              ),
+                              boxShadow: isAllSelected
+                                  ? [
+                                      BoxShadow(
+                                        color:
+                                            (isDark
+                                                    ? Colors.black
+                                                    : AppTokens.slate900)
+                                                .withValues(alpha: AppTokens.alphaTintStrong),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.layers_outlined,
+                                  size: 16,
+                                  color: isAllSelected
+                                      ? (isDark
+                                            ? colorScheme.onPrimary
+                                            : Colors.white)
+                                      : (isDark
+                                            ? AppTokens.textMutedDark
+                                            : AppTokens.slate500),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  l10n.quadrantAllScopes,
+                                  style: TextStyle(
+                                    fontSize: AppTokens.textFootnoteSize,
+                                    fontWeight: FontWeight.w600,
+                                    color: isAllSelected
+                                        ? (isDark
+                                              ? colorScheme.onPrimary
+                                              : Colors.white)
+                                        : (isDark
+                                              ? AppTokens.textPrimaryDark
+                                              : AppTokens.slate800),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '(${allAvailableIds.length})',
+                                  style: TextStyle(
+                                    fontSize: AppTokens.textCaptionSize,
+                                    fontWeight: FontWeight.w500,
+                                    color: isAllSelected
+                                        ? (isDark
+                                              ? colorScheme.onPrimary
+                                                    .withValues(alpha: AppTokens.alphaOverlayHeavy)
+                                              : Colors.white70)
+                                        : (isDark
+                                              ? AppTokens.textMutedDark
+                                              : AppTokens.slate400),
+                                  ),
+                                ),
+                                const Spacer(),
+                                if (isAllSelected) ...[
+                                  Text(
+                                    '已全选',
+                                    style: TextStyle(
+                                      fontSize: AppTokens.textCaptionSize,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark
+                                          ? colorScheme.onPrimary
+                                          : Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.check_rounded,
+                                    size: 14,
+                                    color: isDark
+                                        ? colorScheme.onPrimary
+                                        : Colors.white,
+                                  ),
+                                ] else ...[
+                                  Text(
+                                    '一键全选',
+                                    style: TextStyle(
+                                      fontSize: AppTokens.textCaptionSize,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark
+                                          ? colorScheme.primary
+                                          : AppTokens.blue600,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                         ),
-                        for (final project in grouping.ungrouped)
-                          _buildProjectTile(
-                            project: project,
-                            filter: filter,
-                            filterNotifier: filterNotifier,
-                            allAvailableIds: allAvailableIds,
-                            isIndented: false,
-                          ),
-                      ],
-
-                      const Padding(
-                        padding: EdgeInsets.symmetric(
-                          vertical: AppTokens.spaceMd,
-                        ),
-                        child: Divider(height: 1),
                       ),
 
-                      // 显示已完成任务切换项
-                      Padding(
+                      const SizedBox(height: 12),
+
+                      // 统一层级架构单圆角矩形融合容器 (UnifiedHierarchicalFolderContainer)
+                      UnifiedHierarchicalFolderContainer(
+                        unassignedProjects: unassignedProjects,
+                        folders: grouping.folders,
+                        folderProjects: grouping.folderProjects,
+                        selectedProjectIds: selectedIds,
+                        onToggleProject: (projectId) {
+                          filterNotifier.toggleProject(
+                            projectId,
+                            allAvailableIds,
+                          );
+                        },
+                        onToggleGroup: (groupProjectIds, selectAll) {
+                          filterNotifier.toggleFolder(
+                            groupProjectIds,
+                            allAvailableIds,
+                          );
+                        },
+                        unassignedTitle: '顶层与独立清单',
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      // 底部设置风格圆角卡片：显示已完成任务
+                      SettingsCard(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: AppTokens.spaceSm,
+                          horizontal: 14,
+                          vertical: 10,
                         ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 26,
-                              height: 26,
-                              decoration: BoxDecoration(
-                                color: colorScheme.primary.withValues(
-                                  alpha: AppTokens.alphaBorderSubtle,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? AppTokens.surfaceSubtleDark
+                                      : AppTokens.slate100,
+                                  borderRadius: BorderRadius.circular(AppTokens.radiusChip),
                                 ),
-                                borderRadius: BorderRadius.circular(
-                                  AppTokens.radiusList,
-                                ),
-                              ),
-                              child: Icon(
-                                Icons.check_circle_outline,
-                                color: colorScheme.primary,
-                                size: 16,
-                              ),
-                            ),
-                            const SizedBox(width: AppTokens.spaceMd),
-                            Expanded(
-                              child: Text(
-                                l10n.quadrantShowCompleted,
-                                style: TextStyle(
-                                  fontSize: AppTokens.textBodySize,
-                                  fontWeight: FontWeight.w500,
-                                  color: colorScheme.onSurface,
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  Icons.check_circle_outline_rounded,
+                                  size: 15,
+                                  color: isDark
+                                      ? AppTokens.textMutedDark
+                                      : AppTokens.slate600,
                                 ),
                               ),
-                            ),
-                            Switch.adaptive(
-                              value: filter.showCompleted,
-                              onChanged: (_) =>
-                                  filterNotifier.toggleShowCompleted(),
-                            ),
-                          ],
-                        ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  l10n.quadrantShowCompleted,
+                                  style: TextStyle(
+                                    fontSize: AppTokens.textFootnoteSize,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? AppTokens.textPrimaryDark
+                                        : AppTokens.slate800,
+                                  ),
+                                ),
+                              ),
+                              Switch.adaptive(
+                                value: filter.showCompleted,
+                                activeTrackColor: isDark
+                                    ? colorScheme.primary
+                                    : AppTokens.slate900,
+                                onChanged: (_) =>
+                                    filterNotifier.toggleShowCompleted(),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
+
+                      const SizedBox(height: AppTokens.spaceMd),
                     ],
                   ),
                 ),
@@ -302,305 +477,6 @@ class _QuadrantScopeFilterSheetState
           ),
         );
       },
-    );
-  }
-
-  Widget _buildFolderSection({
-    required Folder folder,
-    required List<Project> projects,
-    required QuadrantFilterState filter,
-    required QuadrantFilterNotifier filterNotifier,
-    required Set<String> allAvailableIds,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final folderColor = folder.color != null
-        ? Color(folder.color!)
-        : colorScheme.primary;
-    final folderIcon = getIconDataById(
-      folder.icon,
-      fallback: Icons.folder_outlined,
-    );
-
-    final isCollapsed = _collapsedFolderIds.contains(folder.id);
-    final projectIds = projects.map((p) => p.id).toList();
-
-    final isAllSelected = !filter.isCustomScoped;
-    final selectedCount = isAllSelected
-        ? projects.length
-        : projects
-              .where((p) => filter.selectedProjectIds!.contains(p.id))
-              .length;
-
-    final isFullySelected =
-        projects.isNotEmpty && selectedCount == projects.length;
-    final isPartiallySelected =
-        selectedCount > 0 && selectedCount < projects.length;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
-          child: Material(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(AppTokens.radiusItem),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(AppTokens.radiusItem),
-              onTap: () {
-                filterNotifier.toggleFolder(projectIds, allAvailableIds);
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTokens.spaceSm,
-                  vertical: AppTokens.spaceSm,
-                ),
-                child: Row(
-                  children: [
-                    // 折叠切换箭头
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          if (isCollapsed) {
-                            _collapsedFolderIds.remove(folder.id);
-                          } else {
-                            _collapsedFolderIds.add(folder.id);
-                          }
-                        });
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.only(
-                          right: AppTokens.spaceXxs,
-                        ),
-                        child: Icon(
-                          isCollapsed ? Icons.chevron_right : Icons.expand_more,
-                          size: 18,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      width: 26,
-                      height: 26,
-                      decoration: BoxDecoration(
-                        color: folderColor.withValues(
-                          alpha: AppTokens.alphaBorderSubtle,
-                        ),
-                        borderRadius: BorderRadius.circular(
-                          AppTokens.radiusList,
-                        ),
-                      ),
-                      child: Icon(folderIcon, color: folderColor, size: 16),
-                    ),
-                    const SizedBox(width: AppTokens.spaceMd),
-                    Expanded(
-                      child: Text(
-                        '${folder.name} (${projects.length})',
-                        style: TextStyle(
-                          fontSize: AppTokens.textBodySize,
-                          fontWeight: FontWeight.w600,
-                          color: colorScheme.onSurface,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    // 三态复选框指示
-                    _buildCheckboxIndicator(
-                      isChecked: isFullySelected,
-                      isIndeterminate: isPartiallySelected,
-                      colorScheme: colorScheme,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-        if (!isCollapsed)
-          Padding(
-            padding: const EdgeInsets.only(left: 36),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (final project in projects)
-                  _buildProjectTile(
-                    project: project,
-                    filter: filter,
-                    filterNotifier: filterNotifier,
-                    allAvailableIds: allAvailableIds,
-                    isIndented: true,
-                  ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildProjectTile({
-    required Project project,
-    required QuadrantFilterState filter,
-    required QuadrantFilterNotifier filterNotifier,
-    required Set<String> allAvailableIds,
-    required bool isIndented,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final projectColor = Color(project.color);
-    final projectIcon = getIconDataById(
-      project.icon,
-      fallback: Icons.checklist_outlined,
-    );
-
-    final isChecked =
-        !filter.isCustomScoped ||
-        filter.selectedProjectIds!.contains(project.id);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 1),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(AppTokens.radiusItem),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppTokens.radiusItem),
-          onTap: () {
-            filterNotifier.toggleProject(project.id, allAvailableIds);
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTokens.spaceSm,
-              vertical: AppTokens.spaceSm,
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: projectColor.withValues(
-                      alpha: AppTokens.alphaBorderSubtle,
-                    ),
-                    borderRadius: BorderRadius.circular(AppTokens.radiusList),
-                  ),
-                  child: Icon(projectIcon, color: projectColor, size: 14),
-                ),
-                const SizedBox(width: AppTokens.spaceMd),
-                Expanded(
-                  child: Text(
-                    project.name,
-                    style: TextStyle(
-                      fontSize: AppTokens.textBodySize,
-                      fontWeight: isChecked ? FontWeight.w600 : FontWeight.w400,
-                      color: colorScheme.onSurface,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                _buildCheckboxIndicator(
-                  isChecked: isChecked,
-                  isIndeterminate: false,
-                  colorScheme: colorScheme,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTile({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required bool isChecked,
-    required VoidCallback onTap,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 1),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(AppTokens.radiusItem),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppTokens.radiusItem),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTokens.spaceSm,
-              vertical: AppTokens.spaceSm,
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 26,
-                  height: 26,
-                  decoration: BoxDecoration(
-                    color: iconColor.withValues(
-                      alpha: AppTokens.alphaBorderSubtle,
-                    ),
-                    borderRadius: BorderRadius.circular(AppTokens.radiusList),
-                  ),
-                  child: Icon(icon, color: iconColor, size: 16),
-                ),
-                const SizedBox(width: AppTokens.spaceMd),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: AppTokens.textBodySize,
-                      fontWeight: isChecked ? FontWeight.w600 : FontWeight.w500,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                ),
-                _buildCheckboxIndicator(
-                  isChecked: isChecked,
-                  isIndeterminate: false,
-                  colorScheme: colorScheme,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCheckboxIndicator({
-    required bool isChecked,
-    required bool isIndeterminate,
-    required ColorScheme colorScheme,
-  }) {
-    if (isIndeterminate) {
-      return Container(
-        width: 20,
-        height: 20,
-        decoration: BoxDecoration(
-          color: colorScheme.primary,
-          borderRadius: BorderRadius.circular(AppTokens.checkboxRadius),
-        ),
-        child: const Center(
-          child: Icon(Icons.remove, size: 14, color: Colors.white),
-        ),
-      );
-    }
-
-    return Container(
-      width: 20,
-      height: 20,
-      decoration: BoxDecoration(
-        color: isChecked ? colorScheme.primary : Colors.transparent,
-        border: Border.all(
-          color: isChecked ? colorScheme.primary : colorScheme.outline,
-          width: 1.5,
-        ),
-        borderRadius: BorderRadius.circular(AppTokens.checkboxRadius),
-      ),
-      child: isChecked
-          ? const Center(
-              child: Icon(Icons.check, size: 14, color: Colors.white),
-            )
-          : null,
     );
   }
 }
