@@ -1,9 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:todo/core/l10n/app_localizations.dart';
+import 'package:todo/features/quadrant/models/quadrant_models.dart';
+import 'package:todo/features/quadrant/widgets/quadrant_filter_bar.dart';
 import 'package:todo/shared/widgets/modern_segmented_control.dart';
 
 void main() {
   group('ModernSegmentedControl tests', () {
+    testWidgets(
+      'QuadrantFilterBar left and right buttons have identical heights',
+      (tester) async {
+        await tester.pumpWidget(
+          const ProviderScope(
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(body: QuadrantFilterBar(totalTasksCount: 5)),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final leftFinder = find.byType(InkWell).first;
+        final rightFinder = find.byType(
+          ModernSegmentedControl<QuadrantViewMode>,
+        );
+
+        final leftSize = tester.getSize(leftFinder);
+        final rightSize = tester.getSize(rightFinder);
+
+        // Verify left and right button heights are exactly identical
+        expect(leftSize.height, rightSize.height);
+        expect(rightSize.height, closeTo(25.2, 0.1));
+      },
+    );
+
     testWidgets(
       'renders items and handles taps with sliding animation (expanded)',
       (tester) async {

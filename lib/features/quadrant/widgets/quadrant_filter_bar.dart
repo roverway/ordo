@@ -121,7 +121,7 @@ class QuadrantFilterBar extends ConsumerWidget {
           // 右侧：[ 2x2 矩阵 | 聚焦列表 ] 滑动分段控制器
           ModernSegmentedControl<QuadrantViewMode>(
             isExpanded: false,
-            height: 28,
+            height: 20,
             padding: const EdgeInsets.all(2.0),
             itemPadding: const EdgeInsets.symmetric(
               horizontal: AppTokens.spaceSm,
