@@ -255,9 +255,8 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: isDark
-                            ? AppTokens.surfaceSubtleDark
-                            : AppTokens.slate100,
+                        color: colorScheme.primary
+                            .withValues(alpha: AppTokens.alphaTintSoft),
                         borderRadius: BorderRadius.circular(AppTokens.radiusItem),
                       ),
                       child: Text(
@@ -265,9 +264,7 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
                         style: TextStyle(
                           fontSize: AppTokens.textMicroSize,
                           fontWeight: FontWeight.w700,
-                          color: isDark
-                              ? AppTokens.textPrimaryDark
-                              : AppTokens.slate900,
+                          color: colorScheme.primary,
                         ),
                       ),
                     ),
@@ -292,9 +289,11 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
                       style: TextStyle(
                         fontSize: AppTokens.textFootnoteSize,
                         fontWeight: FontWeight.w500,
-                        color: isDark
-                            ? AppTokens.textMutedDark
-                            : AppTokens.slate500,
+                        color: activeCount > 0
+                            ? colorScheme.primary
+                            : (isDark
+                                  ? AppTokens.textMutedDark
+                                  : AppTokens.slate500),
                       ),
                     ),
                   ),
@@ -681,9 +680,7 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
                                     fit: BoxFit.contain,
                                     child: Switch.adaptive(
                                       value: _tagMatchAll,
-                                      activeTrackColor: isDark
-                                          ? colorScheme.primary
-                                          : AppTokens.slate900,
+                                      activeTrackColor: colorScheme.primary,
                                       onChanged: (val) {
                                         setState(() => _tagMatchAll = val);
                                       },
@@ -757,13 +754,13 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
             child: ElevatedButton(
               onPressed: _applyFilters,
               style: ElevatedButton.styleFrom(
-                backgroundColor: isDark
-                    ? colorScheme.primary
-                    : AppTokens.slate900,
-                foregroundColor: isDark ? colorScheme.onPrimary : Colors.white,
-                shape: RoundedCornerShape(24),
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                ),
                 elevation: 3,
-                shadowColor: (isDark ? Colors.black : AppTokens.slate900)
+                shadowColor: colorScheme.primary
                     .withValues(alpha: AppTokens.alphaBorderEmphasis),
                 padding: const EdgeInsets.symmetric(horizontal: 20),
               ),

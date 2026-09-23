@@ -165,9 +165,8 @@ class _QuadrantScopeFilterSheetState
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: isDark
-                                    ? AppTokens.surfaceSubtleDark
-                                    : AppTokens.slate100,
+                                color: colorScheme.primary
+                                    .withValues(alpha: AppTokens.alphaTintSoft),
                                 borderRadius: BorderRadius.circular(AppTokens.radiusItem),
                               ),
                               child: Text(
@@ -175,9 +174,7 @@ class _QuadrantScopeFilterSheetState
                                 style: TextStyle(
                                   fontSize: AppTokens.textMicroSize,
                                   fontWeight: FontWeight.w700,
-                                  color: isDark
-                                      ? AppTokens.textPrimaryDark
-                                      : AppTokens.slate900,
+                                  color: colorScheme.primary,
                                 ),
                               ),
                             ),
@@ -203,9 +200,7 @@ class _QuadrantScopeFilterSheetState
                                 style: TextStyle(
                                   fontSize: AppTokens.textFootnoteSize,
                                   fontWeight: FontWeight.w500,
-                                  color: isDark
-                                      ? AppTokens.textMutedDark
-                                      : AppTokens.slate500,
+                                  color: colorScheme.primary,
                                 ),
                               ),
                             ),
@@ -216,12 +211,8 @@ class _QuadrantScopeFilterSheetState
                             child: ElevatedButton(
                               onPressed: () => Navigator.of(context).maybePop(),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: isDark
-                                    ? colorScheme.primary
-                                    : AppTokens.slate900,
-                                foregroundColor: isDark
-                                    ? colorScheme.onPrimary
-                                    : Colors.white,
+                                backgroundColor: colorScheme.primary,
+                                foregroundColor: colorScheme.onPrimary,
                                 elevation: 1.5,
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 14,
@@ -275,9 +266,7 @@ class _QuadrantScopeFilterSheetState
                             padding: const EdgeInsets.symmetric(horizontal: 14),
                             decoration: BoxDecoration(
                               color: isAllSelected
-                                  ? (isDark
-                                        ? colorScheme.primary
-                                        : AppTokens.slate900)
+                                  ? colorScheme.primary
                                   : (isDark
                                         ? AppTokens.surfaceSubtleDark
                                         : AppTokens.slate50),
@@ -286,9 +275,7 @@ class _QuadrantScopeFilterSheetState
                               ),
                               border: Border.all(
                                 color: isAllSelected
-                                    ? (isDark
-                                          ? colorScheme.primary
-                                          : AppTokens.slate900)
+                                    ? colorScheme.primary
                                     : (isDark
                                           ? AppTokens.borderSubtleNeutralDark
                                           : AppTokens.slate200),
@@ -297,11 +284,8 @@ class _QuadrantScopeFilterSheetState
                               boxShadow: isAllSelected
                                   ? [
                                       BoxShadow(
-                                        color:
-                                            (isDark
-                                                    ? Colors.black
-                                                    : AppTokens.slate900)
-                                                .withValues(alpha: AppTokens.alphaTintStrong),
+                                        color: colorScheme.primary
+                                            .withValues(alpha: AppTokens.alphaTintStrong),
                                         blurRadius: 4,
                                         offset: const Offset(0, 2),
                                       ),
@@ -314,9 +298,7 @@ class _QuadrantScopeFilterSheetState
                                   Icons.layers_outlined,
                                   size: 16,
                                   color: isAllSelected
-                                      ? (isDark
-                                            ? colorScheme.onPrimary
-                                            : Colors.white)
+                                      ? colorScheme.onPrimary
                                       : (isDark
                                             ? AppTokens.textMutedDark
                                             : AppTokens.slate500),
@@ -328,9 +310,7 @@ class _QuadrantScopeFilterSheetState
                                     fontSize: AppTokens.textFootnoteSize,
                                     fontWeight: FontWeight.w600,
                                     color: isAllSelected
-                                        ? (isDark
-                                              ? colorScheme.onPrimary
-                                              : Colors.white)
+                                        ? colorScheme.onPrimary
                                         : (isDark
                                               ? AppTokens.textPrimaryDark
                                               : AppTokens.slate800),
@@ -343,10 +323,8 @@ class _QuadrantScopeFilterSheetState
                                     fontSize: AppTokens.textCaptionSize,
                                     fontWeight: FontWeight.w500,
                                     color: isAllSelected
-                                        ? (isDark
-                                              ? colorScheme.onPrimary
-                                                    .withValues(alpha: AppTokens.alphaOverlayHeavy)
-                                              : Colors.white70)
+                                        ? colorScheme.onPrimary
+                                              .withValues(alpha: AppTokens.alphaOverlayHeavy)
                                         : (isDark
                                               ? AppTokens.textMutedDark
                                               : AppTokens.slate400),
@@ -359,18 +337,14 @@ class _QuadrantScopeFilterSheetState
                                     style: TextStyle(
                                       fontSize: AppTokens.textCaptionSize,
                                       fontWeight: FontWeight.w600,
-                                      color: isDark
-                                          ? colorScheme.onPrimary
-                                          : Colors.white,
+                                      color: colorScheme.onPrimary,
                                     ),
                                   ),
                                   const SizedBox(width: 4),
                                   Icon(
                                     Icons.check_rounded,
                                     size: 14,
-                                    color: isDark
-                                        ? colorScheme.onPrimary
-                                        : Colors.white,
+                                    color: colorScheme.onPrimary,
                                   ),
                                 ] else ...[
                                   Text(
@@ -378,9 +352,7 @@ class _QuadrantScopeFilterSheetState
                                     style: TextStyle(
                                       fontSize: AppTokens.textCaptionSize,
                                       fontWeight: FontWeight.w600,
-                                      color: isDark
-                                          ? colorScheme.primary
-                                          : AppTokens.blue600,
+                                      color: colorScheme.primary,
                                     ),
                                   ),
                                 ],
@@ -457,9 +429,7 @@ class _QuadrantScopeFilterSheetState
                               ),
                               Switch.adaptive(
                                 value: filter.showCompleted,
-                                activeTrackColor: isDark
-                                    ? colorScheme.primary
-                                    : AppTokens.slate900,
+                                activeTrackColor: colorScheme.primary,
                                 onChanged: (_) =>
                                     filterNotifier.toggleShowCompleted(),
                               ),

@@ -34,17 +34,17 @@ class HierarchicalChip extends StatelessWidget {
 
     // 选中态与未选态背景与边框
     final Color bg = isSelected
-        ? (isDark ? colorScheme.primary : AppTokens.slate900)
+        ? colorScheme.primary
         : (isDark ? AppTokens.surfaceSubtleDark : Colors.white);
 
     final Color border = isSelected
-        ? (isDark ? colorScheme.primary : AppTokens.slate900)
+        ? colorScheme.primary
         : (isDark
               ? AppTokens.borderSubtleNeutralDark
               : AppTokens.slate200);
 
     final Color fg = isSelected
-        ? (isDark ? colorScheme.onPrimary : Colors.white)
+        ? colorScheme.onPrimary
         : (isDark ? AppTokens.textPrimaryDark : AppTokens.slate700);
 
     return Material(
@@ -63,8 +63,7 @@ class HierarchicalChip extends StatelessWidget {
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: (isDark ? Colors.black : AppTokens.slate900)
-                          .withValues(alpha: AppTokens.alphaTintStrong),
+                      color: colorScheme.primary.withValues(alpha: AppTokens.alphaTintStrong),
                       blurRadius: 4,
                       offset: const Offset(0, 1.5),
                     ),
@@ -80,7 +79,7 @@ class HierarchicalChip extends StatelessWidget {
                 Icon(
                   Icons.check_rounded,
                   size: 13,
-                  color: isDark ? colorScheme.onPrimary : Colors.white,
+                  color: colorScheme.onPrimary,
                 ),
                 const SizedBox(width: 5),
               ] else if (leadingDotColor != null) ...[
@@ -323,12 +322,8 @@ class _UnifiedHierarchicalFolderContainerState
                             ),
                             decoration: BoxDecoration(
                               color: allSelected
-                                  ? (isDark
-                                        ? colorScheme.primary
-                                        : AppTokens.slate900)
-                                  : (isDark
-                                        ? AppTokens.surfaceSubtleDark
-                                        : AppTokens.slate200),
+                                  ? colorScheme.primary
+                                  : colorScheme.primary.withValues(alpha: AppTokens.alphaTintSoft),
                               borderRadius: BorderRadius.circular(AppTokens.radiusList),
                             ),
                             child: Text(
@@ -339,12 +334,8 @@ class _UnifiedHierarchicalFolderContainerState
                                 fontSize: AppTokens.textNanoSize,
                                 fontWeight: FontWeight.w600,
                                 color: allSelected
-                                    ? (isDark
-                                          ? colorScheme.onPrimary
-                                          : Colors.white)
-                                    : (isDark
-                                          ? AppTokens.textPrimaryDark
-                                          : AppTokens.slate700),
+                                    ? colorScheme.onPrimary
+                                    : colorScheme.primary,
                               ),
                             ),
                           ),
@@ -397,9 +388,7 @@ class _UnifiedHierarchicalFolderContainerState
                           ? (isDark
                                 ? AppTokens.textMutedDark
                                 : AppTokens.slate500)
-                          : (isDark
-                                ? colorScheme.primary
-                                : AppTokens.blue600),
+                          : colorScheme.primary,
                     ),
                   ),
                 ),
