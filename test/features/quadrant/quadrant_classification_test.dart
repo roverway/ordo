@@ -4,6 +4,7 @@ import 'package:todo/core/db/database.dart';
 import 'package:todo/core/db/tables.dart';
 import 'package:todo/features/quadrant/models/quadrant_models.dart';
 import 'package:todo/features/quadrant/providers/quadrant_providers.dart';
+import 'package:todo/features/settings/settings_providers.dart';
 
 void main() {
   final now = DateTime(2026, 9, 22, 14, 30);
@@ -535,6 +536,68 @@ void main() {
       expect(container.read(quadrantFilterProvider).showCompleted, isFalse);
       notifier.toggleShowCompleted();
       expect(container.read(quadrantFilterProvider).showCompleted, isTrue);
+    });
+
+    test('local persistence with AppSettingsCache', () {
+      final cache = AppSettingsCache();
+      final container1 = ProviderContainer(
+        overrides: [appSettingsCacheProvider.overrideWithValue(cache)],
+      );
+      addTearDown(container1.dispose);
+
+      final notifier1 = container1.read(quadrantFilterProvider.notifier);
+      notifier1.setProjectSelection({'p1', 'p2'});
+      notifier1.toggleShowCompleted();
+
+      expect(cache.get(quadrantFilterProjectIdsPrefKey), contains('p1'));
+      expect(cache.get(quadrantFilterShowCompletedPrefKey), 'true');
+
+      // Container 2 restoring from the same cache
+      final container2 = ProviderContainer(
+        overrides: [appSettingsCacheProvider.overrideWithValue(cache)],
+      );
+      addTearDown(container2.dispose);
+
+      final state2 = container2.read(quadrantFilterProvider);
+      expect(state2.selectedProjectIds, {'p1', 'p2'});
+      expect(state2.showCompleted, isTrue);
+
+      // Reset all clears project ids from cache
+      final notifier2 = container2.read(quadrantFilterProvider.notifier);
+      notifier2.resetAll();
+      expect(cache.get(quadrantFilterProjectIdsPrefKey), isNull);
+
+      final container3 = ProviderContainer(
+        overrides: [appSettingsCacheProvider.overrideWithValue(cache)],
+      );
+      addTearDown(container3.dispose);
+      expect(
+        container3.read(quadrantFilterProvider).selectedProjectIds,
+        isNull,
+      );
+    });
+
+    test('QuadrantViewModeNotifier persists mode', () {
+      final cache = AppSettingsCache();
+      final container1 = ProviderContainer(
+        overrides: [appSettingsCacheProvider.overrideWithValue(cache)],
+      );
+      addTearDown(container1.dispose);
+
+      final modeNotifier = container1.read(quadrantViewModeProvider.notifier);
+      expect(
+        container1.read(quadrantViewModeProvider),
+        QuadrantViewMode.matrix,
+      );
+
+      modeNotifier.setMode(QuadrantViewMode.list);
+      expect(cache.get(quadrantViewModePrefKey), 'list');
+
+      final container2 = ProviderContainer(
+        overrides: [appSettingsCacheProvider.overrideWithValue(cache)],
+      );
+      addTearDown(container2.dispose);
+      expect(container2.read(quadrantViewModeProvider), QuadrantViewMode.list);
     });
   });
 }

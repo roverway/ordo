@@ -15,14 +15,14 @@ class ModernSegmentItem<T> {
   final IconData? icon;
 }
 
-/// 现代极简风格分段选择控件（对齐 settings.html 中的 .seg / .lang-seg 胶囊分段设计）。
+/// 现代极简风格分段选择控件（带平滑滑动滑块动画与触控反馈）。
 ///
 /// 特性：
-/// - 浅色胶囊底槽（`colorScheme.onSurface` 极低透明度）
-/// - 选中项为卡片高亮浮层（带微投影与高对比度字色）
-/// - 支持图标 + 文字水平排布
-/// - 支持平滑过渡动画与触控反馈
-class ModernSegmentedControl<T> extends StatelessWidget {
+/// - 胶囊底槽（可自定义背景色、边框、圆角）
+/// - 点击时滑块底色物理滑动过渡（[AppTokens.motionNormal] + [AppTokens.motionSpring]）
+/// - 自适应等宽展开（[isExpanded] = true）或内容包裹（[isExpanded] = false）
+/// - 支持图标与文字混排、语义化与无障碍聚焦
+class ModernSegmentedControl<T> extends StatefulWidget {
   const ModernSegmentedControl({
     super.key,
     required this.items,
@@ -33,6 +33,14 @@ class ModernSegmentedControl<T> extends StatelessWidget {
     this.padding = const EdgeInsets.all(3),
     this.itemPadding,
     this.isExpanded = true,
+    this.backgroundColor,
+    this.indicatorColor,
+    this.selectedTextColor,
+    this.unselectedTextColor,
+    this.borderRadius,
+    this.indicatorRadius,
+    this.border,
+    this.indicatorShadow,
   });
 
   final List<ModernSegmentItem<T>> items;
@@ -43,6 +51,130 @@ class ModernSegmentedControl<T> extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   final EdgeInsetsGeometry? itemPadding;
   final bool isExpanded;
+  final Color? backgroundColor;
+  final Color? indicatorColor;
+  final Color? selectedTextColor;
+  final Color? unselectedTextColor;
+  final BorderRadius? borderRadius;
+  final BorderRadius? indicatorRadius;
+  final BoxBorder? border;
+  final List<BoxShadow>? indicatorShadow;
+
+  @override
+  State<ModernSegmentedControl<T>> createState() =>
+      _ModernSegmentedControlState<T>();
+}
+
+class _ModernSegmentedControlState<T> extends State<ModernSegmentedControl<T>> {
+  final GlobalKey _containerKey = GlobalKey();
+  final Map<T, GlobalKey> _itemKeys = {};
+
+  Rect? _indicatorRect;
+  bool _initialized = false;
+  late T _activeValue;
+
+  @override
+  void initState() {
+    super.initState();
+    _activeValue = widget.selectedValue;
+    _updateKeys();
+    if (!widget.isExpanded) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _updateIndicator(animate: false);
+      });
+    } else {
+      _initialized = true;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ModernSegmentedControl<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _updateKeys();
+    if (widget.selectedValue != oldWidget.selectedValue ||
+        widget.items.length != oldWidget.items.length) {
+      _activeValue = widget.selectedValue;
+      if (!widget.isExpanded) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _updateIndicator(animate: true);
+        });
+      }
+    }
+  }
+
+  void _updateKeys() {
+    for (final item in widget.items) {
+      _itemKeys.putIfAbsent(item.value, () => GlobalKey());
+    }
+  }
+
+  void _updateIndicator({required bool animate}) {
+    if (!mounted) return;
+    final containerBox =
+        _containerKey.currentContext?.findRenderObject() as RenderBox?;
+    final targetKey = _itemKeys[_activeValue];
+    final targetBox =
+        targetKey?.currentContext?.findRenderObject() as RenderBox?;
+
+    if (containerBox != null &&
+        targetBox != null &&
+        containerBox.hasSize &&
+        targetBox.hasSize) {
+      final offset = targetBox.localToGlobal(
+        Offset.zero,
+        ancestor: containerBox,
+      );
+      final newRect = Rect.fromLTWH(
+        offset.dx,
+        offset.dy,
+        targetBox.size.width,
+        targetBox.size.height,
+      );
+      if (_indicatorRect != newRect) {
+        setState(() {
+          _indicatorRect = newRect;
+          _initialized = true;
+        });
+      }
+    }
+  }
+
+  void _onItemTapped(T value) {
+    if (value == _activeValue) return;
+
+    if (widget.isExpanded) {
+      setState(() {
+        _activeValue = value;
+      });
+    } else {
+      final containerBox =
+          _containerKey.currentContext?.findRenderObject() as RenderBox?;
+      final itemKey = _itemKeys[value];
+      final itemBox = itemKey?.currentContext?.findRenderObject() as RenderBox?;
+
+      setState(() {
+        _activeValue = value;
+        if (containerBox != null &&
+            itemBox != null &&
+            containerBox.hasSize &&
+            itemBox.hasSize) {
+          final offset = itemBox.localToGlobal(
+            Offset.zero,
+            ancestor: containerBox,
+          );
+          _indicatorRect = Rect.fromLTWH(
+            offset.dx,
+            offset.dy,
+            itemBox.size.width,
+            itemBox.size.height,
+          );
+          _initialized = true;
+        }
+      });
+    }
+
+    widget.onChanged(value);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,93 +182,173 @@ class ModernSegmentedControl<T> extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    final containerBg = isDark
-        ? colorScheme.onSurface.withValues(alpha: AppTokens.alphaTintFaint)
-        : colorScheme.onSurface.withValues(alpha: AppTokens.alphaTintFaint);
+    final containerBg =
+        widget.backgroundColor ??
+        colorScheme.onSurface.withValues(alpha: AppTokens.alphaTintFaint);
 
-    final widgetList = items.map((item) {
-      final isSelected = item.value == selectedValue;
+    final indicatorColor = widget.indicatorColor ?? colorScheme.surface;
+    final selectedColor = widget.selectedTextColor ?? colorScheme.primary;
+    final unselectedColor =
+        widget.unselectedTextColor ?? colorScheme.onSurfaceVariant;
+    final borderRadius =
+        widget.borderRadius ?? BorderRadius.circular(AppTokens.radiusItem);
+    final indicatorRadius =
+        widget.indicatorRadius ?? BorderRadius.circular(AppTokens.radiusList);
 
-      Widget buttonContent = AnimatedContainer(
-        duration: AppTokens.motionFast,
-        curve: AppTokens.motionSpring,
-        height: height,
-        padding:
-            itemPadding ??
-            EdgeInsets.symmetric(horizontal: isExpanded ? 8 : 14),
-        decoration: BoxDecoration(
-          color: isSelected ? colorScheme.surface : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppTokens.radiusList),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (!widget.isExpanded) {
+          // 尺寸变化时自动对齐包裹指示器
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _updateIndicator(animate: false);
+          });
+        }
+
+        final resolvedPadding = widget.padding.resolve(
+          Directionality.of(context),
+        );
+
+        Rect? activeRect;
+        if (widget.isExpanded) {
+          final availableWidth =
+              (constraints.maxWidth - resolvedPadding.horizontal).clamp(
+                0.0,
+                double.infinity,
+              );
+          final itemWidth = widget.items.isEmpty
+              ? 0.0
+              : availableWidth / widget.items.length;
+          final activeIndex = widget.items.indexWhere(
+            (it) => it.value == _activeValue,
+          );
+          if (activeIndex >= 0) {
+            activeRect = Rect.fromLTWH(
+              resolvedPadding.left + activeIndex * itemWidth,
+              resolvedPadding.top,
+              itemWidth,
+              widget.height,
+            );
+          }
+        } else {
+          activeRect = _indicatorRect;
+        }
+
+        final itemsWidgets = widget.items.map((item) {
+          final isSelected = item.value == _activeValue;
+
+          Widget buttonContent = Container(
+            key: widget.isExpanded ? null : _itemKeys[item.value],
+            height: widget.height,
+            padding:
+                widget.itemPadding ??
+                EdgeInsets.symmetric(horizontal: widget.isExpanded ? 8 : 14),
+            alignment: Alignment.center,
+            child: Row(
+              mainAxisSize: widget.isExpanded
+                  ? MainAxisSize.max
+                  : MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (item.icon != null) ...[
+                  Icon(
+                    item.icon,
+                    size: 15,
+                    color: isSelected ? selectedColor : unselectedColor,
                   ),
-                ]
-              : null,
-        ),
-        child: Row(
-          mainAxisSize: isExpanded ? MainAxisSize.max : MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (item.icon != null) ...[
-              Icon(
-                item.icon,
-                size: 15,
-                color: isSelected
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 6),
-            ],
-            Flexible(
-              child: Text(
-                item.label,
-                style: TextStyle(
-                  fontSize: fontSize,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  color: isSelected
-                      ? colorScheme.primary
-                      : colorScheme.onSurfaceVariant,
+                  const SizedBox(width: 6),
+                ],
+                Flexible(
+                  child: AnimatedDefaultTextStyle(
+                    duration: AppTokens.motionFast,
+                    style: TextStyle(
+                      fontFamily: theme.textTheme.bodyMedium?.fontFamily,
+                      fontSize: widget.fontSize,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w500,
+                      color: isSelected ? selectedColor : unselectedColor,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    child: Text(item.label),
+                  ),
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+              ],
             ),
-          ],
-        ),
-      );
+          );
 
-      final clickableItem = Semantics(
-        selected: isSelected,
-        button: true,
-        label: item.label,
-        child: InkWell(
-          onTap: () => onChanged(item.value),
-          borderRadius: BorderRadius.circular(AppTokens.radiusList),
-          splashColor: Colors.transparent,
-          highlightColor: colorScheme.onSurface.withValues(alpha: AppTokens.alphaTintFaint),
-          child: buttonContent,
-        ),
-      );
+          final clickableItem = Semantics(
+            selected: isSelected,
+            button: true,
+            label: item.label,
+            child: InkWell(
+              onTap: () => _onItemTapped(item.value),
+              borderRadius: indicatorRadius,
+              splashColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+              hoverColor: Colors.transparent,
+              child: buttonContent,
+            ),
+          );
 
-      if (isExpanded) {
-        return Expanded(child: clickableItem);
-      }
-      return clickableItem;
-    }).toList();
+          if (widget.isExpanded) {
+            return Expanded(child: clickableItem);
+          }
+          return clickableItem;
+        }).toList();
 
-    return Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        color: containerBg,
-        borderRadius: BorderRadius.circular(AppTokens.radiusItem),
-      ),
-      child: isExpanded
-          ? Row(mainAxisSize: MainAxisSize.max, children: widgetList)
-          : Row(mainAxisSize: MainAxisSize.min, children: widgetList),
+        return Container(
+          key: _containerKey,
+          padding: widget.padding,
+          decoration: BoxDecoration(
+            color: containerBg,
+            borderRadius: borderRadius,
+            border: widget.border,
+          ),
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              // 滑动滑块指示器
+              if (activeRect != null)
+                AnimatedPositioned(
+                  duration: _initialized
+                      ? AppTokens.motionNormal
+                      : Duration.zero,
+                  curve: AppTokens.motionSpring,
+                  left: activeRect.left,
+                  top: activeRect.top,
+                  width: activeRect.width,
+                  height: activeRect.height,
+                  child: IgnorePointer(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: indicatorColor,
+                        borderRadius: indicatorRadius,
+                        boxShadow:
+                            widget.indicatorShadow ??
+                            [
+                              BoxShadow(
+                                color: Colors.black.withValues(
+                                  alpha: isDark
+                                      ? AppTokens.alphaTintStrong
+                                      : AppTokens.alphaBorderSubtle,
+                                ),
+                                blurRadius: 4,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                      ),
+                    ),
+                  ),
+                ),
+              // 选项行
+              widget.isExpanded
+                  ? Row(mainAxisSize: MainAxisSize.max, children: itemsWidgets)
+                  : Row(mainAxisSize: MainAxisSize.min, children: itemsWidgets),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../shared/widgets/app_background_wrapper.dart';
+import '../../../shared/widgets/modern_segmented_control.dart';
 import '../../projects/project_providers.dart';
 import '../models/quadrant_models.dart';
 import '../providers/quadrant_providers.dart';
@@ -13,7 +14,7 @@ import 'quadrant_scope_filter_sheet.dart';
 ///
 /// 包含两项核心能力：
 /// 1. 左侧：[ 全部项目 (N) ⌵ ] 胶囊，展示当前筛选作用域及任务数，点击呼出清单选择抽屉；
-/// 2. 右侧：[ 2x2 矩阵 | 聚焦列表 ] 胶囊分段切换器，平滑切换双视图模式。
+/// 2. 右侧：[ 2x2 矩阵 | 聚焦列表 ] 胶囊分段切换器，带平滑滑动动画切换双视图模式。
 class QuadrantFilterBar extends ConsumerWidget {
   const QuadrantFilterBar({super.key, required this.totalTasksCount});
 
@@ -117,71 +118,36 @@ class QuadrantFilterBar extends ConsumerWidget {
             ),
           ),
 
-          // 右侧：[ 2x2 矩阵 | 聚焦列表 ] 分段控制器
-          Container(
+          // 右侧：[ 2x2 矩阵 | 聚焦列表 ] 滑动分段控制器
+          ModernSegmentedControl<QuadrantViewMode>(
+            isExpanded: false,
+            height: 28,
             padding: const EdgeInsets.all(2.0),
-            decoration: BoxDecoration(
-              color: capsuleBg,
-              borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-              border: Border.all(color: borderColor, width: 0.6),
+            itemPadding: const EdgeInsets.symmetric(
+              horizontal: AppTokens.spaceSm,
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildSegmentButton(
-                  context: context,
-                  label: l10n.quadrantViewMatrix,
-                  isSelected: viewMode == QuadrantViewMode.matrix,
-                  onTap: () =>
-                      viewModeNotifier.setMode(QuadrantViewMode.matrix),
-                ),
-                _buildSegmentButton(
-                  context: context,
-                  label: l10n.quadrantViewList,
-                  isSelected: viewMode == QuadrantViewMode.list,
-                  onTap: () => viewModeNotifier.setMode(QuadrantViewMode.list),
-                ),
-              ],
-            ),
+            fontSize: AppTokens.textMicroSize,
+            selectedValue: viewMode,
+            backgroundColor: capsuleBg,
+            indicatorColor: colorScheme.primary,
+            selectedTextColor: colorScheme.onPrimary,
+            unselectedTextColor: colorScheme.onSurfaceVariant,
+            borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+            indicatorRadius: BorderRadius.circular(AppTokens.radiusPill),
+            border: Border.all(color: borderColor, width: 0.6),
+            onChanged: (mode) => viewModeNotifier.setMode(mode),
+            items: [
+              ModernSegmentItem(
+                value: QuadrantViewMode.matrix,
+                label: l10n.quadrantViewMatrix,
+              ),
+              ModernSegmentItem(
+                value: QuadrantViewMode.list,
+                label: l10n.quadrantViewList,
+              ),
+            ],
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSegmentButton({
-    required BuildContext context,
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: AppTokens.motionFast,
-        curve: AppTokens.motionSpring,
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppTokens.spaceSm,
-          vertical: AppTokens.spaceXxs,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected ? colorScheme.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: AppTokens.textMicroSize,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-            color: isSelected
-                ? colorScheme.onPrimary
-                : colorScheme.onSurfaceVariant,
-          ),
-        ),
       ),
     );
   }

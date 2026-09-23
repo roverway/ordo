@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/db/daos/settings_dao.dart';
 import '../../core/backup/backup_restore_service.dart';
 import '../../core/backup/snapshot_pool_service.dart';
+import '../../core/db/daos/settings_dao.dart';
 import '../../core/services/wallpaper_storage_service.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/background_config.dart';
@@ -41,11 +41,17 @@ class AppSettingsCache {
     _values[key] = value;
     await _dao?.set(key, value);
   }
+
+  /// 删除内存 + 穿透到 SettingsDao（未 attach 时仅删内存）。
+  Future<void> remove(String key) async {
+    _values.remove(key);
+    await _dao?.remove(key);
+  }
 }
 
 /// 全局缓存 Provider：main() 注入；测试经 override 提供内存实例。
 final appSettingsCacheProvider = Provider<AppSettingsCache>((ref) {
-  throw StateError('appSettingsCacheProvider 必须在 main() 中通过 override 注入');
+  return AppSettingsCache();
 });
 
 /// 主题模式持久化 key（settings 表；键名与旧 SharedPreferences 一致，兼容迁移）。
@@ -53,6 +59,16 @@ const String themeModePrefKey = 'theme_mode';
 
 /// 语言持久化 key（settings 表；键名与旧 SharedPreferences 一致，兼容迁移）。
 const String localePrefKey = 'locale';
+
+/// 四象限作用域选中清单持久化 key（JSON 数组或未设置/all）。
+const String quadrantFilterProjectIdsPrefKey = 'quadrant_filter_project_ids';
+
+/// 四象限是否显示已完成任务持久化 key。
+const String quadrantFilterShowCompletedPrefKey =
+    'quadrant_filter_show_completed';
+
+/// 四象限视图模式持久化 key（matrix / list）。
+const String quadrantViewModePrefKey = 'quadrant_view_mode';
 
 /// 主题模式 Notifier：读取/持久化/即时生效（FR-SET-01）。
 final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(

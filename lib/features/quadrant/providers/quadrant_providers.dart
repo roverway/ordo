@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart' show Value;
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/db/database.dart';
@@ -6,17 +9,30 @@ import '../../../core/db/tables.dart';
 import '../../../core/utils/derived.dart';
 import '../../../core/utils/tree.dart';
 import '../../projects/project_providers.dart';
+import '../../settings/settings_providers.dart';
 import '../models/quadrant_models.dart';
 
 /// 四象限视图模式管理（2x2 矩阵 vs 列表模式）。
 class QuadrantViewModeNotifier extends Notifier<QuadrantViewMode> {
   @override
-  QuadrantViewMode build() => QuadrantViewMode.matrix;
+  QuadrantViewMode build() {
+    final cache = ref.watch(appSettingsCacheProvider);
+    final raw = cache.get(quadrantViewModePrefKey);
+    return raw == 'list' ? QuadrantViewMode.list : QuadrantViewMode.matrix;
+  }
 
-  void setMode(QuadrantViewMode mode) => state = mode;
-  void toggleMode() => state = state == QuadrantViewMode.matrix
-      ? QuadrantViewMode.list
-      : QuadrantViewMode.matrix;
+  void setMode(QuadrantViewMode mode) {
+    state = mode;
+    final cache = ref.read(appSettingsCacheProvider);
+    cache.set(quadrantViewModePrefKey, mode.name);
+  }
+
+  void toggleMode() {
+    final newMode = state == QuadrantViewMode.matrix
+        ? QuadrantViewMode.list
+        : QuadrantViewMode.matrix;
+    setMode(newMode);
+  }
 }
 
 final quadrantViewModeProvider =
@@ -38,16 +54,62 @@ final quadrantFocusTabProvider =
       QuadrantFocusTabNotifier.new,
     );
 
-/// 四象限筛选器状态管理器。
+/// 四象限筛选器状态管理器（支持本地持久化）。
 class QuadrantFilterNotifier extends Notifier<QuadrantFilterState> {
   @override
-  QuadrantFilterState build() => const QuadrantFilterState();
+  QuadrantFilterState build() {
+    final cache = ref.watch(appSettingsCacheProvider);
+
+    Set<String>? projectIds;
+    final rawProjectIds = cache.get(quadrantFilterProjectIdsPrefKey);
+    if (rawProjectIds != null &&
+        rawProjectIds.isNotEmpty &&
+        rawProjectIds != 'all') {
+      try {
+        final decoded = jsonDecode(rawProjectIds);
+        if (decoded is List) {
+          projectIds = decoded.map((e) => e.toString()).toSet();
+        }
+      } catch (e) {
+        debugPrint('Error parsing $quadrantFilterProjectIdsPrefKey: $e');
+      }
+    }
+
+    final rawShowCompleted = cache.get(quadrantFilterShowCompletedPrefKey);
+    final showCompleted = rawShowCompleted == 'true';
+
+    return QuadrantFilterState(
+      selectedProjectIds: projectIds,
+      showCompleted: showCompleted,
+    );
+  }
+
+  void _persistState(QuadrantFilterState newState) {
+    state = newState;
+    final cache = ref.read(appSettingsCacheProvider);
+
+    if (newState.selectedProjectIds == null) {
+      cache.remove(quadrantFilterProjectIdsPrefKey);
+    } else {
+      cache.set(
+        quadrantFilterProjectIdsPrefKey,
+        jsonEncode(newState.selectedProjectIds!.toList()),
+      );
+    }
+
+    cache.set(
+      quadrantFilterShowCompletedPrefKey,
+      newState.showCompleted ? 'true' : 'false',
+    );
+  }
 
   /// 设置特定的清单集合（null 表示全量全部清单）。
   void setProjectSelection(Set<String>? projectIds) {
-    state = state.copyWith(
-      selectedProjectIds: projectIds,
-      clearProjectIds: projectIds == null,
+    _persistState(
+      state.copyWith(
+        selectedProjectIds: projectIds,
+        clearProjectIds: projectIds == null,
+      ),
     );
   }
 
@@ -65,9 +127,9 @@ class QuadrantFilterNotifier extends Notifier<QuadrantFilterState> {
 
     if (current.length == allAvailableProjectIds.length) {
       // 包含所有可用清单，等价于未限制全量状态
-      state = state.copyWith(clearProjectIds: true);
+      _persistState(state.copyWith(clearProjectIds: true));
     } else {
-      state = state.copyWith(selectedProjectIds: current);
+      _persistState(state.copyWith(selectedProjectIds: current));
     }
   }
 
@@ -93,20 +155,20 @@ class QuadrantFilterNotifier extends Notifier<QuadrantFilterState> {
     }
 
     if (current.length == allAvailableProjectIds.length) {
-      state = state.copyWith(clearProjectIds: true);
+      _persistState(state.copyWith(clearProjectIds: true));
     } else {
-      state = state.copyWith(selectedProjectIds: current);
+      _persistState(state.copyWith(selectedProjectIds: current));
     }
   }
 
   /// 重置为全量无限制范围。
   void resetAll() {
-    state = state.copyWith(clearProjectIds: true);
+    _persistState(state.copyWith(clearProjectIds: true));
   }
 
   /// 切换是否显示已完成任务。
   void toggleShowCompleted() {
-    state = state.copyWith(showCompleted: !state.showCompleted);
+    _persistState(state.copyWith(showCompleted: !state.showCompleted));
   }
 }
 
