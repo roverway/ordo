@@ -351,131 +351,133 @@ class QuadrantListView extends ConsumerWidget {
       },
       builder: (context, candidateData, rejectedData) {
         final isHovered = candidateData.isNotEmpty;
-        final effectiveBorderColor = isHovered ? accentColor : defaultBorderColor;
+        final effectiveBorderColor = isHovered
+            ? accentColor
+            : defaultBorderColor;
         final effectiveBorderWidth = isHovered ? 1.5 : 1.0;
 
         final groupContent = Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // 头部栏
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 头部栏
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTokens.spaceSm,
+                vertical: AppTokens.spaceXs,
+              ),
+              child: Row(
+                children: [
+                  // 纵向色条
+                  Container(
+                    width: 3.5,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: accentColor,
+                      borderRadius: BorderRadius.circular(
+                        AppTokens.sheetGrabberRadius,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppTokens.spaceXs),
+
+                  // 象限名称与副标题
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Text(
+                          type.title(l10n),
+                          style: TextStyle(
+                            fontSize: AppTokens.textSecondarySize,
+                            fontWeight: FontWeight.w800,
+                            color: isDark
+                                ? AppTokens.textPrimaryDark
+                                : AppTokens.textPrimaryLight,
+                          ),
+                        ),
+                        const SizedBox(width: AppTokens.spaceXxs),
+                        Flexible(
+                          child: Text(
+                            '· ${type.subtitle(l10n)}',
+                            style: TextStyle(
+                              fontSize: AppTokens.textMicroSize,
+                              color: colorScheme.onSurfaceVariant.withValues(
+                                alpha: AppTokens.alphaContentMuted,
+                              ),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // 数量徽标
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTokens.spaceXs * 0.75,
+                      vertical: 1.5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: badgeBg,
+                      borderRadius: BorderRadius.circular(AppTokens.radiusItem),
+                    ),
+                    child: Text(
+                      '${tasks.length}',
+                      style: TextStyle(
+                        fontSize: AppTokens.textMicroSize,
+                        fontWeight: FontWeight.w700,
+                        fontFeatures: AppTokens.fontTabular,
+                        color: badgeText,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppTokens.spaceXs),
+
+                  // 新增按钮
+                  IconButton(
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                    tooltip: l10n.quadrantAddTask,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 28,
+                      minHeight: 28,
+                    ),
+                    onPressed: () => _openCreateTask(context, ref, type),
+                  ),
+                ],
+              ),
+            ),
+
+            Divider(height: 0.5, thickness: 0.5, color: dividerColor),
+
+            // 任务条目
+            if (tasks.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: AppTokens.spaceSm,
-                  vertical: AppTokens.spaceXs,
+                  vertical: AppTokens.spaceLg,
+                  horizontal: AppTokens.spaceMd,
                 ),
-                child: Row(
-                  children: [
-                    // 纵向色条
-                    Container(
-                      width: 3.5,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: accentColor,
-                        borderRadius: BorderRadius.circular(
-                          AppTokens.sheetGrabberRadius,
-                        ),
+                child: Center(
+                  child: Text(
+                    l10n.quadrantListEmpty,
+                    style: TextStyle(
+                      fontSize: AppTokens.textCaptionSize,
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: AppTokens.alphaContentMuted,
                       ),
                     ),
-                    const SizedBox(width: AppTokens.spaceXs),
-
-                    // 象限名称与副标题
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Text(
-                            type.title(l10n),
-                            style: TextStyle(
-                              fontSize: AppTokens.textSecondarySize,
-                              fontWeight: FontWeight.w700,
-                              color: colorScheme.onSurface,
-                            ),
-                          ),
-                          const SizedBox(width: AppTokens.spaceXxs),
-                          Flexible(
-                            child: Text(
-                              '· ${type.subtitle(l10n)}',
-                              style: TextStyle(
-                                fontSize: AppTokens.textMicroSize,
-                                color: colorScheme.onSurfaceVariant.withValues(
-                                  alpha: AppTokens.alphaContentMuted,
-                                ),
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // 数量徽标
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppTokens.spaceXs * 0.75,
-                        vertical: 1.5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: badgeBg,
-                        borderRadius: BorderRadius.circular(
-                          AppTokens.radiusItem,
-                        ),
-                      ),
-                      child: Text(
-                        '${tasks.length}',
-                        style: TextStyle(
-                          fontSize: AppTokens.textMicroSize,
-                          fontWeight: FontWeight.w700,
-                          fontFeatures: AppTokens.fontTabular,
-                          color: badgeText,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppTokens.spaceXs),
-
-                    // 新增按钮
-                    IconButton(
-                      icon: const Icon(Icons.add_rounded, size: 18),
-                      tooltip: l10n.quadrantAddTask,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 28,
-                        minHeight: 28,
-                      ),
-                      onPressed: () => _openCreateTask(context, ref, type),
-                    ),
-                  ],
+                  ),
+                ),
+              )
+            else
+              ...List.generate(
+                tasks.length,
+                (index) => QuadrantTaskTile(
+                  taskView: tasks[index],
+                  showDivider: index < tasks.length - 1,
                 ),
               ),
-
-              Divider(height: 0.5, thickness: 0.5, color: dividerColor),
-
-              // 任务条目
-              if (tasks.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: AppTokens.spaceLg,
-                    horizontal: AppTokens.spaceMd,
-                  ),
-                  child: Center(
-                    child: Text(
-                      l10n.quadrantListEmpty,
-                      style: TextStyle(
-                        fontSize: AppTokens.textCaptionSize,
-                        color: colorScheme.onSurfaceVariant.withValues(
-                          alpha: AppTokens.alphaContentMuted,
-                        ),
-                      ),
-                    ),
-                  ),
-                )
-              else
-                ...List.generate(
-                  tasks.length,
-                  (index) => QuadrantTaskTile(
-                    taskView: tasks[index],
-                    showDivider: index < tasks.length - 1,
-                  ),
-                ),
-            ],
+          ],
         );
 
         if (hasWallpaper) {

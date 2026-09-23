@@ -1,24 +1,22 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
-import '../../../shared/widgets/app_background_wrapper.dart';
 import '../../tasks/widgets/task_create_sheet.dart';
 import '../models/quadrant_models.dart';
 import '../providers/quadrant_providers.dart';
 import 'quadrant_task_tile.dart';
 
-/// 2x2 网格中的单个象限卡片组件。
+/// 统一四象限矩阵中的单个象限单元格组件。
 ///
-/// 遵循极简高信噪比规范与设置页面卡片视觉规范：
-/// 1. 紧凑头部：高度 38dp，左侧语义色块条 + 粗体象限完整名称 + 语义色数字圆角徽标 + 右侧微型聚焦与新增按钮；
-/// 2. 去卡片化任务行：任务项不使用独立实线外边框与卡片背景，仅由发丝级分割线分隔；
-/// 3. 设置页面卡片样式：支持圆角、外阴影与自适应壁纸毛玻璃（BackdropFilter）；
-/// 4. 跨象限拖拽交互：作为 [DragTarget] 接收其他象限拖入的任务并自动更新属性；
-/// 5. 点击新增：直接调起全局 [TaskCreateSheet.show] 并预填优先级与截止日期。
+/// 遵循极简高信噪比规范与设计原型：
+/// 1. 去卡片化单元格：不再包含独立的圆角、外边框与外阴影，直接由统一容器及中心两条相交直线界定；
+/// 2. 紧凑头部：高度 38dp，左侧语义色条 + 强化加粗象限完整名称 + 语义色数字圆角徽标 + 右侧微型聚焦与新增按钮；
+/// 3. 发丝级分割线：头部与任务列表间使用 0.5dp 细分割线；
+/// 4. 任务列表：支持无边框轻量条目与独立纵向滚动；
+/// 5. 跨象限拖拽交互：作为 [DragTarget] 接收其他象限拖入的任务，悬停时触发半透明语义色高亮反馈；
+/// 6. 点击新增：直接调起全局 [TaskCreateSheet.show] 并预填优先级与截止日期。
 class QuadrantCard extends ConsumerWidget {
   const QuadrantCard({
     super.key,
@@ -36,35 +34,13 @@ class QuadrantCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
-    final hasWallpaper = AppBackgroundScope.hasWallpaperOf(context);
     final l10n = AppLocalizations.of(context);
     final filter = ref.watch(quadrantFilterProvider);
     final accentColor = quadrantType.accentColor;
 
-    final baseCardColor = isDark
-        ? AppTokens.surfaceCardDark
-        : AppTokens.surfaceCardLight;
-    final cardColor = hasWallpaper
-        ? baseCardColor.withValues(
-            alpha: isDark
-                ? AppTokens.alphaCardFrostedDark
-                : AppTokens.alphaCardFrostedLight,
-          )
-        : baseCardColor;
-
-    final defaultBorderColor = isDark
-        ? Colors.white.withValues(
-            alpha: hasWallpaper
-                ? AppTokens.alphaTintStrong
-                : AppTokens.alphaTintFaint,
-          )
-        : Colors.black.withValues(
-            alpha: hasWallpaper
-                ? AppTokens.alphaTintSoft
-                : AppTokens.alphaTintFaint,
-          );
-
-    final dividerColor = defaultBorderColor;
+    final dividerColor = isDark
+        ? Colors.white.withValues(alpha: AppTokens.alphaBorderSubtle)
+        : AppTokens.surfaceSubtleLight;
 
     return DragTarget<QuadrantTaskView>(
       onWillAcceptWithDetails: (details) =>
@@ -76,8 +52,6 @@ class QuadrantCard extends ConsumerWidget {
       },
       builder: (context, candidateData, rejectedData) {
         final isHovered = candidateData.isNotEmpty;
-        final effectiveBorderColor = isHovered ? accentColor : defaultBorderColor;
-        final effectiveBorderWidth = isHovered ? 1.5 : 1.0;
 
         final cardContent = Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -87,6 +61,7 @@ class QuadrantCard extends ConsumerWidget {
               context: context,
               ref: ref,
               colorScheme: colorScheme,
+              isDark: isDark,
               l10n: l10n,
               accentColor: accentColor,
               filter: filter,
@@ -117,65 +92,15 @@ class QuadrantCard extends ConsumerWidget {
           ],
         );
 
-        if (hasWallpaper) {
-          return Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(
-                    alpha: isDark
-                        ? AppTokens.alphaBorderEmphasis
-                        : AppTokens.alphaTintFaint,
-                  ),
-                  blurRadius: 12,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(
-                  sigmaX: AppTokens.blurFrostedGlass,
-                  sigmaY: AppTokens.blurFrostedGlass,
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-                    border: Border.all(
-                      color: effectiveBorderColor,
-                      width: effectiveBorderWidth,
-                    ),
-                  ),
-                  child: cardContent,
-                ),
-              ),
-            ),
-          );
-        }
-
-        return Container(
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-            border: Border.all(
-              color: effectiveBorderColor,
-              width: effectiveBorderWidth,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(
+        return AnimatedContainer(
+          duration: AppTokens.motionFast,
+          color: isHovered
+              ? accentColor.withValues(
                   alpha: isDark
-                      ? AppTokens.alphaBorderEmphasis
+                      ? AppTokens.alphaTintStrong
                       : AppTokens.alphaTintFaint,
-                ),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
+                )
+              : Colors.transparent,
           child: cardContent,
         );
       },
@@ -186,6 +111,7 @@ class QuadrantCard extends ConsumerWidget {
     required BuildContext context,
     required WidgetRef ref,
     required ColorScheme colorScheme,
+    required bool isDark,
     required AppLocalizations l10n,
     required Color accentColor,
     required QuadrantFilterState filter,
@@ -217,13 +143,17 @@ class QuadrantCard extends ConsumerWidget {
             ),
             const SizedBox(width: AppTokens.spaceXs),
 
-            // 象限名称：完整展示
+            // 象限名称：完整展示并加粗强调
             Text(
               title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: AppTokens.textMicroSize,
-                fontWeight: FontWeight.w700,
-                color: colorScheme.onSurface,
+                fontSize: AppTokens.textFootnoteSize,
+                fontWeight: FontWeight.w800,
+                color: isDark
+                    ? AppTokens.textPrimaryDark
+                    : AppTokens.textPrimaryLight,
               ),
             ),
             const SizedBox(width: AppTokens.spaceXxs),
@@ -321,17 +251,11 @@ class QuadrantCard extends ConsumerWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: accentColor.withValues(
-                  alpha: AppTokens.alphaTintFaint,
-                ),
+                color: accentColor.withValues(alpha: AppTokens.alphaTintFaint),
                 shape: BoxShape.circle,
               ),
               child: Center(
-                child: Icon(
-                  Icons.inbox_outlined,
-                  size: 16,
-                  color: accentColor,
-                ),
+                child: Icon(Icons.inbox_outlined, size: 16, color: accentColor),
               ),
             ),
             const SizedBox(height: AppTokens.spaceXs),
