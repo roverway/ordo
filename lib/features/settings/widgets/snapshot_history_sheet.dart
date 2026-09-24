@@ -7,14 +7,38 @@ import '../../../core/backup/backup_restore_service.dart';
 import '../../../core/backup/snapshot_pool_service.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../core/utils/app_breakpoints.dart';
 import '../settings_providers.dart';
 import 'import_confirm_dialog.dart';
 
 /// 本地安全快照历史管理底栏 Sheet。
 class SnapshotHistorySheet extends ConsumerStatefulWidget {
-  const SnapshotHistorySheet({super.key});
+  const SnapshotHistorySheet({super.key, this.isDialog = false});
+
+  final bool isDialog;
 
   static Future<void> show(BuildContext context) {
+    if (AppBreakpoints.isWide(context)) {
+      return showDialog<void>(
+        context: context,
+        builder: (dialogCtx) => Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: AppTokens.spaceLg,
+            vertical: AppTokens.spaceMd,
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520, maxHeight: 680),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+              child: const SnapshotHistorySheet(isDialog: true),
+            ),
+          ),
+        ),
+      );
+    }
+
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -173,21 +197,26 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final snapshotsAsync = ref.watch(localSnapshotsProvider);
+    final isEffectiveDialog = widget.isDialog || AppBreakpoints.isWide(context);
 
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
+        maxHeight: isEffectiveDialog
+            ? 680.0
+            : MediaQuery.of(context).size.height * 0.85,
       ),
       decoration: BoxDecoration(
         color: isDark ? AppTokens.surfaceDark : AppTokens.surfaceCardLight,
-        borderRadius: AppTokens.sheetTopBorderRadius,
+        borderRadius: isEffectiveDialog
+            ? BorderRadius.circular(AppTokens.radiusDialog)
+            : AppTokens.sheetTopBorderRadius,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(
               alpha: AppTokens.alphaBorderEmphasis,
             ),
             blurRadius: 16,
-            offset: const Offset(0, -2),
+            offset: isEffectiveDialog ? const Offset(0, 4) : const Offset(0, -2),
           ),
         ],
       ),
@@ -197,26 +226,29 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 顶部小横条指示器
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 8, bottom: 4),
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white.withValues(
-                          alpha: AppTokens.alphaBorderEmphasis,
-                        )
-                      : Colors.black.withValues(
-                          alpha: AppTokens.alphaTintStrong,
-                        ),
-                  borderRadius: BorderRadius.circular(
-                    AppTokens.sheetGrabberRadius,
+            // 顶部小横条指示器 (仅在移动端底部抽屉展示)
+            if (!isEffectiveDialog)
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 8, bottom: 4),
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withValues(
+                            alpha: AppTokens.alphaBorderEmphasis,
+                          )
+                        : Colors.black.withValues(
+                            alpha: AppTokens.alphaTintStrong,
+                          ),
+                    borderRadius: BorderRadius.circular(
+                      AppTokens.sheetGrabberRadius,
+                    ),
                   ),
                 ),
-              ),
-            ),
+              )
+            else
+              const SizedBox(height: 4),
 
             // Header
             Padding(

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/db/database.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../core/utils/app_breakpoints.dart';
 import '../../../shared/widgets/settings_card.dart';
 import '../../../shared/widgets/unified_hierarchical_folder_selector.dart';
 import '../../projects/project_providers.dart';
@@ -19,9 +20,32 @@ import '../providers/quadrant_providers.dart';
 /// 4. 底部设置风格圆角卡片承载「显示已完成任务」开关；
 /// 5. 完全对齐当前设置页面的 SettingsCard 圆角矩形风格与 AppTokens 设计系统。
 class QuadrantScopeFilterSheet extends ConsumerStatefulWidget {
-  const QuadrantScopeFilterSheet({super.key});
+  const QuadrantScopeFilterSheet({super.key, this.isDialog = false});
+
+  final bool isDialog;
 
   static Future<void> show(BuildContext context) {
+    if (AppBreakpoints.isWide(context)) {
+      return showDialog<void>(
+        context: context,
+        builder: (dialogCtx) => Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: AppTokens.spaceLg,
+            vertical: AppTokens.spaceMd,
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480, maxHeight: 680),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+              child: const QuadrantScopeFilterSheet(isDialog: true),
+            ),
+          ),
+        ),
+      );
+    }
+
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -48,6 +72,7 @@ class _QuadrantScopeFilterSheetState
     final filterNotifier = ref.read(quadrantFilterProvider.notifier);
 
     final groupingAsync = ref.watch(projectsByFolderProvider);
+    final isEffectiveDialog = widget.isDialog || AppBreakpoints.isWide(context);
     final inboxProjectAsync = ref.watch(inboxProjectProvider);
 
     final dividerColor = isDark
@@ -95,18 +120,24 @@ class _QuadrantScopeFilterSheetState
 
         return Container(
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(context).height * 0.88,
+            maxHeight: isEffectiveDialog
+                ? 680.0
+                : MediaQuery.sizeOf(context).height * 0.88,
           ),
           decoration: BoxDecoration(
             color: colorScheme.surface,
-            borderRadius: AppTokens.sheetTopBorderRadius,
+            borderRadius: isEffectiveDialog
+                ? BorderRadius.circular(AppTokens.radiusDialog)
+                : AppTokens.sheetTopBorderRadius,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(
                   alpha: AppTokens.alphaTintStrong,
                 ),
-                blurRadius: 36,
-                offset: const Offset(0, -10),
+                blurRadius: isEffectiveDialog ? 24 : 36,
+                offset: isEffectiveDialog
+                    ? const Offset(0, 4)
+                    : const Offset(0, -10),
               ),
             ],
           ),
@@ -115,25 +146,28 @@ class _QuadrantScopeFilterSheetState
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 顶部拖拽手柄 (Grabber)
-                Center(
-                  child: Container(
-                    width: AppTokens.sheetGrabberWidth,
-                    height: AppTokens.sheetGrabberHeight,
-                    margin: const EdgeInsets.only(
-                      top: AppTokens.spaceSm,
-                      bottom: AppTokens.spaceXxs,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppTokens.slate600
-                          : AppTokens.slate300,
-                      borderRadius: BorderRadius.circular(
-                        AppTokens.sheetGrabberRadius,
+                // 顶部拖拽手柄 (Grabber) - 仅在移动端底部抽屉展示
+                if (!isEffectiveDialog)
+                  Center(
+                    child: Container(
+                      width: AppTokens.sheetGrabberWidth,
+                      height: AppTokens.sheetGrabberHeight,
+                      margin: const EdgeInsets.only(
+                        top: AppTokens.spaceSm,
+                        bottom: AppTokens.spaceXxs,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? AppTokens.slate600
+                            : AppTokens.slate300,
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.sheetGrabberRadius,
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                  )
+                else
+                  const SizedBox(height: AppTokens.spaceSm),
 
                 // 1. 顶部 Header 栏：标题 + 动态计数徽标 + 右侧「重置」与「完成」主按钮
                 Padding(

@@ -16,6 +16,9 @@ import '../../features/sync_setup/sync_setup_providers.dart';
 import '../../features/tasks/task_providers.dart';
 import '../../features/today/today_providers.dart';
 import 'app_logo.dart';
+import '../../core/utils/app_breakpoints.dart';
+import '../../features/custom_views/presentation/custom_view_editor_page.dart';
+import '../../features/settings/widgets/settings_side_sheet.dart';
 import 'confirm_dialog.dart';
 
 String resolveCurrentRoute(BuildContext context) {
@@ -178,7 +181,13 @@ class _ScopeNavContentState extends ConsumerState<ScopeNavContent> {
                   _buildSectionHeaderWithAdd(
                     title: l10n.customViews,
                     tooltip: l10n.newCustomView,
-                    onAdd: () => _navigateTo('/custom_view/new', isPush: true),
+                    onAdd: () {
+                      if (AppBreakpoints.isWide(context)) {
+                        showCustomViewEditorSideSheet(context);
+                      } else {
+                        _navigateTo('/custom_view/new', isPush: true);
+                      }
+                    },
                   ),
                   customViewsAsync.maybeWhen(
                     data: (views) => Column(
@@ -388,7 +397,13 @@ class _ScopeNavContentState extends ConsumerState<ScopeNavContent> {
                     _buildSectionHeaderWithAdd(
                       title: l10n.customViews,
                       tooltip: l10n.newCustomView,
-                      onAdd: () => _navigateTo('/custom_view/new', isPush: true),
+                      onAdd: () {
+                      if (AppBreakpoints.isWide(context)) {
+                        showCustomViewEditorSideSheet(context);
+                      } else {
+                        _navigateTo('/custom_view/new', isPush: true);
+                      }
+                    },
                     ),
                     customViewsAsync.maybeWhen(
                       data: (views) => Column(
@@ -565,7 +580,13 @@ class _ScopeNavContentState extends ConsumerState<ScopeNavContent> {
                   size: 20,
                   color: colorScheme.onSurfaceVariant,
                 ),
-                onPressed: () => _navigateTo('/settings', isPush: true),
+                onPressed: () {
+                  if (AppBreakpoints.isWide(context)) {
+                    showSettingsSideSheet(context);
+                  } else {
+                    _navigateTo('/settings', isPush: true);
+                  }
+                },
               ),
               IconButton(
                 tooltip: l10n.webdavSync,

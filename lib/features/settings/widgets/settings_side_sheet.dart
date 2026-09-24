@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
@@ -67,6 +68,7 @@ class _SettingsSheetNavigatorState extends State<_SettingsSheetNavigator> {
         body: SettingsBody(
           onOpenSync: () => setState(() => _showingSync = true),
           onOpenTags: () => setState(() => _showingTags = true),
+          onOpenHelp: () => context.push('/settings/help'),
         ),
       );
     }

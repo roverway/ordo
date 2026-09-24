@@ -8,6 +8,7 @@ import '../../../core/platform/keyboard_inset_bridge.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/background_config.dart';
 import '../../../core/theme/preset_icons.dart';
+import '../../../core/utils/app_breakpoints.dart';
 import '../../../shared/widgets/app_background_wrapper.dart';
 import '../../settings/settings_providers.dart';
 import '../../settings/widgets/wallpaper_picker_sheet.dart';
@@ -25,6 +26,34 @@ Future<T?> showCreateListFolderSheet<T>({
   Folder? editingFolder,
   bool useRootNavigator = true,
 }) {
+  if (AppBreakpoints.isWide(context)) {
+    return showDialog<T>(
+      context: context,
+      useRootNavigator: useRootNavigator,
+      builder: (dialogCtx) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        insetPadding: const EdgeInsets.symmetric(
+          horizontal: AppTokens.spaceLg,
+          vertical: AppTokens.spaceMd,
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480, maxHeight: 720),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+            child: CreateListFolderSheet(
+              initialType: initialType,
+              initialFolderId: initialFolderId,
+              editingProject: editingProject,
+              editingFolder: editingFolder,
+              isDialog: true,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   return showModalBottomSheet<T>(
     context: context,
     useRootNavigator: useRootNavigator,
@@ -70,12 +99,14 @@ class CreateListFolderSheet extends ConsumerStatefulWidget {
     this.initialFolderId,
     this.editingProject,
     this.editingFolder,
+    this.isDialog = false,
   });
 
   final CreateType initialType;
   final String? initialFolderId;
   final Project? editingProject;
   final Folder? editingFolder;
+  final bool isDialog;
 
   @override
   ConsumerState<CreateListFolderSheet> createState() =>
@@ -331,8 +362,11 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
 
     final groupingAsync = ref.watch(projectsByFolderProvider);
 
+    final isEffectiveDialog = widget.isDialog || AppBreakpoints.isWide(context);
     final screenHeight = MediaQuery.sizeOf(context).height;
-    final targetMaxHeight = isFocused ? screenHeight : screenHeight * 0.85;
+    final targetMaxHeight = isEffectiveDialog
+        ? (screenHeight * 0.85).clamp(400.0, 720.0)
+        : (isFocused ? screenHeight : screenHeight * 0.85);
 
     // 状态栏高度真实检测：在 showModalBottomSheet 内部，MediaQuery.padding.top 会被路由剔除为 0
     // 因此优先从 MediaQuery.viewPadding.top 或 FlutterView 的 viewPadding 读取真实硬件顶栏避让高度
@@ -349,7 +383,9 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
         ? physicalTopInset
         : (isMobile ? 36.0 : 0.0);
 
-    final topClearance = isFocused ? (effectiveStatusBarHeight + 10.0) : 0.0;
+    final topClearance = isEffectiveDialog
+        ? 0.0
+        : (isFocused ? (effectiveStatusBarHeight + 10.0) : 0.0);
 
     return AnimatedContainer(
       duration: AppTokens.motionFast,
@@ -360,9 +396,11 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
       ),
       decoration: BoxDecoration(
         color: isDark ? AppTokens.surfacePageDark : AppTokens.surfacePageLight,
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(isFocused ? 0 : AppTokens.radiusDialog),
-        ),
+        borderRadius: isEffectiveDialog
+            ? BorderRadius.circular(AppTokens.radiusDialog)
+            : BorderRadius.vertical(
+                top: Radius.circular(isFocused ? 0 : AppTokens.radiusDialog),
+              ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),

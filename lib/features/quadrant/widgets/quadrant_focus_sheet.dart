@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../core/utils/app_breakpoints.dart';
 import '../../projects/project_providers.dart';
 import '../../tasks/widgets/task_create_sheet.dart';
 import '../models/quadrant_models.dart';
@@ -13,11 +14,40 @@ import 'quadrant_task_tile.dart';
 ///
 /// 当用户需要沉浸式处理某一象限的任务时，可通过点击象限卡片右上角的聚焦按钮进入。
 class QuadrantFocusSheet extends ConsumerWidget {
-  const QuadrantFocusSheet({super.key, required this.quadrantType});
+  const QuadrantFocusSheet({
+    super.key,
+    required this.quadrantType,
+    this.isDialog = false,
+  });
 
   final QuadrantType quadrantType;
+  final bool isDialog;
 
   static Future<void> show(BuildContext context, QuadrantType quadrantType) {
+    if (AppBreakpoints.isWide(context)) {
+      return showDialog<void>(
+        context: context,
+        builder: (dialogCtx) => Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: AppTokens.spaceLg,
+            vertical: AppTokens.spaceMd,
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 680, maxHeight: 760),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+              child: QuadrantFocusSheet(
+                quadrantType: quadrantType,
+                isDialog: true,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -36,18 +66,23 @@ class QuadrantFocusSheet extends ConsumerWidget {
     final filter = ref.watch(quadrantFilterProvider);
     final accentColor = quadrantType.accentColor;
 
+    final isEffectiveDialog = isDialog || AppBreakpoints.isWide(context);
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.sizeOf(context).height * 0.9,
+        maxHeight: isEffectiveDialog
+            ? 760.0
+            : MediaQuery.sizeOf(context).height * 0.9,
       ),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: AppTokens.sheetTopBorderRadius,
+        borderRadius: isEffectiveDialog
+            ? BorderRadius.circular(AppTokens.radiusDialog)
+            : AppTokens.sheetTopBorderRadius,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: AppTokens.alphaTintStrong),
             blurRadius: 36,
-            offset: const Offset(0, -10),
+            offset: isEffectiveDialog ? const Offset(0, 4) : const Offset(0, -10),
           ),
         ],
       ),
@@ -55,23 +90,26 @@ class QuadrantFocusSheet extends ConsumerWidget {
         top: false,
         child: Column(
           children: [
-            // 抓手
-            Container(
-              width: AppTokens.sheetGrabberWidth,
-              height: AppTokens.sheetGrabberHeight,
-              margin: const EdgeInsets.only(
-                top: AppTokens.spaceSm,
-                bottom: AppTokens.spaceSm,
-              ),
-              decoration: BoxDecoration(
-                color: colorScheme.onSurface.withValues(
-                  alpha: AppTokens.alphaTintStrong,
+            // 抓手 (仅在移动端展示)
+            if (!isEffectiveDialog)
+              Container(
+                width: AppTokens.sheetGrabberWidth,
+                height: AppTokens.sheetGrabberHeight,
+                margin: const EdgeInsets.only(
+                  top: AppTokens.spaceSm,
+                  bottom: AppTokens.spaceSm,
                 ),
-                borderRadius: BorderRadius.circular(
-                  AppTokens.sheetGrabberRadius,
+                decoration: BoxDecoration(
+                  color: colorScheme.onSurface.withValues(
+                    alpha: AppTokens.alphaTintStrong,
+                  ),
+                  borderRadius: BorderRadius.circular(
+                    AppTokens.sheetGrabberRadius,
+                  ),
                 ),
-              ),
-            ),
+              )
+            else
+              const SizedBox(height: AppTokens.spaceSm),
 
             // 标题栏
             Padding(

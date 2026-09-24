@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/background_config.dart';
+import '../../../core/utils/app_breakpoints.dart';
 import '../../../shared/widgets/app_background_wrapper.dart';
 import '../settings_providers.dart';
 
@@ -14,6 +15,32 @@ Future<BackgroundConfig?> showWallpaperPickerSheet({
   bool isGlobal = false,
   String? title,
 }) {
+  if (AppBreakpoints.isWide(context)) {
+    return showDialog<BackgroundConfig>(
+      context: context,
+      builder: (dialogCtx) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        insetPadding: const EdgeInsets.symmetric(
+          horizontal: AppTokens.spaceLg,
+          vertical: AppTokens.spaceMd,
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480, maxHeight: 720),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+            child: WallpaperPickerSheet(
+              initialConfig: initialConfig,
+              isGlobal: isGlobal,
+              title: title,
+              isDialog: true,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   return showModalBottomSheet<BackgroundConfig>(
     context: context,
     isScrollControlled: true,
@@ -33,11 +60,13 @@ class WallpaperPickerSheet extends ConsumerStatefulWidget {
     required this.initialConfig,
     this.isGlobal = false,
     this.title,
+    this.isDialog = false,
   });
 
   final BackgroundConfig initialConfig;
   final bool isGlobal;
   final String? title;
+  final bool isDialog;
 
   @override
   ConsumerState<WallpaperPickerSheet> createState() =>
@@ -92,16 +121,19 @@ class _WallpaperPickerSheetState extends ConsumerState<WallpaperPickerSheet> {
         widget.title ??
         (widget.isGlobal ? l10n.wallpaperTitleApp : l10n.wallpaperTitleProject);
 
+    final isEffectiveDialog = widget.isDialog || AppBreakpoints.isWide(context);
     return Container(
-      constraints: const BoxConstraints(maxHeight: 700),
+      constraints: const BoxConstraints(maxHeight: 720),
       decoration: BoxDecoration(
         color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
-        borderRadius: AppTokens.sheetTopBorderRadius,
+        borderRadius: isEffectiveDialog
+            ? BorderRadius.circular(AppTokens.radiusDialog)
+            : AppTokens.sheetTopBorderRadius,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: AppTokens.alphaTintStrong),
             blurRadius: 20,
-            offset: const Offset(0, -2),
+            offset: isEffectiveDialog ? const Offset(0, 4) : const Offset(0, -2),
           ),
         ],
       ),
@@ -151,17 +183,21 @@ class _WallpaperPickerSheetState extends ConsumerState<WallpaperPickerSheet> {
     ColorScheme colorScheme,
     AppLocalizations l10n,
   ) {
+    final isEffectiveDialog = widget.isDialog || AppBreakpoints.isWide(context);
     return Column(
       children: [
-        const SizedBox(height: 8),
-        Container(
-          width: AppTokens.sheetGrabberWidth,
-          height: AppTokens.sheetGrabberHeight,
-          decoration: BoxDecoration(
-            color: colorScheme.outlineVariant,
-            borderRadius: BorderRadius.circular(AppTokens.sheetGrabberRadius),
+        if (!isEffectiveDialog) ...[
+          const SizedBox(height: 8),
+          Container(
+            width: AppTokens.sheetGrabberWidth,
+            height: AppTokens.sheetGrabberHeight,
+            decoration: BoxDecoration(
+              color: colorScheme.outlineVariant,
+              borderRadius: BorderRadius.circular(AppTokens.sheetGrabberRadius),
+            ),
           ),
-        ),
+        ] else
+          const SizedBox(height: 4),
         Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppTokens.spaceLg,
