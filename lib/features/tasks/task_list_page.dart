@@ -89,7 +89,14 @@ class TaskListPage extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         body: SafeArea(
           bottom: false,
-          child: _buildBody(context, ref, isNarrow),
+          child: isNarrow
+              ? _buildBody(context, ref, isNarrow)
+              : Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 860),
+                    child: _buildBody(context, ref, isNarrow),
+                  ),
+                ),
         ),
         floatingActionButton: showFab ? _buildFab(context) : null,
       ),

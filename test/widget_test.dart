@@ -21,6 +21,8 @@ import 'package:todo/features/today/today_providers.dart';
 import 'package:todo/router.dart';
 import 'package:todo/shared/widgets/page_hero_header.dart';
 import 'package:todo/shared/widgets/scope_switcher_sheet.dart';
+import 'package:todo/shared/widgets/app_drawer.dart';
+import 'package:todo/shared/widgets/scope_nav_content.dart';
 import 'helpers/db_test_setup.dart';
 
 Future<void> _settle(WidgetTester tester) async {
@@ -351,8 +353,8 @@ void main() {
 
       // 弹层已显示
       expect(find.byType(ScopeSwitcherSheet), findsOneWidget);
-      expect(find.text('今日'), findsOneWidget);
-      expect(find.text('收件箱'), findsOneWidget);
+      expect(find.descendant(of: find.byType(ScopeSwitcherSheet), matching: find.text('今日')), findsOneWidget);
+      expect(find.descendant(of: find.byType(ScopeSwitcherSheet), matching: find.text('收件箱')), findsOneWidget);
 
       // 点击背景遮罩 → 弹层正常关闭
       await tester.tapAt(const Offset(20, 20));
@@ -518,4 +520,56 @@ void main() {
     expect(cache.get(localePrefKey), 'en');
     expect(find.text('Settings'), findsWidgets);
   });
+
+  testWidgets(
+    'Desktop responsive: Wide screen (>=600dp) mounts AppSidebar with ScopeNavContent and FlowTodo header',
+    (tester) async {
+      await pumpApp(tester, const Size(1200, 800));
+
+      // 宽屏常驻侧边栏已挂载
+      expect(find.byType(AppSidebar), findsOneWidget);
+      expect(find.byType(ScopeNavContent), findsOneWidget);
+      expect(find.text('知序 Ordo'), findsOneWidget);
+
+      // 侧边栏包含系统视图
+      expect(
+        find.descendant(of: find.byType(AppSidebar), matching: find.text('今日')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: find.byType(AppSidebar), matching: find.text('收件箱')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'Desktop responsive: Wide screen sidebar clicks switch routes directly',
+    (tester) async {
+      await pumpApp(tester, const Size(1200, 800));
+
+      final inboxTile = find.descendant(
+        of: find.byType(AppSidebar),
+        matching: find.text('收件箱'),
+      );
+      expect(inboxTile, findsOneWidget);
+
+      await tester.tap(inboxTile);
+      await _settle(tester);
+
+      // 直接切换路由至收件箱，无需底部弹窗
+      expect(find.byType(ScopeSwitcherSheet), findsNothing);
+      expect(find.text('收件箱'), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'Mobile responsive: Narrow screen (<600dp) has zero sidebar and zero drawer',
+    (tester) async {
+      await pumpApp(tester, const Size(400, 800));
+
+      expect(find.byType(AppSidebar), findsNothing);
+      expect(find.byType(Drawer), findsNothing);
+    },
+  );
 }

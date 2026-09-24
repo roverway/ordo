@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+
+import '../../core/utils/app_breakpoints.dart';
 import 'app_background_wrapper.dart';
+import 'app_drawer.dart';
 
 /// 全局根导航外壳。
 ///
-/// 遵循新版现代化设计规范：全平台（桌面端与移动端）统一采用极简沉浸式单屏布局，
-/// 由顶栏大标题唤起的导航弹窗（ScopeSwitcherSheet）承载全部范围与清单切换，
-/// 彻底废弃旧式常驻侧边栏。
-/// 同时承载应用级全局壁纸渲染（AppBackgroundWrapper）。
+/// 响应式双模架构：
+/// - 窄屏/移动端（< 600dp）：纯净单屏直通，不加载侧边栏，由顶栏标题呼起 ScopeSwitcherSheet；
+/// - 宽屏/桌面端（>= 600dp）：常驻左侧导航栏（AppSidebar，复用 ScopeNavContent），右侧为页面主体。
 class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.child});
 
@@ -15,6 +17,17 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppBackgroundWrapper(child: child);
+    if (AppBreakpoints.isNarrow(context)) {
+      return AppBackgroundWrapper(child: child);
+    }
+
+    return AppBackgroundWrapper(
+      child: Row(
+        children: [
+          const AppSidebar(),
+          Expanded(child: child),
+        ],
+      ),
+    );
   }
 }

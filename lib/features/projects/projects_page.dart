@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/db/database.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/utils/app_breakpoints.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/hero_progress_ring.dart';
@@ -65,8 +66,9 @@ class ProjectsPage extends ConsumerWidget {
             final totalProjectsCount = allProjects.length;
 
             var cardIndex = 0;
+            final isNarrow = AppBreakpoints.isNarrow(context);
 
-            return Column(
+            final pageContent = Column(
               children: [
                 // 固定顶部 Hero 顶栏
                 PageHeroHeader(
@@ -202,6 +204,15 @@ class ProjectsPage extends ConsumerWidget {
                 ),
               ],
             );
+
+            return isNarrow
+                ? pageContent
+                : Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 960),
+                      child: pageContent,
+                    ),
+                  );
           },
           loading: () => const LoadingView(),
           error: (e, st) {
