@@ -409,7 +409,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // 中文下应用名为「知序 Ordo」
-      expect(find.text('知序 Ordo'), findsOneWidget);
+      expect(find.text('ordo'), findsOneWidget);
       // 关于部分仅保留「知序（Zhī Xù）」，去掉了「Ordo（拉丁语）」的解释（_BrandMeaningItem 采用 RichText 渲染）
       // 关于部分仅保留「知序（Zhī Xù）」，去掉了「Ordo（拉丁语）」的解释（_BrandMeaningItem 采用 RichText 渲染）
       expect(find.textContaining('知序（Zhī Xù）', findRichText: true), findsOneWidget);
@@ -436,7 +436,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // 英文下应用名为「Ordo」
-      expect(find.text('Ordo'), findsAtLeastNWidgets(1));
+      expect(find.text('ordo'), findsAtLeastNWidgets(1));
       // 英文下也仅保留「知序 (Zhī Xù)」，无「Ordo (Latin)」
       expect(find.textContaining('知序 (Zhī Xù)', findRichText: true), findsOneWidget);
       expect(find.textContaining('Ordo (Latin)', findRichText: true), findsNothing);

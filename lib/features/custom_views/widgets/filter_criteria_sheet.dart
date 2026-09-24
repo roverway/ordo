@@ -30,15 +30,19 @@ Future<FilterCriteria?> showFilterCriteriaSheet({
       context: context,
       builder: (dialogContext) => Dialog(
         backgroundColor: Theme.of(dialogContext).colorScheme.surface,
+        clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
         ),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 540, maxHeight: 760),
-          child: _FilterCriteriaForm(
-            initialCriteria: initialCriteria,
-            isSheet: false,
-            onClose: (result) => Navigator.of(dialogContext).pop(result),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 540, maxHeight: 760),
+            child: _FilterCriteriaForm(
+              initialCriteria: initialCriteria,
+              isSheet: false,
+              onClose: (result) => Navigator.of(dialogContext).pop(result),
+            ),
           ),
         ),
       ),
@@ -733,6 +737,11 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
           ),
           decoration: BoxDecoration(
             color: isDark ? AppTokens.surfaceCardDark : Colors.white,
+            borderRadius: widget.isSheet
+                ? null
+                : const BorderRadius.vertical(
+                    bottom: Radius.circular(AppTokens.radiusDialog),
+                  ),
             border: Border(
               top: BorderSide(
                 color: isDark

@@ -10,6 +10,7 @@ import '../../../core/theme/background_config.dart';
 import '../../../core/theme/preset_icons.dart';
 import '../../../core/utils/app_breakpoints.dart';
 import '../../../shared/widgets/app_background_wrapper.dart';
+import '../../../shared/widgets/modern_segmented_control.dart';
 import '../../settings/settings_providers.dart';
 import '../../settings/widgets/wallpaper_picker_sheet.dart';
 import '../project_providers.dart';
@@ -352,6 +353,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context);
 
@@ -463,7 +465,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                     ),
                   )
                 else
-                  _buildSegmentedControl(l10n, isDark),
+                  _buildSegmentedControl(l10n, isDark, colorScheme),
 
                 // 右侧完成
                 TextButton(
@@ -563,78 +565,40 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
     );
   }
 
-  /// 顶部分段切换器
-  Widget _buildSegmentedControl(AppLocalizations l10n, bool isDark) {
-    return Container(
+  /// 顶部滑动分段切换器（接入 ModernSegmentedControl 平滑滑动物理动效与系统主题色）
+  Widget _buildSegmentedControl(
+    AppLocalizations l10n,
+    bool isDark,
+    ColorScheme colorScheme,
+  ) {
+    return ModernSegmentedControl<CreateType>(
+      isExpanded: false,
+      height: 32,
       padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: isDark
-            ? AppTokens.surfaceSubtleDark
-            : AppTokens.surfaceSubtleLight,
-        borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildSegmentItem(
-            label: l10n.createList,
-            type: CreateType.list,
-            isSelected: _createType == CreateType.list,
-            isDark: isDark,
-          ),
-          _buildSegmentItem(
-            label: l10n.createFolder,
-            type: CreateType.folder,
-            isSelected: _createType == CreateType.folder,
-            isDark: isDark,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSegmentItem({
-    required String label,
-    required CreateType type,
-    required bool isSelected,
-    required bool isDark,
-  }) {
-    return GestureDetector(
-      onTap: () => _switchType(type),
-      child: AnimatedContainer(
-        duration: AppTokens.motionFast,
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? (isDark
-                    ? AppTokens.borderSubtleNeutralDark
-                    : AppTokens.surfaceDialogLight)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppTokens.radiusList),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
-                  ),
-                ]
-              : null,
+      itemPadding: const EdgeInsets.symmetric(horizontal: 14),
+      fontSize: AppTokens.textFootnoteSize,
+      selectedValue: _createType,
+      backgroundColor: isDark
+          ? AppTokens.surfaceSubtleDark
+          : AppTokens.surfaceSubtleLight,
+      indicatorColor: colorScheme.primary,
+      selectedTextColor: colorScheme.onPrimary,
+      unselectedTextColor: isDark
+          ? AppTokens.textMutedDark
+          : AppTokens.textMutedLight,
+      borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+      indicatorRadius: BorderRadius.circular(AppTokens.radiusList),
+      onChanged: (type) => _switchType(type),
+      items: [
+        ModernSegmentItem(
+          value: CreateType.list,
+          label: l10n.createList,
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: AppTokens.textFootnoteSize,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-            color: isSelected
-                ? (isDark
-                      ? AppTokens.textPrimaryDark
-                      : AppTokens.textPrimaryLight)
-                : (isDark ? AppTokens.textMutedDark : AppTokens.textMutedLight),
-          ),
+        ModernSegmentItem(
+          value: CreateType.folder,
+          label: l10n.createFolder,
         ),
-      ),
+      ],
     );
   }
 

@@ -188,25 +188,37 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: AppTokens.spaceSm),
-            child: FilledButton(
-              onPressed: _saving ? null : _save,
-              style: FilledButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppTokens.radiusButton),
+            padding: const EdgeInsets.only(right: AppTokens.spaceMd),
+            child: SizedBox(
+              height: 32,
+              child: ElevatedButton(
+                onPressed: _saving ? null : _save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
+                  elevation: 1.5,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+                  ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-              ),
-              child: _saving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
+                child: _saving
+                    ? SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: theme.colorScheme.onPrimary,
+                        ),
+                      )
+                    : Text(
+                        l10n.save,
+                        style: const TextStyle(
+                          fontSize: AppTokens.textCaptionSize,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    )
-                  : Text(l10n.save),
+              ),
             ),
           ),
         ],

@@ -552,7 +552,7 @@ void main() {
       // 宽屏常驻侧边栏已挂载
       expect(find.byType(AppSidebar), findsOneWidget);
       expect(find.byType(ScopeNavContent), findsOneWidget);
-      expect(find.text('知序 Ordo'), findsOneWidget);
+      expect(find.text('ordo'), findsOneWidget);
 
       // 侧边栏包含系统视图
       expect(
