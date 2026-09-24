@@ -8,6 +8,7 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/custom_view_models.dart';
 import '../../../core/utils/uuid.dart';
 import '../../../shared/widgets/modal_side_sheet.dart';
+import '../../../shared/widgets/modern_segmented_control.dart';
 import '../providers/custom_view_providers.dart';
 import '../widgets/filter_criteria_sheet.dart';
 import '../widgets/icon_picker_dialog.dart';
@@ -418,34 +419,36 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                Container(
+                ModernSegmentedControl<String>(
+                  isExpanded: false,
+                  height: 32,
                   padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? theme.colorScheme.surfaceContainerHighest.withValues(
-                            alpha: 0.35,
-                          )
-                        : AppTokens.surfaceSubtleLight,
-                    borderRadius: BorderRadius.circular(AppTokens.radiusItem),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildLayoutToggleItem(
-                        mode: 'kanban',
-                        label: l10n.layoutKanban,
-                        icon: Icons.view_column_outlined,
-                        isSelected: _layoutMode == 'kanban',
-                      ),
-                      const SizedBox(width: 2),
-                      _buildLayoutToggleItem(
-                        mode: 'list',
-                        label: l10n.layoutList,
-                        icon: Icons.view_agenda_outlined,
-                        isSelected: _layoutMode == 'list',
-                      ),
-                    ],
-                  ),
+                  itemPadding: const EdgeInsets.symmetric(horizontal: 13),
+                  fontSize: AppTokens.textFootnoteSize,
+                  selectedValue: _layoutMode,
+                  backgroundColor: isDark
+                      ? AppTokens.surfaceSubtleDark
+                      : AppTokens.surfaceSubtleLight,
+                  indicatorColor: theme.colorScheme.primary,
+                  selectedTextColor: theme.colorScheme.onPrimary,
+                  unselectedTextColor: isDark
+                      ? AppTokens.textMutedDark
+                      : AppTokens.textMutedLight,
+                  borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                  indicatorRadius: BorderRadius.circular(AppTokens.radiusList),
+                  onChanged: (mode) => setState(() => _layoutMode = mode),
+                  items: [
+                    ModernSegmentItem(
+                      value: 'kanban',
+                      label: l10n.layoutKanban,
+                      icon: Icons.view_column_outlined,
+                    ),
+                    ModernSegmentItem(
+                      value: 'list',
+                      label: l10n.layoutList,
+                      icon: Icons.view_agenda_outlined,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -796,64 +799,6 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
           ),
           ?trailing,
         ],
-      ),
-    );
-  }
-
-  Widget _buildLayoutToggleItem({
-    required String mode,
-    required String label,
-    required IconData icon,
-    required bool isSelected,
-  }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final colorScheme = theme.colorScheme;
-
-    return GestureDetector(
-      onTap: () => setState(() => _layoutMode = mode),
-      child: AnimatedContainer(
-        duration: AppTokens.motionFast,
-        height: 32,
-        padding: const EdgeInsets.symmetric(horizontal: 13),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? (isDark ? colorScheme.surfaceContainerHighest : Colors.white)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppTokens.radiusList),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
-                  ),
-                ]
-              : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 15,
-              color: isSelected
-                  ? colorScheme.onSurface
-                  : colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: AppTokens.textFootnoteSize,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected
-                    ? colorScheme.onSurface
-                    : colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

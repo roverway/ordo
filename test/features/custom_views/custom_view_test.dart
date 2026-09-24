@@ -11,6 +11,7 @@ import 'package:todo/features/custom_views/providers/custom_view_providers.dart'
 import 'package:todo/features/custom_views/widgets/panel_column.dart';
 import 'package:todo/features/projects/project_providers.dart';
 import 'package:todo/shared/widgets/animated_strikethrough.dart';
+import 'package:todo/shared/widgets/modern_segmented_control.dart';
 
 import '../../helpers/db_test_setup.dart';
 
@@ -700,6 +701,37 @@ void main() {
         // Leading drag handle is wrapped with ReorderableDragStartListener
         expect(find.byType(ReorderableDragStartListener), findsWidgets);
         expect(find.byIcon(Icons.delete_outline), findsWidgets);
+      },
+    );
+
+    testWidgets(
+      'CustomViewEditorPage renders ModernSegmentedControl for layout mode and switches correctly',
+      (tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [todoRepositoryProvider.overrideWithValue(repo)],
+            child: const MaterialApp(
+              locale: Locale('zh'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: CustomViewEditorPage(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // 验证存在 ModernSegmentedControl<String> 布局模式切换器
+        final segmentedFinder = find.byType(ModernSegmentedControl<String>);
+        expect(segmentedFinder, findsOneWidget);
+        expect(find.text('多栏看板'), findsWidgets);
+        expect(find.text('列表视图'), findsWidgets);
+
+        // 点击「列表视图」分段项
+        await tester.tap(find.text('列表视图').first);
+        await tester.pumpAndSettle();
+
+        final segmented = tester.widget<ModernSegmentedControl<String>>(segmentedFinder);
+        expect(segmented.selectedValue, 'list');
       },
     );
   });

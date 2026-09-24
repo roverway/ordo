@@ -126,9 +126,13 @@ void main() {
     // 查找主题模式与语言的 ModernSegmentedControl
     final themeSegmented = find.byType(ModernSegmentedControl<ThemeMode>);
     expect(themeSegmented, findsOneWidget);
+    final themeWidget = tester.widget<ModernSegmentedControl<ThemeMode>>(themeSegmented);
+    expect(themeWidget.indicatorColor, isNotNull);
 
     final langSegmented = find.byType(ModernSegmentedControl<Locale>);
     expect(langSegmented, findsOneWidget);
+    final langWidget = tester.widget<ModernSegmentedControl<Locale>>(langSegmented);
+    expect(langWidget.indicatorColor, isNotNull);
   });
 
   testWidgets('设置页包含标签管理入口并可点击触发跳转', (tester) async {

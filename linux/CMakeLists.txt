@@ -7,7 +7,7 @@ project(runner LANGUAGES CXX)
 set(BINARY_NAME "ordo")
 # The unique GTK application identifier for this application. See:
 # https://wiki.gnome.org/HowDoI/ChooseApplicationID
-set(APPLICATION_ID "com.example.ordo")
+set(APPLICATION_ID "com.ordo.app")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.
@@ -126,3 +126,14 @@ if(NOT CMAKE_BUILD_TYPE MATCHES "Debug")
   install(FILES "${AOT_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
     COMPONENT Runtime)
 endif()
+
+# Install mobile app icon and desktop entry file into bundle directory
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/runner/ordo.png"
+  DESTINATION "${CMAKE_INSTALL_PREFIX}"
+  COMPONENT Runtime)
+
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/runner/ordo.desktop"
+  DESTINATION "${CMAKE_INSTALL_PREFIX}"
+  COMPONENT Runtime)
+
+install(SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/runner/install_hooks.cmake")

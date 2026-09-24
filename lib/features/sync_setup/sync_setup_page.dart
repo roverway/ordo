@@ -331,6 +331,8 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
                 padding: const EdgeInsets.only(top: AppTokens.spaceSm),
                 child: ModernSegmentedControl<RemoteType>(
                   selectedValue: _type,
+                  indicatorColor: theme.colorScheme.primary,
+                  selectedTextColor: theme.colorScheme.onPrimary,
                   onChanged: (type) => unawaited(_onTypeChanged(type)),
                   items: [
                     ModernSegmentItem(

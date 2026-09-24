@@ -221,6 +221,8 @@ class _AppearanceSection extends ConsumerWidget {
             // 主题模式胶囊切换器 (跟随系统 / 浅色 / 深色)
             ModernSegmentedControl<ThemeMode>(
               selectedValue: themeMode,
+              indicatorColor: colorScheme.primary,
+              selectedTextColor: colorScheme.onPrimary,
               onChanged: (val) =>
                   ref.read(themeModeProvider.notifier).setThemeMode(val),
               items: [
@@ -329,6 +331,8 @@ class _AppearanceSection extends ConsumerWidget {
                   selectedValue: locale.languageCode == 'en'
                       ? const Locale('en')
                       : const Locale('zh'),
+                  indicatorColor: colorScheme.primary,
+                  selectedTextColor: colorScheme.onPrimary,
                   onChanged: (val) =>
                       ref.read(localeProvider.notifier).setLocale(val),
                   items: [

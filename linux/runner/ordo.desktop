@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=ordo
+GenericName=知序 · Ordo
+Comment=知序 · 个人任务与项目管理
+Exec=ordo %u
+Icon=ordo
+Terminal=false
+Categories=Office;Utility;
+StartupWMClass=ordo

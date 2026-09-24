@@ -180,8 +180,8 @@ class _ModernSegmentedControlState<T> extends State<ModernSegmentedControl<T>> {
         widget.backgroundColor ??
         colorScheme.onSurface.withValues(alpha: AppTokens.alphaTintFaint);
 
-    final indicatorColor = widget.indicatorColor ?? colorScheme.surface;
-    final selectedColor = widget.selectedTextColor ?? colorScheme.primary;
+    final indicatorColor = widget.indicatorColor ?? colorScheme.primary;
+    final selectedColor = widget.selectedTextColor ?? colorScheme.onPrimary;
     final unselectedColor =
         widget.unselectedTextColor ?? colorScheme.onSurfaceVariant;
     final borderRadius =
