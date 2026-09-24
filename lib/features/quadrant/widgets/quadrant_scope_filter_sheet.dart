@@ -19,7 +19,7 @@ import '../providers/quadrant_providers.dart';
 /// 3. 四象限与自定义视图完全统一的单圆角矩形层级容器 UnifiedHierarchicalFolderContainer；
 /// 4. 底部设置风格圆角卡片承载「显示已完成任务」开关；
 /// 5. 完全对齐当前设置页面的 SettingsCard 圆角矩形风格与 AppTokens 设计系统。
-class QuadrantScopeFilterSheet extends ConsumerStatefulWidget {
+class QuadrantScopeFilterSheet extends ConsumerWidget {
   const QuadrantScopeFilterSheet({super.key, this.isDialog = false});
 
   final bool isDialog;
@@ -55,14 +55,7 @@ class QuadrantScopeFilterSheet extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<QuadrantScopeFilterSheet> createState() =>
-      _QuadrantScopeFilterSheetState();
-}
-
-class _QuadrantScopeFilterSheetState
-    extends ConsumerState<QuadrantScopeFilterSheet> {
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
@@ -72,7 +65,7 @@ class _QuadrantScopeFilterSheetState
     final filterNotifier = ref.read(quadrantFilterProvider.notifier);
 
     final groupingAsync = ref.watch(projectsByFolderProvider);
-    final isEffectiveDialog = widget.isDialog || AppBreakpoints.isWide(context);
+    final isEffectiveDialog = isDialog || AppBreakpoints.isWide(context);
     final inboxProjectAsync = ref.watch(inboxProjectProvider);
 
     final dividerColor = isDark
@@ -157,9 +150,7 @@ class _QuadrantScopeFilterSheetState
                         bottom: AppTokens.spaceXxs,
                       ),
                       decoration: BoxDecoration(
-                        color: isDark
-                            ? AppTokens.slate600
-                            : AppTokens.slate300,
+                        color: isDark ? AppTokens.slate600 : AppTokens.slate300,
                         borderRadius: BorderRadius.circular(
                           AppTokens.sheetGrabberRadius,
                         ),
@@ -199,9 +190,12 @@ class _QuadrantScopeFilterSheetState
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: colorScheme.primary
-                                    .withValues(alpha: AppTokens.alphaTintSoft),
-                                borderRadius: BorderRadius.circular(AppTokens.radiusItem),
+                                color: colorScheme.primary.withValues(
+                                  alpha: AppTokens.alphaTintSoft,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  AppTokens.radiusItem,
+                                ),
                               ),
                               child: Text(
                                 '已选 $selectedCount 项',
@@ -252,7 +246,9 @@ class _QuadrantScopeFilterSheetState
                                   horizontal: 14,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+                                  borderRadius: BorderRadius.circular(
+                                    AppTokens.radiusDialog,
+                                  ),
                                 ),
                               ),
                               child: Text(
@@ -318,8 +314,9 @@ class _QuadrantScopeFilterSheetState
                               boxShadow: isAllSelected
                                   ? [
                                       BoxShadow(
-                                        color: colorScheme.primary
-                                            .withValues(alpha: AppTokens.alphaTintStrong),
+                                        color: colorScheme.primary.withValues(
+                                          alpha: AppTokens.alphaTintStrong,
+                                        ),
                                         blurRadius: 4,
                                         offset: const Offset(0, 2),
                                       ),
@@ -357,8 +354,9 @@ class _QuadrantScopeFilterSheetState
                                     fontSize: AppTokens.textCaptionSize,
                                     fontWeight: FontWeight.w500,
                                     color: isAllSelected
-                                        ? colorScheme.onPrimary
-                                              .withValues(alpha: AppTokens.alphaOverlayHeavy)
+                                        ? colorScheme.onPrimary.withValues(
+                                            alpha: AppTokens.alphaOverlayHeavy,
+                                          )
                                         : (isDark
                                               ? AppTokens.textMutedDark
                                               : AppTokens.slate400),
@@ -437,7 +435,9 @@ class _QuadrantScopeFilterSheetState
                                   color: isDark
                                       ? AppTokens.surfaceSubtleDark
                                       : AppTokens.slate100,
-                                  borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                                  borderRadius: BorderRadius.circular(
+                                    AppTokens.radiusChip,
+                                  ),
                                 ),
                                 alignment: Alignment.center,
                                 child: Icon(

@@ -67,7 +67,6 @@ class ProjectsPage extends ConsumerWidget {
             final totalProjectsCount = allProjects.length;
 
             var cardIndex = 0;
-            final isNarrow = AppBreakpoints.isNarrow(context);
 
             final pageContent = Column(
               children: [
@@ -91,7 +90,9 @@ class ProjectsPage extends ConsumerWidget {
                               vertical: 8,
                             ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                              borderRadius: BorderRadius.circular(
+                                AppTokens.radiusPill,
+                              ),
                             ),
                           ),
                           icon: const Icon(Icons.add_rounded, size: 18),
@@ -204,8 +205,9 @@ class ProjectsPage extends ConsumerWidget {
                                     index: cardIndex++,
                                     child: ProjectCard(
                                       project: project,
-                                      onTap: () =>
-                                          context.push('/projects/${project.id}'),
+                                      onTap: () => context.push(
+                                        '/projects/${project.id}',
+                                      ),
                                     ),
                                   ),
                               ],
@@ -219,8 +221,9 @@ class ProjectsPage extends ConsumerWidget {
                                     index: cardIndex++,
                                     child: ProjectCard(
                                       project: project,
-                                      onTap: () =>
-                                          context.push('/projects/${project.id}'),
+                                      onTap: () => context.push(
+                                        '/projects/${project.id}',
+                                      ),
                                     ),
                                   ),
                               ],
@@ -242,32 +245,39 @@ class ProjectsPage extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          if ((grouping.folderProjects[folder.id] ?? const <Project>[]).isNotEmpty)
+                          if ((grouping.folderProjects[folder.id] ??
+                                  const <Project>[])
+                              .isNotEmpty)
                             SliverPadding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 20,
                                 vertical: 8,
                               ),
                               sliver: SliverGrid(
-                                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                                  maxCrossAxisExtent: 440,
-                                  mainAxisExtent: 110,
-                                  crossAxisSpacing: 16,
-                                  mainAxisSpacing: 12,
-                                ),
+                                gridDelegate:
+                                    const SliverGridDelegateWithMaxCrossAxisExtent(
+                                      maxCrossAxisExtent: 440,
+                                      mainAxisExtent: 110,
+                                      crossAxisSpacing: 16,
+                                      mainAxisSpacing: 12,
+                                    ),
                                 delegate: SliverChildBuilderDelegate(
                                   (context, idx) {
-                                    final project = grouping.folderProjects[folder.id]![idx];
+                                    final project = grouping
+                                        .folderProjects[folder.id]![idx];
                                     return StaggeredFadeSlide(
                                       index: cardIndex++,
                                       child: ProjectCard(
                                         project: project,
-                                        onTap: () =>
-                                            context.push('/projects/${project.id}'),
+                                        onTap: () => context.push(
+                                          '/projects/${project.id}',
+                                        ),
                                       ),
                                     );
                                   },
-                                  childCount: grouping.folderProjects[folder.id]!.length,
+                                  childCount: grouping
+                                      .folderProjects[folder.id]!
+                                      .length,
                                 ),
                               ),
                             ),
@@ -288,32 +298,37 @@ class ProjectsPage extends ConsumerWidget {
                               vertical: 8,
                             ),
                             sliver: SliverGrid(
-                              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 440,
-                                mainAxisExtent: 110,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 12,
-                              ),
-                              delegate: SliverChildBuilderDelegate(
-                                (context, idx) {
-                                  final project = ungrouped[idx];
-                                  return StaggeredFadeSlide(
-                                    index: cardIndex++,
-                                    child: ProjectCard(
-                                      project: project,
-                                      onTap: () =>
-                                          context.push('/projects/${project.id}'),
-                                    ),
-                                  );
-                                },
-                                childCount: ungrouped.length,
-                              ),
+                              gridDelegate:
+                                  const SliverGridDelegateWithMaxCrossAxisExtent(
+                                    maxCrossAxisExtent: 440,
+                                    mainAxisExtent: 110,
+                                    crossAxisSpacing: 16,
+                                    mainAxisSpacing: 12,
+                                  ),
+                              delegate: SliverChildBuilderDelegate((
+                                context,
+                                idx,
+                              ) {
+                                final project = ungrouped[idx];
+                                return StaggeredFadeSlide(
+                                  index: cardIndex++,
+                                  child: ProjectCard(
+                                    project: project,
+                                    onTap: () =>
+                                        context.push('/projects/${project.id}'),
+                                  ),
+                                );
+                              }, childCount: ungrouped.length),
                             ),
                           ),
                         ],
                       ],
 
-                      SliverToBoxAdapter(child: SizedBox(height: isNarrow ? 100 : AppTokens.spaceXl)),
+                      SliverToBoxAdapter(
+                        child: SizedBox(
+                          height: isNarrow ? 100 : AppTokens.spaceXl,
+                        ),
+                      ),
                     ],
                   ),
                 ),

@@ -198,7 +198,7 @@ class _ModernSegmentedControlState<T> extends State<ModernSegmentedControl<T>> {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          if (!widget.isExpanded) {
+          if (!widget.isExpanded && _indicatorRect == null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _updateIndicator(animate: false);
             });

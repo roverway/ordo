@@ -480,66 +480,13 @@ class QuadrantListView extends ConsumerWidget {
           ],
         );
 
-        if (hasWallpaper) {
-          return Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(
-                    alpha: isDark
-                        ? AppTokens.alphaBorderEmphasis
-                        : AppTokens.alphaTintFaint,
-                  ),
-                  blurRadius: 12,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(
-                  sigmaX: AppTokens.blurFrostedGlass,
-                  sigmaY: AppTokens.blurFrostedGlass,
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-                    border: Border.all(
-                      color: effectiveBorderColor,
-                      width: effectiveBorderWidth,
-                    ),
-                  ),
-                  child: groupContent,
-                ),
-              ),
-            ),
-          );
-        }
-
-        return Container(
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-            border: Border.all(
-              color: effectiveBorderColor,
-              width: effectiveBorderWidth,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(
-                  alpha: isDark
-                      ? AppTokens.alphaBorderEmphasis
-                      : AppTokens.alphaTintFaint,
-                ),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
+        return _wrapCardContainer(
           child: groupContent,
+          cardColor: cardColor,
+          borderColor: effectiveBorderColor,
+          borderWidth: effectiveBorderWidth,
+          hasWallpaper: hasWallpaper,
+          isDark: isDark,
         );
       },
     );
@@ -555,6 +502,62 @@ class QuadrantListView extends ConsumerWidget {
       projectId: filter.selectedProjectIds?.length == 1
           ? filter.selectedProjectIds!.first
           : null,
+    );
+  }
+
+  Widget _wrapCardContainer({
+    required Widget child,
+    required Color cardColor,
+    required Color borderColor,
+    required double borderWidth,
+    required bool hasWallpaper,
+    required bool isDark,
+  }) {
+    final borderRadius = BorderRadius.circular(AppTokens.radiusDialog);
+    final shadow = BoxShadow(
+      color: Colors.black.withValues(
+        alpha: isDark
+            ? AppTokens.alphaBorderEmphasis
+            : AppTokens.alphaTintFaint,
+      ),
+      blurRadius: hasWallpaper ? 12 : 8,
+      offset: const Offset(0, 2),
+    );
+
+    if (hasWallpaper) {
+      return Container(
+        decoration: BoxDecoration(
+          borderRadius: borderRadius,
+          boxShadow: [shadow],
+        ),
+        child: ClipRRect(
+          borderRadius: borderRadius,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(
+              sigmaX: AppTokens.blurFrostedGlass,
+              sigmaY: AppTokens.blurFrostedGlass,
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: borderRadius,
+                border: Border.all(color: borderColor, width: borderWidth),
+              ),
+              child: child,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: borderRadius,
+        border: Border.all(color: borderColor, width: borderWidth),
+        boxShadow: [shadow],
+      ),
+      child: child,
     );
   }
 }
