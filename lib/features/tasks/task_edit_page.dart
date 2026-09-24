@@ -111,6 +111,7 @@ class TaskEditPage extends ConsumerStatefulWidget {
     this.parentId,
     this.initialStartAt,
     this.initialEndAt,
+    this.onClose,
   });
 
   final String? taskId;
@@ -120,6 +121,9 @@ class TaskEditPage extends ConsumerStatefulWidget {
   /// 预填开始/截止时间（UTC 毫秒，M3 日历「点日期新建」传入）。
   final int? initialStartAt;
   final int? initialEndAt;
+
+  /// 桌面端内联检视器关闭回调。
+  final VoidCallback? onClose;
 
   @override
   ConsumerState<TaskEditPage> createState() => _TaskEditPageState();
@@ -158,10 +162,12 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
       final loadedState = ref.read(taskFormProvider);
 
       final repo = ref.read(todoRepositoryProvider);
-      final children = await repo.tasks.getDirectChildren(
-        loadedState.projectId!,
-        widget.taskId,
-      );
+      final pid = loadedState.projectId;
+      if (pid != null) {
+        final children = await repo.tasks.getDirectChildren(
+          pid,
+          widget.taskId,
+        );
       // 方案 B（59 讨论定稿）：子任务区展示条件 = 被编辑任务自身深度 < 3
       // （3 级为最深，无法再创建子任务）。解决「有子任务的 2 级任务不显示子任务区」
       // 与 1 级任务显示不一致的问题（点击现有任务出现两种编辑器的根因）。
@@ -169,12 +175,13 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
       final byId = indexTasksById(all);
       final taskEntry = byId[widget.taskId!];
       final depth = taskEntry != null ? depthOf(taskEntry, byId) : 1;
-      if (mounted) {
-        _editorController.initializeSubtasks(children);
-        setState(() {
-          _hasChildren = children.isNotEmpty;
-          _showSubtasks = depth < 3;
-        });
+        if (mounted) {
+          _editorController.initializeSubtasks(children);
+          setState(() {
+            _hasChildren = children.isNotEmpty;
+            _showSubtasks = depth < 3;
+          });
+        }
       }
     } else {
       if (widget.projectId == null) {
@@ -203,7 +210,9 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
   }
 
   void _doPop() {
-    if (Navigator.of(context).canPop()) {
+    if (widget.onClose != null) {
+      widget.onClose!();
+    } else if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
     } else {
       context.go('/today');

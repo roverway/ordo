@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' as intl;
 
 import '../../core/db/database.dart';
@@ -21,6 +20,7 @@ import '../../shared/widgets/scope_switcher_sheet.dart';
 import '../../shared/widgets/simple_task_tile.dart';
 import '../projects/project_providers.dart';
 import '../today/today_providers.dart';
+import 'task_edit_page.dart';
 import 'task_providers.dart';
 import 'widgets/task_create_sheet.dart';
 import 'widgets/task_swipe_wrapper.dart';
@@ -83,22 +83,53 @@ class TaskListPage extends ConsumerWidget {
       TodayTaskScope() => null,
     };
 
+    final isDualPane = AppBreakpoints.isDualPane(context);
+    final selectedTaskId = ref.watch(desktopSelectedTaskIdProvider);
+    final theme = Theme.of(context);
+
     return AppBackgroundWrapper(
       projectId: projectId,
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
           bottom: false,
-          child: isNarrow
-              ? _buildBody(context, ref, isNarrow)
-              : Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 860),
-                    child: _buildBody(context, ref, isNarrow),
-                  ),
-                ),
+          child: (isDualPane && selectedTaskId != null)
+              ? Row(
+                  children: [
+                    Expanded(
+                      child: _buildBody(context, ref, isNarrow),
+                    ),
+                    Container(
+                      width: 420,
+                      decoration: BoxDecoration(
+                        border: Border(
+                          left: BorderSide(
+                            color: theme.colorScheme.outlineVariant.withValues(
+                              alpha: AppTokens.alphaBorderSubtle,
+                            ),
+                          ),
+                        ),
+                      ),
+                      child: TaskEditPage(
+                        key: ValueKey(selectedTaskId),
+                        taskId: selectedTaskId,
+                        onClose: () => ref
+                            .read(desktopSelectedTaskIdProvider.notifier)
+                            .select(null),
+                      ),
+                    ),
+                  ],
+                )
+              : (isNarrow
+                  ? _buildBody(context, ref, isNarrow)
+                  : Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 860),
+                        child: _buildBody(context, ref, isNarrow),
+                      ),
+                    )),
         ),
-        floatingActionButton: showFab ? _buildFab(context) : null,
+        floatingActionButton: (showFab && isNarrow) ? _buildFab(context) : null,
       ),
     );
   }
@@ -308,9 +339,37 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
               ),
             ],
           ),
-          trailing: HeroProgressRing(
-            completed: completedCount,
-            total: totalCount,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!widget.isNarrow) ...[
+                FilledButton.icon(
+                  onPressed: () => TaskCreateSheet.show(context),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                    ),
+                  ),
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: Text(
+                    l10n.newTask,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: AppTokens.textSecondarySize,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppTokens.spaceMd),
+              ],
+              HeroProgressRing(
+                completed: completedCount,
+                total: totalCount,
+              ),
+            ],
           ),
         ),
 
@@ -373,7 +432,17 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                           projectColor: v.projectColor,
                           progressValue: v.progressValue,
                           subtaskProgressText: v.subtaskProgressText,
-                          onTap: () => context.push('/task/${v.task.id}'),
+                          isSelected: ref.watch(desktopSelectedTaskIdProvider) == v.task.id,
+                          onTap: () {
+                            if (AppBreakpoints.isDualPane(context)) {
+                              if (ref.read(taskFormProvider.notifier).hasChanges) {
+                                ref.read(taskFormProvider.notifier).save();
+                              }
+                              ref.read(desktopSelectedTaskIdProvider.notifier).select(v.task.id);
+                            } else {
+                              openTaskEdit(context, taskId: v.task.id);
+                            }
+                          },
                           onToggleDone: (done) async {
                             final newStatus = (done ?? false)
                                 ? TaskStatus.done
@@ -428,7 +497,17 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                           projectColor: v.projectColor,
                           progressValue: v.progressValue,
                           subtaskProgressText: v.subtaskProgressText,
-                          onTap: () => context.push('/task/${v.task.id}'),
+                          isSelected: ref.watch(desktopSelectedTaskIdProvider) == v.task.id,
+                          onTap: () {
+                            if (AppBreakpoints.isDualPane(context)) {
+                              if (ref.read(taskFormProvider.notifier).hasChanges) {
+                                ref.read(taskFormProvider.notifier).save();
+                              }
+                              ref.read(desktopSelectedTaskIdProvider.notifier).select(v.task.id);
+                            } else {
+                              openTaskEdit(context, taskId: v.task.id);
+                            }
+                          },
                           onToggleDone: (done) async {
                             final newStatus = (done ?? false)
                                 ? TaskStatus.done
@@ -471,7 +550,7 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                   ),
                 ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 130)),
+              SliverToBoxAdapter(child: SizedBox(height: widget.isNarrow ? 130 : AppTokens.spaceXl)),
             ],
           ),
         ),
@@ -648,9 +727,40 @@ class _ProjectOrInboxBodyState extends ConsumerState<_ProjectOrInboxBody> {
                 overflow: TextOverflow.ellipsis,
               ),
               onTitleTap: () => showScopeSwitcherSheet(context),
-              trailing: HeroProgressRing(
-                completed: doneCount,
-                total: totalCount,
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!widget.isNarrow) ...[
+                    FilledButton.icon(
+                      onPressed: () => TaskCreateSheet.show(
+                        context,
+                        projectId: widget.isInbox ? inboxProjectId : widget.projectId,
+                      ),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                        ),
+                      ),
+                      icon: const Icon(Icons.add_rounded, size: 18),
+                      label: Text(
+                        l10n.newTask,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: AppTokens.textSecondarySize,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppTokens.spaceMd),
+                  ],
+                  HeroProgressRing(
+                    completed: doneCount,
+                    total: totalCount,
+                  ),
+                ],
               ),
             ),
             FilterChipsBar(

@@ -632,3 +632,19 @@ List<String> getSubtreeIds(String taskId, List<Task> tasks) {
   collect(taskId);
   return ids;
 }
+
+/// 桌面宽屏（>=900dp）工作台选中的任务 ID 管理器。
+class DesktopSelectedTaskIdNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void select(String? taskId) {
+    state = taskId;
+  }
+}
+
+/// 桌面宽屏（>=900dp）工作台选中的任务 ID Provider（用于三栏联动内联检视器）。
+final desktopSelectedTaskIdProvider =
+    NotifierProvider<DesktopSelectedTaskIdNotifier, String?>(
+      DesktopSelectedTaskIdNotifier.new,
+    );

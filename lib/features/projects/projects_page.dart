@@ -28,6 +28,7 @@ class ProjectsPage extends ConsumerWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
+    final isNarrow = AppBreakpoints.isNarrow(context);
 
     final groupingAsync = ref.watch(projectsByFolderProvider);
     final projectsAsync = ref.watch(projectsStreamProvider);
@@ -78,12 +79,40 @@ class ProjectsPage extends ConsumerWidget {
                     totalProjectsCount,
                     totalPendingTasks,
                   ),
-                  trailing: HeroProgressRing(
-                    completed: totalCompleted,
-                    total: totalTasks > 0 ? totalTasks : 1,
-                    customCenterText: totalTasks > 0
-                        ? '$totalCompleted/$totalTasks'
-                        : '0/0',
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!isNarrow) ...[
+                        FilledButton.icon(
+                          onPressed: () => _showNewProjectDialog(context, ref),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                            ),
+                          ),
+                          icon: const Icon(Icons.add_rounded, size: 18),
+                          label: Text(
+                            l10n.newProject,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: AppTokens.textSecondarySize,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppTokens.spaceMd),
+                      ],
+                      HeroProgressRing(
+                        completed: totalCompleted,
+                        total: totalTasks > 0 ? totalTasks : 1,
+                        customCenterText: totalTasks > 0
+                            ? '$totalCompleted/$totalTasks'
+                            : '0/0',
+                      ),
+                    ],
                   ),
                 ),
                 Expanded(
@@ -151,15 +180,59 @@ class ProjectsPage extends ConsumerWidget {
                         ),
 
                       // 分组项目列表
-                      SliverPadding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 8,
-                        ),
-                        sliver: SliverList(
-                          delegate: SliverChildListDelegate([
-                            for (final folder in folders) ...[
-                              _FolderSectionHeader(
+                      if (isNarrow)
+                        SliverPadding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 8,
+                          ),
+                          sliver: SliverList(
+                            delegate: SliverChildListDelegate([
+                              for (final folder in folders) ...[
+                                _FolderSectionHeader(
+                                  title: folder.name,
+                                  count:
+                                      grouping
+                                          .folderProjects[folder.id]
+                                          ?.length ??
+                                      0,
+                                ),
+                                for (final project
+                                    in grouping.folderProjects[folder.id] ??
+                                        const <Project>[])
+                                  StaggeredFadeSlide(
+                                    index: cardIndex++,
+                                    child: ProjectCard(
+                                      project: project,
+                                      onTap: () =>
+                                          context.push('/projects/${project.id}'),
+                                    ),
+                                  ),
+                              ],
+                              if (ungrouped.isNotEmpty) ...[
+                                _FolderSectionHeader(
+                                  title: l10n.ungrouped,
+                                  count: ungrouped.length,
+                                ),
+                                for (final project in ungrouped)
+                                  StaggeredFadeSlide(
+                                    index: cardIndex++,
+                                    child: ProjectCard(
+                                      project: project,
+                                      onTap: () =>
+                                          context.push('/projects/${project.id}'),
+                                    ),
+                                  ),
+                              ],
+                            ]),
+                          ),
+                        )
+                      else ...[
+                        for (final folder in folders) ...[
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            sliver: SliverToBoxAdapter(
+                              child: _FolderSectionHeader(
                                 title: folder.name,
                                 count:
                                     grouping
@@ -167,38 +240,80 @@ class ProjectsPage extends ConsumerWidget {
                                         ?.length ??
                                     0,
                               ),
-                              for (final project
-                                  in grouping.folderProjects[folder.id] ??
-                                      const <Project>[])
-                                StaggeredFadeSlide(
-                                  index: cardIndex++,
-                                  child: ProjectCard(
-                                    project: project,
-                                    onTap: () =>
-                                        context.push('/projects/${project.id}'),
-                                  ),
+                            ),
+                          ),
+                          if ((grouping.folderProjects[folder.id] ?? const <Project>[]).isNotEmpty)
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 8,
+                              ),
+                              sliver: SliverGrid(
+                                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                  maxCrossAxisExtent: 440,
+                                  mainAxisExtent: 110,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 12,
                                 ),
-                            ],
-                            if (ungrouped.isNotEmpty) ...[
-                              _FolderSectionHeader(
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, idx) {
+                                    final project = grouping.folderProjects[folder.id]![idx];
+                                    return StaggeredFadeSlide(
+                                      index: cardIndex++,
+                                      child: ProjectCard(
+                                        project: project,
+                                        onTap: () =>
+                                            context.push('/projects/${project.id}'),
+                                      ),
+                                    );
+                                  },
+                                  childCount: grouping.folderProjects[folder.id]!.length,
+                                ),
+                              ),
+                            ),
+                        ],
+                        if (ungrouped.isNotEmpty) ...[
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            sliver: SliverToBoxAdapter(
+                              child: _FolderSectionHeader(
                                 title: l10n.ungrouped,
                                 count: ungrouped.length,
                               ),
-                              for (final project in ungrouped)
-                                StaggeredFadeSlide(
-                                  index: cardIndex++,
-                                  child: ProjectCard(
-                                    project: project,
-                                    onTap: () =>
-                                        context.push('/projects/${project.id}'),
-                                  ),
-                                ),
-                            ],
-                          ]),
-                        ),
-                      ),
+                            ),
+                          ),
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 8,
+                            ),
+                            sliver: SliverGrid(
+                              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                maxCrossAxisExtent: 440,
+                                mainAxisExtent: 110,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 12,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                (context, idx) {
+                                  final project = ungrouped[idx];
+                                  return StaggeredFadeSlide(
+                                    index: cardIndex++,
+                                    child: ProjectCard(
+                                      project: project,
+                                      onTap: () =>
+                                          context.push('/projects/${project.id}'),
+                                    ),
+                                  );
+                                },
+                                childCount: ungrouped.length,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
 
-                      const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                      SliverToBoxAdapter(child: SizedBox(height: isNarrow ? 100 : AppTokens.spaceXl)),
                     ],
                   ),
                 ),
@@ -223,23 +338,25 @@ class ProjectsPage extends ConsumerWidget {
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showNewProjectDialog(context, ref),
-        tooltip: l10n.newProject,
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: theme.colorScheme.onPrimary,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-        ),
-        icon: const Icon(Icons.add_rounded, size: 20),
-        label: Text(
-          l10n.newProject,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: AppTokens.textSecondarySize,
-          ),
-        ),
-      ),
+      floatingActionButton: isNarrow
+          ? FloatingActionButton.extended(
+              onPressed: () => _showNewProjectDialog(context, ref),
+              tooltip: l10n.newProject,
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+              ),
+              icon: const Icon(Icons.add_rounded, size: 20),
+              label: Text(
+                l10n.newProject,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: AppTokens.textSecondarySize,
+                ),
+              ),
+            )
+          : null,
     );
   }
 

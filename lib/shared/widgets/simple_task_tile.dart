@@ -43,10 +43,12 @@ class SimpleTaskTile extends StatefulWidget {
     this.projectColor,
     this.progressValue,
     this.subtaskProgressText,
+    this.isSelected = false,
     this.onTap,
     this.onToggleDone,
   });
 
+  final bool isSelected;
   final Task task;
   final bool hasChildren;
   final bool isDone;
@@ -93,10 +95,24 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
       onExit: (_) => setState(() => _hovered = false),
       child: Container(
         decoration: BoxDecoration(
-          color: _hovered
-              ? colorScheme.onSurface.withValues(alpha: AppTokens.alphaTintFaint)
-              : Colors.transparent,
-          border: Border(bottom: BorderSide(color: borderColor, width: 1)),
+          color: widget.isSelected
+              ? colorScheme.primary.withValues(alpha: AppTokens.alphaTintSoft)
+              : (_hovered
+                  ? colorScheme.onSurface.withValues(
+                      alpha: AppTokens.alphaTintFaint,
+                    )
+                  : Colors.transparent),
+          borderRadius: widget.isSelected
+              ? BorderRadius.circular(AppTokens.radiusList)
+              : null,
+          border: widget.isSelected
+              ? Border.all(
+                  color: colorScheme.primary.withValues(
+                    alpha: AppTokens.alphaBorderSubtle,
+                  ),
+                  width: 1,
+                )
+              : Border(bottom: BorderSide(color: borderColor, width: 1)),
         ),
         child: Material(
           color: Colors.transparent,

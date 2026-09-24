@@ -5,6 +5,7 @@ import '../../../core/db/database.dart';
 import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../core/utils/app_breakpoints.dart';
 import '../../../core/utils/custom_view_models.dart';
 import '../../../core/utils/derived.dart';
 import '../../../core/utils/motion.dart';
@@ -145,7 +146,7 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
         final repo = ref.read(todoRepositoryProvider);
 
         return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(20, AppTokens.spaceXs, 20, 130),
+          padding: EdgeInsets.fromLTRB(20, AppTokens.spaceXs, 20, AppBreakpoints.isNarrow(context) ? 130 : AppTokens.spaceXl),
           itemCount: roots.length + (_draggingTaskId != null ? 1 : 0),
           itemBuilder: (context, index) {
             // 拖拽进行时在列表末尾追加"回到 1 级"落点（FR-TSK-07）。
@@ -812,7 +813,17 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
                 }
               }
             },
-            onTap: () => openTaskEdit(context, taskId: node.task.id),
+            isSelected: ref.watch(desktopSelectedTaskIdProvider) == node.task.id,
+            onTap: () {
+              if (AppBreakpoints.isDualPane(context)) {
+                if (ref.read(taskFormProvider.notifier).hasChanges) {
+                  ref.read(taskFormProvider.notifier).save();
+                }
+                ref.read(desktopSelectedTaskIdProvider.notifier).select(node.task.id);
+              } else {
+                openTaskEdit(context, taskId: node.task.id);
+              }
+            },
             onMenuAction: (action) => _handleMenuAction(
               context,
               action,

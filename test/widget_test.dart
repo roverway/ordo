@@ -22,6 +22,8 @@ import 'package:todo/router.dart';
 import 'package:todo/shared/widgets/page_hero_header.dart';
 import 'package:todo/shared/widgets/scope_switcher_sheet.dart';
 import 'package:todo/shared/widgets/app_drawer.dart';
+import 'package:todo/core/db/tables.dart';
+import 'package:todo/features/tasks/task_edit_page.dart';
 import 'package:todo/shared/widgets/scope_nav_content.dart';
 import 'helpers/db_test_setup.dart';
 
@@ -67,6 +69,9 @@ Future<TodoRepository?> pumpApp(
     projectTasksProvider.overrideWith(
       (ref, projectId) => Stream<List<Task>>.value(projectTasks ?? const []),
     ),
+    taskTagsProvider.overrideWith(
+      (ref, taskId) => Stream<List<Tag>>.value(const []),
+    ),
     syncStateProvider.overrideWith(_TestSyncStateNotifier.new),
     folderExpandProvider.overrideWith(_TestFolderExpandNotifier.new),
   ];
@@ -102,6 +107,24 @@ Future<TodoRepository?> pumpApp(
               sortOrder: p.sortOrder,
               createdAt: p.createdAt,
               updatedAt: p.updatedAt,
+            ),
+          );
+    }
+    for (final t in projectTasks ?? const <Task>[]) {
+      await db
+          .into(db.tasks)
+          .insertOnConflictUpdate(
+            TasksCompanion.insert(
+              id: t.id,
+              projectId: t.projectId,
+              title: t.title,
+              description: Value(t.description),
+              notes: Value(t.notes),
+              status: t.status,
+              priority: Value(t.priority),
+              sortOrder: t.sortOrder,
+              createdAt: t.createdAt,
+              updatedAt: t.updatedAt,
             ),
           );
     }
@@ -347,7 +370,7 @@ void main() {
         find.descendant(
           of: find.byType(PageHeroHeader),
           matching: find.byType(InkWell),
-        ),
+        ).first,
       );
       await tester.pumpAndSettle();
 
@@ -570,6 +593,95 @@ void main() {
 
       expect(find.byType(AppSidebar), findsNothing);
       expect(find.byType(Drawer), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'Desktop responsive: Wide screen (>=600dp) hides FAB and provides top header new button; narrow screen (<600dp) keeps FAB',
+    (tester) async {
+      // 1. 宽屏下
+      await pumpApp(tester, const Size(1200, 800));
+      expect(find.byType(FloatingActionButton), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(PageHeroHeader),
+          matching: find.text('新建任务'),
+        ),
+        findsOneWidget,
+      );
+
+      // 2. 窄屏（手机端）下
+      await pumpApp(tester, const Size(400, 800));
+      expect(find.byType(FloatingActionButton), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(PageHeroHeader),
+          matching: find.text('新建任务'),
+        ),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'Desktop dual-pane: Large screen (>=900dp) clicking task opens inline inspector and closing removes it',
+    (tester) async {
+      final testTask = Task(
+        id: 't-desktop-1',
+        projectId: 'p1',
+        title: '桌面端双栏联动测试任务',
+        description: '任务描述信息',
+        notes: '',
+        status: TaskStatus.todo,
+        priority: TaskPriority.high,
+        sortOrder: 0,
+        createdAt: 0,
+        updatedAt: 0,
+        deleted: 0,
+      );
+
+      final p = Project(
+        id: 'p1',
+        name: '工作台项目',
+        description: '',
+        color: 0xFF4A90E2,
+        sortOrder: 0,
+        createdAt: 0,
+        updatedAt: 0,
+        deleted: 0,
+      );
+
+      await pumpApp(
+        tester,
+        const Size(1200, 800),
+        initialLocation: '/projects/p1',
+        projects: [p],
+        projectTasks: [testTask],
+      );
+
+      // 初始状态：未展开右侧内联检视器
+      expect(find.byType(TaskEditPage), findsNothing);
+      expect(find.text('桌面端双栏联动测试任务'), findsWidgets);
+
+      // 点击任务行
+      await tester.tap(find.text('桌面端双栏联动测试任务'));
+      await tester.pumpAndSettle();
+
+      // 右侧内联检视器已展开，显示 TaskEditPage
+      expect(find.byType(TaskEditPage), findsOneWidget);
+
+      // 点击检视器顶部的关闭 (✕) 按钮
+      final closeButton = find.descendant(
+        of: find.byType(TaskEditPage),
+        matching: find.byIcon(Icons.close),
+      );
+      expect(closeButton, findsOneWidget);
+
+      await tester.tap(closeButton);
+      await tester.pumpAndSettle();
+
+      // 内联检视器收起
+      expect(find.byType(TaskEditPage), findsNothing);
     },
   );
 }

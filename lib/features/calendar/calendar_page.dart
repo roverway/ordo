@@ -54,12 +54,40 @@ class CalendarPage extends ConsumerWidget {
             PageHeroHeader(
               title: l10n.navCalendar,
               onTitleTap: () => showScopeSwitcherSheet(context),
-              trailing: IconButton(
-                tooltip: l10n.goToToday,
-                icon: const Icon(Icons.today_outlined, size: 22),
-                onPressed: () {
-                  ref.read(calendarStateProvider.notifier).goToToday();
-                },
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!isNarrow) ...[
+                    FilledButton.icon(
+                      onPressed: () => _createTaskOnDay(context, ref, state.selectedDate),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                        ),
+                      ),
+                      icon: const Icon(Icons.add_rounded, size: 18),
+                      label: Text(
+                        l10n.newTask,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: AppTokens.textSecondarySize,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppTokens.spaceMd),
+                  ],
+                  IconButton(
+                    tooltip: l10n.goToToday,
+                    icon: const Icon(Icons.today_outlined, size: 22),
+                    onPressed: () {
+                      ref.read(calendarStateProvider.notifier).goToToday();
+                    },
+                  ),
+                ],
               ),
             ),
             const Divider(height: 1, indent: 20, endIndent: 20),
@@ -82,19 +110,21 @@ class CalendarPage extends ConsumerWidget {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        tooltip: l10n.newTask,
-        onPressed: () => _createTaskOnDay(context, ref, state.selectedDate),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTokens.radiusPill)),
-        icon: const Icon(Icons.add, size: 20),
-        label: Text(
-          l10n.newTask,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: AppTokens.textSecondarySize),
-        ),
-      ),
+      floatingActionButton: isNarrow
+          ? FloatingActionButton.extended(
+              tooltip: l10n.newTask,
+              onPressed: () => _createTaskOnDay(context, ref, state.selectedDate),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTokens.radiusPill)),
+              icon: const Icon(Icons.add, size: 20),
+              label: Text(
+                l10n.newTask,
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: AppTokens.textSecondarySize),
+              ),
+            )
+          : null,
     );
   }
 
@@ -1161,11 +1191,11 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
             )
           else
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(
+              padding: EdgeInsets.fromLTRB(
                 AppTokens.spaceMd,
                 0,
                 AppTokens.spaceMd,
-                130, // 留出 FAB 底部防遮挡安全边距
+                AppBreakpoints.isNarrow(context) ? 130 : AppTokens.spaceXl, // 留出底部防遮挡安全边距
               ),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate((context, index) {

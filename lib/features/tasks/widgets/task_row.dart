@@ -57,8 +57,10 @@ class TaskRow extends StatefulWidget {
     this.isDragTarget = false,
     this.isInvalidDragTarget = false,
     this.dropAsChild = false,
+    this.isSelected = false,
   });
 
+  final bool isSelected;
   final Task task;
   final int depth;
   final bool hasChildren;
@@ -109,6 +111,9 @@ class _TaskRowState extends State<TaskRow> {
     }
     if (widget.isDragging) {
       return colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaContentMuted);
+    }
+    if (widget.isSelected) {
+      return colorScheme.primary.withValues(alpha: AppTokens.alphaTintSoft);
     }
     if (_hovered) {
       // 扁平行：悬停给轻微底色反馈（替代卡片阴影抬升）。
