@@ -647,15 +647,23 @@ class _SettingsCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-        border: Border.all(color: borderColor, width: 1),
         boxShadow: isDark
             ? AppTokens.cardShadowDarkList
             : AppTokens.cardShadowLight,
       ),
-      padding: const EdgeInsets.all(AppTokens.spaceMd),
-      child: Column(children: children),
+      child: Material(
+        color: theme.colorScheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+          side: BorderSide(color: borderColor, width: 1),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: const EdgeInsets.all(AppTokens.spaceMd),
+          child: Column(children: children),
+        ),
+      ),
     );
   }
 }

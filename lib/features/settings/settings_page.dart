@@ -1087,16 +1087,19 @@ class _SettingsCard extends ConsumerWidget {
               sigmaX: AppTokens.blurFrostedGlass,
               sigmaY: AppTokens.blurFrostedGlass,
             ),
-            child: Container(
-              padding: padding,
-              decoration: BoxDecoration(
-                color: cardColor,
+            child: Material(
+              color: cardColor,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-                border: Border.all(color: borderColor, width: 1),
+                side: BorderSide(color: borderColor, width: 1),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: children,
+              clipBehavior: Clip.antiAlias,
+              child: Padding(
+                padding: padding,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: children,
+                ),
               ),
             ),
           ),
@@ -1105,11 +1108,8 @@ class _SettingsCard extends ConsumerWidget {
     }
 
     return Container(
-      padding: padding,
       decoration: BoxDecoration(
-        color: cardColor,
         borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-        border: Border.all(color: borderColor, width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(
@@ -1122,9 +1122,20 @@ class _SettingsCard extends ConsumerWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
+      child: Material(
+        color: cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+          side: BorderSide(color: borderColor, width: 1),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: padding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: children,
+          ),
+        ),
       ),
     );
   }
