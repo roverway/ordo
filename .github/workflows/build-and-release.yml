@@ -7,9 +7,12 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-android:
-    name: Build Android APKs (Split per ABI)
+    name: Build Android APKs
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -36,7 +39,9 @@ jobs:
           flutter gen-l10n
 
       - name: Build Android APKs
-        run: flutter build apk --split-per-abi --release
+        run: |
+          flutter build apk --split-per-abi --release
+          flutter build apk --release
 
       - name: Prepare Android artifacts
         run: |
@@ -44,16 +49,45 @@ jobs:
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk dist-android/ordo-android-arm64-v8a.apk
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk dist-android/ordo-android-armeabi-v7a.apk
           cp build/app/outputs/flutter-apk/app-x86_64-release.apk dist-android/ordo-android-x86_64.apk
+          cp build/app/outputs/flutter-apk/app-release.apk dist-android/ordo-android-universal.apk
 
-      - name: Upload Android artifacts
+      - name: Upload arm64-v8a APK
         uses: actions/upload-artifact@v4
         with:
-          name: ordo-android-apks
-          path: dist-android/*.apk
+          name: ordo-android-arm64-v8a
+          path: dist-android/ordo-android-arm64-v8a.apk
+
+      - name: Upload armeabi-v7a APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ordo-android-armeabi-v7a
+          path: dist-android/ordo-android-armeabi-v7a.apk
+
+      - name: Upload x86_64 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ordo-android-x86_64
+          path: dist-android/ordo-android-x86_64.apk
+
+      - name: Upload universal APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ordo-android-universal
+          path: dist-android/ordo-android-universal.apk
 
   build-linux:
-    name: Build Linux AppImage
-    runs-on: ubuntu-latest
+    name: Build Linux AppImage (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            os: ubuntu-22.04
+            appimagetool_arch: x86_64
+          - arch: aarch64
+            os: ubuntu-24.04-arm
+            appimagetool_arch: aarch64
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -61,13 +95,21 @@ jobs:
       - name: Install Linux build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev libsqlite3-dev
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev libsqlite3-dev file
 
-      - name: Set up Flutter
+      - name: Set up Flutter (x86_64)
+        if: matrix.arch == 'x86_64'
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
+
+      - name: Set up Flutter (aarch64 via Git)
+        if: matrix.arch == 'aarch64'
+        run: |
+          git clone --depth 1 -b stable https://github.com/flutter/flutter.git $HOME/flutter
+          echo "$HOME/flutter/bin" >> $GITHUB_PATH
+          $HOME/flutter/bin/flutter doctor -v
 
       - name: Install dependencies
         run: flutter pub get
@@ -81,36 +123,51 @@ jobs:
         run: flutter build linux --release
 
       - name: Package AppImage
+        env:
+          ARCH: ${{ matrix.arch }}
+          TOOL_ARCH: ${{ matrix.appimagetool_arch }}
         run: |
-          mkdir -p AppDir/usr/bin AppDir/usr/lib AppDir/usr/share/icons/hicolor/256x256/apps
-          cp -r build/linux/x64/release/bundle/* AppDir/usr/bin/
+          mkdir -p AppDir/lib AppDir/data
+
+          # Locate bundle folder (matches both x64 and arm64 build paths)
+          BUNDLE_DIR=$(ls -d build/linux/*/release/bundle | head -n 1)
+
+          # Copy executable, lib, and data to AppDir root
+          cp "$BUNDLE_DIR/ordo" AppDir/
+          cp -r "$BUNDLE_DIR/lib/"* AppDir/lib/
+          cp -r "$BUNDLE_DIR/data/"* AppDir/data/
+
+          # Copy desktop integration assets
           cp linux/runner/ordo.desktop AppDir/
           cp linux/runner/ordo.png AppDir/
-          cp linux/runner/ordo.png AppDir/usr/share/icons/hicolor/256x256/apps/ordo.png
-          
-          # Create AppRun script
-          cat << 'EOF' > AppDir/AppRun
-          #!/bin/sh
-          SELF=$(readlink -f "$0")
-          HERE=${SELF%/*}
-          export PATH="${HERE}/usr/bin:${PATH}"
-          export LD_LIBRARY_PATH="${HERE}/usr/bin/lib:${LD_LIBRARY_PATH}"
-          cd "${HERE}/usr/bin"
-          exec "${HERE}/usr/bin/ordo" "$@"
-          EOF
+          ln -sf ordo.png AppDir/.DirIcon
+
+          # Bundle non-standard shared libraries (libsecret, libjson-glib) so minimal distros won't fail
+          find /usr/lib -name "libsecret-1.so.0*" -exec cp -d {} AppDir/lib/ \; 2>/dev/null || true
+          find /usr/lib -name "libjson-glib-1.0.so.0*" -exec cp -d {} AppDir/lib/ \; 2>/dev/null || true
+
+          # Create robust AppRun entry point
+          echo '#!/bin/sh' > AppDir/AppRun
+          echo 'SELF=$(readlink -f "$0")' >> AppDir/AppRun
+          echo 'HERE=${SELF%/*}' >> AppDir/AppRun
+          echo 'export PATH="${HERE}:${PATH}"' >> AppDir/AppRun
+          echo 'export LD_LIBRARY_PATH="${HERE}/lib:${LD_LIBRARY_PATH}"' >> AppDir/AppRun
+          echo 'cd "${HERE}"' >> AppDir/AppRun
+          echo 'exec "${HERE}/ordo" "$@"' >> AppDir/AppRun
           chmod +x AppDir/AppRun
 
-          # Download and run appimagetool
-          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
+          # Download architecture-matching appimagetool
+          wget -q "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-${TOOL_ARCH}.AppImage" -O appimagetool
           chmod +x appimagetool
           ./appimagetool --appimage-extract
+
           mkdir -p dist-linux
-          ARCH=x86_64 ./squashfs-root/AppRun AppDir dist-linux/ordo-linux-x86_64.AppImage
+          ARCH=${ARCH} ./squashfs-root/AppRun AppDir "dist-linux/ordo-linux-${ARCH}.AppImage"
 
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ordo-linux-appimage
+          name: ordo-linux-${{ matrix.arch }}-appimage
           path: dist-linux/*.AppImage
 
   build-windows:
