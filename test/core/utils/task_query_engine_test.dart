@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/db/database.dart';
-import 'package:todo/core/db/tables.dart';
-import 'package:todo/core/utils/custom_view_models.dart';
-import 'package:todo/core/utils/task_query_engine.dart';
+import 'package:ordo/core/db/database.dart';
+import 'package:ordo/core/db/tables.dart';
+import 'package:ordo/core/utils/custom_view_models.dart';
+import 'package:ordo/core/utils/task_query_engine.dart';
 
 void main() {
   final now = DateTime(2026, 9, 3, 12, 0, 0);

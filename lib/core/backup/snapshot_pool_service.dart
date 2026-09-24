@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:path_provider/path_provider.dart';
-import 'package:todo/core/db/daos/settings_dao.dart';
+import 'package:ordo/core/db/daos/settings_dao.dart';
 
 import 'backup_restore_service.dart';
 

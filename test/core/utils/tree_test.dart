@@ -1,9 +1,9 @@
 // 层级校验纯函数单测（docs/40-data-model.md §5，70-milestones.md M1 任务 3）。
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/db/database.dart';
-import 'package:todo/core/db/tables.dart';
-import 'package:todo/core/utils/tree.dart';
+import 'package:ordo/core/db/database.dart';
+import 'package:ordo/core/db/tables.dart';
+import 'package:ordo/core/utils/tree.dart';
 
 /// 构造测试用 Task（仅层级相关字段有意义）。
 Task _task(String id, {String? parentId}) => Task(

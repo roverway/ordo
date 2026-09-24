@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/db/database.dart';
-import 'package:todo/core/db/tables.dart';
-import 'package:todo/core/utils/custom_view_models.dart';
+import 'package:ordo/core/db/database.dart';
+import 'package:ordo/core/db/tables.dart';
+import 'package:ordo/core/utils/custom_view_models.dart';
 
 void main() {
   group('FilterCriteria JSON Serialization', () {

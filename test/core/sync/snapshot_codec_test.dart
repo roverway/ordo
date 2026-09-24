@@ -9,8 +9,8 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/sync/snapshot.dart';
-import 'package:todo/core/sync/snapshot_codec.dart';
+import 'package:ordo/core/sync/snapshot.dart';
+import 'package:ordo/core/sync/snapshot_codec.dart';
 
 /// 构造一份覆盖所有字段形态的样本快照：
 /// 中文/emoji/空字符串、null 字段（parentId/startAt/folderId）、

@@ -1,5 +1,5 @@
-name: todo
-description: "A new Flutter project."
+name: ordo
+description: "知序 (Ordo) —— 优雅、有序、数据自持的现代化待办与时间管理工具。An elegant, offline-first task & time manager designed for clarity and order."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev

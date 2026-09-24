@@ -1,0 +1,54 @@
+# 知序 (Ordo) 软件授权许可协议
+# Software License Agreement
+
+版权所有 (c) 2026 知序 (Ordo) 项目创作者及贡献者。保留所有权利。
+Copyright (c) 2026 Ordo Contributors. All rights reserved.
+
+---
+
+### 【中文摘要说明 / License Summary】
+
+本项目采用**非商业开源与商业双重授权模式（Dual License / Source-Available）**：
+
+1. **自用与个人学习（免费）**：
+   - 允许个人用户免费下载、编译、安装和日常使用。
+   - 允许出于非商业目的的学习、研究和二次开发。
+
+2. **修改与衍生分发（修改需显名）**：
+   - 任何基于本项目源码的修改、派生版本或公开发布，**必须完整保留原作者署名、原项目主页链接以及本许可协议全文**。不得删除原有的版权声明。
+
+3. **商业使用（必须付费授权）**：
+   - **严禁任何未经授权的商业化使用**。包括但不限于：
+     - 将本项目或其修改版本打包并作为商业付费软件在应用商店分发；
+     - 将本项目集成至商业公司或企业的盈利性产品/服务中；
+     - 基于本项目二次包装提供 SaaS 商业服务或商业技术支持。
+   - 如需在商业场景中使用、分发或闭源定制，**必须事先联系原作者购买正式的商业使用许可（Commercial License）**。
+
+---
+
+### PolyForm Noncommercial License 1.0.0
+
+<https://polyformproject.org/licenses/noncommercial/1.0.0>
+
+#### 1. Permission
+Each contributor licenses you to do everything with the software that would otherwise infringe that contributor's copyright in it, strictly for **noncommercial purposes**.
+
+#### 2. Automatic License for Noncommercial Use
+You get the noncommercial license from the contributor automatically when you get the software directly from that contributor. You also get a noncommercial license directly from the contributor whenever you get the software as part of an authorized distribution.
+
+#### 3. Notices & Attribution (修改需显名)
+You must ensure that everyone who gets a copy of any part of this software from you, with or without changes, also gets:
+- The text of this license or a link to <https://polyformproject.org/licenses/noncommercial/1.0.0>;
+- The attribution notice crediting the original project: **知序 (Ordo)**;
+- Any other copyright and patent notices the contributor included in the software.
+
+#### 4. Commercial Use Prohibited Without Commercial License (商用需付费)
+Any use of this software, or any work based on this software, for commercial purposes is expressly **prohibited** under this public license. 
+
+To obtain a commercial license allowing commercial use, distribution, or integration, please contact the project author.
+
+#### 5. Defense Against Infringement
+If you make any claim that the software infringes any patent, copyright, or other intellectual property, this license ends immediately for you.
+
+#### 6. No Warranties
+As far as the law allows, the software comes as is, without any warranty or condition, and no contributor will be liable to anyone for any damages related to this software or this license, under any kind of legal claim.

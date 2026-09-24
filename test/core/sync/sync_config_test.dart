@@ -4,7 +4,7 @@
 // 进入 settings JSON）、缺省值容错、copyWith、类型解析。
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/sync/sync_config.dart';
+import 'package:ordo/core/sync/sync_config.dart';
 
 void main() {
   group('SyncConfig.toMap（settings 表序列化）', () {

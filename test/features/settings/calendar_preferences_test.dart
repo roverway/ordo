@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:todo/core/db/daos/settings_dao.dart';
-import 'package:todo/features/settings/settings_providers.dart';
+import 'package:ordo/core/db/daos/settings_dao.dart';
+import 'package:ordo/features/settings/settings_providers.dart';
 
 import '../../helpers/db_test_setup.dart';
 

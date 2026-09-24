@@ -10,7 +10,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/sync/content_hash.dart';
+import 'package:ordo/core/sync/content_hash.dart';
 
 void main() {
   group('FNV-1a 64 标准向量', () {

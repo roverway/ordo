@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/theme/background_config.dart';
+import 'package:ordo/core/theme/background_config.dart';
 
 void main() {
   group('BackgroundConfig Unit Tests', () {

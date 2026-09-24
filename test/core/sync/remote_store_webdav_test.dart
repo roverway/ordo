@@ -21,11 +21,11 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart'; // ignore: depend_on_referenced_packages
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/sync/remote_store_factory.dart';
-import 'package:todo/core/sync/remote_store_s3.dart';
-import 'package:todo/core/sync/remote_store_webdav.dart';
-import 'package:todo/core/sync/sync_config.dart';
-import 'package:todo/core/sync/sync_exceptions.dart';
+import 'package:ordo/core/sync/remote_store_factory.dart';
+import 'package:ordo/core/sync/remote_store_s3.dart';
+import 'package:ordo/core/sync/remote_store_webdav.dart';
+import 'package:ordo/core/sync/sync_config.dart';
+import 'package:ordo/core/sync/sync_exceptions.dart';
 import 'package:webdav_client/webdav_client.dart';
 
 /// Fake WebDAV 底层客户端：按方法注入行为（默认抛 StateError 防漏配）。

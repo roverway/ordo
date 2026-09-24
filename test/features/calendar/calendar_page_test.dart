@@ -20,16 +20,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:todo/core/db/database.dart';
-import 'package:todo/core/db/tables.dart';
-import 'package:todo/core/l10n/app_localizations.dart';
-import 'package:todo/features/calendar/calendar_page.dart';
-import 'package:todo/features/calendar/calendar_providers.dart';
-import 'package:todo/features/projects/project_providers.dart';
-import 'package:todo/features/settings/settings_providers.dart';
-import 'package:todo/features/tags/tag_providers.dart';
-import 'package:todo/features/tasks/task_providers.dart';
-import 'package:todo/features/tasks/widgets/task_create_sheet.dart';
+import 'package:ordo/core/db/database.dart';
+import 'package:ordo/core/db/tables.dart';
+import 'package:ordo/core/l10n/app_localizations.dart';
+import 'package:ordo/features/calendar/calendar_page.dart';
+import 'package:ordo/features/calendar/calendar_providers.dart';
+import 'package:ordo/features/projects/project_providers.dart';
+import 'package:ordo/features/settings/settings_providers.dart';
+import 'package:ordo/features/tags/tag_providers.dart';
+import 'package:ordo/features/tasks/task_providers.dart';
+import 'package:ordo/features/tasks/widgets/task_create_sheet.dart';
 import '../../helpers/db_test_setup.dart';
 
 /// 固定日历状态（2026-08-11，周二；月/周视图由参数决定）。

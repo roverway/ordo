@@ -3,11 +3,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/l10n/app_localizations.dart';
-import 'package:todo/core/theme/app_theme.dart';
-import 'package:todo/features/settings/settings_page.dart';
-import 'package:todo/features/settings/settings_providers.dart';
-import 'package:todo/features/settings/user_manual_page.dart';
+import 'package:ordo/core/l10n/app_localizations.dart';
+import 'package:ordo/core/theme/app_theme.dart';
+import 'package:ordo/features/settings/settings_page.dart';
+import 'package:ordo/features/settings/settings_providers.dart';
+import 'package:ordo/features/settings/user_manual_page.dart';
 
 class _FakeLocaleNotifier extends LocaleNotifier {
   _FakeLocaleNotifier(this._initial);

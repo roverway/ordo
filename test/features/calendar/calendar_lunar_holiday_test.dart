@@ -4,15 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:todo/core/db/database.dart';
-import 'package:todo/core/l10n/app_localizations.dart';
-import 'package:todo/core/utils/calendar_day_decorator.dart';
-import 'package:todo/features/calendar/calendar_page.dart';
-import 'package:todo/features/calendar/calendar_providers.dart';
-import 'package:todo/features/projects/project_providers.dart';
-import 'package:todo/features/settings/settings_page.dart';
-import 'package:todo/features/settings/settings_providers.dart';
-import 'package:todo/features/tags/tag_providers.dart';
+import 'package:ordo/core/db/database.dart';
+import 'package:ordo/core/l10n/app_localizations.dart';
+import 'package:ordo/core/utils/calendar_day_decorator.dart';
+import 'package:ordo/features/calendar/calendar_page.dart';
+import 'package:ordo/features/calendar/calendar_providers.dart';
+import 'package:ordo/features/projects/project_providers.dart';
+import 'package:ordo/features/settings/settings_page.dart';
+import 'package:ordo/features/settings/settings_providers.dart';
+import 'package:ordo/features/tags/tag_providers.dart';
 
 class _FixedCalendarNotifier extends CalendarNotifier {
   _FixedCalendarNotifier(this._fixed);

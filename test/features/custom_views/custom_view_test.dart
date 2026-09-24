@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/db/database.dart';
-import 'package:todo/core/db/tables.dart';
-import 'package:todo/core/l10n/app_localizations.dart';
-import 'package:todo/core/utils/custom_view_models.dart';
-import 'package:todo/features/custom_views/presentation/custom_view_editor_page.dart';
-import 'package:todo/features/custom_views/presentation/custom_view_page.dart';
-import 'package:todo/features/custom_views/providers/custom_view_providers.dart';
-import 'package:todo/features/custom_views/widgets/panel_column.dart';
-import 'package:todo/features/projects/project_providers.dart';
-import 'package:todo/shared/widgets/animated_strikethrough.dart';
-import 'package:todo/shared/widgets/modern_segmented_control.dart';
+import 'package:ordo/core/db/database.dart';
+import 'package:ordo/core/db/tables.dart';
+import 'package:ordo/core/l10n/app_localizations.dart';
+import 'package:ordo/core/utils/custom_view_models.dart';
+import 'package:ordo/features/custom_views/presentation/custom_view_editor_page.dart';
+import 'package:ordo/features/custom_views/presentation/custom_view_page.dart';
+import 'package:ordo/features/custom_views/providers/custom_view_providers.dart';
+import 'package:ordo/features/custom_views/widgets/panel_column.dart';
+import 'package:ordo/features/projects/project_providers.dart';
+import 'package:ordo/shared/widgets/animated_strikethrough.dart';
+import 'package:ordo/shared/widgets/modern_segmented_control.dart';
 
 import '../../helpers/db_test_setup.dart';
 

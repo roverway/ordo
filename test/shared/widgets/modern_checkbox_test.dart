@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/theme/app_tokens.dart';
-import 'package:todo/core/theme/background_config.dart';
-import 'package:todo/shared/widgets/app_background_wrapper.dart';
-import 'package:todo/shared/widgets/modern_checkbox.dart';
+import 'package:ordo/core/theme/app_tokens.dart';
+import 'package:ordo/core/theme/background_config.dart';
+import 'package:ordo/shared/widgets/app_background_wrapper.dart';
+import 'package:ordo/shared/widgets/modern_checkbox.dart';
 
 void main() {
   group('ModernCheckbox', () {

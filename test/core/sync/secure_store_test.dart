@@ -7,8 +7,8 @@
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/security/secure_store.dart';
-import 'package:todo/core/sync/sync_config.dart';
+import 'package:ordo/core/security/secure_store.dart';
+import 'package:ordo/core/sync/sync_config.dart';
 
 /// 内存 Fake 后端。
 class _InMemoryBackend implements SecureKeyValueStore {

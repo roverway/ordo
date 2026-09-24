@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:todo/core/db/database.dart';
-import 'package:todo/core/db/tables.dart';
-import 'package:todo/features/quadrant/models/quadrant_models.dart';
-import 'package:todo/features/quadrant/providers/quadrant_providers.dart';
-import 'package:todo/features/settings/settings_providers.dart';
+import 'package:ordo/core/db/database.dart';
+import 'package:ordo/core/db/tables.dart';
+import 'package:ordo/features/quadrant/models/quadrant_models.dart';
+import 'package:ordo/features/quadrant/providers/quadrant_providers.dart';
+import 'package:ordo/features/settings/settings_providers.dart';
 
 void main() {
   final now = DateTime(2026, 9, 22, 14, 30);

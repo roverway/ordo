@@ -5,9 +5,9 @@
 
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/db/database.dart';
-import 'package:todo/core/db/repositories/todo_repository.dart';
-import 'package:todo/core/db/tables.dart';
+import 'package:ordo/core/db/database.dart';
+import 'package:ordo/core/db/repositories/todo_repository.dart';
+import 'package:ordo/core/db/tables.dart';
 
 import '../../helpers/db_test_setup.dart';
 

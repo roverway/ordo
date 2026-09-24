@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/db/tables.dart';
-import 'package:todo/core/l10n/app_localizations.dart';
-import 'package:todo/core/utils/custom_view_models.dart';
-import 'package:todo/features/custom_views/widgets/filter_criteria_sheet.dart';
-import 'package:todo/features/projects/project_providers.dart';
-import 'package:todo/features/tags/tag_providers.dart';
-import 'package:todo/shared/widgets/settings_card.dart';
+import 'package:ordo/core/db/tables.dart';
+import 'package:ordo/core/l10n/app_localizations.dart';
+import 'package:ordo/core/utils/custom_view_models.dart';
+import 'package:ordo/features/custom_views/widgets/filter_criteria_sheet.dart';
+import 'package:ordo/features/projects/project_providers.dart';
+import 'package:ordo/features/tags/tag_providers.dart';
+import 'package:ordo/shared/widgets/settings_card.dart';
 
 void main() {
   group('FilterCriteriaSheet & SettingsCard', () {

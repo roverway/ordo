@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/backup/backup_codec.dart';
-import 'package:todo/core/backup/backup_restore_service.dart';
-import 'package:todo/core/db/database.dart';
-import 'package:todo/core/db/repositories/todo_repository.dart';
-import 'package:todo/core/sync/snapshot.dart';
-import 'package:todo/core/sync/snapshot_codec.dart';
+import 'package:ordo/core/backup/backup_codec.dart';
+import 'package:ordo/core/backup/backup_restore_service.dart';
+import 'package:ordo/core/db/database.dart';
+import 'package:ordo/core/db/repositories/todo_repository.dart';
+import 'package:ordo/core/sync/snapshot.dart';
+import 'package:ordo/core/sync/snapshot_codec.dart';
 
 import '../../helpers/db_test_setup.dart';
 

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/l10n/app_localizations.dart';
-import 'package:todo/features/quadrant/models/quadrant_models.dart';
-import 'package:todo/features/quadrant/widgets/quadrant_filter_bar.dart';
-import 'package:todo/shared/widgets/modern_segmented_control.dart';
+import 'package:ordo/core/l10n/app_localizations.dart';
+import 'package:ordo/features/quadrant/models/quadrant_models.dart';
+import 'package:ordo/features/quadrant/widgets/quadrant_filter_bar.dart';
+import 'package:ordo/shared/widgets/modern_segmented_control.dart';
 
 void main() {
   group('ModernSegmentedControl tests', () {

@@ -16,15 +16,15 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/db/database.dart';
-import 'package:todo/core/db/repositories/todo_repository.dart';
-import 'package:todo/core/security/secure_store.dart';
-import 'package:todo/core/sync/remote_store_factory.dart';
-import 'package:todo/core/sync/remote_store_webdav.dart';
-import 'package:todo/core/sync/snapshot.dart';
-import 'package:todo/core/sync/snapshot_codec.dart';
-import 'package:todo/core/sync/sync_config.dart';
-import 'package:todo/core/sync/sync_engine.dart';
+import 'package:ordo/core/db/database.dart';
+import 'package:ordo/core/db/repositories/todo_repository.dart';
+import 'package:ordo/core/security/secure_store.dart';
+import 'package:ordo/core/sync/remote_store_factory.dart';
+import 'package:ordo/core/sync/remote_store_webdav.dart';
+import 'package:ordo/core/sync/snapshot.dart';
+import 'package:ordo/core/sync/snapshot_codec.dart';
+import 'package:ordo/core/sync/sync_config.dart';
+import 'package:ordo/core/sync/sync_engine.dart';
 
 import '../../helpers/db_test_setup.dart';
 

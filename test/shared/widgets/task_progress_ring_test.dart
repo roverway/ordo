@@ -12,8 +12,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:todo/core/l10n/app_localizations.dart';
-import 'package:todo/shared/widgets/task_progress_ring.dart';
+import 'package:ordo/core/l10n/app_localizations.dart';
+import 'package:ordo/shared/widgets/task_progress_ring.dart';
 
 Future<void> _pumpRing(WidgetTester tester, double value) {
   return tester.pumpWidget(

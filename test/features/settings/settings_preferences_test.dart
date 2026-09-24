@@ -11,11 +11,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:todo/core/db/daos/settings_dao.dart';
-import 'package:todo/core/db/repositories/todo_repository.dart';
-import 'package:todo/features/settings/settings_providers.dart';
-import 'package:todo/features/tasks/task_providers.dart';
-import 'package:todo/main.dart';
+import 'package:ordo/core/db/daos/settings_dao.dart';
+import 'package:ordo/core/db/repositories/todo_repository.dart';
+import 'package:ordo/features/settings/settings_providers.dart';
+import 'package:ordo/features/tasks/task_providers.dart';
+import 'package:ordo/main.dart';
 
 import '../../helpers/db_test_setup.dart';
 

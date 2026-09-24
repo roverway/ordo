@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/shared/widgets/desktop_hover_container.dart';
+import 'package:ordo/shared/widgets/desktop_hover_container.dart';
 
 void main() {
   testWidgets(

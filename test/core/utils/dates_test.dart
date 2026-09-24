@@ -6,8 +6,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart' as intl;
-import 'package:todo/core/l10n/app_localizations_en.dart';
-import 'package:todo/core/utils/dates.dart';
+import 'package:ordo/core/l10n/app_localizations_en.dart';
+import 'package:ordo/core/utils/dates.dart';
 
 int _ms(DateTime d) => d.millisecondsSinceEpoch;
 

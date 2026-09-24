@@ -4,9 +4,9 @@
 // 用固定本地日期 DateTime(2026, 8, 11) 作为「今天」，毫秒值由本地日期换算。
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/db/database.dart';
-import 'package:todo/core/db/tables.dart';
-import 'package:todo/core/utils/view_rules.dart';
+import 'package:ordo/core/db/database.dart';
+import 'package:ordo/core/db/tables.dart';
+import 'package:ordo/core/utils/view_rules.dart';
 
 /// 构造测试用 Task。
 Task _t({

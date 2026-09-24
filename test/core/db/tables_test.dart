@@ -5,7 +5,7 @@
 // 可能带来越界值，读取路径必须崩溃安全；写入路径由枚举驱动，toSql 恒合法）。
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/db/tables.dart';
+import 'package:ordo/core/db/tables.dart';
 
 void main() {
   const priorityConverter = TaskPriorityConverter();

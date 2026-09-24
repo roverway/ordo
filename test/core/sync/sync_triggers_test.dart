@@ -11,14 +11,14 @@
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:todo/core/db/database.dart';
-import 'package:todo/core/db/repositories/todo_repository.dart';
-import 'package:todo/core/security/secure_store.dart';
-import 'package:todo/core/sync/remote_store.dart';
-import 'package:todo/core/sync/remote_store_factory.dart';
-import 'package:todo/core/sync/sync_config.dart';
-import 'package:todo/core/sync/sync_engine.dart';
-import 'package:todo/core/sync/sync_triggers.dart';
+import 'package:ordo/core/db/database.dart';
+import 'package:ordo/core/db/repositories/todo_repository.dart';
+import 'package:ordo/core/security/secure_store.dart';
+import 'package:ordo/core/sync/remote_store.dart';
+import 'package:ordo/core/sync/remote_store_factory.dart';
+import 'package:ordo/core/sync/sync_config.dart';
+import 'package:ordo/core/sync/sync_engine.dart';
+import 'package:ordo/core/sync/sync_triggers.dart';
 
 import '../../helpers/db_test_setup.dart';
 

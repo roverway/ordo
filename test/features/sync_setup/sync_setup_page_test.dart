@@ -12,16 +12,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:todo/core/db/database.dart';
-import 'package:todo/core/l10n/app_localizations.dart';
-import 'package:todo/core/security/secure_store.dart';
-import 'package:todo/core/sync/remote_store.dart';
-import 'package:todo/core/sync/remote_store_factory.dart';
-import 'package:todo/core/sync/sync_config.dart';
-import 'package:todo/core/sync/sync_engine.dart';
-import 'package:todo/features/projects/project_providers.dart';
-import 'package:todo/features/sync_setup/sync_setup_page.dart';
-import 'package:todo/features/sync_setup/sync_setup_providers.dart';
+import 'package:ordo/core/db/database.dart';
+import 'package:ordo/core/l10n/app_localizations.dart';
+import 'package:ordo/core/security/secure_store.dart';
+import 'package:ordo/core/sync/remote_store.dart';
+import 'package:ordo/core/sync/remote_store_factory.dart';
+import 'package:ordo/core/sync/sync_config.dart';
+import 'package:ordo/core/sync/sync_engine.dart';
+import 'package:ordo/features/projects/project_providers.dart';
+import 'package:ordo/features/sync_setup/sync_setup_page.dart';
+import 'package:ordo/features/sync_setup/sync_setup_providers.dart';
 
 import '../../helpers/db_test_setup.dart';
 

@@ -11,18 +11,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:drift/drift.dart' show Value;
-import 'package:todo/core/db/database.dart';
-import 'package:todo/core/db/tables.dart';
-import 'package:todo/core/l10n/app_localizations.dart';
-import 'package:todo/core/theme/app_tokens.dart';
-import 'package:todo/core/utils/derived.dart';
-import 'package:todo/features/projects/project_providers.dart';
-import 'package:todo/features/settings/settings_providers.dart';
-import 'package:todo/features/tasks/task_providers.dart';
-import 'package:todo/features/tasks/widgets/task_row.dart';
-import 'package:todo/features/tasks/widgets/task_tree.dart';
-import 'package:todo/shared/widgets/filter_chips_bar.dart';
-import 'package:todo/shared/widgets/modern_checkbox.dart';
+import 'package:ordo/core/db/database.dart';
+import 'package:ordo/core/db/tables.dart';
+import 'package:ordo/core/l10n/app_localizations.dart';
+import 'package:ordo/core/theme/app_tokens.dart';
+import 'package:ordo/core/utils/derived.dart';
+import 'package:ordo/features/projects/project_providers.dart';
+import 'package:ordo/features/settings/settings_providers.dart';
+import 'package:ordo/features/tasks/task_providers.dart';
+import 'package:ordo/features/tasks/widgets/task_row.dart';
+import 'package:ordo/features/tasks/widgets/task_tree.dart';
+import 'package:ordo/shared/widgets/filter_chips_bar.dart';
+import 'package:ordo/shared/widgets/modern_checkbox.dart';
 import '../../helpers/db_test_setup.dart';
 
 Task _task(

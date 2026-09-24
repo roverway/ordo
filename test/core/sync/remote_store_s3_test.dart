@@ -22,10 +22,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:minio/minio.dart';
 import 'package:minio/models.dart';
-import 'package:todo/core/sync/remote_store_factory.dart';
-import 'package:todo/core/sync/remote_store_s3.dart';
-import 'package:todo/core/sync/sync_config.dart';
-import 'package:todo/core/sync/sync_exceptions.dart';
+import 'package:ordo/core/sync/remote_store_factory.dart';
+import 'package:ordo/core/sync/remote_store_s3.dart';
+import 'package:ordo/core/sync/sync_config.dart';
+import 'package:ordo/core/sync/sync_exceptions.dart';
 
 /// Fake S3 底层客户端：按方法注入行为（默认抛 StateError 防漏配），
 /// 参数（bucket/object/retrieveAcls/size/字节）记录到列表供断言。

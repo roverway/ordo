@@ -11,16 +11,19 @@ build/
 .flutter-plugins
 .flutter-plugins-dependencies
 
-# IDE
+# IDE 与编辑器
 .idea/
 *.iml
 .vscode/
 !.vscode/launch.json
 !.vscode/tasks.json
+.zed/
+.zedignore
 
 # Android
 android/.gradle/
 android/local.properties
+android/key.properties
 android/app/debug/
 android/app/profile/
 android/app/release/
@@ -38,7 +41,12 @@ windows/flutter/ephemeral/
 # 测试/覆盖率
 coverage/
 
-# 本地工具产物（不进版本库）
+# 本地工具及 AI 产物（不进版本库）
+.agents/
+.gemini/
+.od-skills/
+.workbuddy-ai/
 .codegraph/
 .zcode/
 ux-ui-agent-skills/
+*.artifact.json

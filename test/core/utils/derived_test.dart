@@ -1,9 +1,9 @@
 // 派生状态纯函数单测（docs/40-data-model.md §6，70-milestones.md M1 任务 4）。
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/db/database.dart';
-import 'package:todo/core/db/tables.dart';
-import 'package:todo/core/utils/derived.dart';
+import 'package:ordo/core/db/database.dart';
+import 'package:ordo/core/db/tables.dart';
+import 'package:ordo/core/utils/derived.dart';
 
 /// 构造测试用 Task。
 Task _task(

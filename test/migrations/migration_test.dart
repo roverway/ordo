@@ -17,9 +17,9 @@ import 'dart:io';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart';
-import 'package:todo/core/db/database.dart';
-import 'package:todo/core/db/repositories/todo_repository.dart';
-import 'package:todo/core/db/tables.dart';
+import 'package:ordo/core/db/database.dart';
+import 'package:ordo/core/db/repositories/todo_repository.dart';
+import 'package:ordo/core/db/tables.dart';
 
 import '../helpers/db_test_setup.dart';
 

@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/theme/background_config.dart';
-import 'package:todo/features/settings/settings_providers.dart';
+import 'package:ordo/core/theme/background_config.dart';
+import 'package:ordo/features/settings/settings_providers.dart';
 
 void main() {
   group('Background Priority Provider Tests', () {

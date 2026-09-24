@@ -8,8 +8,8 @@
 // 跨类型不互相影响、空快照合并、同 updatedAt 确定性、纯函数不改入参。
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/core/sync/merge_engine.dart';
-import 'package:todo/core/sync/snapshot.dart';
+import 'package:ordo/core/sync/merge_engine.dart';
+import 'package:ordo/core/sync/snapshot.dart';
 
 ProjectRecord _project({
   required String id,

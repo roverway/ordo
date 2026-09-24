@@ -1,7 +1,7 @@
 # 知序 Ordo (Order & Priority)
 
-> **知其轻重，行止有序**  
-> 一款跨平台、离线优先、安全可靠的待办与项目管理应用。
+> **知序 (Ordo) —— 优雅、有序、数据自持的现代化待办与时间管理工具。**  
+> *Ordo — An elegant, offline-first task & time manager designed for clarity and order.*
 
 ---
 
@@ -61,7 +61,7 @@
 ### 获取依赖与生成代码
 ```bash
 flutter pub get
-dart run build_runner build --delete-conflicting-outputs
+dart run build_runner build --force-jit
 flutter gen-l10n
 ```
 
@@ -72,6 +72,18 @@ flutter run
 
 ### 代码质量与测试
 ```bash
-flutter analyze
-flutter test
+bash tool/verify.sh  # 令牌纪律守卫与静态分析
+flutter test         # 单元与组件测试
 ```
+
+---
+
+## 📄 授权与商业使用 (License & Commercial Use)
+
+本项目采用**非商业源码可用许可（PolyForm Noncommercial 1.0.0）与商业授权（Dual License）**模式：
+
+- **自用与个人学习（免费）**：个人用户可完全免费用于日常待办管理、技术研究和学习。
+- **修改与二次分发（修改需显名）**：允许修改与派生，但必须在分发版本中完整保留原作者署名、原项目链接及许可协议。
+- **商业用途（需付费授权）**：严禁未经许可将本项目全部或部分代码用于商业盈利目的（包括但不限于打包上架商业应用市场、企业内网专有系统集成、商业化 SaaS 衍生等）。如需商业授权，请联系原作者购买正式商业许可。
+
+完整法律协议请参阅 [LICENSE](LICENSE)。

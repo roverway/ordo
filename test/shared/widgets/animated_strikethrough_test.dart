@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:todo/shared/widgets/animated_strikethrough.dart';
+import 'package:ordo/shared/widgets/animated_strikethrough.dart';
 
 void main() {
   testWidgets('AnimatedStrikethrough renders initial active state', (
