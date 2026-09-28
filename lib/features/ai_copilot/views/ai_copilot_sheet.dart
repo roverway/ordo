@@ -480,11 +480,12 @@ class _AiCopilotSheetState extends ConsumerState<AiCopilotSheet> {
     String errorMessage,
   ) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final isConfigError = errorMessage.contains('未配置') ||
         errorMessage.contains('API Key') ||
         errorMessage.contains('401') ||
         errorMessage.toLowerCase().contains('unauthorized') ||
-        errorMessage.toLowerCase().contains('config');
+        errorMessage.toLowerCase().contains('config') || errorMessage.toLowerCase().contains('not configured');
 
     return Container(
       margin: const EdgeInsets.symmetric(
@@ -539,9 +540,9 @@ class _AiCopilotSheetState extends ConsumerState<AiCopilotSheet> {
                 ),
                 minimumSize: const Size(0, 30),
               ),
-              child: const Text(
-                '去配置',
-                style: TextStyle(
+              child: Text(
+                l10n.aiGoToConfigure,
+                style: const TextStyle(
                   fontSize: AppTokens.textFootnoteSize,
                   fontWeight: FontWeight.w600,
                 ),

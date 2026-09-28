@@ -1181,5 +1181,242 @@
   "efficiencyAnalysisTitle": "深度诊断与行动建议",
   "@efficiencyAnalysisTitle": {
     "description": "深度诊断建议标题"
+  },
+  "aiProviderSwitchOnDemand": "多服务商按需切换",
+  "@aiProviderSwitchOnDemand": {
+    "description": "Provider card subtitle"
+  },
+  "aiSelectProviderTitle": "选择大模型供应商",
+  "@aiSelectProviderTitle": {
+    "description": "Select provider sheet title"
+  },
+  "aiSelectProviderSubtitle": "支持保存各供应商独立密钥，随时一键无缝切换",
+  "@aiSelectProviderSubtitle": {
+    "description": "Select provider sheet subtitle"
+  },
+  "aiKeyConfigured": "已配置密钥",
+  "@aiKeyConfigured": {
+    "description": "Badge showing provider has key configured"
+  },
+  "aiProviderDeepSeekSubtitle": "DeepSeek 官方推理与通用大模型",
+  "@aiProviderDeepSeekSubtitle": {
+    "description": "DeepSeek provider description"
+  },
+  "aiProviderKimiSubtitle": "月之暗面长上下文与通用大模型",
+  "@aiProviderKimiSubtitle": {
+    "description": "Kimi provider description"
+  },
+  "aiProviderQwenSubtitle": "阿里云通义千问系列高性价比模型",
+  "@aiProviderQwenSubtitle": {
+    "description": "Qwen provider description"
+  },
+  "aiProviderGlmSubtitle": "智谱清言通用与轻量模型",
+  "@aiProviderGlmSubtitle": {
+    "description": "GLM provider description"
+  },
+  "aiProviderOpenAiSubtitle": "OpenAI 官方通用与推理模型",
+  "@aiProviderOpenAiSubtitle": {
+    "description": "OpenAI provider description"
+  },
+  "aiProviderClaudeSubtitle": "Anthropic 官方前沿多模态大模型",
+  "@aiProviderClaudeSubtitle": {
+    "description": "Claude provider description"
+  },
+  "aiProviderCustomSubtitle": "兼容 OpenAI 协议的自定义端点",
+  "@aiProviderCustomSubtitle": {
+    "description": "Custom provider description"
+  },
+  "aiSelectModelTitle": "选择模型 ({provider})",
+  "@aiSelectModelTitle": {
+    "description": "Select model sheet title",
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "aiProbeRefresh": "重新探测",
+  "@aiProbeRefresh": {
+    "description": "Refresh probed models button"
+  },
+  "aiModelSearchHint": "搜索或筛选模型...",
+  "@aiModelSearchHint": {
+    "description": "Model search input hint"
+  },
+  "aiNoMatchingModels": "无匹配模型，可直接在输入框中键入自定义模型名称",
+  "@aiNoMatchingModels": {
+    "description": "Empty state when no matching models"
+  },
+  "aiBaseUrlEndpointHint": "OpenAI 协议服务兼容 /chat/completions，Claude 服务兼容 /messages",
+  "@aiBaseUrlEndpointHint": {
+    "description": "Base URL helper text"
+  },
+  "aiProbeTooltip": "在线探测可用模型",
+  "@aiProbeTooltip": {
+    "description": "Tooltip for model probe button"
+  },
+  "aiProbeButton": "探测",
+  "@aiProbeButton": {
+    "description": "Model probe button label"
+  },
+  "aiSelectModelTooltip": "从模型列表选择",
+  "@aiSelectModelTooltip": {
+    "description": "Tooltip for selecting from model list"
+  },
+  "aiUpdateKeyPlaceholder": "更新密钥 (留空则保留原密钥)",
+  "@aiUpdateKeyPlaceholder": {
+    "description": "API key input label when existing key exists"
+  },
+  "aiProbeNeedKeyError": "请先输入或配置 API Key 后再探测模型",
+  "@aiProbeNeedKeyError": {
+    "description": "Error when probing without API key"
+  },
+  "aiProbeSuccessCount": "成功探测到 {count} 个可用模型",
+  "@aiProbeSuccessCount": {
+    "description": "Success message when probe discovers models",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aiProbeFailedFallback": "探测失败，已加载预设模型: {error}",
+  "@aiProbeFailedFallback": {
+    "description": "Notice when probe fails and falls back to presets",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "aiTestNeedKeyError": "请先输入 API Key 再测试连接",
+  "@aiTestNeedKeyError": {
+    "description": "Error when testing connection without API key"
+  },
+  "aiSetDueDate": "设置截止时间",
+  "@aiSetDueDate": {
+    "description": "Set due date title"
+  },
+  "aiPresetToday18": "今天 18:00",
+  "@aiPresetToday18": {
+    "description": "Quick date preset today 18:00"
+  },
+  "aiPresetTonight21": "今晚 21:00",
+  "@aiPresetTonight21": {
+    "description": "Quick date preset tonight 21:00"
+  },
+  "aiPresetTomorrow09": "明天 09:00",
+  "@aiPresetTomorrow09": {
+    "description": "Quick date preset tomorrow 09:00"
+  },
+  "aiPresetThisFriday18": "本周五 18:00",
+  "@aiPresetThisFriday18": {
+    "description": "Quick date preset this Friday 18:00"
+  },
+  "aiPresetNextMonday09": "下周一 09:00",
+  "@aiPresetNextMonday09": {
+    "description": "Quick date preset next Monday 09:00"
+  },
+  "aiCustomDateTime": "自定义日期与时间...",
+  "@aiCustomDateTime": {
+    "description": "Custom date and time picker action"
+  },
+  "aiClearDueDate": "清除截止时间",
+  "@aiClearDueDate": {
+    "description": "Clear due date button"
+  },
+  "aiSetStartDate": "设置开始时间",
+  "@aiSetStartDate": {
+    "description": "Set start date title"
+  },
+  "aiPresetNow": "现在",
+  "@aiPresetNow": {
+    "description": "Quick date preset now"
+  },
+  "aiPresetToday14": "今天 14:00",
+  "@aiPresetToday14": {
+    "description": "Quick date preset today 14:00"
+  },
+  "aiClearStartDate": "清除开始时间",
+  "@aiClearStartDate": {
+    "description": "Clear start date button"
+  },
+  "aiAddTagTitle": "添加标签",
+  "@aiAddTagTitle": {
+    "description": "Add tag dialog title"
+  },
+  "aiAddTagHint": "输入标签名称 (如: 工作, 紧急)",
+  "@aiAddTagHint": {
+    "description": "Add tag input hint"
+  },
+  "aiTaskDescriptionHint": "输入任务备注...",
+  "@aiTaskDescriptionHint": {
+    "description": "Task description input hint"
+  },
+  "aiAddDescription": "添加备注",
+  "@aiAddDescription": {
+    "description": "Add note action"
+  },
+  "aiTapToCyclePriority": "点击切换优先级",
+  "@aiTapToCyclePriority": {
+    "description": "Tooltip for priority badge"
+  },
+  "aiPriorityP1": "P1 · 重要紧急",
+  "@aiPriorityP1": {
+    "description": "Priority 1 label"
+  },
+  "aiPriorityP2": "P2 · 适中",
+  "@aiPriorityP2": {
+    "description": "Priority 2 label"
+  },
+  "aiPriorityP3": "P3 · 低优",
+  "@aiPriorityP3": {
+    "description": "Priority 3 label"
+  },
+  "aiPriorityNone": "无优先级",
+  "@aiPriorityNone": {
+    "description": "No priority label"
+  },
+  "aiStartPrefix": "开始: {time}",
+  "@aiStartPrefix": {
+    "description": "Start time prefix",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "aiAddStartAction": "+ 开始",
+  "@aiAddStartAction": {
+    "description": "Add start time button"
+  },
+  "aiAddDueAction": "+ 截止",
+  "@aiAddDueAction": {
+    "description": "Add due date button"
+  },
+  "aiAddTagAction": "+ 标签",
+  "@aiAddTagAction": {
+    "description": "Add tag button"
+  },
+  "aiAddSubstepAction": "添加步骤",
+  "@aiAddSubstepAction": {
+    "description": "Add step button"
+  },
+  "aiStepDefaultTitle": "步骤 {number}",
+  "@aiStepDefaultTitle": {
+    "description": "Default title for newly added substep",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "aiShimmerThinking": "AI 思考与规划中...",
+  "@aiShimmerThinking": {
+    "description": "AI shimmer loading state text"
+  },
+  "aiGoToConfigure": "去配置",
+  "@aiGoToConfigure": {
+    "description": "Go to configure AI settings action button"
   }
 }

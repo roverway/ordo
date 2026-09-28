@@ -10,6 +10,16 @@ const List<String> _kWeekdaysZh = [
   '星期日',
 ];
 
+const List<String> _kWeekdaysEn = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+];
+
 /// Formats a Duration offset into standard UTC+HH:mm representation.
 String _formatTimezoneOffset(Duration offset) {
   final sign = offset.isNegative ? '-' : '+';
@@ -20,7 +30,11 @@ String _formatTimezoneOffset(Duration offset) {
 }
 
 /// Builds the system prompt for natural language task parsing.
-String buildTaskParseSystemPrompt({DateTime? now, Duration? timeZoneOffset}) {
+String buildTaskParseSystemPrompt({
+  DateTime? now,
+  Duration? timeZoneOffset,
+  String locale = 'zh',
+}) {
   final effectiveNow = now ?? DateTime.now();
   final effectiveOffset = timeZoneOffset ?? effectiveNow.timeZoneOffset;
   final localTime = effectiveNow.toUtc().add(effectiveOffset);
@@ -33,9 +47,16 @@ String buildTaskParseSystemPrompt({DateTime? now, Duration? timeZoneOffset}) {
   final second = localTime.second.toString().padLeft(2, '0');
 
   final formattedDate = '$year-$month-$day $hour:$minute:$second';
-  final weekday = _kWeekdaysZh[(localTime.weekday - 1) % 7];
+  final isEn = locale.toLowerCase().startsWith('en');
+  final weekday = isEn
+      ? _kWeekdaysEn[(localTime.weekday - 1) % 7]
+      : _kWeekdaysZh[(localTime.weekday - 1) % 7];
   final tzString = _formatTimezoneOffset(effectiveOffset);
   final currentUtcMs = effectiveNow.toUtc().millisecondsSinceEpoch;
+
+  final languageInstruction = isEn
+      ? '\n5. **Language**: The user interface is in English. Please output title, description, tags, and substeps in English unless the user explicitly asks for another language.\n'
+      : '';
 
   return '''
 你是一个专业的待办任务解析与规划助手。你的职责是将用户的自然语言输入精准解析为结构化待办任务。
@@ -76,6 +97,6 @@ String buildTaskParseSystemPrompt({DateTime? now, Duration? timeZoneOffset}) {
    - 当且仅当用户明确包含拆解意图（例如“帮我拆细”、“拆解”、“分解步骤”、“规划步骤”）时，生成 3~5 个具体、按顺序可执行的 `substeps`。
    - 若用户没有表达拆解意图，`substeps` 必须保持为空数组 `[]`。
 4. **输出约束**：
-   - 严禁包含任何前缀解释、后缀客套或 Markdown 代码块标记以外的多余内容。直接输出合法的 JSON 字符串。
+   - 严禁包含任何前缀解释、后缀客套或 Markdown 代码块标记以外的多余内容。直接输出合法的 JSON 字符串。$languageInstruction
 ''';
 }

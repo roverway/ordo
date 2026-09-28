@@ -121,6 +121,8 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
 
   Future<void> _probeModels() async {
     HapticFeedback.selectionClick();
+    final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
     final config = _buildCurrentConfig();
     final effectiveConfig = (config.apiKey == null && _hasSavedApiKey)
         ? await ref.read(aiConfigServiceProvider).loadConfig(_provider)
@@ -128,10 +130,11 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
 
     if (effectiveConfig.apiKey == null || effectiveConfig.apiKey!.isEmpty) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('请先输入或配置 API Key 后再探测模型'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(l10n.aiProbeNeedKeyError),
+          duration: const Duration(seconds: 2),
         ),
       );
       return;
@@ -144,7 +147,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
     try {
       final models = await ref
           .read(aiConfigServiceProvider)
-          .fetchModels(effectiveConfig);
+          .fetchModels(effectiveConfig, locale: locale);
 
       if (!mounted) return;
       setState(() {
@@ -154,7 +157,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('成功探测到 ${models.length} 个可用模型'),
+          content: Text(l10n.aiProbeSuccessCount(models.length)),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -167,9 +170,10 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
           _probedModels = _provider.presetModels;
         }
       });
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('探测失败，已加载预设模型: ${e.toString()}'),
+          content: Text(l10n.aiProbeFailedFallback(e.toString())),
           duration: const Duration(seconds: 3),
         ),
       );
@@ -182,11 +186,13 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
   Future<void> _testConnection() async {
     final config = _buildCurrentConfig();
 
+    final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
     if ((config.apiKey == null || config.apiKey!.isEmpty) && !_hasSavedApiKey) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('请先输入 API Key 再测试连接'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(l10n.aiTestNeedKeyError),
+          duration: const Duration(seconds: 2),
         ),
       );
       return;
@@ -203,7 +209,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
 
     final result = await ref
         .read(aiConfigServiceProvider)
-        .testConnection(effectiveConfig);
+        .testConnection(effectiveConfig, locale: locale);
 
     if (!mounted) return;
     setState(() {
@@ -268,6 +274,8 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
 
   void _showProviderPickerSheet() {
     HapticFeedback.selectionClick();
+    final l10n = AppLocalizations.of(context);
+    final languageCode = Localizations.localeOf(context).languageCode;
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -315,7 +323,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
               ),
               const SizedBox(height: AppTokens.spaceSm),
               Text(
-                '选择大模型供应商',
+                l10n.aiSelectProviderTitle,
                 style: TextStyle(
                   fontSize: AppTokens.textTitleSize,
                   fontWeight: FontWeight.w600,
@@ -324,7 +332,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
               ),
               const SizedBox(height: AppTokens.spaceXs),
               Text(
-                '支持保存各供应商独立密钥，随时一键无缝切换',
+                l10n.aiSelectProviderSubtitle,
                 style: TextStyle(
                   fontSize: AppTokens.textMicroSize,
                   color: theme.colorScheme.onSurfaceVariant,
@@ -373,7 +381,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                       title: Row(
                         children: [
                           Text(
-                            p.displayName,
+                            p.localizedName(languageCode),
                             style: TextStyle(
                               fontSize: AppTokens.textBodySize,
                               fontWeight: isSelected
@@ -399,8 +407,8 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                                   AppTokens.radiusMicro,
                                 ),
                               ),
-                              child: const Text(
-                                '已配置密钥',
+                              child: Text(
+                                l10n.aiKeyConfigured,
                                 style: TextStyle(
                                   fontSize: AppTokens.textMicroSize,
                                   color: AppTokens.colorSuccess,
@@ -411,7 +419,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                         ],
                       ),
                       subtitle: Text(
-                        _providerSubtitle(p),
+                        _providerSubtitle(p, l10n),
                         style: TextStyle(
                           fontSize: AppTokens.textMicroSize,
                           color: theme.colorScheme.onSurfaceVariant,
@@ -443,6 +451,8 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
 
   void _showModelPickerSheet() {
     HapticFeedback.selectionClick();
+    final l10n = AppLocalizations.of(context);
+    final languageCode = Localizations.localeOf(context).languageCode;
     final allModels = <String>{
       ..._probedModels,
       ..._provider.presetModels,
@@ -508,7 +518,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                     children: [
                       Expanded(
                         child: Text(
-                          '选择模型 (${_provider.displayName})',
+                          l10n.aiSelectModelTitle(_provider.localizedName(languageCode)),
                           style: TextStyle(
                             fontSize: AppTokens.textTitleSize,
                             fontWeight: FontWeight.w600,
@@ -522,8 +532,8 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                           _probeModels();
                         },
                         icon: const Icon(Icons.refresh, size: 14),
-                        label: const Text(
-                          '重新探测',
+                        label: Text(
+                          l10n.aiProbeRefresh,
                           style: TextStyle(
                             fontSize: AppTokens.textFootnoteSize,
                           ),
@@ -534,7 +544,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                   const SizedBox(height: AppTokens.spaceXs),
                   TextField(
                     decoration: InputDecoration(
-                      hintText: '搜索或筛选模型...',
+                      hintText: l10n.aiModelSearchHint,
                       isDense: true,
                       prefixIcon: const Icon(Icons.search, size: 18),
                       contentPadding: const EdgeInsets.symmetric(
@@ -556,7 +566,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                     child: filtered.isEmpty
                         ? Center(
                             child: Text(
-                              '无匹配模型，可直接在输入框中键入自定义模型名称',
+                              l10n.aiNoMatchingModels,
                               style: TextStyle(
                                 fontSize: AppTokens.textFootnoteSize,
                                 color: theme.colorScheme.onSurfaceVariant,
@@ -622,15 +632,15 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
     );
   }
 
-  String _providerSubtitle(AiProviderType p) {
+  String _providerSubtitle(AiProviderType p, AppLocalizations l10n) {
     return switch (p) {
-      AiProviderType.deepseek => 'DeepSeek 官方推理与通用大模型',
-      AiProviderType.kimi => '月之暗面长上下文与通用大模型',
-      AiProviderType.qwen => '阿里云通义千问系列高性价比模型',
-      AiProviderType.glm => '智谱清言通用与轻量模型',
-      AiProviderType.openai => 'OpenAI 官方通用与推理模型',
-      AiProviderType.claude => 'Anthropic 官方前沿多模态大模型',
-      AiProviderType.custom => '兼容 OpenAI 协议的自定义端点',
+      AiProviderType.deepseek => l10n.aiProviderDeepSeekSubtitle,
+      AiProviderType.kimi => l10n.aiProviderKimiSubtitle,
+      AiProviderType.qwen => l10n.aiProviderQwenSubtitle,
+      AiProviderType.glm => l10n.aiProviderGlmSubtitle,
+      AiProviderType.openai => l10n.aiProviderOpenAiSubtitle,
+      AiProviderType.claude => l10n.aiProviderClaudeSubtitle,
+      AiProviderType.custom => l10n.aiProviderCustomSubtitle,
     };
   }
 
@@ -649,6 +659,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final languageCode = Localizations.localeOf(context).languageCode;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
@@ -679,7 +690,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                   ),
                 ),
                 Text(
-                  '多服务商按需切换',
+                  l10n.aiProviderSwitchOnDemand,
                   style: TextStyle(
                     fontSize: AppTokens.textMicroSize,
                     color: colorScheme.onSurfaceVariant,
@@ -731,7 +742,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _provider.displayName,
+                            _provider.localizedName(languageCode),
                             style: TextStyle(
                               fontSize: AppTokens.textBodySize,
                               fontWeight: FontWeight.w600,
@@ -739,7 +750,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                             ),
                           ),
                           Text(
-                            _providerSubtitle(_provider),
+                            _providerSubtitle(_provider, l10n),
                             style: TextStyle(
                               fontSize: AppTokens.textMicroSize,
                               color: colorScheme.onSurfaceVariant,
@@ -763,8 +774,8 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                           borderRadius:
                               BorderRadius.circular(AppTokens.radiusPill),
                         ),
-                        child: const Text(
-                          '已配置密钥',
+                        child: Text(
+                          l10n.aiKeyConfigured,
                           style: TextStyle(
                             fontSize: AppTokens.textMicroSize,
                             color: AppTokens.colorSuccess,
@@ -796,8 +807,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
               decoration: InputDecoration(
                 labelText: l10n.aiBaseUrl,
                 hintText: l10n.aiBaseUrlHint,
-                helperText:
-                    'OpenAI 协议服务兼容 /chat/completions，Claude 服务兼容 /messages',
+                helperText: l10n.aiBaseUrlEndpointHint,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppTokens.radiusCard),
                 ),
@@ -820,7 +830,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                   children: [
                     // Probe models button
                     Tooltip(
-                      message: '在线探测可用模型',
+                      message: l10n.aiProbeTooltip,
                       child: TextButton.icon(
                         onPressed: _probing ? null : _probeModels,
                         icon: _probing
@@ -832,8 +842,8 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                                 ),
                               )
                             : const Icon(Icons.radar_outlined, size: 16),
-                        label: const Text(
-                          '探测',
+                        label: Text(
+                          l10n.aiProbeButton,
                           style: TextStyle(
                             fontSize: AppTokens.textFootnoteSize,
                           ),
@@ -847,7 +857,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                     ),
                     // Model list selector button
                     Tooltip(
-                      message: '从模型列表选择',
+                      message: l10n.aiSelectModelTooltip,
                       child: IconButton(
                         icon: const Icon(Icons.keyboard_arrow_down, size: 20),
                         onPressed: _showModelPickerSheet,
@@ -944,7 +954,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
               obscureText: _obscureApiKey,
               decoration: InputDecoration(
                 labelText: _hasSavedApiKey
-                    ? '更新密钥 (留空则保留原密钥)'
+                    ? l10n.aiUpdateKeyPlaceholder
                     : 'API Key',
                 hintText: _hasSavedApiKey ? l10n.aiApiKeyHint : 'sk-...',
                 border: OutlineInputBorder(

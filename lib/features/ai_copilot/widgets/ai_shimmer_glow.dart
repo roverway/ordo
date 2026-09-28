@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 
 /// Linear-style breathing shimmer & micro-glow thinking indicator.
@@ -7,10 +8,7 @@ import '../../../core/theme/app_tokens.dart';
 /// Replaces generic circular spinners with an organic, breathing capsule
 /// inspired by Apple Intelligence and Linear design aesthetics.
 class AiThinkingPulse extends StatefulWidget {
-  const AiThinkingPulse({
-    super.key,
-    this.label,
-  });
+  const AiThinkingPulse({super.key, this.label});
 
   final String? label;
 
@@ -31,9 +29,10 @@ class _AiThinkingPulseState extends State<AiThinkingPulse>
       duration: AppTokens.motionPulse,
     )..repeat(reverse: true);
 
-    _glowAnimation = Tween<double>(begin: 0.35, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _glowAnimation = Tween<double>(
+      begin: 0.35,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -47,6 +46,7 @@ class _AiThinkingPulseState extends State<AiThinkingPulse>
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final primary = theme.colorScheme.primary;
+    final l10n = AppLocalizations.of(context);
 
     return AnimatedBuilder(
       animation: _glowAnimation,
@@ -84,14 +84,11 @@ class _AiThinkingPulseState extends State<AiThinkingPulse>
               ShaderMask(
                 shaderCallback: (bounds) {
                   return LinearGradient(
-                    colors: [
-                      primary,
-                      Colors.cyanAccent.shade200,
-                    ],
+                    colors: [primary, Colors.cyanAccent.shade200],
                     stops: [0.0, 1.0],
                   ).createShader(bounds);
                 },
-                child: Icon(
+                child: const Icon(
                   Icons.auto_awesome,
                   size: 14,
                   color: Colors.white,
@@ -99,7 +96,7 @@ class _AiThinkingPulseState extends State<AiThinkingPulse>
               ),
               const SizedBox(width: AppTokens.spaceXs),
               Text(
-                widget.label ?? 'AI 思考与规划中...',
+                widget.label ?? l10n.aiShimmerThinking,
                 style: TextStyle(
                   fontSize: AppTokens.textFootnoteSize,
                   fontWeight: FontWeight.w600,

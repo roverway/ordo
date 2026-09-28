@@ -55,6 +55,7 @@ Future<void> _pumpAiSettingsPage(
   required TodoRepository repo,
   required SecureKeyValueStore secureStore,
   required AiHttpClient httpClient,
+  Locale locale = const Locale('zh'),
 }) async {
   tester.view.physicalSize = const Size(400, 1400);
   tester.view.devicePixelRatio = 1.0;
@@ -74,8 +75,8 @@ Future<void> _pumpAiSettingsPage(
         aiClientProvider.overrideWithValue(client),
         aiConfigServiceProvider.overrideWithValue(service),
       ],
-      child: const MaterialApp(
-        locale: Locale('zh'),
+      child: MaterialApp(
+        locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: AiSettingsPage(),
@@ -307,6 +308,40 @@ void main() {
 
       // Verify model textfield is updated
       expect(find.text('custom-probed-model-v1'), findsOneWidget);
+    });
+
+    testWidgets('renders properly under English locale with no hardcoded Chinese', (
+      tester,
+    ) async {
+      await _pumpAiSettingsPage(
+        tester,
+        repo: repo,
+        secureStore: secureStore,
+        httpClient: httpClient,
+        locale: const Locale('en'),
+      );
+
+      // Verify English labels
+      expect(find.text('DeepSeek'), findsOneWidget);
+      expect(find.text('https://api.deepseek.com'), findsOneWidget);
+      expect(find.text('deepseek-chat'), findsOneWidget);
+      expect(find.text('Test Connection'), findsOneWidget);
+      expect(find.text('Save Settings'), findsOneWidget);
+      expect(find.text('AI Assistant Settings'), findsOneWidget);
+      expect(find.text('Provider'), findsOneWidget);
+      expect(find.text('Model Name'), findsOneWidget);
+
+      // Assert no Chinese text in widget tree
+      final textWidgets = tester.widgetList<Text>(find.byType(Text));
+      final chineseRegex = RegExp(r'[一-龥]');
+      for (final widget in textWidgets) {
+        final text = widget.data ?? widget.textSpan?.toPlainText() ?? '';
+        expect(
+          chineseRegex.hasMatch(text),
+          isFalse,
+          reason: 'Found unexpected Chinese text in English locale: "$text"',
+        );
+      }
     });
   });
 }

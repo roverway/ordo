@@ -182,6 +182,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
   Future<void> _showDueDatePicker(BuildContext context) async {
     if (!isInteractive) return;
     HapticFeedback.selectionClick();
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
 
     await showModalBottomSheet<void>(
@@ -224,7 +225,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
               ),
               const SizedBox(height: AppTokens.spaceSm),
               Text(
-                '设置截止时间',
+                l10n.aiSetDueDate,
                 style: TextStyle(
                   fontSize: AppTokens.textBodySize,
                   fontWeight: FontWeight.w600,
@@ -237,7 +238,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                 runSpacing: AppTokens.spaceXs,
                 children: [
                   ActionChip(
-                    label: const Text('今天 18:00'),
+                    label: Text(l10n.aiPresetToday18),
                     onPressed: () {
                       Navigator.pop(bottomSheetContext);
                       final dt = DateTime(now.year, now.month, now.day, 18, 0);
@@ -245,7 +246,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                     },
                   ),
                   ActionChip(
-                    label: const Text('今晚 21:00'),
+                    label: Text(l10n.aiPresetTonight21),
                     onPressed: () {
                       Navigator.pop(bottomSheetContext);
                       final dt = DateTime(now.year, now.month, now.day, 21, 0);
@@ -253,30 +254,48 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                     },
                   ),
                   ActionChip(
-                    label: const Text('明天 09:00'),
+                    label: Text(l10n.aiPresetTomorrow09),
                     onPressed: () {
                       Navigator.pop(bottomSheetContext);
-                      final dt = DateTime(now.year, now.month, now.day + 1, 9, 0);
+                      final dt = DateTime(
+                        now.year,
+                        now.month,
+                        now.day + 1,
+                        9,
+                        0,
+                      );
                       _updateDueAt(dt.millisecondsSinceEpoch);
                     },
                   ),
                   ActionChip(
-                    label: const Text('本周五 18:00'),
+                    label: Text(l10n.aiPresetThisFriday18),
                     onPressed: () {
                       Navigator.pop(bottomSheetContext);
                       final days = (DateTime.friday - now.weekday + 7) % 7;
                       final targetDay = days == 0 ? 7 : days;
-                      final dt = DateTime(now.year, now.month, now.day + targetDay, 18, 0);
+                      final dt = DateTime(
+                        now.year,
+                        now.month,
+                        now.day + targetDay,
+                        18,
+                        0,
+                      );
                       _updateDueAt(dt.millisecondsSinceEpoch);
                     },
                   ),
                   ActionChip(
-                    label: const Text('下周一 09:00'),
+                    label: Text(l10n.aiPresetNextMonday09),
                     onPressed: () {
                       Navigator.pop(bottomSheetContext);
                       final days = (DateTime.monday - now.weekday + 7) % 7;
                       final targetDay = days == 0 ? 7 : days;
-                      final dt = DateTime(now.year, now.month, now.day + targetDay, 9, 0);
+                      final dt = DateTime(
+                        now.year,
+                        now.month,
+                        now.day + targetDay,
+                        9,
+                        0,
+                      );
                       _updateDueAt(dt.millisecondsSinceEpoch);
                     },
                   ),
@@ -289,7 +308,9 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                   final pickedDate = await showDatePicker(
                     context: context,
                     initialDate: widget.proposal.dueAt != null
-                        ? DateTime.fromMillisecondsSinceEpoch(widget.proposal.dueAt!)
+                        ? DateTime.fromMillisecondsSinceEpoch(
+                            widget.proposal.dueAt!,
+                          )
                         : now,
                     firstDate: now.subtract(const Duration(days: 365)),
                     lastDate: now.add(const Duration(days: 3650)),
@@ -312,7 +333,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                   _updateDueAt(finalDt.millisecondsSinceEpoch);
                 },
                 icon: const Icon(Icons.edit_calendar_outlined, size: 16),
-                label: const Text('自定义日期与时间...'),
+                label: Text(l10n.aiCustomDateTime),
               ),
               if (widget.proposal.dueAt != null) ...[
                 const SizedBox(height: AppTokens.spaceXs),
@@ -322,7 +343,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                     _updateDueAt(null);
                   },
                   icon: const Icon(Icons.clear, size: 16),
-                  label: const Text('清除截止时间'),
+                  label: Text(l10n.aiClearDueDate),
                   style: TextButton.styleFrom(
                     foregroundColor: AppTokens.colorDanger,
                   ),
@@ -338,6 +359,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
   Future<void> _showStartDatePicker(BuildContext context) async {
     if (!isInteractive) return;
     HapticFeedback.selectionClick();
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
 
     await showModalBottomSheet<void>(
@@ -380,7 +402,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
               ),
               const SizedBox(height: AppTokens.spaceSm),
               Text(
-                '设置开始时间',
+                l10n.aiSetStartDate,
                 style: TextStyle(
                   fontSize: AppTokens.textBodySize,
                   fontWeight: FontWeight.w600,
@@ -393,14 +415,14 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                 runSpacing: AppTokens.spaceXs,
                 children: [
                   ActionChip(
-                    label: const Text('现在'),
+                    label: Text(l10n.aiPresetNow),
                     onPressed: () {
                       Navigator.pop(bottomSheetContext);
                       _updateStartAt(now.millisecondsSinceEpoch);
                     },
                   ),
                   ActionChip(
-                    label: const Text('今天 14:00'),
+                    label: Text(l10n.aiPresetToday14),
                     onPressed: () {
                       Navigator.pop(bottomSheetContext);
                       final dt = DateTime(now.year, now.month, now.day, 14, 0);
@@ -408,10 +430,16 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                     },
                   ),
                   ActionChip(
-                    label: const Text('明天 09:00'),
+                    label: Text(l10n.aiPresetTomorrow09),
                     onPressed: () {
                       Navigator.pop(bottomSheetContext);
-                      final dt = DateTime(now.year, now.month, now.day + 1, 9, 0);
+                      final dt = DateTime(
+                        now.year,
+                        now.month,
+                        now.day + 1,
+                        9,
+                        0,
+                      );
                       _updateStartAt(dt.millisecondsSinceEpoch);
                     },
                   ),
@@ -424,7 +452,9 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                   final pickedDate = await showDatePicker(
                     context: context,
                     initialDate: widget.proposal.startAt != null
-                        ? DateTime.fromMillisecondsSinceEpoch(widget.proposal.startAt!)
+                        ? DateTime.fromMillisecondsSinceEpoch(
+                            widget.proposal.startAt!,
+                          )
                         : now,
                     firstDate: now.subtract(const Duration(days: 365)),
                     lastDate: now.add(const Duration(days: 3650)),
@@ -447,7 +477,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                   _updateStartAt(finalDt.millisecondsSinceEpoch);
                 },
                 icon: const Icon(Icons.edit_calendar_outlined, size: 16),
-                label: const Text('自定义日期与时间...'),
+                label: Text(l10n.aiCustomDateTime),
               ),
               if (widget.proposal.startAt != null) ...[
                 const SizedBox(height: AppTokens.spaceXs),
@@ -457,7 +487,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                     _updateStartAt(null);
                   },
                   icon: const Icon(Icons.clear, size: 16),
-                  label: const Text('清除开始时间'),
+                  label: Text(l10n.aiClearStartDate),
                   style: TextButton.styleFrom(
                     foregroundColor: AppTokens.colorDanger,
                   ),
@@ -473,18 +503,19 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
   Future<void> _promptAddTag(BuildContext context) async {
     if (!isInteractive) return;
     HapticFeedback.selectionClick();
+    final l10n = AppLocalizations.of(context);
     final tagInputController = TextEditingController();
 
     final newTag = await showDialog<String>(
       context: context,
       builder: (dialogCtx) {
         return AlertDialog(
-          title: const Text('添加标签'),
+          title: Text(l10n.aiAddTagTitle),
           content: TextField(
             controller: tagInputController,
             autofocus: true,
-            decoration: const InputDecoration(
-              hintText: '输入标签名称 (如: 工作, 紧急)',
+            decoration: InputDecoration(
+              hintText: l10n.aiAddTagHint,
               isDense: true,
             ),
             onSubmitted: (val) => Navigator.pop(dialogCtx, val.trim()),
@@ -492,12 +523,12 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogCtx),
-              child: const Text('取消'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: () =>
                   Navigator.pop(dialogCtx, tagInputController.text.trim()),
-              child: const Text('添加'),
+              child: Text(l10n.confirm),
             ),
           ],
         );
@@ -516,8 +547,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
   void _removeTag(String tag) {
     if (!isInteractive) return;
     HapticFeedback.selectionClick();
-    final updatedTags =
-        widget.proposal.tags.where((t) => t != tag).toList();
+    final updatedTags = widget.proposal.tags.where((t) => t != tag).toList();
     final updated = widget.proposal.copyWith(tags: updatedTags);
     widget.onProposalChanged?.call(updated);
   }
@@ -560,8 +590,9 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
   void _addSubstep() {
     if (!isInteractive) return;
     HapticFeedback.selectionClick();
+    final l10n = AppLocalizations.of(context);
     final newStep = AiSubstep(
-      title: '步骤 ${widget.proposal.substeps.length + 1}',
+      title: l10n.aiStepDefaultTitle(widget.proposal.substeps.length + 1),
       sortOrder: widget.proposal.substeps.length,
     );
     final updatedList = List<AiSubstep>.from(widget.proposal.substeps)
@@ -589,22 +620,12 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
     return '$month-$day $hour:$minute';
   }
 
-  (String, Color) _priorityInfo(BuildContext context, int priority) {
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+  (String, Color) _priorityInfo(AppLocalizations l10n, int priority) {
     return switch (priority) {
-      3 => (
-        isZh ? 'P1 · 重要紧急' : 'P1 · Urgent',
-        AppTokens.colorPriorityHigh,
-      ),
-      2 => (
-        isZh ? 'P2 · 适中' : 'P2 · Medium',
-        AppTokens.colorPriorityMedium,
-      ),
-      1 => (
-        isZh ? 'P3 · 低优' : 'P3 · Low',
-        AppTokens.colorPriorityLow,
-      ),
-      _ => (isZh ? '无优先级' : 'None', AppTokens.textMutedDark),
+      3 => (l10n.aiPriorityP1, AppTokens.colorPriorityHigh),
+      2 => (l10n.aiPriorityP2, AppTokens.colorPriorityMedium),
+      1 => (l10n.aiPriorityP3, AppTokens.colorPriorityLow),
+      _ => (l10n.aiPriorityNone, AppTokens.textMutedDark),
     };
   }
 
@@ -630,7 +651,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
         : AppTokens.textMutedLight;
 
     final (priorityLabel, priorityColor) = _priorityInfo(
-      context,
+      l10n,
       widget.proposal.priority,
     );
 
@@ -775,15 +796,16 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                       color: primaryTextColor,
                     ),
                     decoration: InputDecoration(
-                      hintText: '输入任务备注...',
+                      hintText: l10n.aiTaskDescriptionHint,
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(
                         vertical: AppTokens.spaceXxs,
                         horizontal: AppTokens.spaceXs,
                       ),
                       border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppTokens.radiusMicro),
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusMicro,
+                        ),
                         borderSide: BorderSide(
                           color: theme.colorScheme.primary,
                           width: 1,
@@ -873,7 +895,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                     ),
                     const SizedBox(width: AppTokens.spaceXxs),
                     Text(
-                      '添加备注',
+                      l10n.aiAddDescription,
                       style: TextStyle(
                         fontSize: AppTokens.textMicroSize,
                         color: secondaryTextColor,
@@ -898,7 +920,9 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                 borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
                 onTap: isInteractive ? _cyclePriority : null,
                 child: Tooltip(
-                  message: isInteractive ? '点击切换优先级' : priorityLabel,
+                  message: isInteractive
+                      ? l10n.aiTapToCyclePriority
+                      : priorityLabel,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppTokens.spaceXs,
@@ -908,8 +932,9 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                       color: priorityColor.withValues(
                         alpha: AppTokens.alphaTintSoft,
                       ),
-                      borderRadius:
-                          BorderRadius.circular(AppTokens.radiusMicro),
+                      borderRadius: BorderRadius.circular(
+                        AppTokens.radiusMicro,
+                      ),
                       border: Border.all(
                         color: priorityColor.withValues(
                           alpha: AppTokens.alphaBorderSubtle,
@@ -957,8 +982,9 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                       color: isDark
                           ? AppTokens.surfaceSubtleDark
                           : AppTokens.surfaceSubtleLight,
-                      borderRadius:
-                          BorderRadius.circular(AppTokens.radiusMicro),
+                      borderRadius: BorderRadius.circular(
+                        AppTokens.radiusMicro,
+                      ),
                       border: Border.all(color: borderColor, width: 0.5),
                     ),
                     child: Row(
@@ -971,7 +997,9 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                         ),
                         const SizedBox(width: AppTokens.spaceXxs),
                         Text(
-                          '开始: ${_formatDateTime(widget.proposal.startAt!)}',
+                          l10n.aiStartPrefix(
+                            _formatDateTime(widget.proposal.startAt!),
+                          ),
                           style: TextStyle(
                             fontSize: AppTokens.textMicroSize,
                             fontWeight: AppTokens.textMicroWeight,
@@ -992,8 +1020,9 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                       vertical: AppTokens.spaceMicro,
                     ),
                     decoration: BoxDecoration(
-                      borderRadius:
-                          BorderRadius.circular(AppTokens.radiusMicro),
+                      borderRadius: BorderRadius.circular(
+                        AppTokens.radiusMicro,
+                      ),
                       border: Border.all(
                         color: borderColor,
                         width: 0.5,
@@ -1010,7 +1039,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                         ),
                         const SizedBox(width: AppTokens.spaceXxs),
                         Text(
-                          '+ 开始',
+                          l10n.aiAddStartAction,
                           style: TextStyle(
                             fontSize: AppTokens.textMicroSize,
                             color: secondaryTextColor,
@@ -1035,8 +1064,9 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                       color: isDark
                           ? AppTokens.surfaceSubtleDark
                           : AppTokens.surfaceSubtleLight,
-                      borderRadius:
-                          BorderRadius.circular(AppTokens.radiusMicro),
+                      borderRadius: BorderRadius.circular(
+                        AppTokens.radiusMicro,
+                      ),
                       border: Border.all(color: borderColor, width: 0.5),
                     ),
                     child: Row(
@@ -1070,12 +1100,10 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                       vertical: AppTokens.spaceMicro,
                     ),
                     decoration: BoxDecoration(
-                      borderRadius:
-                          BorderRadius.circular(AppTokens.radiusMicro),
-                      border: Border.all(
-                        color: borderColor,
-                        width: 0.5,
+                      borderRadius: BorderRadius.circular(
+                        AppTokens.radiusMicro,
                       ),
+                      border: Border.all(color: borderColor, width: 0.5),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -1087,7 +1115,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                         ),
                         const SizedBox(width: AppTokens.spaceXxs),
                         Text(
-                          '+ 截止',
+                          l10n.aiAddDueAction,
                           style: TextStyle(
                             fontSize: AppTokens.textMicroSize,
                             color: secondaryTextColor,
@@ -1111,8 +1139,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                     color: isDark
                         ? AppTokens.surfaceSubtleDark
                         : AppTokens.surfaceSubtleLight,
-                    borderRadius:
-                        BorderRadius.circular(AppTokens.radiusMicro),
+                    borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
                     border: Border.all(color: borderColor, width: 0.5),
                   ),
                   child: Row(
@@ -1154,24 +1181,18 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                       vertical: AppTokens.spaceMicro,
                     ),
                     decoration: BoxDecoration(
-                      borderRadius:
-                          BorderRadius.circular(AppTokens.radiusMicro),
-                      border: Border.all(
-                        color: borderColor,
-                        width: 0.5,
+                      borderRadius: BorderRadius.circular(
+                        AppTokens.radiusMicro,
                       ),
+                      border: Border.all(color: borderColor, width: 0.5),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.tag,
-                          size: 13,
-                          color: secondaryTextColor,
-                        ),
+                        Icon(Icons.tag, size: 13, color: secondaryTextColor),
                         const SizedBox(width: AppTokens.spaceXxs),
                         Text(
-                          '+ 标签',
+                          l10n.aiAddTagAction,
                           style: TextStyle(
                             fontSize: AppTokens.textMicroSize,
                             color: secondaryTextColor,
@@ -1227,7 +1248,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                           ),
                           const SizedBox(width: AppTokens.spaceXxs),
                           Text(
-                            '添加步骤',
+                            l10n.aiAddSubstepAction,
                             style: TextStyle(
                               fontSize: AppTokens.textMicroSize,
                               color: theme.colorScheme.primary,
@@ -1302,46 +1323,24 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                     ),
                     minimumSize: const Size(0, 36),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (widget.isPersisting) ...[
-                        const SizedBox(
+                  child: widget.isPersisting
+                      ? const SizedBox(
                           width: 14,
                           height: 14,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             color: Colors.white,
                           ),
-                        ),
-                        const SizedBox(width: AppTokens.spaceXs),
-                        Text(
-                          l10n.aiTaskAddingAction,
+                        )
+                      : Text(
+                          widget.isPersisted
+                              ? l10n.aiTaskAddedAction
+                              : l10n.aiAddTaskAction,
                           style: const TextStyle(
                             fontSize: AppTokens.textFootnoteSize,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ] else if (widget.isPersisted) ...[
-                        const Icon(Icons.check, size: 16),
-                        const SizedBox(width: AppTokens.spaceXxs),
-                        Text(
-                          l10n.aiTaskAddedAction,
-                          style: const TextStyle(
-                            fontSize: AppTokens.textFootnoteSize,
-                          ),
-                        ),
-                      ] else ...[
-                        const Icon(Icons.add_task, size: 16),
-                        const SizedBox(width: AppTokens.spaceXxs),
-                        Text(
-                          l10n.aiAddTaskAction,
-                          style: const TextStyle(
-                            fontSize: AppTokens.textFootnoteSize,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
                 ),
             ],
           ),

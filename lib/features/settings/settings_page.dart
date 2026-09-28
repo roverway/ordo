@@ -844,13 +844,14 @@ class _AiSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final languageCode = Localizations.localeOf(context).languageCode;
     final colorScheme = Theme.of(context).colorScheme;
     final aiConfigAsync = ref.watch(aiConfigProvider);
 
     final subtitle = aiConfigAsync.maybeWhen(
       data: (config) {
         if (config.apiKey != null && config.apiKey!.isNotEmpty) {
-          return '${config.provider.displayName} · ${config.model}';
+          return '${config.provider.localizedName(languageCode)} · ${config.model}';
         }
         return l10n.aiConfigNotSet;
       },

@@ -46,11 +46,23 @@ class AiTaskParser {
   ///
   /// If extraction or JSON decoding fails and [originalInput] is provided,
   /// a safe fallback result is returned instead of throwing.
-  AiTaskParseResult parseRawResponse(String response, {String? originalInput}) {
+  AiTaskParseResult parseRawResponse(
+    String response, {
+    String? originalInput,
+    String locale = 'zh',
+  }) {
+    final defaultTitle = locale.toLowerCase().startsWith('en')
+        ? AiTaskParseResult.defaultTitleEn
+        : AiTaskParseResult.defaultTitleZh;
+
     final payload = extractJsonPayload(response);
     if (payload == null) {
       if (originalInput != null) {
-        return AiTaskParseResult.fallback(originalInput, rawResponse: response);
+        return AiTaskParseResult.fallback(
+          originalInput,
+          rawResponse: response,
+          defaultTitle: defaultTitle,
+        );
       }
       throw FormatException(
         'No valid JSON object found in response: $response',
@@ -60,22 +72,35 @@ class AiTaskParser {
     try {
       final decoded = jsonDecode(payload);
       if (decoded is Map<String, dynamic>) {
-        return AiTaskParseResult.fromJson(decoded, rawResponse: response);
+        return AiTaskParseResult.fromJson(
+          decoded,
+          rawResponse: response,
+          defaultTitle: defaultTitle,
+        );
       } else if (decoded is Map) {
         return AiTaskParseResult.fromJson(
           Map<String, dynamic>.from(decoded),
           rawResponse: response,
+          defaultTitle: defaultTitle,
         );
       }
     } catch (_) {
       if (originalInput != null) {
-        return AiTaskParseResult.fallback(originalInput, rawResponse: response);
+        return AiTaskParseResult.fallback(
+          originalInput,
+          rawResponse: response,
+          defaultTitle: defaultTitle,
+        );
       }
       rethrow;
     }
 
     if (originalInput != null) {
-      return AiTaskParseResult.fallback(originalInput, rawResponse: response);
+      return AiTaskParseResult.fallback(
+        originalInput,
+        rawResponse: response,
+        defaultTitle: defaultTitle,
+      );
     }
     throw FormatException('Decoded payload is not a valid JSON map: $payload');
   }
@@ -85,29 +110,52 @@ class AiTaskParser {
     String input, {
     AiConfig? config,
     DateTime? now,
+    String locale = 'zh',
   }) async {
     final trimmedInput = input.trim();
+    final isEn = locale.toLowerCase().startsWith('en');
+    final defaultTitle = isEn
+        ? AiTaskParseResult.defaultTitleEn
+        : AiTaskParseResult.defaultTitleZh;
+
     if (trimmedInput.isEmpty) {
-      return const AiTaskParseResult(title: '新任务', isFallback: true);
+      return AiTaskParseResult(
+        title: isEn ? 'New Task' : '新任务',
+        isFallback: true,
+      );
     }
 
     final effectiveConfig = config ?? await _configService?.loadConfig();
     if (effectiveConfig == null || (effectiveConfig.apiKey?.isEmpty ?? true)) {
-      return AiTaskParseResult.fallback(trimmedInput);
+      return AiTaskParseResult.fallback(
+        trimmedInput,
+        defaultTitle: defaultTitle,
+      );
     }
 
-    final systemPrompt = buildTaskParseSystemPrompt(now: now);
+    final systemPrompt = buildTaskParseSystemPrompt(now: now, locale: locale);
     final messages = [
       {'role': 'system', 'content': systemPrompt},
       {'role': 'user', 'content': trimmedInput},
     ];
 
     try {
-      final responseContent = await _aiClient.chat(effectiveConfig, messages);
-      return parseRawResponse(responseContent, originalInput: trimmedInput);
+      final responseContent = await _aiClient.chat(
+        effectiveConfig,
+        messages,
+        locale: locale,
+      );
+      return parseRawResponse(
+        responseContent,
+        originalInput: trimmedInput,
+        locale: locale,
+      );
     } catch (_) {
       // Gracefully fall back on network or parsing errors
-      return AiTaskParseResult.fallback(trimmedInput);
+      return AiTaskParseResult.fallback(
+        trimmedInput,
+        defaultTitle: defaultTitle,
+      );
     }
   }
 }

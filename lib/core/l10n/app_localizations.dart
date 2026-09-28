@@ -3212,6 +3212,324 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'深度诊断与行动建议'**
   String get efficiencyAnalysisTitle;
+
+  /// Provider card subtitle
+  ///
+  /// In zh, this message translates to:
+  /// **'多服务商按需切换'**
+  String get aiProviderSwitchOnDemand;
+
+  /// Select provider sheet title
+  ///
+  /// In zh, this message translates to:
+  /// **'选择大模型供应商'**
+  String get aiSelectProviderTitle;
+
+  /// Select provider sheet subtitle
+  ///
+  /// In zh, this message translates to:
+  /// **'支持保存各供应商独立密钥，随时一键无缝切换'**
+  String get aiSelectProviderSubtitle;
+
+  /// Badge showing provider has key configured
+  ///
+  /// In zh, this message translates to:
+  /// **'已配置密钥'**
+  String get aiKeyConfigured;
+
+  /// DeepSeek provider description
+  ///
+  /// In zh, this message translates to:
+  /// **'DeepSeek 官方推理与通用大模型'**
+  String get aiProviderDeepSeekSubtitle;
+
+  /// Kimi provider description
+  ///
+  /// In zh, this message translates to:
+  /// **'月之暗面长上下文与通用大模型'**
+  String get aiProviderKimiSubtitle;
+
+  /// Qwen provider description
+  ///
+  /// In zh, this message translates to:
+  /// **'阿里云通义千问系列高性价比模型'**
+  String get aiProviderQwenSubtitle;
+
+  /// GLM provider description
+  ///
+  /// In zh, this message translates to:
+  /// **'智谱清言通用与轻量模型'**
+  String get aiProviderGlmSubtitle;
+
+  /// OpenAI provider description
+  ///
+  /// In zh, this message translates to:
+  /// **'OpenAI 官方通用与推理模型'**
+  String get aiProviderOpenAiSubtitle;
+
+  /// Claude provider description
+  ///
+  /// In zh, this message translates to:
+  /// **'Anthropic 官方前沿多模态大模型'**
+  String get aiProviderClaudeSubtitle;
+
+  /// Custom provider description
+  ///
+  /// In zh, this message translates to:
+  /// **'兼容 OpenAI 协议的自定义端点'**
+  String get aiProviderCustomSubtitle;
+
+  /// Select model sheet title
+  ///
+  /// In zh, this message translates to:
+  /// **'选择模型 ({provider})'**
+  String aiSelectModelTitle(String provider);
+
+  /// Refresh probed models button
+  ///
+  /// In zh, this message translates to:
+  /// **'重新探测'**
+  String get aiProbeRefresh;
+
+  /// Model search input hint
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索或筛选模型...'**
+  String get aiModelSearchHint;
+
+  /// Empty state when no matching models
+  ///
+  /// In zh, this message translates to:
+  /// **'无匹配模型，可直接在输入框中键入自定义模型名称'**
+  String get aiNoMatchingModels;
+
+  /// Base URL helper text
+  ///
+  /// In zh, this message translates to:
+  /// **'OpenAI 协议服务兼容 /chat/completions，Claude 服务兼容 /messages'**
+  String get aiBaseUrlEndpointHint;
+
+  /// Tooltip for model probe button
+  ///
+  /// In zh, this message translates to:
+  /// **'在线探测可用模型'**
+  String get aiProbeTooltip;
+
+  /// Model probe button label
+  ///
+  /// In zh, this message translates to:
+  /// **'探测'**
+  String get aiProbeButton;
+
+  /// Tooltip for selecting from model list
+  ///
+  /// In zh, this message translates to:
+  /// **'从模型列表选择'**
+  String get aiSelectModelTooltip;
+
+  /// API key input label when existing key exists
+  ///
+  /// In zh, this message translates to:
+  /// **'更新密钥 (留空则保留原密钥)'**
+  String get aiUpdateKeyPlaceholder;
+
+  /// Error when probing without API key
+  ///
+  /// In zh, this message translates to:
+  /// **'请先输入或配置 API Key 后再探测模型'**
+  String get aiProbeNeedKeyError;
+
+  /// Success message when probe discovers models
+  ///
+  /// In zh, this message translates to:
+  /// **'成功探测到 {count} 个可用模型'**
+  String aiProbeSuccessCount(int count);
+
+  /// Notice when probe fails and falls back to presets
+  ///
+  /// In zh, this message translates to:
+  /// **'探测失败，已加载预设模型: {error}'**
+  String aiProbeFailedFallback(String error);
+
+  /// Error when testing connection without API key
+  ///
+  /// In zh, this message translates to:
+  /// **'请先输入 API Key 再测试连接'**
+  String get aiTestNeedKeyError;
+
+  /// Set due date title
+  ///
+  /// In zh, this message translates to:
+  /// **'设置截止时间'**
+  String get aiSetDueDate;
+
+  /// Quick date preset today 18:00
+  ///
+  /// In zh, this message translates to:
+  /// **'今天 18:00'**
+  String get aiPresetToday18;
+
+  /// Quick date preset tonight 21:00
+  ///
+  /// In zh, this message translates to:
+  /// **'今晚 21:00'**
+  String get aiPresetTonight21;
+
+  /// Quick date preset tomorrow 09:00
+  ///
+  /// In zh, this message translates to:
+  /// **'明天 09:00'**
+  String get aiPresetTomorrow09;
+
+  /// Quick date preset this Friday 18:00
+  ///
+  /// In zh, this message translates to:
+  /// **'本周五 18:00'**
+  String get aiPresetThisFriday18;
+
+  /// Quick date preset next Monday 09:00
+  ///
+  /// In zh, this message translates to:
+  /// **'下周一 09:00'**
+  String get aiPresetNextMonday09;
+
+  /// Custom date and time picker action
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义日期与时间...'**
+  String get aiCustomDateTime;
+
+  /// Clear due date button
+  ///
+  /// In zh, this message translates to:
+  /// **'清除截止时间'**
+  String get aiClearDueDate;
+
+  /// Set start date title
+  ///
+  /// In zh, this message translates to:
+  /// **'设置开始时间'**
+  String get aiSetStartDate;
+
+  /// Quick date preset now
+  ///
+  /// In zh, this message translates to:
+  /// **'现在'**
+  String get aiPresetNow;
+
+  /// Quick date preset today 14:00
+  ///
+  /// In zh, this message translates to:
+  /// **'今天 14:00'**
+  String get aiPresetToday14;
+
+  /// Clear start date button
+  ///
+  /// In zh, this message translates to:
+  /// **'清除开始时间'**
+  String get aiClearStartDate;
+
+  /// Add tag dialog title
+  ///
+  /// In zh, this message translates to:
+  /// **'添加标签'**
+  String get aiAddTagTitle;
+
+  /// Add tag input hint
+  ///
+  /// In zh, this message translates to:
+  /// **'输入标签名称 (如: 工作, 紧急)'**
+  String get aiAddTagHint;
+
+  /// Task description input hint
+  ///
+  /// In zh, this message translates to:
+  /// **'输入任务备注...'**
+  String get aiTaskDescriptionHint;
+
+  /// Add note action
+  ///
+  /// In zh, this message translates to:
+  /// **'添加备注'**
+  String get aiAddDescription;
+
+  /// Tooltip for priority badge
+  ///
+  /// In zh, this message translates to:
+  /// **'点击切换优先级'**
+  String get aiTapToCyclePriority;
+
+  /// Priority 1 label
+  ///
+  /// In zh, this message translates to:
+  /// **'P1 · 重要紧急'**
+  String get aiPriorityP1;
+
+  /// Priority 2 label
+  ///
+  /// In zh, this message translates to:
+  /// **'P2 · 适中'**
+  String get aiPriorityP2;
+
+  /// Priority 3 label
+  ///
+  /// In zh, this message translates to:
+  /// **'P3 · 低优'**
+  String get aiPriorityP3;
+
+  /// No priority label
+  ///
+  /// In zh, this message translates to:
+  /// **'无优先级'**
+  String get aiPriorityNone;
+
+  /// Start time prefix
+  ///
+  /// In zh, this message translates to:
+  /// **'开始: {time}'**
+  String aiStartPrefix(String time);
+
+  /// Add start time button
+  ///
+  /// In zh, this message translates to:
+  /// **'+ 开始'**
+  String get aiAddStartAction;
+
+  /// Add due date button
+  ///
+  /// In zh, this message translates to:
+  /// **'+ 截止'**
+  String get aiAddDueAction;
+
+  /// Add tag button
+  ///
+  /// In zh, this message translates to:
+  /// **'+ 标签'**
+  String get aiAddTagAction;
+
+  /// Add step button
+  ///
+  /// In zh, this message translates to:
+  /// **'添加步骤'**
+  String get aiAddSubstepAction;
+
+  /// Default title for newly added substep
+  ///
+  /// In zh, this message translates to:
+  /// **'步骤 {number}'**
+  String aiStepDefaultTitle(int number);
+
+  /// AI shimmer loading state text
+  ///
+  /// In zh, this message translates to:
+  /// **'AI 思考与规划中...'**
+  String get aiShimmerThinking;
+
+  /// Go to configure AI settings action button
+  ///
+  /// In zh, this message translates to:
+  /// **'去配置'**
+  String get aiGoToConfigure;
 }
 
 class _AppLocalizationsDelegate

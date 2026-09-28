@@ -1668,4 +1668,174 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get efficiencyAnalysisTitle => '深度诊断与行动建议';
+
+  @override
+  String get aiProviderSwitchOnDemand => '多服务商按需切换';
+
+  @override
+  String get aiSelectProviderTitle => '选择大模型供应商';
+
+  @override
+  String get aiSelectProviderSubtitle => '支持保存各供应商独立密钥，随时一键无缝切换';
+
+  @override
+  String get aiKeyConfigured => '已配置密钥';
+
+  @override
+  String get aiProviderDeepSeekSubtitle => 'DeepSeek 官方推理与通用大模型';
+
+  @override
+  String get aiProviderKimiSubtitle => '月之暗面长上下文与通用大模型';
+
+  @override
+  String get aiProviderQwenSubtitle => '阿里云通义千问系列高性价比模型';
+
+  @override
+  String get aiProviderGlmSubtitle => '智谱清言通用与轻量模型';
+
+  @override
+  String get aiProviderOpenAiSubtitle => 'OpenAI 官方通用与推理模型';
+
+  @override
+  String get aiProviderClaudeSubtitle => 'Anthropic 官方前沿多模态大模型';
+
+  @override
+  String get aiProviderCustomSubtitle => '兼容 OpenAI 协议的自定义端点';
+
+  @override
+  String aiSelectModelTitle(String provider) {
+    return '选择模型 ($provider)';
+  }
+
+  @override
+  String get aiProbeRefresh => '重新探测';
+
+  @override
+  String get aiModelSearchHint => '搜索或筛选模型...';
+
+  @override
+  String get aiNoMatchingModels => '无匹配模型，可直接在输入框中键入自定义模型名称';
+
+  @override
+  String get aiBaseUrlEndpointHint =>
+      'OpenAI 协议服务兼容 /chat/completions，Claude 服务兼容 /messages';
+
+  @override
+  String get aiProbeTooltip => '在线探测可用模型';
+
+  @override
+  String get aiProbeButton => '探测';
+
+  @override
+  String get aiSelectModelTooltip => '从模型列表选择';
+
+  @override
+  String get aiUpdateKeyPlaceholder => '更新密钥 (留空则保留原密钥)';
+
+  @override
+  String get aiProbeNeedKeyError => '请先输入或配置 API Key 后再探测模型';
+
+  @override
+  String aiProbeSuccessCount(int count) {
+    return '成功探测到 $count 个可用模型';
+  }
+
+  @override
+  String aiProbeFailedFallback(String error) {
+    return '探测失败，已加载预设模型: $error';
+  }
+
+  @override
+  String get aiTestNeedKeyError => '请先输入 API Key 再测试连接';
+
+  @override
+  String get aiSetDueDate => '设置截止时间';
+
+  @override
+  String get aiPresetToday18 => '今天 18:00';
+
+  @override
+  String get aiPresetTonight21 => '今晚 21:00';
+
+  @override
+  String get aiPresetTomorrow09 => '明天 09:00';
+
+  @override
+  String get aiPresetThisFriday18 => '本周五 18:00';
+
+  @override
+  String get aiPresetNextMonday09 => '下周一 09:00';
+
+  @override
+  String get aiCustomDateTime => '自定义日期与时间...';
+
+  @override
+  String get aiClearDueDate => '清除截止时间';
+
+  @override
+  String get aiSetStartDate => '设置开始时间';
+
+  @override
+  String get aiPresetNow => '现在';
+
+  @override
+  String get aiPresetToday14 => '今天 14:00';
+
+  @override
+  String get aiClearStartDate => '清除开始时间';
+
+  @override
+  String get aiAddTagTitle => '添加标签';
+
+  @override
+  String get aiAddTagHint => '输入标签名称 (如: 工作, 紧急)';
+
+  @override
+  String get aiTaskDescriptionHint => '输入任务备注...';
+
+  @override
+  String get aiAddDescription => '添加备注';
+
+  @override
+  String get aiTapToCyclePriority => '点击切换优先级';
+
+  @override
+  String get aiPriorityP1 => 'P1 · 重要紧急';
+
+  @override
+  String get aiPriorityP2 => 'P2 · 适中';
+
+  @override
+  String get aiPriorityP3 => 'P3 · 低优';
+
+  @override
+  String get aiPriorityNone => '无优先级';
+
+  @override
+  String aiStartPrefix(String time) {
+    return '开始: $time';
+  }
+
+  @override
+  String get aiAddStartAction => '+ 开始';
+
+  @override
+  String get aiAddDueAction => '+ 截止';
+
+  @override
+  String get aiAddTagAction => '+ 标签';
+
+  @override
+  String get aiAddSubstepAction => '添加步骤';
+
+  @override
+  String aiStepDefaultTitle(int number) {
+    return '步骤 $number';
+  }
+
+  @override
+  String get aiShimmerThinking => 'AI 思考与规划中...';
+
+  @override
+  String get aiGoToConfigure => '去配置';
 }

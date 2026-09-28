@@ -134,13 +134,13 @@ class AiConfigService {
   }
 
   /// Tests connectivity and authentication using [AiClient].
-  Future<AiPingResult> testConnection(AiConfig config) {
-    return _aiClient.ping(config);
+  Future<AiPingResult> testConnection(AiConfig config, {String locale = 'zh'}) {
+    return _aiClient.ping(config, locale: locale);
   }
 
   /// Fetches available models using [AiClient].
-  Future<List<String>> fetchModels(AiConfig config) {
-    return _aiClient.fetchModels(config);
+  Future<List<String>> fetchModels(AiConfig config, {String locale = 'zh'}) {
+    return _aiClient.fetchModels(config, locale: locale);
   }
 }
 
@@ -177,8 +177,8 @@ class AiConfigNotifier extends AsyncNotifier<AiConfig> {
   }
 
   /// Tests connectivity with given config.
-  Future<AiPingResult> testConnection(AiConfig config) async {
+  Future<AiPingResult> testConnection(AiConfig config, {String locale = 'zh'}) async {
     final service = ref.read(aiConfigServiceProvider);
-    return service.testConnection(config);
+    return service.testConnection(config, locale: locale);
   }
 }

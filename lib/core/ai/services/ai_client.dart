@@ -148,6 +148,7 @@ class AiClient {
   Future<List<String>> fetchModels(
     AiConfig config, {
     Duration timeout = const Duration(seconds: 15),
+    String locale = 'zh',
   }) async {
     final endpoint = normalizeModelsEndpoint(config);
     final Map<String, String> headers;
@@ -157,9 +158,7 @@ class AiClient {
         'anthropic-version': '2023-06-01',
       };
     } else {
-      headers = {
-        'Authorization': 'Bearer ${config.apiKey ?? ''}',
-      };
+      headers = {'Authorization': 'Bearer ${config.apiKey ?? ''}'};
     }
 
     final response = await _httpClient.get(
@@ -172,14 +171,16 @@ class AiClient {
       try {
         final decoded = jsonDecode(response.body);
         final List<dynamic>? rawList = decoded is Map<String, dynamic>
-            ? (decoded['data'] as List<dynamic>? ?? decoded['models'] as List<dynamic>?)
+            ? (decoded['data'] as List<dynamic>? ??
+                  decoded['models'] as List<dynamic>?)
             : (decoded is List<dynamic> ? decoded : null);
 
         if (rawList != null) {
           final models = <String>[];
           for (final item in rawList) {
             if (item is Map<String, dynamic>) {
-              final id = item['id']?.toString() ??
+              final id =
+                  item['id']?.toString() ??
                   item['name']?.toString() ??
                   item['model']?.toString();
               if (id != null && id.trim().isNotEmpty) {
@@ -203,9 +204,13 @@ class AiClient {
       response.statusCode,
       response.body,
       config.apiKey,
+      locale: locale,
     );
+    final isZh = locale.toLowerCase().startsWith('zh');
     throw HttpException(
-      '探测模型失败 (HTTP ${response.statusCode}): $errorMsg',
+      isZh
+          ? '探测模型失败 (HTTP ${response.statusCode}): $errorMsg'
+          : 'Failed to probe models (HTTP ${response.statusCode}): $errorMsg',
       uri: endpoint,
     );
   }
@@ -234,6 +239,7 @@ class AiClient {
   Future<AiPingResult> ping(
     AiConfig config, {
     Duration timeout = const Duration(seconds: 15),
+    String locale = 'zh',
   }) async {
     final stopwatch = Stopwatch()..start();
     try {
@@ -291,6 +297,7 @@ class AiClient {
         response.statusCode,
         response.body,
         config.apiKey,
+        locale: locale,
       );
       return AiPingResult(
         isSuccess: false,
@@ -300,27 +307,34 @@ class AiClient {
       );
     } on TimeoutException {
       stopwatch.stop();
+      final isZh = locale.toLowerCase().startsWith('zh');
       return AiPingResult(
         isSuccess: false,
         statusCode: 0,
         durationMs: stopwatch.elapsedMilliseconds,
-        errorMessage: '网络连接超时 (15s)，请检查网络或代理设置',
+        errorMessage: isZh
+            ? '网络连接超时 (15s)，请检查网络或代理设置'
+            : 'Connection timed out (15s). Please check network or proxy settings.',
       );
     } on SocketException catch (e) {
       stopwatch.stop();
+      final isZh = locale.toLowerCase().startsWith('zh');
       return AiPingResult(
         isSuccess: false,
         statusCode: 0,
         durationMs: stopwatch.elapsedMilliseconds,
-        errorMessage: '网络不可达 (${e.osError?.message ?? e.message})，请检查网络或代理设置',
+        errorMessage: isZh
+            ? '网络不可达 (${e.osError?.message ?? e.message})，请检查网络或代理设置'
+            : 'Network unreachable (${e.osError?.message ?? e.message}). Please check network or proxy settings.',
       );
     } catch (e) {
       stopwatch.stop();
+      final isZh = locale.toLowerCase().startsWith('zh');
       return AiPingResult(
         isSuccess: false,
         statusCode: 0,
         durationMs: stopwatch.elapsedMilliseconds,
-        errorMessage: '网络连接异常: $e',
+        errorMessage: isZh ? '网络连接异常: $e' : 'Connection error: $e',
       );
     }
   }
@@ -331,6 +345,7 @@ class AiClient {
     List<Map<String, String>> messages, {
     double temperature = 0.2,
     Duration timeout = const Duration(seconds: 30),
+    String locale = 'zh',
   }) async {
     final endpoint = normalizeEndpoint(config);
     final Map<String, String> headers;
@@ -402,16 +417,32 @@ class AiClient {
         }
         return response.body;
       } on FormatException {
-        throw Exception('服务商响应解析失败：返回了非 JSON 格式内容（可能是反向代理或网关错误页）');
+        final isZh = locale.toLowerCase().startsWith('zh');
+        throw Exception(
+          isZh
+              ? '服务端响应解析失败：返回了非 JSON 格式内容（可能是反向代理或网关错误页）'
+              : 'Failed to parse response: Returned non-JSON content (likely reverse proxy or gateway error page)',
+        );
       }
     }
 
     throw Exception(
-      _diagnoseError(response.statusCode, response.body, config.apiKey),
+      _diagnoseError(
+        response.statusCode,
+        response.body,
+        config.apiKey,
+        locale: locale,
+      ),
     );
   }
 
-  String _diagnoseError(int statusCode, String responseBody, String? apiKey) {
+  String _diagnoseError(
+    int statusCode,
+    String responseBody,
+    String? apiKey, {
+    String locale = 'zh',
+  }) {
+    final isZh = locale.toLowerCase().startsWith('zh');
     String detail = '';
     try {
       final decoded = jsonDecode(responseBody);
@@ -433,22 +464,42 @@ class AiClient {
       detail = detail.replaceAll(apiKey, '***');
     }
 
-    switch (statusCode) {
-      case 401:
-        return '身份鉴权失败 (401)：${detail.isNotEmpty ? detail : "请检查 API Key 是否有效"}';
-      case 403:
-        return '访问权限受限 (403)：${detail.isNotEmpty ? detail : "请确认该账号或密钥具备模型调用权限"}';
-      case 404:
-        return '接口端点未找到 (404)：请检查 Base URL 是否正确';
-      case 429:
-        return '请求频率超限或余额不足 (429)：${detail.isNotEmpty ? detail : "请检查账户配额"}';
-      case 500:
-      case 502:
-      case 503:
-      case 504:
-        return '服务商服务器异常 ($statusCode)：${detail.isNotEmpty ? detail : "请稍后重试"}';
-      default:
-        return 'HTTP $statusCode 异常${detail.isNotEmpty ? ": $detail" : ""}';
+    if (isZh) {
+      switch (statusCode) {
+        case 401:
+          return '身份鉴权失败 (401)：${detail.isNotEmpty ? detail : "请检查 API Key 是否有效"}';
+        case 403:
+          return '访问权限受限 (403)：${detail.isNotEmpty ? detail : "请确认该账号或密钥具备模型调用权限"}';
+        case 404:
+          return '接口端点未找到 (404)：请检查 Base URL 是否正确';
+        case 429:
+          return '请求频率超限或余额不足 (429)：${detail.isNotEmpty ? detail : "请检查账户配额"}';
+        case 500:
+        case 502:
+        case 503:
+        case 504:
+          return '服务商服务器异常 ($statusCode)：${detail.isNotEmpty ? detail : "请稍后重试"}';
+        default:
+          return 'HTTP $statusCode 异常${detail.isNotEmpty ? ": $detail" : ""}';
+      }
+    } else {
+      switch (statusCode) {
+        case 401:
+          return 'Authentication failed (401): ${detail.isNotEmpty ? detail : "Please verify your API Key is valid"}';
+        case 403:
+          return 'Access forbidden (403): ${detail.isNotEmpty ? detail : "Please confirm key permissions for this model"}';
+        case 404:
+          return 'Endpoint not found (404): Please check if the Base URL is correct';
+        case 429:
+          return 'Rate limited or quota exceeded (429): ${detail.isNotEmpty ? detail : "Please check your account quota"}';
+        case 500:
+        case 502:
+        case 503:
+        case 504:
+          return 'Provider server error ($statusCode): ${detail.isNotEmpty ? detail : "Please try again later"}';
+        default:
+          return 'HTTP $statusCode error${detail.isNotEmpty ? ": $detail" : ""}';
+      }
     }
   }
 }

@@ -45,6 +45,9 @@ class AiTaskParseResult {
     this.rawResponse,
   });
 
+  static const String defaultTitleZh = '未命名任务';
+  static const String defaultTitleEn = 'Untitled Task';
+
   /// Task title (1-200 chars).
   final String title;
 
@@ -124,11 +127,12 @@ class AiTaskParseResult {
   factory AiTaskParseResult.fromJson(
     Map<String, dynamic> json, {
     String? rawResponse,
+    String defaultTitle = defaultTitleZh,
   }) {
     // 1. Title sanitization
     var rawTitle = json['title']?.toString().trim() ?? '';
     if (rawTitle.isEmpty) {
-      rawTitle = '未命名任务';
+      rawTitle = defaultTitle;
     } else if (rawTitle.length > 200) {
       rawTitle = rawTitle.substring(0, 200);
     }
@@ -214,10 +218,14 @@ class AiTaskParseResult {
     );
   }
 
-  factory AiTaskParseResult.fallback(String rawInput, {String? rawResponse}) {
+  factory AiTaskParseResult.fallback(
+    String rawInput, {
+    String? rawResponse,
+    String defaultTitle = defaultTitleZh,
+  }) {
     var title = rawInput.trim();
     if (title.isEmpty) {
-      title = '未命名任务';
+      title = defaultTitle;
     } else if (title.length > 200) {
       title = title.substring(0, 200);
     }

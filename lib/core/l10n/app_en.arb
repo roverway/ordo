@@ -1181,5 +1181,242 @@
   "efficiencyAnalysisTitle": "Diagnosis & Action Items",
   "@efficiencyAnalysisTitle": {
     "description": "Analysis and action items title"
+  },
+  "aiProviderSwitchOnDemand": "Switch providers on demand",
+  "@aiProviderSwitchOnDemand": {
+    "description": "Provider card subtitle"
+  },
+  "aiSelectProviderTitle": "Select AI Provider",
+  "@aiSelectProviderTitle": {
+    "description": "Select provider sheet title"
+  },
+  "aiSelectProviderSubtitle": "Maintains separate keys for each provider for seamless switching",
+  "@aiSelectProviderSubtitle": {
+    "description": "Select provider sheet subtitle"
+  },
+  "aiKeyConfigured": "Configured",
+  "@aiKeyConfigured": {
+    "description": "Badge showing provider has key configured"
+  },
+  "aiProviderDeepSeekSubtitle": "DeepSeek official reasoning & general-purpose models",
+  "@aiProviderDeepSeekSubtitle": {
+    "description": "DeepSeek provider description"
+  },
+  "aiProviderKimiSubtitle": "Moonshot long-context & general-purpose models",
+  "@aiProviderKimiSubtitle": {
+    "description": "Kimi provider description"
+  },
+  "aiProviderQwenSubtitle": "Alibaba Tongyi Qwen cost-effective models",
+  "@aiProviderQwenSubtitle": {
+    "description": "Qwen provider description"
+  },
+  "aiProviderGlmSubtitle": "Zhipu GLM general & lightweight models",
+  "@aiProviderGlmSubtitle": {
+    "description": "GLM provider description"
+  },
+  "aiProviderOpenAiSubtitle": "OpenAI official flagship & reasoning models",
+  "@aiProviderOpenAiSubtitle": {
+    "description": "OpenAI provider description"
+  },
+  "aiProviderClaudeSubtitle": "Anthropic official frontier multimodal models",
+  "@aiProviderClaudeSubtitle": {
+    "description": "Claude provider description"
+  },
+  "aiProviderCustomSubtitle": "Custom endpoint compatible with OpenAI protocol",
+  "@aiProviderCustomSubtitle": {
+    "description": "Custom provider description"
+  },
+  "aiSelectModelTitle": "Select Model ({provider})",
+  "@aiSelectModelTitle": {
+    "description": "Select model sheet title",
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "aiProbeRefresh": "Refresh",
+  "@aiProbeRefresh": {
+    "description": "Refresh probed models button"
+  },
+  "aiModelSearchHint": "Search or filter models...",
+  "@aiModelSearchHint": {
+    "description": "Model search input hint"
+  },
+  "aiNoMatchingModels": "No matching models. You can type a custom model name directly",
+  "@aiNoMatchingModels": {
+    "description": "Empty state when no matching models"
+  },
+  "aiBaseUrlEndpointHint": "OpenAI endpoint uses /chat/completions, Claude /messages",
+  "@aiBaseUrlEndpointHint": {
+    "description": "Base URL helper text"
+  },
+  "aiProbeTooltip": "Probe available models online",
+  "@aiProbeTooltip": {
+    "description": "Tooltip for model probe button"
+  },
+  "aiProbeButton": "Probe",
+  "@aiProbeButton": {
+    "description": "Model probe button label"
+  },
+  "aiSelectModelTooltip": "Select from model list",
+  "@aiSelectModelTooltip": {
+    "description": "Tooltip for selecting from model list"
+  },
+  "aiUpdateKeyPlaceholder": "Update key (leave blank to keep existing key)",
+  "@aiUpdateKeyPlaceholder": {
+    "description": "API key input label when existing key exists"
+  },
+  "aiProbeNeedKeyError": "Please enter or configure an API Key before probing models",
+  "@aiProbeNeedKeyError": {
+    "description": "Error when probing without API key"
+  },
+  "aiProbeSuccessCount": "Successfully probed {count} available models",
+  "@aiProbeSuccessCount": {
+    "description": "Success message when probe discovers models",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aiProbeFailedFallback": "Failed to probe models, loaded presets: {error}",
+  "@aiProbeFailedFallback": {
+    "description": "Notice when probe fails and falls back to presets",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "aiTestNeedKeyError": "Please enter an API Key before testing connection",
+  "@aiTestNeedKeyError": {
+    "description": "Error when testing connection without API key"
+  },
+  "aiSetDueDate": "Set Due Date",
+  "@aiSetDueDate": {
+    "description": "Set due date title"
+  },
+  "aiPresetToday18": "Today 18:00",
+  "@aiPresetToday18": {
+    "description": "Quick date preset today 18:00"
+  },
+  "aiPresetTonight21": "Tonight 21:00",
+  "@aiPresetTonight21": {
+    "description": "Quick date preset tonight 21:00"
+  },
+  "aiPresetTomorrow09": "Tomorrow 09:00",
+  "@aiPresetTomorrow09": {
+    "description": "Quick date preset tomorrow 09:00"
+  },
+  "aiPresetThisFriday18": "This Friday 18:00",
+  "@aiPresetThisFriday18": {
+    "description": "Quick date preset this Friday 18:00"
+  },
+  "aiPresetNextMonday09": "Next Monday 09:00",
+  "@aiPresetNextMonday09": {
+    "description": "Quick date preset next Monday 09:00"
+  },
+  "aiCustomDateTime": "Custom date & time...",
+  "@aiCustomDateTime": {
+    "description": "Custom date and time picker action"
+  },
+  "aiClearDueDate": "Clear due date",
+  "@aiClearDueDate": {
+    "description": "Clear due date button"
+  },
+  "aiSetStartDate": "Set Start Date",
+  "@aiSetStartDate": {
+    "description": "Set start date title"
+  },
+  "aiPresetNow": "Now",
+  "@aiPresetNow": {
+    "description": "Quick date preset now"
+  },
+  "aiPresetToday14": "Today 14:00",
+  "@aiPresetToday14": {
+    "description": "Quick date preset today 14:00"
+  },
+  "aiClearStartDate": "Clear start date",
+  "@aiClearStartDate": {
+    "description": "Clear start date button"
+  },
+  "aiAddTagTitle": "Add Tag",
+  "@aiAddTagTitle": {
+    "description": "Add tag dialog title"
+  },
+  "aiAddTagHint": "Enter tag name (e.g. Work, Urgent)",
+  "@aiAddTagHint": {
+    "description": "Add tag input hint"
+  },
+  "aiTaskDescriptionHint": "Enter task notes...",
+  "@aiTaskDescriptionHint": {
+    "description": "Task description input hint"
+  },
+  "aiAddDescription": "Add Note",
+  "@aiAddDescription": {
+    "description": "Add note action"
+  },
+  "aiTapToCyclePriority": "Tap to cycle priority",
+  "@aiTapToCyclePriority": {
+    "description": "Tooltip for priority badge"
+  },
+  "aiPriorityP1": "P1 · Urgent",
+  "@aiPriorityP1": {
+    "description": "Priority 1 label"
+  },
+  "aiPriorityP2": "P2 · Medium",
+  "@aiPriorityP2": {
+    "description": "Priority 2 label"
+  },
+  "aiPriorityP3": "P3 · Low",
+  "@aiPriorityP3": {
+    "description": "Priority 3 label"
+  },
+  "aiPriorityNone": "None",
+  "@aiPriorityNone": {
+    "description": "No priority label"
+  },
+  "aiStartPrefix": "Start: {time}",
+  "@aiStartPrefix": {
+    "description": "Start time prefix",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "aiAddStartAction": "+ Start",
+  "@aiAddStartAction": {
+    "description": "Add start time button"
+  },
+  "aiAddDueAction": "+ Due",
+  "@aiAddDueAction": {
+    "description": "Add due date button"
+  },
+  "aiAddTagAction": "+ Tag",
+  "@aiAddTagAction": {
+    "description": "Add tag button"
+  },
+  "aiAddSubstepAction": "Add step",
+  "@aiAddSubstepAction": {
+    "description": "Add step button"
+  },
+  "aiStepDefaultTitle": "Step {number}",
+  "@aiStepDefaultTitle": {
+    "description": "Default title for newly added substep",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "aiShimmerThinking": "AI thinking & planning...",
+  "@aiShimmerThinking": {
+    "description": "AI shimmer loading state text"
+  },
+  "aiGoToConfigure": "Configure",
+  "@aiGoToConfigure": {
+    "description": "Go to configure AI settings action button"
   }
 }

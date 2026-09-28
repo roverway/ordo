@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ordo/core/ai/models/ai_config.dart';
 import 'package:ordo/core/ai/models/ai_task_parse_result.dart';
 import 'package:ordo/core/ai/services/ai_task_parser.dart';
 import 'package:ordo/core/ai/services/ai_task_persistence_service.dart';
@@ -17,8 +18,9 @@ class _FakeAiTaskParser implements AiTaskParser {
   @override
   Future<AiTaskParseResult> parse(
     String input, {
-    dynamic config,
+    AiConfig? config,
     DateTime? now,
+    String locale = 'zh',
   }) async {
     return AiTaskParseResult(
       title: input,
@@ -33,7 +35,11 @@ class _FakeAiTaskParser implements AiTaskParser {
   }
 
   @override
-  AiTaskParseResult parseRawResponse(String response, {String? originalInput}) {
+  AiTaskParseResult parseRawResponse(
+    String response, {
+    String? originalInput,
+    String locale = 'zh',
+  }) {
     return AiTaskParseResult(title: originalInput ?? '任务');
   }
 }

@@ -1703,4 +1703,185 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get efficiencyAnalysisTitle => 'Diagnosis & Action Items';
+
+  @override
+  String get aiProviderSwitchOnDemand => 'Switch providers on demand';
+
+  @override
+  String get aiSelectProviderTitle => 'Select AI Provider';
+
+  @override
+  String get aiSelectProviderSubtitle =>
+      'Maintains separate keys for each provider for seamless switching';
+
+  @override
+  String get aiKeyConfigured => 'Configured';
+
+  @override
+  String get aiProviderDeepSeekSubtitle =>
+      'DeepSeek official reasoning & general-purpose models';
+
+  @override
+  String get aiProviderKimiSubtitle =>
+      'Moonshot long-context & general-purpose models';
+
+  @override
+  String get aiProviderQwenSubtitle =>
+      'Alibaba Tongyi Qwen cost-effective models';
+
+  @override
+  String get aiProviderGlmSubtitle => 'Zhipu GLM general & lightweight models';
+
+  @override
+  String get aiProviderOpenAiSubtitle =>
+      'OpenAI official flagship & reasoning models';
+
+  @override
+  String get aiProviderClaudeSubtitle =>
+      'Anthropic official frontier multimodal models';
+
+  @override
+  String get aiProviderCustomSubtitle =>
+      'Custom endpoint compatible with OpenAI protocol';
+
+  @override
+  String aiSelectModelTitle(String provider) {
+    return 'Select Model ($provider)';
+  }
+
+  @override
+  String get aiProbeRefresh => 'Refresh';
+
+  @override
+  String get aiModelSearchHint => 'Search or filter models...';
+
+  @override
+  String get aiNoMatchingModels =>
+      'No matching models. You can type a custom model name directly';
+
+  @override
+  String get aiBaseUrlEndpointHint =>
+      'OpenAI endpoint uses /chat/completions, Claude /messages';
+
+  @override
+  String get aiProbeTooltip => 'Probe available models online';
+
+  @override
+  String get aiProbeButton => 'Probe';
+
+  @override
+  String get aiSelectModelTooltip => 'Select from model list';
+
+  @override
+  String get aiUpdateKeyPlaceholder =>
+      'Update key (leave blank to keep existing key)';
+
+  @override
+  String get aiProbeNeedKeyError =>
+      'Please enter or configure an API Key before probing models';
+
+  @override
+  String aiProbeSuccessCount(int count) {
+    return 'Successfully probed $count available models';
+  }
+
+  @override
+  String aiProbeFailedFallback(String error) {
+    return 'Failed to probe models, loaded presets: $error';
+  }
+
+  @override
+  String get aiTestNeedKeyError =>
+      'Please enter an API Key before testing connection';
+
+  @override
+  String get aiSetDueDate => 'Set Due Date';
+
+  @override
+  String get aiPresetToday18 => 'Today 18:00';
+
+  @override
+  String get aiPresetTonight21 => 'Tonight 21:00';
+
+  @override
+  String get aiPresetTomorrow09 => 'Tomorrow 09:00';
+
+  @override
+  String get aiPresetThisFriday18 => 'This Friday 18:00';
+
+  @override
+  String get aiPresetNextMonday09 => 'Next Monday 09:00';
+
+  @override
+  String get aiCustomDateTime => 'Custom date & time...';
+
+  @override
+  String get aiClearDueDate => 'Clear due date';
+
+  @override
+  String get aiSetStartDate => 'Set Start Date';
+
+  @override
+  String get aiPresetNow => 'Now';
+
+  @override
+  String get aiPresetToday14 => 'Today 14:00';
+
+  @override
+  String get aiClearStartDate => 'Clear start date';
+
+  @override
+  String get aiAddTagTitle => 'Add Tag';
+
+  @override
+  String get aiAddTagHint => 'Enter tag name (e.g. Work, Urgent)';
+
+  @override
+  String get aiTaskDescriptionHint => 'Enter task notes...';
+
+  @override
+  String get aiAddDescription => 'Add Note';
+
+  @override
+  String get aiTapToCyclePriority => 'Tap to cycle priority';
+
+  @override
+  String get aiPriorityP1 => 'P1 · Urgent';
+
+  @override
+  String get aiPriorityP2 => 'P2 · Medium';
+
+  @override
+  String get aiPriorityP3 => 'P3 · Low';
+
+  @override
+  String get aiPriorityNone => 'None';
+
+  @override
+  String aiStartPrefix(String time) {
+    return 'Start: $time';
+  }
+
+  @override
+  String get aiAddStartAction => '+ Start';
+
+  @override
+  String get aiAddDueAction => '+ Due';
+
+  @override
+  String get aiAddTagAction => '+ Tag';
+
+  @override
+  String get aiAddSubstepAction => 'Add step';
+
+  @override
+  String aiStepDefaultTitle(int number) {
+    return 'Step $number';
+  }
+
+  @override
+  String get aiShimmerThinking => 'AI thinking & planning...';
+
+  @override
+  String get aiGoToConfigure => 'Configure';
 }
