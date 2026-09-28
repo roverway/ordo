@@ -84,9 +84,12 @@ class AiTaskParseResult {
   AiTaskParseResult copyWith({
     String? title,
     String? description,
+    bool clearDescription = false,
     int? priority,
     int? startAt,
+    bool clearStartAt = false,
     int? dueAt,
+    bool clearDueAt = false,
     List<String>? tags,
     List<AiSubstep>? substeps,
     bool? isFallback,
@@ -94,10 +97,10 @@ class AiTaskParseResult {
   }) {
     return AiTaskParseResult(
       title: title ?? this.title,
-      description: description ?? this.description,
+      description: clearDescription ? null : (description ?? this.description),
       priority: priority ?? this.priority,
-      startAt: startAt ?? this.startAt,
-      dueAt: dueAt ?? this.dueAt,
+      startAt: clearStartAt ? null : (startAt ?? this.startAt),
+      dueAt: clearDueAt ? null : (dueAt ?? this.dueAt),
       tags: tags ?? this.tags,
       substeps: substeps ?? this.substeps,
       isFallback: isFallback ?? this.isFallback,

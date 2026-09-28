@@ -31,6 +31,15 @@ class _FakeAiHttpClient implements AiHttpClient {
     ));
     return handler(uri, headers ?? {}, body);
   }
+
+  @override
+  Future<AiHttpResponse> get(
+    Uri uri, {
+    Map<String, String>? headers,
+    Duration? timeout,
+  }) async {
+    return const AiHttpResponse(statusCode: 200, body: '{"data":[]}');
+  }
 }
 
 void main() {

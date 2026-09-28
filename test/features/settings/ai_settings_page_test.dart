@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -34,6 +35,15 @@ class _FakeAiHttpClient implements AiHttpClient {
     Uri uri, {
     Map<String, String>? headers,
     Object? body,
+    Duration? timeout,
+  }) async {
+    return AiHttpResponse(statusCode: responseStatus, body: responseBody);
+  }
+
+  @override
+  Future<AiHttpResponse> get(
+    Uri uri, {
+    Map<String, String>? headers,
     Duration? timeout,
   }) async {
     return AiHttpResponse(statusCode: responseStatus, body: responseBody);
@@ -202,6 +212,101 @@ void main() {
 
       expect(find.text('https://open.bigmodel.cn/api/paas/v4'), findsOneWidget);
       expect(find.text('glm-4-flash'), findsOneWidget);
+    });
+
+    testWidgets('Action buttons (测试连接, 保存配置) are placed side-by-side in a single Row', (
+      tester,
+    ) async {
+      await _pumpAiSettingsPage(
+        tester,
+        repo: repo,
+        secureStore: secureStore,
+        httpClient: httpClient,
+      );
+
+      final testBtn = find.text('测试连接');
+      final saveBtn = find.text('保存配置');
+
+      expect(testBtn, findsOneWidget);
+      expect(saveBtn, findsOneWidget);
+
+      final testCenter = tester.getCenter(testBtn);
+      final saveCenter = tester.getCenter(saveBtn);
+
+      // They must share approximately the same Y-coordinate (within 2px) and test button is to the left of save button
+      expect((testCenter.dy - saveCenter.dy).abs(), lessThan(2.0));
+      expect(testCenter.dx, lessThan(saveCenter.dx));
+    });
+
+    testWidgets('Switching to Kimi and Alibaba Qwen updates presets properly', (
+      tester,
+    ) async {
+      await _pumpAiSettingsPage(
+        tester,
+        repo: repo,
+        secureStore: secureStore,
+        httpClient: httpClient,
+      );
+
+      // Switch to Kimi
+      await tester.tap(find.text('DeepSeek'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.textContaining('Kimi').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('https://api.moonshot.cn/v1'), findsOneWidget);
+      expect(find.text('moonshot-v1-8k'), findsOneWidget);
+
+      // Switch to Qwen
+      await tester.tap(find.textContaining('Kimi').first);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.textContaining('阿里通义千问').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('qwen-plus'), findsOneWidget);
+    });
+
+    testWidgets('Probe models button triggers model discovery and opens picker', (
+      tester,
+    ) async {
+      httpClient.responseStatus = 200;
+      httpClient.responseBody = jsonEncode({
+        'data': [
+          {'id': 'custom-probed-model-v1'},
+          {'id': 'custom-probed-model-v2'},
+        ],
+      });
+
+      await _pumpAiSettingsPage(
+        tester,
+        repo: repo,
+        secureStore: secureStore,
+        httpClient: httpClient,
+      );
+
+      // Input API Key first so probe is allowed
+      await tester.enterText(
+        find.widgetWithText(TextField, 'API Key'),
+        'sk-test-probe-key',
+      );
+      await tester.pumpAndSettle();
+
+      // Tap probe models button
+      await tester.tap(find.byIcon(Icons.radar_outlined));
+      await tester.pumpAndSettle();
+
+      // Verify model picker sheet is displayed with probed model
+      expect(find.text('选择模型 (DeepSeek)'), findsOneWidget);
+      expect(find.text('custom-probed-model-v1'), findsOneWidget);
+
+      // Tap probed model to select it
+      await tester.tap(find.text('custom-probed-model-v1'));
+      await tester.pumpAndSettle();
+
+      // Verify model textfield is updated
+      expect(find.text('custom-probed-model-v1'), findsOneWidget);
     });
   });
 }

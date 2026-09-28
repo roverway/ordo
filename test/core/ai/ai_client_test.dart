@@ -7,7 +7,7 @@ import 'package:ordo/core/ai/models/ai_config.dart';
 import 'package:ordo/core/ai/services/ai_client.dart';
 
 class _FakeAiHttpClient implements AiHttpClient {
-  _FakeAiHttpClient(this.handler);
+  _FakeAiHttpClient(this.handler, {this.getHandler});
 
   final Future<AiHttpResponse> Function(
     Uri uri,
@@ -15,6 +15,12 @@ class _FakeAiHttpClient implements AiHttpClient {
     Object? body,
   )
   handler;
+
+  final Future<AiHttpResponse> Function(
+    Uri uri,
+    Map<String, String> headers,
+  )? getHandler;
+
   final List<({Uri uri, Map<String, String> headers, String body})>
   recordedRequests = [];
 
@@ -31,6 +37,18 @@ class _FakeAiHttpClient implements AiHttpClient {
       body: body is String ? body : (body != null ? jsonEncode(body) : ''),
     ));
     return handler(uri, headers ?? {}, body);
+  }
+
+  @override
+  Future<AiHttpResponse> get(
+    Uri uri, {
+    Map<String, String>? headers,
+    Duration? timeout,
+  }) async {
+    if (getHandler != null) {
+      return getHandler!(uri, headers ?? {});
+    }
+    return const AiHttpResponse(statusCode: 200, body: '{"data":[]}');
   }
 }
 
@@ -237,6 +255,63 @@ void main() {
       final bodyMap = jsonDecode(req.body) as Map<String, dynamic>;
       expect(bodyMap['model'], 'claude-3-5-haiku-20241022');
       expect(bodyMap['max_tokens'], 1);
+    });
+  });
+
+  group('Models probing & endpoint normalization', () {
+    test('normalizeModelsEndpoint formats base url with /models suffix', () {
+      final client = AiClient();
+      expect(
+        client.normalizeModelsEndpoint(
+          const AiConfig(
+            provider: AiProviderType.deepseek,
+            baseUrl: 'https://api.deepseek.com',
+            model: 'deepseek-chat',
+          ),
+        ),
+        Uri.parse('https://api.deepseek.com/models'),
+      );
+
+      expect(
+        client.normalizeModelsEndpoint(
+          const AiConfig(
+            provider: AiProviderType.openai,
+            baseUrl: 'https://api.openai.com/v1/chat/completions',
+            model: 'gpt-4o',
+          ),
+        ),
+        Uri.parse('https://api.openai.com/v1/models'),
+      );
+    });
+
+    test('fetchModels parses OpenAI style models JSON payload', () async {
+      final fakeClient = _FakeAiHttpClient(
+        (uri, headers, body) async => const AiHttpResponse(statusCode: 200, body: '{}'),
+        getHandler: (uri, headers) async {
+          return AiHttpResponse(
+            statusCode: 200,
+            body: jsonEncode({
+              'data': [
+                {'id': 'moonshot-v1-8k'},
+                {'id': 'moonshot-v1-32k'},
+                {'id': 'moonshot-v1-128k'},
+              ],
+            }),
+          );
+        },
+      );
+
+      final client = AiClient(httpClient: fakeClient);
+      final models = await client.fetchModels(
+        const AiConfig(
+          provider: AiProviderType.kimi,
+          baseUrl: 'https://api.moonshot.cn/v1',
+          model: 'moonshot-v1-8k',
+          apiKey: 'test-key',
+        ),
+      );
+
+      expect(models, ['moonshot-v1-128k', 'moonshot-v1-32k', 'moonshot-v1-8k']);
     });
   });
 }

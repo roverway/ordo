@@ -25,6 +25,12 @@ abstract class AiHttpClient {
     Object? body,
     Duration? timeout,
   });
+
+  Future<AiHttpResponse> get(
+    Uri uri, {
+    Map<String, String>? headers,
+    Duration? timeout,
+  }) async => const AiHttpResponse(statusCode: 200, body: '{"data":[]}');
 }
 
 /// Production implementation of [AiHttpClient] using Dart's native `dart:io` [HttpClient].
@@ -65,6 +71,35 @@ class DefaultAiHttpClient implements AiHttpClient {
       client.close(force: true);
     }
   }
+
+  @override
+  Future<AiHttpResponse> get(
+    Uri uri, {
+    Map<String, String>? headers,
+    Duration? timeout,
+  }) async {
+    final client = HttpClient();
+    final effectiveTimeout = timeout ?? const Duration(seconds: 15);
+    try {
+      final request = await client.getUrl(uri).timeout(effectiveTimeout);
+      if (headers != null) {
+        headers.forEach((k, v) => request.headers.set(k, v));
+      }
+      final response = await request.close().timeout(effectiveTimeout);
+      final responseBody = await utf8
+          .decodeStream(response)
+          .timeout(effectiveTimeout);
+      final responseHeaders = <String, String>{};
+      response.headers.forEach((k, v) => responseHeaders[k] = v.join(','));
+      return AiHttpResponse(
+        statusCode: response.statusCode,
+        body: responseBody,
+        headers: responseHeaders,
+      );
+    } finally {
+      client.close(force: true);
+    }
+  }
 }
 
 /// Structured diagnostic result of a ping connection test.
@@ -88,6 +123,92 @@ class AiClient {
     : _httpClient = httpClient ?? const DefaultAiHttpClient();
 
   final AiHttpClient _httpClient;
+
+  /// Normalizes target endpoint URL for model enumeration.
+  Uri normalizeModelsEndpoint(AiConfig config) {
+    var rawUrl = config.baseUrl.trim();
+    if (rawUrl.endsWith('/')) {
+      rawUrl = rawUrl.substring(0, rawUrl.length - 1);
+    }
+    if (rawUrl.endsWith('/chat/completions')) {
+      rawUrl = rawUrl.substring(0, rawUrl.length - '/chat/completions'.length);
+    } else if (rawUrl.endsWith('/messages')) {
+      rawUrl = rawUrl.substring(0, rawUrl.length - '/messages'.length);
+    }
+    if (rawUrl.endsWith('/')) {
+      rawUrl = rawUrl.substring(0, rawUrl.length - 1);
+    }
+    if (!rawUrl.endsWith('/models')) {
+      rawUrl = '$rawUrl/models';
+    }
+    return Uri.parse(rawUrl);
+  }
+
+  /// Probes the endpoint and fetches available model list.
+  Future<List<String>> fetchModels(
+    AiConfig config, {
+    Duration timeout = const Duration(seconds: 15),
+  }) async {
+    final endpoint = normalizeModelsEndpoint(config);
+    final Map<String, String> headers;
+    if (config.provider == AiProviderType.claude) {
+      headers = {
+        'x-api-key': config.apiKey ?? '',
+        'anthropic-version': '2023-06-01',
+      };
+    } else {
+      headers = {
+        'Authorization': 'Bearer ${config.apiKey ?? ''}',
+      };
+    }
+
+    final response = await _httpClient.get(
+      endpoint,
+      headers: headers,
+      timeout: timeout,
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      try {
+        final decoded = jsonDecode(response.body);
+        final List<dynamic>? rawList = decoded is Map<String, dynamic>
+            ? (decoded['data'] as List<dynamic>? ?? decoded['models'] as List<dynamic>?)
+            : (decoded is List<dynamic> ? decoded : null);
+
+        if (rawList != null) {
+          final models = <String>[];
+          for (final item in rawList) {
+            if (item is Map<String, dynamic>) {
+              final id = item['id']?.toString() ??
+                  item['name']?.toString() ??
+                  item['model']?.toString();
+              if (id != null && id.trim().isNotEmpty) {
+                models.add(id.trim());
+              }
+            } else if (item is String && item.trim().isNotEmpty) {
+              models.add(item.trim());
+            }
+          }
+          if (models.isNotEmpty) {
+            models.sort();
+            return models;
+          }
+        }
+      } catch (_) {
+        // Fallback or diagnostic below
+      }
+    }
+
+    final errorMsg = _diagnoseError(
+      response.statusCode,
+      response.body,
+      config.apiKey,
+    );
+    throw HttpException(
+      '探测模型失败 (HTTP ${response.statusCode}): $errorMsg',
+      uri: endpoint,
+    );
+  }
 
   /// Normalizes target endpoint URL based on provider type and base URL.
   Uri normalizeEndpoint(AiConfig config) {

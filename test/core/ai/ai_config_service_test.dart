@@ -48,6 +48,10 @@ void main() {
     test('Default provider has valid baseUrl and model', () {
       expect(AiProviderType.deepseek.defaultBaseUrl, 'https://api.deepseek.com');
       expect(AiProviderType.deepseek.defaultModel, 'deepseek-chat');
+      expect(AiProviderType.kimi.defaultBaseUrl, 'https://api.moonshot.cn/v1');
+      expect(AiProviderType.kimi.defaultModel, 'moonshot-v1-8k');
+      expect(AiProviderType.qwen.defaultBaseUrl, contains('dashscope.aliyuncs.com'));
+      expect(AiProviderType.qwen.defaultModel, 'qwen-plus');
       expect(AiProviderType.glm.defaultBaseUrl, contains('bigmodel.cn'));
       expect(AiProviderType.openai.defaultBaseUrl, contains('api.openai.com'));
       expect(AiProviderType.claude.defaultBaseUrl, contains('api.anthropic.com'));
@@ -167,6 +171,43 @@ void main() {
 
       final loaded = await configService.loadConfig();
       expect(loaded.apiKey, isNull);
+    });
+
+    test('supports independent multi-provider configuration and switching', () async {
+      // Configure DeepSeek
+      const deepseekConfig = AiConfig(
+        provider: AiProviderType.deepseek,
+        baseUrl: 'https://api.deepseek.com',
+        model: 'deepseek-chat',
+        apiKey: 'sk-deepseek-key-12345',
+      );
+      await configService.saveConfig(deepseekConfig);
+
+      // Configure Kimi
+      const kimiConfig = AiConfig(
+        provider: AiProviderType.kimi,
+        baseUrl: 'https://api.moonshot.cn/v1',
+        model: 'moonshot-v1-32k',
+        apiKey: 'sk-kimi-key-67890',
+      );
+      await configService.saveConfig(kimiConfig);
+
+      // Now active provider is Kimi
+      final active = await configService.loadConfig();
+      expect(active.provider, AiProviderType.kimi);
+      expect(active.model, 'moonshot-v1-32k');
+      expect(active.apiKey, 'sk-kimi-key-67890');
+
+      // Load DeepSeek profile explicitly without changing active provider
+      final loadedDeepSeek = await configService.loadConfig(AiProviderType.deepseek);
+      expect(loadedDeepSeek.provider, AiProviderType.deepseek);
+      expect(loadedDeepSeek.model, 'deepseek-chat');
+      expect(loadedDeepSeek.apiKey, 'sk-deepseek-key-12345');
+
+      // Both keys exist in secure store
+      expect(await configService.hasKeyFor(AiProviderType.deepseek), isTrue);
+      expect(await configService.hasKeyFor(AiProviderType.kimi), isTrue);
+      expect(await configService.hasKeyFor(AiProviderType.claude), isFalse);
     });
   });
 }

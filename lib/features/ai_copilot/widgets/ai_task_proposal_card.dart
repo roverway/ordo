@@ -8,11 +8,16 @@ import 'package:ordo/core/theme/app_tokens.dart';
 ///
 /// Features:
 /// - Human-in-the-loop: Never automatically saves until user taps confirm.
-/// - Inline title editing & priority quick-toggle before confirming.
+/// - In-place live editing for all proposal fields:
+///   - Title: Tap to edit in-place with instant checkmark confirmation.
+///   - Description: Tap to edit in-place or add a note if empty.
+///   - Priority: One-tap cyclic toggle (P1 -> P2 -> P3 -> None) with haptics.
+///   - Due Date: Tap badge to pick preset/custom deadline or clear.
+///   - Start Date: Tap badge to set starting timestamp or clear.
+///   - Tags: Tap to edit/remove existing tags, plus chip to append tags.
+///   - Substeps: Inline text editing per step, delete action, and add step button.
 /// - Linear minimal aesthetic: Dark mode [surfaceCardDark], subtle micro-glow borders,
-///   zero magic numbers (100% token compliant).
-/// - Selectable substeps with rounded checkboxes.
-/// - Idempotent confirm button: disabled and grayed out once persisted.
+///   100% token compliant (zero magic numbers).
 class AiTaskProposalCard extends StatefulWidget {
   const AiTaskProposalCard({
     super.key,
@@ -45,7 +50,7 @@ class AiTaskProposalCard extends StatefulWidget {
   /// Callback when substeps selection changes.
   final ValueChanged<Set<int>>? onSubstepsChanged;
 
-  /// Callback when user edits proposal (e.g. title or priority).
+  /// Callback when user edits proposal fields.
   final ValueChanged<AiTaskParseResult>? onProposalChanged;
 
   /// Callback when user taps "Add to tasks".
@@ -63,11 +68,30 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
   late FocusNode _titleFocusNode;
   bool _isEditingTitle = false;
 
+  late TextEditingController _descController;
+  late FocusNode _descFocusNode;
+  bool _isEditingDesc = false;
+
+  int? _editingSubstepIndex;
+  late TextEditingController _substepController;
+  late FocusNode _substepFocusNode;
+
+  bool get isInteractive =>
+      !widget.isPersisted && !widget.isDiscarded && !widget.isPersisting;
+
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.proposal.title);
     _titleFocusNode = FocusNode();
+
+    _descController = TextEditingController(
+      text: widget.proposal.description ?? '',
+    );
+    _descFocusNode = FocusNode();
+
+    _substepController = TextEditingController();
+    _substepFocusNode = FocusNode();
   }
 
   @override
@@ -76,12 +100,20 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
     if (oldWidget.proposal.title != widget.proposal.title && !_isEditingTitle) {
       _titleController.text = widget.proposal.title;
     }
+    if (oldWidget.proposal.description != widget.proposal.description &&
+        !_isEditingDesc) {
+      _descController.text = widget.proposal.description ?? '';
+    }
   }
 
   @override
   void dispose() {
     _titleController.dispose();
     _titleFocusNode.dispose();
+    _descController.dispose();
+    _descFocusNode.dispose();
+    _substepController.dispose();
+    _substepFocusNode.dispose();
     super.dispose();
   }
 
@@ -98,8 +130,20 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
     });
   }
 
+  void _submitDescEdit() {
+    final newDesc = _descController.text.trim();
+    final updated = widget.proposal.copyWith(
+      description: newDesc,
+      clearDescription: newDesc.isEmpty,
+    );
+    widget.onProposalChanged?.call(updated);
+    setState(() {
+      _isEditingDesc = false;
+    });
+  }
+
   void _cyclePriority() {
-    if (widget.isPersisted || widget.isDiscarded || widget.isPersisting) return;
+    if (!isInteractive) return;
     HapticFeedback.selectionClick();
 
     // 3 -> 2 -> 1 -> 0 -> 3
@@ -119,6 +163,423 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
     widget.onProposalChanged?.call(updated);
   }
 
+  void _updateDueAt(int? timestamp) {
+    final updated = widget.proposal.copyWith(
+      dueAt: timestamp,
+      clearDueAt: timestamp == null,
+    );
+    widget.onProposalChanged?.call(updated);
+  }
+
+  void _updateStartAt(int? timestamp) {
+    final updated = widget.proposal.copyWith(
+      startAt: timestamp,
+      clearStartAt: timestamp == null,
+    );
+    widget.onProposalChanged?.call(updated);
+  }
+
+  Future<void> _showDueDatePicker(BuildContext context) async {
+    if (!isInteractive) return;
+    HapticFeedback.selectionClick();
+    final now = DateTime.now();
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (bottomSheetContext) {
+        final theme = Theme.of(bottomSheetContext);
+        final isDark = theme.brightness == Brightness.dark;
+        final sheetBg = isDark
+            ? AppTokens.surfaceCardDark
+            : AppTokens.surfaceCard;
+        final borderColor = isDark
+            ? AppTokens.borderSubtleDark
+            : AppTokens.borderSubtleLight;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: sheetBg,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(AppTokens.radiusCard),
+            ),
+            border: Border.all(color: borderColor, width: 0.5),
+          ),
+          padding: const EdgeInsets.all(AppTokens.spaceMd),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? AppTokens.borderSubtleDark
+                        : AppTokens.borderSubtleLight,
+                    borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppTokens.spaceSm),
+              Text(
+                '设置截止时间',
+                style: TextStyle(
+                  fontSize: AppTokens.textBodySize,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: AppTokens.spaceSm),
+              Wrap(
+                spacing: AppTokens.spaceXs,
+                runSpacing: AppTokens.spaceXs,
+                children: [
+                  ActionChip(
+                    label: const Text('今天 18:00'),
+                    onPressed: () {
+                      Navigator.pop(bottomSheetContext);
+                      final dt = DateTime(now.year, now.month, now.day, 18, 0);
+                      _updateDueAt(dt.millisecondsSinceEpoch);
+                    },
+                  ),
+                  ActionChip(
+                    label: const Text('今晚 21:00'),
+                    onPressed: () {
+                      Navigator.pop(bottomSheetContext);
+                      final dt = DateTime(now.year, now.month, now.day, 21, 0);
+                      _updateDueAt(dt.millisecondsSinceEpoch);
+                    },
+                  ),
+                  ActionChip(
+                    label: const Text('明天 09:00'),
+                    onPressed: () {
+                      Navigator.pop(bottomSheetContext);
+                      final dt = DateTime(now.year, now.month, now.day + 1, 9, 0);
+                      _updateDueAt(dt.millisecondsSinceEpoch);
+                    },
+                  ),
+                  ActionChip(
+                    label: const Text('本周五 18:00'),
+                    onPressed: () {
+                      Navigator.pop(bottomSheetContext);
+                      final days = (DateTime.friday - now.weekday + 7) % 7;
+                      final targetDay = days == 0 ? 7 : days;
+                      final dt = DateTime(now.year, now.month, now.day + targetDay, 18, 0);
+                      _updateDueAt(dt.millisecondsSinceEpoch);
+                    },
+                  ),
+                  ActionChip(
+                    label: const Text('下周一 09:00'),
+                    onPressed: () {
+                      Navigator.pop(bottomSheetContext);
+                      final days = (DateTime.monday - now.weekday + 7) % 7;
+                      final targetDay = days == 0 ? 7 : days;
+                      final dt = DateTime(now.year, now.month, now.day + targetDay, 9, 0);
+                      _updateDueAt(dt.millisecondsSinceEpoch);
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppTokens.spaceSm),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  Navigator.pop(bottomSheetContext);
+                  final pickedDate = await showDatePicker(
+                    context: context,
+                    initialDate: widget.proposal.dueAt != null
+                        ? DateTime.fromMillisecondsSinceEpoch(widget.proposal.dueAt!)
+                        : now,
+                    firstDate: now.subtract(const Duration(days: 365)),
+                    lastDate: now.add(const Duration(days: 3650)),
+                  );
+                  if (pickedDate == null || !context.mounted) return;
+                  final pickedTime = await showTimePicker(
+                    context: context,
+                    initialTime: const TimeOfDay(hour: 18, minute: 0),
+                  );
+                  if (!context.mounted) return;
+                  final hour = pickedTime?.hour ?? 18;
+                  final minute = pickedTime?.minute ?? 0;
+                  final finalDt = DateTime(
+                    pickedDate.year,
+                    pickedDate.month,
+                    pickedDate.day,
+                    hour,
+                    minute,
+                  );
+                  _updateDueAt(finalDt.millisecondsSinceEpoch);
+                },
+                icon: const Icon(Icons.edit_calendar_outlined, size: 16),
+                label: const Text('自定义日期与时间...'),
+              ),
+              if (widget.proposal.dueAt != null) ...[
+                const SizedBox(height: AppTokens.spaceXs),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.pop(bottomSheetContext);
+                    _updateDueAt(null);
+                  },
+                  icon: const Icon(Icons.clear, size: 16),
+                  label: const Text('清除截止时间'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTokens.colorDanger,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showStartDatePicker(BuildContext context) async {
+    if (!isInteractive) return;
+    HapticFeedback.selectionClick();
+    final now = DateTime.now();
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (bottomSheetContext) {
+        final theme = Theme.of(bottomSheetContext);
+        final isDark = theme.brightness == Brightness.dark;
+        final sheetBg = isDark
+            ? AppTokens.surfaceCardDark
+            : AppTokens.surfaceCard;
+        final borderColor = isDark
+            ? AppTokens.borderSubtleDark
+            : AppTokens.borderSubtleLight;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: sheetBg,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(AppTokens.radiusCard),
+            ),
+            border: Border.all(color: borderColor, width: 0.5),
+          ),
+          padding: const EdgeInsets.all(AppTokens.spaceMd),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? AppTokens.borderSubtleDark
+                        : AppTokens.borderSubtleLight,
+                    borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppTokens.spaceSm),
+              Text(
+                '设置开始时间',
+                style: TextStyle(
+                  fontSize: AppTokens.textBodySize,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: AppTokens.spaceSm),
+              Wrap(
+                spacing: AppTokens.spaceXs,
+                runSpacing: AppTokens.spaceXs,
+                children: [
+                  ActionChip(
+                    label: const Text('现在'),
+                    onPressed: () {
+                      Navigator.pop(bottomSheetContext);
+                      _updateStartAt(now.millisecondsSinceEpoch);
+                    },
+                  ),
+                  ActionChip(
+                    label: const Text('今天 14:00'),
+                    onPressed: () {
+                      Navigator.pop(bottomSheetContext);
+                      final dt = DateTime(now.year, now.month, now.day, 14, 0);
+                      _updateStartAt(dt.millisecondsSinceEpoch);
+                    },
+                  ),
+                  ActionChip(
+                    label: const Text('明天 09:00'),
+                    onPressed: () {
+                      Navigator.pop(bottomSheetContext);
+                      final dt = DateTime(now.year, now.month, now.day + 1, 9, 0);
+                      _updateStartAt(dt.millisecondsSinceEpoch);
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppTokens.spaceSm),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  Navigator.pop(bottomSheetContext);
+                  final pickedDate = await showDatePicker(
+                    context: context,
+                    initialDate: widget.proposal.startAt != null
+                        ? DateTime.fromMillisecondsSinceEpoch(widget.proposal.startAt!)
+                        : now,
+                    firstDate: now.subtract(const Duration(days: 365)),
+                    lastDate: now.add(const Duration(days: 3650)),
+                  );
+                  if (pickedDate == null || !context.mounted) return;
+                  final pickedTime = await showTimePicker(
+                    context: context,
+                    initialTime: const TimeOfDay(hour: 9, minute: 0),
+                  );
+                  if (!context.mounted) return;
+                  final hour = pickedTime?.hour ?? 9;
+                  final minute = pickedTime?.minute ?? 0;
+                  final finalDt = DateTime(
+                    pickedDate.year,
+                    pickedDate.month,
+                    pickedDate.day,
+                    hour,
+                    minute,
+                  );
+                  _updateStartAt(finalDt.millisecondsSinceEpoch);
+                },
+                icon: const Icon(Icons.edit_calendar_outlined, size: 16),
+                label: const Text('自定义日期与时间...'),
+              ),
+              if (widget.proposal.startAt != null) ...[
+                const SizedBox(height: AppTokens.spaceXs),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.pop(bottomSheetContext);
+                    _updateStartAt(null);
+                  },
+                  icon: const Icon(Icons.clear, size: 16),
+                  label: const Text('清除开始时间'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTokens.colorDanger,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _promptAddTag(BuildContext context) async {
+    if (!isInteractive) return;
+    HapticFeedback.selectionClick();
+    final tagInputController = TextEditingController();
+
+    final newTag = await showDialog<String>(
+      context: context,
+      builder: (dialogCtx) {
+        return AlertDialog(
+          title: const Text('添加标签'),
+          content: TextField(
+            controller: tagInputController,
+            autofocus: true,
+            decoration: const InputDecoration(
+              hintText: '输入标签名称 (如: 工作, 紧急)',
+              isDense: true,
+            ),
+            onSubmitted: (val) => Navigator.pop(dialogCtx, val.trim()),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () =>
+                  Navigator.pop(dialogCtx, tagInputController.text.trim()),
+              child: const Text('添加'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (newTag != null &&
+        newTag.isNotEmpty &&
+        !widget.proposal.tags.contains(newTag)) {
+      final updatedTags = List<String>.from(widget.proposal.tags)..add(newTag);
+      final updated = widget.proposal.copyWith(tags: updatedTags);
+      widget.onProposalChanged?.call(updated);
+    }
+  }
+
+  void _removeTag(String tag) {
+    if (!isInteractive) return;
+    HapticFeedback.selectionClick();
+    final updatedTags =
+        widget.proposal.tags.where((t) => t != tag).toList();
+    final updated = widget.proposal.copyWith(tags: updatedTags);
+    widget.onProposalChanged?.call(updated);
+  }
+
+  void _editSubstep(int index, String newTitle) {
+    final trimmed = newTitle.trim();
+    if (trimmed.isEmpty) return;
+    final updatedList = List<AiSubstep>.from(widget.proposal.substeps);
+    updatedList[index] = AiSubstep(
+      title: trimmed,
+      sortOrder: updatedList[index].sortOrder,
+    );
+    final updated = widget.proposal.copyWith(substeps: updatedList);
+    widget.onProposalChanged?.call(updated);
+    setState(() {
+      _editingSubstepIndex = null;
+    });
+  }
+
+  void _removeSubstep(int index) {
+    if (!isInteractive) return;
+    HapticFeedback.selectionClick();
+    final updatedList = List<AiSubstep>.from(widget.proposal.substeps)
+      ..removeAt(index);
+    final updated = widget.proposal.copyWith(substeps: updatedList);
+    widget.onProposalChanged?.call(updated);
+
+    // Adjust selected indices
+    final newSelected = <int>{};
+    for (final sel in widget.selectedSubstepIndices) {
+      if (sel < index) {
+        newSelected.add(sel);
+      } else if (sel > index) {
+        newSelected.add(sel - 1);
+      }
+    }
+    widget.onSubstepsChanged?.call(newSelected);
+  }
+
+  void _addSubstep() {
+    if (!isInteractive) return;
+    HapticFeedback.selectionClick();
+    final newStep = AiSubstep(
+      title: '步骤 ${widget.proposal.substeps.length + 1}',
+      sortOrder: widget.proposal.substeps.length,
+    );
+    final updatedList = List<AiSubstep>.from(widget.proposal.substeps)
+      ..add(newStep);
+    final updated = widget.proposal.copyWith(substeps: updatedList);
+    widget.onProposalChanged?.call(updated);
+
+    final newSelected = Set<int>.from(widget.selectedSubstepIndices)
+      ..add(updatedList.length - 1);
+    widget.onSubstepsChanged?.call(newSelected);
+
+    // Start editing this new step right away
+    setState(() {
+      _editingSubstepIndex = updatedList.length - 1;
+      _substepController.text = newStep.title;
+    });
+  }
+
   String _formatDateTime(int epochMs) {
     final dt = DateTime.fromMillisecondsSinceEpoch(epochMs);
     final month = dt.month.toString().padLeft(2, '0');
@@ -131,9 +592,18 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
   (String, Color) _priorityInfo(BuildContext context, int priority) {
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
     return switch (priority) {
-      3 => (isZh ? 'P1 · 重要紧急' : 'P1 · Urgent', AppTokens.colorPriorityHigh),
-      2 => (isZh ? 'P2 · 适中' : 'P2 · Medium', AppTokens.colorPriorityMedium),
-      1 => (isZh ? 'P3 · 低优' : 'P3 · Low', AppTokens.colorPriorityLow),
+      3 => (
+        isZh ? 'P1 · 重要紧急' : 'P1 · Urgent',
+        AppTokens.colorPriorityHigh,
+      ),
+      2 => (
+        isZh ? 'P2 · 适中' : 'P2 · Medium',
+        AppTokens.colorPriorityMedium,
+      ),
+      1 => (
+        isZh ? 'P3 · 低优' : 'P3 · Low',
+        AppTokens.colorPriorityLow,
+      ),
       _ => (isZh ? '无优先级' : 'None', AppTokens.textMutedDark),
     };
   }
@@ -158,10 +628,6 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
     final secondaryTextColor = isDark
         ? AppTokens.textMutedDark
         : AppTokens.textMutedLight;
-
-    final isInteractive = !widget.isPersisted &&
-        !widget.isDiscarded &&
-        !widget.isPersisting;
 
     final (priorityLabel, priorityColor) = _priorityInfo(
       context,
@@ -207,7 +673,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
           ),
           const SizedBox(height: AppTokens.spaceSm),
 
-          // Title (with inline editing capability)
+          // Title: In-place editing
           if (_isEditingTitle)
             Row(
               children: [
@@ -291,30 +757,143 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
               ),
             ),
 
-          // Description (optional)
-          if (widget.proposal.description != null &&
+          // Description: In-place editing
+          if (_isEditingDesc) ...[
+            const SizedBox(height: AppTokens.spaceXs),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _descController,
+                    focusNode: _descFocusNode,
+                    autofocus: true,
+                    maxLines: 3,
+                    minLines: 1,
+                    style: TextStyle(
+                      fontSize: AppTokens.textSecondarySize,
+                      color: primaryTextColor,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: '输入任务备注...',
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: AppTokens.spaceXxs,
+                        horizontal: AppTokens.spaceXs,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppTokens.radiusMicro),
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.primary,
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppTokens.spaceXs),
+                IconButton(
+                  icon: const Icon(Icons.check, size: 18),
+                  color: theme.colorScheme.primary,
+                  onPressed: _submitDescEdit,
+                ),
+              ],
+            ),
+          ] else if (widget.proposal.description != null &&
               widget.proposal.description!.trim().isNotEmpty) ...[
             const SizedBox(height: AppTokens.spaceXs),
-            Text(
-              widget.proposal.description!,
-              style: TextStyle(
-                fontSize: AppTokens.textSecondarySize,
-                fontWeight: AppTokens.textSecondaryWeight,
-                color: secondaryTextColor,
-                height: AppTokens.textBodyHeight,
+            InkWell(
+              borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
+              onTap: isInteractive
+                  ? () {
+                      setState(() {
+                        _isEditingDesc = true;
+                      });
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _descFocusNode.requestFocus();
+                      });
+                    }
+                  : null,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.proposal.description!,
+                      style: TextStyle(
+                        fontSize: AppTokens.textSecondarySize,
+                        fontWeight: AppTokens.textSecondaryWeight,
+                        color: secondaryTextColor,
+                        height: AppTokens.textBodyHeight,
+                      ),
+                    ),
+                  ),
+                  if (isInteractive) ...[
+                    const SizedBox(width: AppTokens.spaceXs),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Icon(
+                        Icons.edit_outlined,
+                        size: 12,
+                        color: secondaryTextColor.withValues(
+                          alpha: AppTokens.alphaOverlayHeavy,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ] else if (isInteractive) ...[
+            const SizedBox(height: AppTokens.spaceXs),
+            InkWell(
+              borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
+              onTap: () {
+                setState(() {
+                  _isEditingDesc = true;
+                });
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _descFocusNode.requestFocus();
+                });
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: AppTokens.spaceMicro,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.add_comment_outlined,
+                      size: 13,
+                      color: secondaryTextColor.withValues(
+                        alpha: AppTokens.alphaOverlayHeavy,
+                      ),
+                    ),
+                    const SizedBox(width: AppTokens.spaceXxs),
+                    Text(
+                      '添加备注',
+                      style: TextStyle(
+                        fontSize: AppTokens.textMicroSize,
+                        color: secondaryTextColor,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
 
           const SizedBox(height: AppTokens.spaceSm),
 
-          // Metadata badges: Priority, Due Date, Tags
+          // Metadata badges: Priority, Start Time, Due Date, Tags
           Wrap(
             spacing: AppTokens.spaceXs,
             runSpacing: AppTokens.spaceXs,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              // Priority badge (Interactive quick-cycle)
+              // Priority badge (Interactive cyclic toggle)
               InkWell(
                 borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
                 onTap: isInteractive ? _cyclePriority : null,
@@ -364,61 +943,241 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                 ),
               ),
 
-              // Due date badge
-              if (widget.proposal.dueAt != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppTokens.spaceXs,
-                    vertical: AppTokens.spaceMicro,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? AppTokens.surfaceSubtleDark
-                        : AppTokens.surfaceSubtleLight,
-                    borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
-                    border: Border.all(color: borderColor, width: 0.5),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.event_outlined,
-                        size: AppTokens.textMicroSize + 2,
-                        color: secondaryTextColor,
-                      ),
-                      const SizedBox(width: AppTokens.spaceXxs),
-                      Text(
-                        _formatDateTime(widget.proposal.dueAt!),
-                        style: TextStyle(
-                          fontSize: AppTokens.textMicroSize,
-                          fontWeight: AppTokens.textMicroWeight,
+              // Start date badge (Tap to set/change)
+              if (widget.proposal.startAt != null)
+                InkWell(
+                  borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
+                  onTap: () => _showStartDatePicker(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTokens.spaceXs,
+                      vertical: AppTokens.spaceMicro,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppTokens.surfaceSubtleDark
+                          : AppTokens.surfaceSubtleLight,
+                      borderRadius:
+                          BorderRadius.circular(AppTokens.radiusMicro),
+                      border: Border.all(color: borderColor, width: 0.5),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.play_circle_outline,
+                          size: AppTokens.textMicroSize + 2,
                           color: secondaryTextColor,
                         ),
+                        const SizedBox(width: AppTokens.spaceXxs),
+                        Text(
+                          '开始: ${_formatDateTime(widget.proposal.startAt!)}',
+                          style: TextStyle(
+                            fontSize: AppTokens.textMicroSize,
+                            fontWeight: AppTokens.textMicroWeight,
+                            color: secondaryTextColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else if (isInteractive)
+                InkWell(
+                  borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
+                  onTap: () => _showStartDatePicker(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTokens.spaceXs,
+                      vertical: AppTokens.spaceMicro,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius:
+                          BorderRadius.circular(AppTokens.radiusMicro),
+                      border: Border.all(
+                        color: borderColor,
+                        width: 0.5,
+                        style: BorderStyle.solid,
                       ),
-                    ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.play_arrow_outlined,
+                          size: 13,
+                          color: secondaryTextColor,
+                        ),
+                        const SizedBox(width: AppTokens.spaceXxs),
+                        Text(
+                          '+ 开始',
+                          style: TextStyle(
+                            fontSize: AppTokens.textMicroSize,
+                            color: secondaryTextColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              // Due date badge (Tap to set/change)
+              if (widget.proposal.dueAt != null)
+                InkWell(
+                  borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
+                  onTap: () => _showDueDatePicker(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTokens.spaceXs,
+                      vertical: AppTokens.spaceMicro,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppTokens.surfaceSubtleDark
+                          : AppTokens.surfaceSubtleLight,
+                      borderRadius:
+                          BorderRadius.circular(AppTokens.radiusMicro),
+                      border: Border.all(color: borderColor, width: 0.5),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.event_outlined,
+                          size: AppTokens.textMicroSize + 2,
+                          color: secondaryTextColor,
+                        ),
+                        const SizedBox(width: AppTokens.spaceXxs),
+                        Text(
+                          _formatDateTime(widget.proposal.dueAt!),
+                          style: TextStyle(
+                            fontSize: AppTokens.textMicroSize,
+                            fontWeight: AppTokens.textMicroWeight,
+                            color: secondaryTextColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else if (isInteractive)
+                InkWell(
+                  borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
+                  onTap: () => _showDueDatePicker(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTokens.spaceXs,
+                      vertical: AppTokens.spaceMicro,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius:
+                          BorderRadius.circular(AppTokens.radiusMicro),
+                      border: Border.all(
+                        color: borderColor,
+                        width: 0.5,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.event_available_outlined,
+                          size: 13,
+                          color: secondaryTextColor,
+                        ),
+                        const SizedBox(width: AppTokens.spaceXxs),
+                        Text(
+                          '+ 截止',
+                          style: TextStyle(
+                            fontSize: AppTokens.textMicroSize,
+                            color: secondaryTextColor,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
               // Tags
               for (final tag in widget.proposal.tags)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppTokens.spaceXs,
-                    vertical: AppTokens.spaceMicro,
+                  padding: const EdgeInsets.only(
+                    left: AppTokens.spaceXs,
+                    right: AppTokens.spaceXxs,
+                    top: AppTokens.spaceMicro,
+                    bottom: AppTokens.spaceMicro,
                   ),
                   decoration: BoxDecoration(
                     color: isDark
                         ? AppTokens.surfaceSubtleDark
                         : AppTokens.surfaceSubtleLight,
-                    borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
+                    borderRadius:
+                        BorderRadius.circular(AppTokens.radiusMicro),
                     border: Border.all(color: borderColor, width: 0.5),
                   ),
-                  child: Text(
-                    '#$tag',
-                    style: TextStyle(
-                      fontSize: AppTokens.textMicroSize,
-                      fontWeight: AppTokens.textMicroWeight,
-                      color: secondaryTextColor,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '#$tag',
+                        style: TextStyle(
+                          fontSize: AppTokens.textMicroSize,
+                          fontWeight: AppTokens.textMicroWeight,
+                          color: secondaryTextColor,
+                        ),
+                      ),
+                      if (isInteractive) ...[
+                        const SizedBox(width: AppTokens.spaceXxs),
+                        InkWell(
+                          onTap: () => _removeTag(tag),
+                          child: Icon(
+                            Icons.close,
+                            size: 12,
+                            color: secondaryTextColor.withValues(
+                              alpha: AppTokens.alphaOverlayHeavy,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+              // Add Tag action chip
+              if (isInteractive)
+                InkWell(
+                  borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
+                  onTap: () => _promptAddTag(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTokens.spaceXs,
+                      vertical: AppTokens.spaceMicro,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius:
+                          BorderRadius.circular(AppTokens.radiusMicro),
+                      border: Border.all(
+                        color: borderColor,
+                        width: 0.5,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.tag,
+                          size: 13,
+                          color: secondaryTextColor,
+                        ),
+                        const SizedBox(width: AppTokens.spaceXxs),
+                        Text(
+                          '+ 标签',
+                          style: TextStyle(
+                            fontSize: AppTokens.textMicroSize,
+                            color: secondaryTextColor,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -426,7 +1185,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
           ),
 
           // Substeps Section
-          if (widget.proposal.substeps.isNotEmpty) ...[
+          if (widget.proposal.substeps.isNotEmpty || isInteractive) ...[
             const SizedBox(height: AppTokens.spaceMd),
             Divider(height: 1, thickness: 0.5, color: borderColor),
             const SizedBox(height: AppTokens.spaceSm),
@@ -448,6 +1207,37 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
                     color: secondaryTextColor,
                   ),
                 ),
+                const Spacer(),
+                if (isInteractive)
+                  InkWell(
+                    borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
+                    onTap: _addSubstep,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTokens.spaceXs,
+                        vertical: AppTokens.spaceMicro,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.add,
+                            size: 14,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: AppTokens.spaceXxs),
+                          Text(
+                            '添加步骤',
+                            style: TextStyle(
+                              fontSize: AppTokens.textMicroSize,
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
             const SizedBox(height: AppTokens.spaceXs),
@@ -477,10 +1267,9 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
               // Discard Action Button
               if (!widget.isPersisted)
                 TextButton(
-                  onPressed:
-                      (!widget.isDiscarded && !widget.isPersisting)
-                          ? widget.onDiscard
-                          : null,
+                  onPressed: (!widget.isDiscarded && !widget.isPersisting)
+                      ? widget.onDiscard
+                      : null,
                   style: TextButton.styleFrom(
                     foregroundColor: secondaryTextColor,
                     padding: const EdgeInsets.symmetric(
@@ -503,10 +1292,9 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
               // Confirm Action Button (hidden if discarded)
               if (!widget.isDiscarded)
                 FilledButton(
-                  onPressed:
-                      (!widget.isPersisted && !widget.isPersisting)
-                          ? widget.onConfirm
-                          : null,
+                  onPressed: (!widget.isPersisted && !widget.isPersisting)
+                      ? widget.onConfirm
+                      : null,
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppTokens.spaceMd,
@@ -572,63 +1360,115 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
     required Color primaryTextColor,
     required Color secondaryTextColor,
   }) {
-    return InkWell(
-      onTap: isInteractive
-          ? () {
-              final newSet = Set<int>.from(widget.selectedSubstepIndices);
-              if (isSelected) {
-                newSet.remove(index);
-              } else {
-                newSet.add(index);
-              }
-              widget.onSubstepsChanged?.call(newSet);
-            }
-          : null,
-      borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppTokens.spaceXxs,
-          vertical: AppTokens.spaceMicro,
-        ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 20,
-              height: 20,
-              child: Checkbox(
-                value: isSelected,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
+    final isEditing = _editingSubstepIndex == index;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
+      child: Row(
+        children: [
+          // Checkbox matching design token radius
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: Checkbox(
+              value: isSelected,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
+              ),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              onChanged: isInteractive
+                  ? (checked) {
+                      HapticFeedback.selectionClick();
+                      final updated = Set<int>.from(widget.selectedSubstepIndices);
+                      if (checked == true) {
+                        updated.add(index);
+                      } else {
+                        updated.remove(index);
+                      }
+                      widget.onSubstepsChanged?.call(updated);
+                    }
+                  : null,
+            ),
+          ),
+          const SizedBox(width: AppTokens.spaceXs),
+
+          // Substep title: inline editing or display
+          if (isEditing) ...[
+            Expanded(
+              child: TextField(
+                controller: _substepController,
+                focusNode: _substepFocusNode,
+                autofocus: true,
+                style: TextStyle(
+                  fontSize: AppTokens.textSecondarySize,
+                  color: primaryTextColor,
                 ),
-                activeColor: primaryColor,
-                onChanged: isInteractive
-                    ? (val) {
-                        final newSet =
-                            Set<int>.from(widget.selectedSubstepIndices);
-                        if (val == true) {
-                          newSet.add(index);
-                        } else {
-                          newSet.remove(index);
-                        }
-                        widget.onSubstepsChanged?.call(newSet);
+                decoration: InputDecoration(
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: AppTokens.spaceXxs,
+                  ),
+                  border: UnderlineInputBorder(
+                    borderSide: BorderSide(color: primaryColor),
+                  ),
+                ),
+                onSubmitted: (val) => _editSubstep(index, val),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.check, size: 16),
+              color: primaryColor,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+              onPressed: () =>
+                  _editSubstep(index, _substepController.text),
+            ),
+          ] else ...[
+            Expanded(
+              child: InkWell(
+                borderRadius:
+                    BorderRadius.circular(AppTokens.radiusMicro),
+                onTap: isInteractive
+                    ? () {
+                        setState(() {
+                          _editingSubstepIndex = index;
+                          _substepController.text = substep.title;
+                        });
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _substepFocusNode.requestFocus();
+                        });
                       }
                     : null,
-              ),
-            ),
-            const SizedBox(width: AppTokens.spaceXs),
-            Expanded(
-              child: Text(
-                substep.title,
-                style: TextStyle(
-                  fontSize: AppTokens.textBodySize,
-                  color: isSelected ? primaryTextColor : secondaryTextColor,
-                  decoration: isSelected ? null : TextDecoration.lineThrough,
-                  decorationColor: secondaryTextColor,
+                child: Text(
+                  substep.title,
+                  style: TextStyle(
+                    fontSize: AppTokens.textSecondarySize,
+                    color: isSelected ? primaryTextColor : secondaryTextColor,
+                    decoration:
+                        isSelected ? null : TextDecoration.lineThrough,
+                  ),
                 ),
               ),
             ),
+            if (isInteractive) ...[
+              InkWell(
+                borderRadius:
+                    BorderRadius.circular(AppTokens.radiusMicro),
+                onTap: () => _removeSubstep(index),
+                child: Padding(
+                  padding: const EdgeInsets.all(AppTokens.spaceMicro),
+                  child: Icon(
+                    Icons.close,
+                    size: 14,
+                    color: secondaryTextColor.withValues(
+                      alpha: AppTokens.alphaOverlayHeavy,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
-        ),
+        ],
       ),
     );
   }

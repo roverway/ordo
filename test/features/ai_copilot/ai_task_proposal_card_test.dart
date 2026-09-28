@@ -228,5 +228,113 @@ void main() {
       expect(updated!.title, equals('修改后的全新任务标题'));
       expect(find.byType(TextField), findsNothing);
     });
+
+    testWidgets('点击优先级徽标循环切换优先级 (P1 -> P2)', (tester) async {
+      AiTaskParseResult? updated;
+      await tester.pumpWidget(
+        buildTestWidget(
+          proposal: sampleResult,
+          onProposalChanged: (p) => updated = p,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('P1 · 重要紧急'));
+      await tester.pumpAndSettle();
+
+      expect(updated, isNotNull);
+      expect(updated!.priority, equals(2));
+    });
+
+    testWidgets('点击截止时间唤出底部快捷表单并支持清除截止时间', (tester) async {
+      AiTaskParseResult? updated;
+      await tester.pumpWidget(
+        buildTestWidget(
+          proposal: sampleResult,
+          onProposalChanged: (p) => updated = p,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.textContaining('10-15'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('设置截止时间'), findsOneWidget);
+      expect(find.text('清除截止时间'), findsOneWidget);
+
+      await tester.tap(find.text('清除截止时间'));
+      await tester.pumpAndSettle();
+
+      expect(updated, isNotNull);
+      expect(updated!.dueAt, isNull);
+    });
+
+    testWidgets('删除已有标签触发 onProposalChanged', (tester) async {
+      AiTaskParseResult? updated;
+      await tester.pumpWidget(
+        buildTestWidget(
+          proposal: sampleResult,
+          onProposalChanged: (p) => updated = p,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 点击标签上的删除按钮
+      final closeIcons = find.byIcon(Icons.close);
+      expect(closeIcons, findsWidgets);
+      await tester.tap(closeIcons.first);
+      await tester.pumpAndSettle();
+
+      expect(updated, isNotNull);
+      expect(updated!.tags, isNot(contains('工作')));
+    });
+
+    testWidgets('点击任务备注进入行内编辑并提交修改', (tester) async {
+      AiTaskParseResult? updated;
+      await tester.pumpWidget(
+        buildTestWidget(
+          proposal: sampleResult,
+          onProposalChanged: (p) => updated = p,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('整理 Q3 业绩与下一季度计划'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TextField), findsOneWidget);
+      await tester.enterText(find.byType(TextField), '更新后的详细备注内容');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.check));
+      await tester.pumpAndSettle();
+
+      expect(updated, isNotNull);
+      expect(updated!.description, equals('更新后的详细备注内容'));
+    });
+
+    testWidgets('点击子步骤文字进入编辑状态并保存', (tester) async {
+      AiTaskParseResult? updated;
+      await tester.pumpWidget(
+        buildTestWidget(
+          proposal: sampleResult,
+          onProposalChanged: (p) => updated = p,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('撰写内容大纲'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TextField), findsOneWidget);
+      await tester.enterText(find.byType(TextField), '撰写详细内容大纲 (V2)');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.check));
+      await tester.pumpAndSettle();
+
+      expect(updated, isNotNull);
+      expect(updated!.substeps.map((s) => s.title), contains('撰写详细内容大纲 (V2)'));
+    });
   });
 }

@@ -11,6 +11,10 @@ abstract final class AiSettingsKeys {
   static const String provider = 'ai_provider';
   static const String baseUrl = 'ai_base_url';
   static const String model = 'ai_model';
+
+  /// Per-provider specific settings keys
+  static String baseUrlFor(AiProviderType p) => 'ai_base_url_${p.id}';
+  static String modelFor(AiProviderType p) => 'ai_model_${p.id}';
 }
 
 /// Key prefix for sensitive credentials stored in [SecureKeyValueStore].
@@ -37,26 +41,37 @@ class AiConfigService {
   final AiClient _aiClient;
 
   /// Loads AI configuration. Non-sensitive from Drift settings, API Key from secure store.
-  Future<AiConfig> loadConfig() async {
-    final providerId = await _settingsDao.get(AiSettingsKeys.provider);
-    final provider = AiProviderType.fromId(providerId);
+  /// If [targetProvider] is specified, loads the stored profile for that provider.
+  Future<AiConfig> loadConfig([AiProviderType? targetProvider]) async {
+    final activeProviderId = await _settingsDao.get(AiSettingsKeys.provider);
+    final activeProvider = AiProviderType.fromId(activeProviderId);
+    final provider = targetProvider ?? activeProvider;
 
-    final storedBaseUrl = await _settingsDao.get(AiSettingsKeys.baseUrl);
+    // 1. Try provider-specific baseUrl, then fallback to global baseUrl (if provider matches active), then default
+    final providerBaseUrl = await _settingsDao.get(AiSettingsKeys.baseUrlFor(provider));
+    String? storedBaseUrl = providerBaseUrl;
+    if ((storedBaseUrl == null || storedBaseUrl.isEmpty) && provider == activeProvider) {
+      storedBaseUrl = await _settingsDao.get(AiSettingsKeys.baseUrl);
+    }
     final baseUrl = (storedBaseUrl != null && storedBaseUrl.isNotEmpty)
         ? storedBaseUrl
         : provider.defaultBaseUrl;
 
-    final storedModel = await _settingsDao.get(AiSettingsKeys.model);
+    // 2. Try provider-specific model, then fallback to global model (if provider matches active), then default
+    final providerModel = await _settingsDao.get(AiSettingsKeys.modelFor(provider));
+    String? storedModel = providerModel;
+    if ((storedModel == null || storedModel.isEmpty) && provider == activeProvider) {
+      storedModel = await _settingsDao.get(AiSettingsKeys.model);
+    }
     final model = (storedModel != null && storedModel.isNotEmpty)
         ? storedModel
         : provider.defaultModel;
 
-    // Read API key from secure store with exception defense for platform keyring issues
+    // 3. Read API key from secure store
     String? apiKey;
     try {
       apiKey = await _secureStore.read(AiSecureKeys.keyFor(provider));
-      if (apiKey == null || apiKey.isEmpty) {
-        // Fallback to generic key if present
+      if ((apiKey == null || apiKey.isEmpty) && provider == activeProvider) {
         apiKey = await _secureStore.read(AiSecureKeys.defaultApiKey);
       }
     } catch (_) {
@@ -71,6 +86,22 @@ class AiConfigService {
     );
   }
 
+  /// Checks if an API key is stored for [provider].
+  Future<bool> hasKeyFor(AiProviderType provider) async {
+    try {
+      final key = await _secureStore.read(AiSecureKeys.keyFor(provider));
+      if (key != null && key.isNotEmpty) return true;
+      final activeProviderId = await _settingsDao.get(AiSettingsKeys.provider);
+      if (activeProviderId == provider.id) {
+        final defKey = await _secureStore.read(AiSecureKeys.defaultApiKey);
+        return defKey != null && defKey.isNotEmpty;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Saves AI configuration.
   ///
   /// Non-sensitive fields are written to `settings` table.
@@ -80,6 +111,8 @@ class AiConfigService {
     await _settingsDao.set(AiSettingsKeys.provider, config.provider.id);
     await _settingsDao.set(AiSettingsKeys.baseUrl, config.baseUrl);
     await _settingsDao.set(AiSettingsKeys.model, config.model);
+    await _settingsDao.set(AiSettingsKeys.baseUrlFor(config.provider), config.baseUrl);
+    await _settingsDao.set(AiSettingsKeys.modelFor(config.provider), config.model);
 
     if (config.apiKey != null) {
       if (config.apiKey!.isNotEmpty) {
@@ -103,6 +136,11 @@ class AiConfigService {
   /// Tests connectivity and authentication using [AiClient].
   Future<AiPingResult> testConnection(AiConfig config) {
     return _aiClient.ping(config);
+  }
+
+  /// Fetches available models using [AiClient].
+  Future<List<String>> fetchModels(AiConfig config) {
+    return _aiClient.fetchModels(config);
   }
 }
 

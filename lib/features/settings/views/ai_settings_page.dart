@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/ai/models/ai_config.dart';
@@ -47,8 +48,11 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
 
   bool _testing = false;
   bool _saving = false;
+  bool _probing = false;
   AiPingResult? _lastPingResult;
   bool _initialized = false;
+  List<String> _probedModels = [];
+  Map<AiProviderType, bool> _providerKeyStatus = {};
 
   @override
   void initState() {
@@ -57,16 +61,22 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
   }
 
   Future<void> _loadInitialConfig() async {
-    final config = await ref.read(aiConfigServiceProvider).loadConfig();
+    final service = ref.read(aiConfigServiceProvider);
+    final config = await service.loadConfig();
+    final keyStatus = <AiProviderType, bool>{};
+    for (final p in AiProviderType.values) {
+      keyStatus[p] = await service.hasKeyFor(p);
+    }
+
     if (!mounted) return;
     setState(() {
       _provider = config.provider;
       _baseUrlController.text = config.baseUrl;
       _modelController.text = config.model;
-      if (config.apiKey != null && config.apiKey!.isNotEmpty) {
-        _hasSavedApiKey = true;
-        _savedMaskedKey = config.maskedApiKey;
-      }
+      _hasSavedApiKey = config.apiKey != null && config.apiKey!.isNotEmpty;
+      _savedMaskedKey = config.maskedApiKey;
+      _providerKeyStatus = keyStatus;
+      _probedModels = _provider.presetModels;
       _initialized = true;
     });
   }
@@ -79,23 +89,23 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
     super.dispose();
   }
 
-  void _onProviderChanged(AiProviderType? newProvider) {
+  Future<void> _onProviderChanged(AiProviderType? newProvider) async {
     if (newProvider == null || newProvider == _provider) return;
 
-    final prevProvider = _provider;
+    final configService = ref.read(aiConfigServiceProvider);
+    final targetConfig = await configService.loadConfig(newProvider);
+
+    if (!mounted) return;
     setState(() {
       _provider = newProvider;
-      // Auto-update base URL if empty or still matching previous provider default
-      if (_baseUrlController.text.trim().isEmpty ||
-          _baseUrlController.text.trim() == prevProvider.defaultBaseUrl) {
-        _baseUrlController.text = newProvider.defaultBaseUrl;
-      }
-      // Auto-update model if empty or still matching previous provider default
-      if (_modelController.text.trim().isEmpty ||
-          _modelController.text.trim() == prevProvider.defaultModel) {
-        _modelController.text = newProvider.defaultModel;
-      }
+      _baseUrlController.text = targetConfig.baseUrl;
+      _modelController.text = targetConfig.model;
+      _hasSavedApiKey =
+          targetConfig.apiKey != null && targetConfig.apiKey!.isNotEmpty;
+      _savedMaskedKey = targetConfig.maskedApiKey;
+      _apiKeyController.clear();
       _lastPingResult = null;
+      _probedModels = newProvider.presetModels;
     });
   }
 
@@ -105,15 +115,73 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
       provider: _provider,
       baseUrl: _baseUrlController.text.trim(),
       model: _modelController.text.trim(),
-      // If user left input blank but had a saved key, passing null preserves existing key
       apiKey: rawKey.isNotEmpty ? rawKey : null,
     );
+  }
+
+  Future<void> _probeModels() async {
+    HapticFeedback.selectionClick();
+    final config = _buildCurrentConfig();
+    final effectiveConfig = (config.apiKey == null && _hasSavedApiKey)
+        ? await ref.read(aiConfigServiceProvider).loadConfig(_provider)
+        : config;
+
+    if (effectiveConfig.apiKey == null || effectiveConfig.apiKey!.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('请先输入或配置 API Key 后再探测模型'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _probing = true;
+    });
+
+    try {
+      final models = await ref
+          .read(aiConfigServiceProvider)
+          .fetchModels(effectiveConfig);
+
+      if (!mounted) return;
+      setState(() {
+        _probedModels = models;
+        _probing = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('成功探测到 ${models.length} 个可用模型'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      _showModelPickerSheet();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _probing = false;
+        if (_probedModels.isEmpty) {
+          _probedModels = _provider.presetModels;
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('探测失败，已加载预设模型: ${e.toString()}'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      if (_probedModels.isNotEmpty) {
+        _showModelPickerSheet();
+      }
+    }
   }
 
   Future<void> _testConnection() async {
     final config = _buildCurrentConfig();
 
-    // If no new key entered and no saved key, prompt user
     if ((config.apiKey == null || config.apiKey!.isEmpty) && !_hasSavedApiKey) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -130,7 +198,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
     });
 
     final effectiveConfig = (config.apiKey == null && _hasSavedApiKey)
-        ? await ref.read(aiConfigServiceProvider).loadConfig()
+        ? await ref.read(aiConfigServiceProvider).loadConfig(_provider)
         : config;
 
     final result = await ref
@@ -152,12 +220,17 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
     await ref.read(aiConfigServiceProvider).saveConfig(config);
     ref.invalidate(aiConfigProvider);
 
-    // Refresh display
-    final reloaded = await ref.read(aiConfigServiceProvider).loadConfig();
+    final service = ref.read(aiConfigServiceProvider);
+    final reloaded = await service.loadConfig(_provider);
+    final keyStatus = <AiProviderType, bool>{};
+    for (final p in AiProviderType.values) {
+      keyStatus[p] = await service.hasKeyFor(p);
+    }
 
     if (!mounted) return;
     setState(() {
       _saving = false;
+      _providerKeyStatus = keyStatus;
       if (reloaded.apiKey != null && reloaded.apiKey!.isNotEmpty) {
         _hasSavedApiKey = true;
         _savedMaskedKey = reloaded.maskedApiKey;
@@ -177,13 +250,400 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
     await ref.read(aiConfigServiceProvider).clearApiKey(_provider);
     ref.invalidate(aiConfigProvider);
 
+    final service = ref.read(aiConfigServiceProvider);
+    final keyStatus = <AiProviderType, bool>{};
+    for (final p in AiProviderType.values) {
+      keyStatus[p] = await service.hasKeyFor(p);
+    }
+
     if (!mounted) return;
     setState(() {
       _hasSavedApiKey = false;
       _savedMaskedKey = '';
       _apiKeyController.clear();
       _lastPingResult = null;
+      _providerKeyStatus = keyStatus;
     });
+  }
+
+  void _showProviderPickerSheet() {
+    HapticFeedback.selectionClick();
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        final theme = Theme.of(sheetContext);
+        final isDark = theme.brightness == Brightness.dark;
+        final sheetBg = isDark
+            ? AppTokens.surfaceCardDark
+            : AppTokens.surfaceCard;
+        final borderColor = isDark
+            ? AppTokens.borderSubtleDark
+            : AppTokens.borderSubtleLight;
+
+        return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(sheetContext).size.height * 0.7,
+          ),
+          decoration: BoxDecoration(
+            color: sheetBg,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(AppTokens.radiusCard),
+            ),
+            border: Border.all(color: borderColor, width: 0.5),
+          ),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTokens.spaceMd,
+            vertical: AppTokens.spaceSm,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? AppTokens.borderSubtleDark
+                        : AppTokens.borderSubtleLight,
+                    borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppTokens.spaceSm),
+              Text(
+                '选择大模型供应商',
+                style: TextStyle(
+                  fontSize: AppTokens.textTitleSize,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: AppTokens.spaceXs),
+              Text(
+                '支持保存各供应商独立密钥，随时一键无缝切换',
+                style: TextStyle(
+                  fontSize: AppTokens.textMicroSize,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: AppTokens.spaceSm),
+              Divider(height: 1, color: borderColor),
+              Expanded(
+                child: ListView.separated(
+                  itemCount: AiProviderType.values.length,
+                  separatorBuilder: (context, index) =>
+                      Divider(height: 1, color: borderColor),
+                  itemBuilder: (context, index) {
+                    final p = AiProviderType.values[index];
+                    final isSelected = p == _provider;
+                    final hasKey = _providerKeyStatus[p] ?? false;
+
+                    return ListTile(
+                      dense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: AppTokens.spaceXs,
+                        vertical: AppTokens.spaceMicro,
+                      ),
+                      leading: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? theme.colorScheme.primary.withValues(
+                                  alpha: AppTokens.alphaTintSoft,
+                                )
+                              : (isDark
+                                  ? AppTokens.surfaceSubtleDark
+                                  : AppTokens.surfaceSubtleLight),
+                          borderRadius:
+                              BorderRadius.circular(AppTokens.radiusChip),
+                        ),
+                        child: Icon(
+                          _providerIcon(p),
+                          size: 18,
+                          color: isSelected
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      title: Row(
+                        children: [
+                          Text(
+                            p.displayName,
+                            style: TextStyle(
+                              fontSize: AppTokens.textBodySize,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w500,
+                              color: isSelected
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(width: AppTokens.spaceXs),
+                          if (hasKey)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppTokens.spaceMicro + 2,
+                                vertical: AppTokens.spaceMicro,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTokens.colorSuccess.withValues(
+                                  alpha: AppTokens.alphaTintSoft,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  AppTokens.radiusMicro,
+                                ),
+                              ),
+                              child: const Text(
+                                '已配置密钥',
+                                style: TextStyle(
+                                  fontSize: AppTokens.textMicroSize,
+                                  color: AppTokens.colorSuccess,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      subtitle: Text(
+                        _providerSubtitle(p),
+                        style: TextStyle(
+                          fontSize: AppTokens.textMicroSize,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: isSelected
+                          ? Icon(
+                              Icons.check,
+                              color: theme.colorScheme.primary,
+                              size: 20,
+                            )
+                          : null,
+                      onTap: () {
+                        Navigator.pop(sheetContext);
+                        _onProviderChanged(p);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showModelPickerSheet() {
+    HapticFeedback.selectionClick();
+    final allModels = <String>{
+      ..._probedModels,
+      ..._provider.presetModels,
+      if (_modelController.text.trim().isNotEmpty) _modelController.text.trim(),
+    }.toList();
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        var query = '';
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final theme = Theme.of(sheetContext);
+            final isDark = theme.brightness == Brightness.dark;
+            final sheetBg = isDark
+                ? AppTokens.surfaceCardDark
+                : AppTokens.surfaceCard;
+            final borderColor = isDark
+                ? AppTokens.borderSubtleDark
+                : AppTokens.borderSubtleLight;
+
+            final filtered = allModels.where((m) {
+              if (query.isEmpty) return true;
+              return m.toLowerCase().contains(query.toLowerCase());
+            }).toList();
+
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(sheetContext).size.height * 0.75,
+              ),
+              decoration: BoxDecoration(
+                color: sheetBg,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(AppTokens.radiusCard),
+                ),
+                border: Border.all(color: borderColor, width: 0.5),
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTokens.spaceMd,
+                vertical: AppTokens.spaceSm,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? AppTokens.borderSubtleDark
+                            : AppTokens.borderSubtleLight,
+                        borderRadius:
+                            BorderRadius.circular(AppTokens.radiusPill),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppTokens.spaceSm),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '选择模型 (${_provider.displayName})',
+                          style: TextStyle(
+                            fontSize: AppTokens.textTitleSize,
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.pop(sheetContext);
+                          _probeModels();
+                        },
+                        icon: const Icon(Icons.refresh, size: 14),
+                        label: const Text(
+                          '重新探测',
+                          style: TextStyle(
+                            fontSize: AppTokens.textFootnoteSize,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppTokens.spaceXs),
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: '搜索或筛选模型...',
+                      isDense: true,
+                      prefixIcon: const Icon(Icons.search, size: 18),
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: AppTokens.spaceSm,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppTokens.radiusCard),
+                      ),
+                    ),
+                    onChanged: (val) {
+                      setSheetState(() {
+                        query = val.trim();
+                      });
+                    },
+                  ),
+                  const SizedBox(height: AppTokens.spaceSm),
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? Center(
+                            child: Text(
+                              '无匹配模型，可直接在输入框中键入自定义模型名称',
+                              style: TextStyle(
+                                fontSize: AppTokens.textFootnoteSize,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          )
+                        : ListView.separated(
+                            itemCount: filtered.length,
+                            separatorBuilder: (context, index) =>
+                                Divider(height: 1, color: borderColor),
+                            itemBuilder: (context, index) {
+                              final modelName = filtered[index];
+                              final isSelected =
+                                  modelName == _modelController.text.trim();
+
+                              return ListTile(
+                                dense: true,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: AppTokens.spaceXs,
+                                ),
+                                leading: Icon(
+                                  Icons.auto_awesome_outlined,
+                                  size: 16,
+                                  color: isSelected
+                                      ? theme.colorScheme.primary
+                                      : theme.colorScheme.onSurfaceVariant,
+                                ),
+                                title: Text(
+                                  modelName,
+                                  style: TextStyle(
+                                    fontSize: AppTokens.textBodySize,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                    color: isSelected
+                                        ? theme.colorScheme.primary
+                                        : theme.colorScheme.onSurface,
+                                  ),
+                                ),
+                                trailing: isSelected
+                                    ? Icon(
+                                        Icons.check,
+                                        color: theme.colorScheme.primary,
+                                        size: 18,
+                                      )
+                                    : null,
+                                onTap: () {
+                                  Navigator.pop(sheetContext);
+                                  setState(() {
+                                    _modelController.text = modelName;
+                                  });
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _providerSubtitle(AiProviderType p) {
+    return switch (p) {
+      AiProviderType.deepseek => 'DeepSeek 官方推理与通用大模型',
+      AiProviderType.kimi => '月之暗面长上下文与通用大模型',
+      AiProviderType.qwen => '阿里云通义千问系列高性价比模型',
+      AiProviderType.glm => '智谱清言通用与轻量模型',
+      AiProviderType.openai => 'OpenAI 官方通用与推理模型',
+      AiProviderType.claude => 'Anthropic 官方前沿多模态大模型',
+      AiProviderType.custom => '兼容 OpenAI 协议的自定义端点',
+    };
+  }
+
+  IconData _providerIcon(AiProviderType p) {
+    return switch (p) {
+      AiProviderType.deepseek => Icons.psychology_outlined,
+      AiProviderType.kimi => Icons.dark_mode_outlined,
+      AiProviderType.qwen => Icons.cloud_outlined,
+      AiProviderType.glm => Icons.diamond_outlined,
+      AiProviderType.openai => Icons.grain_outlined,
+      AiProviderType.claude => Icons.bubble_chart_outlined,
+      AiProviderType.custom => Icons.tune_outlined,
+    };
   }
 
   @override
@@ -203,36 +663,125 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
         vertical: AppTokens.spaceSm,
       ),
       children: [
-        // Provider card
+        // Provider card (Linear Style Polymorphic Selector)
         SettingsCard(
           children: [
-            Text(
-              l10n.aiProvider,
-              style: TextStyle(
-                fontSize: AppTokens.textBodySize,
-                fontWeight: FontWeight.w600,
-                color: colorScheme.onSurface,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.aiProvider,
+                    style: TextStyle(
+                      fontSize: AppTokens.textBodySize,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                Text(
+                  '多服务商按需切换',
+                  style: TextStyle(
+                    fontSize: AppTokens.textMicroSize,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: AppTokens.spaceSm),
-            DropdownButtonFormField<AiProviderType>(
-              initialValue: _provider,
-              decoration: InputDecoration(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: AppTokens.spaceSm,
+            InkWell(
+              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+              onTap: _showProviderPickerSheet,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTokens.spaceMd,
                   vertical: AppTokens.spaceSm,
                 ),
-                border: OutlineInputBorder(
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? AppTokens.surfaceSubtleDark
+                      : AppTokens.surfaceSubtleLight,
                   borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                  border: Border.all(
+                    color: isDark
+                        ? AppTokens.borderSubtleDark
+                        : AppTokens.borderSubtleLight,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary.withValues(
+                          alpha: AppTokens.alphaTintSoft,
+                        ),
+                        borderRadius:
+                            BorderRadius.circular(AppTokens.radiusMicro),
+                      ),
+                      child: Icon(
+                        _providerIcon(_provider),
+                        size: 16,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: AppTokens.spaceSm),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _provider.displayName,
+                            style: TextStyle(
+                              fontSize: AppTokens.textBodySize,
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          Text(
+                            _providerSubtitle(_provider),
+                            style: TextStyle(
+                              fontSize: AppTokens.textMicroSize,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_hasSavedApiKey) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppTokens.spaceXs,
+                          vertical: AppTokens.spaceMicro,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTokens.colorSuccess.withValues(
+                            alpha: AppTokens.alphaTintSoft,
+                          ),
+                          borderRadius:
+                              BorderRadius.circular(AppTokens.radiusPill),
+                        ),
+                        child: const Text(
+                          '已配置密钥',
+                          style: TextStyle(
+                            fontSize: AppTokens.textMicroSize,
+                            color: AppTokens.colorSuccess,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: AppTokens.spaceXs),
+                    ],
+                    Icon(
+                      Icons.unfold_more,
+                      size: 20,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ],
                 ),
               ),
-              items: AiProviderType.values.map((type) {
-                return DropdownMenuItem<AiProviderType>(
-                  value: type,
-                  child: Text(type.displayName),
-                );
-              }).toList(),
-              onChanged: _onProviderChanged,
             ),
           ],
         ),
@@ -256,6 +805,8 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
               keyboardType: TextInputType.url,
             ),
             const SizedBox(height: AppTokens.spaceMd),
+
+            // Model input with Probe & Select buttons
             TextField(
               controller: _modelController,
               decoration: InputDecoration(
@@ -263,6 +814,47 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                 hintText: l10n.aiModelHint,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                ),
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Probe models button
+                    Tooltip(
+                      message: '在线探测可用模型',
+                      child: TextButton.icon(
+                        onPressed: _probing ? null : _probeModels,
+                        icon: _probing
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.radar_outlined, size: 16),
+                        label: const Text(
+                          '探测',
+                          style: TextStyle(
+                            fontSize: AppTokens.textFootnoteSize,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppTokens.spaceXs,
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Model list selector button
+                    Tooltip(
+                      message: '从模型列表选择',
+                      child: IconButton(
+                        icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+                        onPressed: _showModelPickerSheet,
+                      ),
+                    ),
+                    const SizedBox(width: AppTokens.spaceXxs),
+                  ],
                 ),
               ),
             ),
@@ -351,7 +943,9 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
               controller: _apiKeyController,
               obscureText: _obscureApiKey,
               decoration: InputDecoration(
-                labelText: _hasSavedApiKey ? '更新密钥 (留空则保留原密钥)' : 'API Key',
+                labelText: _hasSavedApiKey
+                    ? '更新密钥 (留空则保留原密钥)'
+                    : 'API Key',
                 hintText: _hasSavedApiKey ? l10n.aiApiKeyHint : 'sk-...',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppTokens.radiusCard),
@@ -397,55 +991,72 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
           const SizedBox(height: AppTokens.spaceMd),
         ],
 
-        // Action Buttons Card
+        // Action Buttons Card (Placed in a single row side-by-side)
         SettingsCard(
           children: [
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _testing ? null : _testConnection,
-                icon: _testing
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.wifi_tethering_outlined),
-                label: Text(
-                  _testing ? l10n.aiTestingConnection : l10n.aiTestConnection,
-                ),
-                style: OutlinedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppTokens.radiusButton),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: AppTokens.spaceSm,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppTokens.spaceSm),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: _saving ? null : _saveConfig,
-                icon: _saving
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.save_outlined),
-                label: Text(l10n.aiSaveConfig),
-                style: FilledButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppTokens.radiusButton),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: AppTokens.spaceSm,
+            Row(
+              children: [
+                // Test Connection Button
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _testing ? null : _testConnection,
+                    icon: _testing
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.wifi_tethering_outlined, size: 18),
+                    label: Text(
+                      _testing
+                          ? l10n.aiTestingConnection
+                          : l10n.aiTestConnection,
+                      style: const TextStyle(
+                        fontSize: AppTokens.textFootnoteSize,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppTokens.radiusButton),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppTokens.spaceSm,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(width: AppTokens.spaceSm),
+
+                // Save Configuration Button
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: _saving ? null : _saveConfig,
+                    icon: _saving
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.save_outlined, size: 18),
+                    label: Text(
+                      l10n.aiSaveConfig,
+                      style: const TextStyle(
+                        fontSize: AppTokens.textFootnoteSize,
+                      ),
+                    ),
+                    style: FilledButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppTokens.radiusButton),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppTokens.spaceSm,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -476,9 +1087,19 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
     return Container(
       padding: const EdgeInsets.all(AppTokens.spaceSm),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: isDark ? 0.15 : 0.08),
+        color: color.withValues(
+          alpha: isDark
+              ? AppTokens.alphaTintStrong
+              : AppTokens.alphaTintSoft,
+        ),
         borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-        border: Border.all(color: color.withValues(alpha: isDark ? 0.4 : 0.3)),
+        border: Border.all(
+          color: color.withValues(
+            alpha: isDark
+                ? AppTokens.alphaBorderEmphasis
+                : AppTokens.alphaBorderSubtle,
+          ),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

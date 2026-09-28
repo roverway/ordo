@@ -7,30 +7,49 @@ enum AiProviderType {
     displayName: 'DeepSeek',
     defaultBaseUrl: 'https://api.deepseek.com',
     defaultModel: 'deepseek-chat',
+    presetModels: ['deepseek-chat', 'deepseek-reasoner'],
+  ),
+  kimi(
+    id: 'kimi',
+    displayName: '月之暗面 Kimi',
+    defaultBaseUrl: 'https://api.moonshot.cn/v1',
+    defaultModel: 'moonshot-v1-8k',
+    presetModels: ['moonshot-v1-8k', 'moonshot-v1-32k', 'moonshot-v1-128k'],
+  ),
+  qwen(
+    id: 'qwen',
+    displayName: '阿里通义千问 (DashScope)',
+    defaultBaseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    defaultModel: 'qwen-plus',
+    presetModels: ['qwen-plus', 'qwen-turbo', 'qwen-max', 'qwen-long'],
   ),
   glm(
     id: 'glm',
     displayName: '智谱 GLM',
     defaultBaseUrl: 'https://open.bigmodel.cn/api/paas/v4',
     defaultModel: 'glm-4-flash',
+    presetModels: ['glm-4-flash', 'glm-4-plus', 'glm-4-air', 'glm-4-long'],
   ),
   openai(
     id: 'openai',
     displayName: 'OpenAI',
     defaultBaseUrl: 'https://api.openai.com/v1',
     defaultModel: 'gpt-4o-mini',
+    presetModels: ['gpt-4o-mini', 'gpt-4o', 'o1', 'o3-mini'],
   ),
   claude(
     id: 'claude',
     displayName: 'Anthropic Claude',
     defaultBaseUrl: 'https://api.anthropic.com/v1',
     defaultModel: 'claude-3-5-haiku-20241022',
+    presetModels: ['claude-3-5-haiku-20241022', 'claude-3-5-sonnet-20241022'],
   ),
   custom(
     id: 'custom',
     displayName: '自定义 (Custom)',
     defaultBaseUrl: '',
     defaultModel: '',
+    presetModels: [],
   );
 
   const AiProviderType({
@@ -38,12 +57,14 @@ enum AiProviderType {
     required this.displayName,
     required this.defaultBaseUrl,
     required this.defaultModel,
+    this.presetModels = const [],
   });
 
   final String id;
   final String displayName;
   final String defaultBaseUrl;
   final String defaultModel;
+  final List<String> presetModels;
 
   static AiProviderType fromId(String? id) {
     if (id == null) return AiProviderType.deepseek;
