@@ -9,6 +9,8 @@ import 'package:ordo/features/ai_copilot/widgets/ai_chat_input_box.dart';
 import 'package:ordo/features/ai_copilot/widgets/ai_efficiency_report_view.dart';
 import 'package:ordo/features/ai_copilot/widgets/ai_prompt_capsule.dart';
 import 'package:ordo/features/ai_copilot/widgets/ai_task_proposal_card.dart';
+import 'package:ordo/features/ai_copilot/widgets/ai_shimmer_glow.dart';
+import 'package:ordo/features/settings/views/ai_settings_page.dart';
 
 /// Modal bottom sheet (narrow screens) or right side sheet (wide screens)
 /// hosting the AI Copilot natural language dialogue interface.
@@ -166,6 +168,10 @@ class _AiCopilotSheetState extends ConsumerState<AiCopilotSheet> {
                   ? _buildWelcomeState(context, isDark)
                   : _buildMessageList(context, isDark, copilotState),
             ),
+
+            if (copilotState.errorMessage != null &&
+                copilotState.errorMessage!.isNotEmpty)
+              _buildErrorBanner(context, isDark, copilotState.errorMessage!),
 
             // Bottom action bar
             _buildBottomBar(
@@ -360,30 +366,13 @@ class _AiCopilotSheetState extends ConsumerState<AiCopilotSheet> {
       itemCount: messages.length + (state.isLoading ? 1 : 0),
       itemBuilder: (context, index) {
         if (index == messages.length && state.isLoading) {
-          // Thinking indicator
+          // Thinking indicator with Linear shimmer breathing micro-glow
           return Padding(
             padding: const EdgeInsets.only(bottom: AppTokens.spaceSm),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppTokens.colorInbox,
-                  ),
-                ),
-                const SizedBox(width: AppTokens.spaceXs),
-                Text(
-                  l10n.aiThinking,
-                  style: TextStyle(
-                    fontSize: AppTokens.textFootnoteSize,
-                    color: isDark
-                        ? AppTokens.textMutedDark
-                        : AppTokens.textMutedLight,
-                  ),
-                ),
+                AiThinkingPulse(label: l10n.aiThinking),
               ],
             ),
           );
@@ -417,6 +406,11 @@ class _AiCopilotSheetState extends ConsumerState<AiCopilotSheet> {
                 ref
                     .read(aiCopilotControllerProvider.notifier)
                     .updateSubstepIndices(msg.id, newIndices);
+              },
+              onProposalChanged: (updated) {
+                ref
+                    .read(aiCopilotControllerProvider.notifier)
+                    .updateProposal(msg.id, updated);
               },
               onConfirm: () async {
                 final result = await ref
@@ -477,6 +471,85 @@ class _AiCopilotSheetState extends ConsumerState<AiCopilotSheet> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildErrorBanner(
+    BuildContext context,
+    bool isDark,
+    String errorMessage,
+  ) {
+    final theme = Theme.of(context);
+    final isConfigError = errorMessage.contains('未配置') ||
+        errorMessage.contains('API Key') ||
+        errorMessage.contains('401') ||
+        errorMessage.toLowerCase().contains('unauthorized') ||
+        errorMessage.toLowerCase().contains('config');
+
+    return Container(
+      margin: const EdgeInsets.symmetric(
+        horizontal: AppTokens.spaceLg,
+        vertical: AppTokens.spaceXs,
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTokens.spaceMd,
+        vertical: AppTokens.spaceSm,
+      ),
+      decoration: BoxDecoration(
+        color: AppTokens.colorDanger.withValues(alpha: AppTokens.alphaTintSoft),
+        borderRadius: BorderRadius.circular(AppTokens.radiusButton),
+        border: Border.all(
+          color: AppTokens.colorDanger.withValues(alpha: AppTokens.alphaBorderEmphasis),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.error_outline,
+            size: 18,
+            color: AppTokens.colorDangerText,
+          ),
+          const SizedBox(width: AppTokens.spaceSm),
+          Expanded(
+            child: Text(
+              errorMessage,
+              style: const TextStyle(
+                fontSize: AppTokens.textFootnoteSize,
+                color: AppTokens.colorDangerText,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (isConfigError) ...[
+            const SizedBox(width: AppTokens.spaceXs),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AiSettingsPage()),
+                );
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: theme.colorScheme.primary,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTokens.spaceSm,
+                  vertical: AppTokens.spaceMicro,
+                ),
+                minimumSize: const Size(0, 30),
+              ),
+              child: const Text(
+                '去配置',
+                style: TextStyle(
+                  fontSize: AppTokens.textFootnoteSize,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 

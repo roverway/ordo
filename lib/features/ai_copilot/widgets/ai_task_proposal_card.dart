@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:ordo/core/ai/models/ai_task_parse_result.dart';
 import 'package:ordo/core/l10n/app_localizations.dart';
 import 'package:ordo/core/theme/app_tokens.dart';
@@ -7,11 +8,12 @@ import 'package:ordo/core/theme/app_tokens.dart';
 ///
 /// Features:
 /// - Human-in-the-loop: Never automatically saves until user taps confirm.
+/// - Inline title editing & priority quick-toggle before confirming.
 /// - Linear minimal aesthetic: Dark mode [surfaceCardDark], subtle micro-glow borders,
 ///   zero magic numbers (100% token compliant).
 /// - Selectable substeps with rounded checkboxes.
 /// - Idempotent confirm button: disabled and grayed out once persisted.
-class AiTaskProposalCard extends StatelessWidget {
+class AiTaskProposalCard extends StatefulWidget {
   const AiTaskProposalCard({
     super.key,
     required this.proposal,
@@ -20,6 +22,7 @@ class AiTaskProposalCard extends StatelessWidget {
     this.isPersisting = false,
     this.isDiscarded = false,
     this.onSubstepsChanged,
+    this.onProposalChanged,
     this.onConfirm,
     this.onDiscard,
   });
@@ -42,11 +45,79 @@ class AiTaskProposalCard extends StatelessWidget {
   /// Callback when substeps selection changes.
   final ValueChanged<Set<int>>? onSubstepsChanged;
 
+  /// Callback when user edits proposal (e.g. title or priority).
+  final ValueChanged<AiTaskParseResult>? onProposalChanged;
+
   /// Callback when user taps "Add to tasks".
   final VoidCallback? onConfirm;
 
   /// Callback when user taps "Discard".
   final VoidCallback? onDiscard;
+
+  @override
+  State<AiTaskProposalCard> createState() => _AiTaskProposalCardState();
+}
+
+class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
+  late TextEditingController _titleController;
+  late FocusNode _titleFocusNode;
+  bool _isEditingTitle = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.proposal.title);
+    _titleFocusNode = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(covariant AiTaskProposalCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.proposal.title != widget.proposal.title && !_isEditingTitle) {
+      _titleController.text = widget.proposal.title;
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _titleFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _submitTitleEdit() {
+    final newTitle = _titleController.text.trim();
+    if (newTitle.isNotEmpty && newTitle != widget.proposal.title) {
+      final updated = widget.proposal.copyWith(title: newTitle);
+      widget.onProposalChanged?.call(updated);
+    } else {
+      _titleController.text = widget.proposal.title;
+    }
+    setState(() {
+      _isEditingTitle = false;
+    });
+  }
+
+  void _cyclePriority() {
+    if (widget.isPersisted || widget.isDiscarded || widget.isPersisting) return;
+    HapticFeedback.selectionClick();
+
+    // 3 -> 2 -> 1 -> 0 -> 3
+    final cur = widget.proposal.priority;
+    final int next;
+    if (cur == 3) {
+      next = 2;
+    } else if (cur == 2) {
+      next = 1;
+    } else if (cur == 1) {
+      next = 0;
+    } else {
+      next = 3;
+    }
+
+    final updated = widget.proposal.copyWith(priority: next);
+    widget.onProposalChanged?.call(updated);
+  }
 
   String _formatDateTime(int epochMs) {
     final dt = DateTime.fromMillisecondsSinceEpoch(epochMs);
@@ -88,9 +159,13 @@ class AiTaskProposalCard extends StatelessWidget {
         ? AppTokens.textMutedDark
         : AppTokens.textMutedLight;
 
+    final isInteractive = !widget.isPersisted &&
+        !widget.isDiscarded &&
+        !widget.isPersisting;
+
     final (priorityLabel, priorityColor) = _priorityInfo(
       context,
-      proposal.priority,
+      widget.proposal.priority,
     );
 
     return Container(
@@ -132,22 +207,96 @@ class AiTaskProposalCard extends StatelessWidget {
           ),
           const SizedBox(height: AppTokens.spaceSm),
 
-          // Title
-          Text(
-            proposal.title,
-            style: TextStyle(
-              fontSize: AppTokens.textHeadingSize,
-              fontWeight: AppTokens.textHeadingWeight,
-              color: primaryTextColor,
+          // Title (with inline editing capability)
+          if (_isEditingTitle)
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _titleController,
+                    focusNode: _titleFocusNode,
+                    autofocus: true,
+                    style: TextStyle(
+                      fontSize: AppTokens.textHeadingSize,
+                      fontWeight: AppTokens.textHeadingWeight,
+                      color: primaryTextColor,
+                    ),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: AppTokens.spaceXxs,
+                      ),
+                      border: UnderlineInputBorder(
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.primary,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                    onSubmitted: (_) => _submitTitleEdit(),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.check, size: 18),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 28,
+                    minHeight: 28,
+                  ),
+                  color: theme.colorScheme.primary,
+                  onPressed: _submitTitleEdit,
+                ),
+              ],
+            )
+          else
+            InkWell(
+              borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
+              onTap: isInteractive
+                  ? () {
+                      setState(() {
+                        _isEditingTitle = true;
+                      });
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _titleFocusNode.requestFocus();
+                      });
+                    }
+                  : null,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.proposal.title,
+                      style: TextStyle(
+                        fontSize: AppTokens.textHeadingSize,
+                        fontWeight: AppTokens.textHeadingWeight,
+                        color: primaryTextColor,
+                      ),
+                    ),
+                  ),
+                  if (isInteractive) ...[
+                    const SizedBox(width: AppTokens.spaceXs),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Icon(
+                        Icons.edit_outlined,
+                        size: 14,
+                        color: secondaryTextColor.withValues(
+                          alpha: AppTokens.alphaOverlayHeavy,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
 
           // Description (optional)
-          if (proposal.description != null &&
-              proposal.description!.trim().isNotEmpty) ...[
+          if (widget.proposal.description != null &&
+              widget.proposal.description!.trim().isNotEmpty) ...[
             const SizedBox(height: AppTokens.spaceXs),
             Text(
-              proposal.description!,
+              widget.proposal.description!,
               style: TextStyle(
                 fontSize: AppTokens.textSecondarySize,
                 fontWeight: AppTokens.textSecondaryWeight,
@@ -165,50 +314,58 @@ class AiTaskProposalCard extends StatelessWidget {
             runSpacing: AppTokens.spaceXs,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              // Priority badge
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTokens.spaceXs,
-                  vertical: AppTokens.spaceMicro,
-                ),
-                decoration: BoxDecoration(
-                  color: priorityColor.withValues(
-                    alpha: AppTokens.alphaTintSoft,
-                  ),
-                  borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
-                  border: Border.all(
-                    color: priorityColor.withValues(
-                      alpha: AppTokens.alphaBorderSubtle,
+              // Priority badge (Interactive quick-cycle)
+              InkWell(
+                borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
+                onTap: isInteractive ? _cyclePriority : null,
+                child: Tooltip(
+                  message: isInteractive ? '点击切换优先级' : priorityLabel,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTokens.spaceXs,
+                      vertical: AppTokens.spaceMicro,
                     ),
-                    width: 0.5,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: priorityColor,
-                        shape: BoxShape.circle,
+                    decoration: BoxDecoration(
+                      color: priorityColor.withValues(
+                        alpha: AppTokens.alphaTintSoft,
+                      ),
+                      borderRadius:
+                          BorderRadius.circular(AppTokens.radiusMicro),
+                      border: Border.all(
+                        color: priorityColor.withValues(
+                          alpha: AppTokens.alphaBorderSubtle,
+                        ),
+                        width: 0.5,
                       ),
                     ),
-                    const SizedBox(width: AppTokens.spaceXxs),
-                    Text(
-                      priorityLabel,
-                      style: TextStyle(
-                        fontSize: AppTokens.textMicroSize,
-                        fontWeight: AppTokens.textMicroWeight,
-                        color: priorityColor,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: priorityColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: AppTokens.spaceXxs),
+                        Text(
+                          priorityLabel,
+                          style: TextStyle(
+                            fontSize: AppTokens.textMicroSize,
+                            fontWeight: AppTokens.textMicroWeight,
+                            color: priorityColor,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
 
               // Due date badge
-              if (proposal.dueAt != null)
+              if (widget.proposal.dueAt != null)
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppTokens.spaceXs,
@@ -231,7 +388,7 @@ class AiTaskProposalCard extends StatelessWidget {
                       ),
                       const SizedBox(width: AppTokens.spaceXxs),
                       Text(
-                        _formatDateTime(proposal.dueAt!),
+                        _formatDateTime(widget.proposal.dueAt!),
                         style: TextStyle(
                           fontSize: AppTokens.textMicroSize,
                           fontWeight: AppTokens.textMicroWeight,
@@ -243,7 +400,7 @@ class AiTaskProposalCard extends StatelessWidget {
                 ),
 
               // Tags
-              for (final tag in proposal.tags)
+              for (final tag in widget.proposal.tags)
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppTokens.spaceXs,
@@ -269,7 +426,7 @@ class AiTaskProposalCard extends StatelessWidget {
           ),
 
           // Substeps Section
-          if (proposal.substeps.isNotEmpty) ...[
+          if (widget.proposal.substeps.isNotEmpty) ...[
             const SizedBox(height: AppTokens.spaceMd),
             Divider(height: 1, thickness: 0.5, color: borderColor),
             const SizedBox(height: AppTokens.spaceSm),
@@ -285,7 +442,7 @@ class AiTaskProposalCard extends StatelessWidget {
                 ),
                 const SizedBox(width: AppTokens.spaceXs),
                 Text(
-                  '${selectedSubstepIndices.length}/${proposal.substeps.length}',
+                  '${widget.selectedSubstepIndices.length}/${widget.proposal.substeps.length}',
                   style: TextStyle(
                     fontSize: AppTokens.textMicroSize,
                     color: secondaryTextColor,
@@ -294,18 +451,18 @@ class AiTaskProposalCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppTokens.spaceXs),
-            for (int i = 0; i < proposal.substeps.length; i++) ...[
+            for (int i = 0; i < widget.proposal.substeps.length; i++) ...[
               _buildSubstepRow(
                 context,
                 index: i,
-                substep: proposal.substeps[i],
-                isSelected: selectedSubstepIndices.contains(i),
-                isInteractive: !isPersisted && !isDiscarded && !isPersisting,
+                substep: widget.proposal.substeps[i],
+                isSelected: widget.selectedSubstepIndices.contains(i),
+                isInteractive: isInteractive,
                 primaryColor: theme.colorScheme.primary,
                 primaryTextColor: primaryTextColor,
                 secondaryTextColor: secondaryTextColor,
               ),
-              if (i < proposal.substeps.length - 1)
+              if (i < widget.proposal.substeps.length - 1)
                 const SizedBox(height: AppTokens.spaceXxs),
             ],
           ],
@@ -318,9 +475,12 @@ class AiTaskProposalCard extends StatelessWidget {
           Row(
             children: [
               // Discard Action Button
-              if (!isPersisted)
+              if (!widget.isPersisted)
                 TextButton(
-                  onPressed: (!isDiscarded && !isPersisting) ? onDiscard : null,
+                  onPressed:
+                      (!widget.isDiscarded && !widget.isPersisting)
+                          ? widget.onDiscard
+                          : null,
                   style: TextButton.styleFrom(
                     foregroundColor: secondaryTextColor,
                     padding: const EdgeInsets.symmetric(
@@ -330,7 +490,9 @@ class AiTaskProposalCard extends StatelessWidget {
                     minimumSize: const Size(0, 36),
                   ),
                   child: Text(
-                    isDiscarded ? l10n.aiDiscardedAction : l10n.aiDiscardAction,
+                    widget.isDiscarded
+                        ? l10n.aiDiscardedAction
+                        : l10n.aiDiscardAction,
                     style: const TextStyle(
                       fontSize: AppTokens.textFootnoteSize,
                     ),
@@ -339,9 +501,12 @@ class AiTaskProposalCard extends StatelessWidget {
               const Spacer(),
 
               // Confirm Action Button (hidden if discarded)
-              if (!isDiscarded)
+              if (!widget.isDiscarded)
                 FilledButton(
-                  onPressed: (!isPersisted && !isPersisting) ? onConfirm : null,
+                  onPressed:
+                      (!widget.isPersisted && !widget.isPersisting)
+                          ? widget.onConfirm
+                          : null,
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppTokens.spaceMd,
@@ -352,7 +517,7 @@ class AiTaskProposalCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (isPersisting) ...[
+                      if (widget.isPersisting) ...[
                         const SizedBox(
                           width: 14,
                           height: 14,
@@ -368,7 +533,7 @@ class AiTaskProposalCard extends StatelessWidget {
                             fontSize: AppTokens.textFootnoteSize,
                           ),
                         ),
-                      ] else if (isPersisted) ...[
+                      ] else if (widget.isPersisted) ...[
                         const Icon(Icons.check, size: 16),
                         const SizedBox(width: AppTokens.spaceXxs),
                         Text(
@@ -410,49 +575,55 @@ class AiTaskProposalCard extends StatelessWidget {
     return InkWell(
       onTap: isInteractive
           ? () {
-              final newSet = Set<int>.from(selectedSubstepIndices);
+              final newSet = Set<int>.from(widget.selectedSubstepIndices);
               if (isSelected) {
                 newSet.remove(index);
               } else {
                 newSet.add(index);
               }
-              onSubstepsChanged?.call(newSet);
+              widget.onSubstepsChanged?.call(newSet);
             }
           : null,
-      borderRadius: BorderRadius.circular(AppTokens.radiusXs),
+      borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
       child: Padding(
         padding: const EdgeInsets.symmetric(
-          vertical: AppTokens.spaceXxs,
           horizontal: AppTokens.spaceXxs,
+          vertical: AppTokens.spaceMicro,
         ),
         child: Row(
           children: [
             SizedBox(
-              width: AppTokens.checkboxTapTargetSize,
-              height: AppTokens.checkboxTapTargetSize,
+              width: 20,
+              height: 20,
               child: Checkbox(
                 value: isSelected,
-                shape: AppTokens.checkboxShape,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
+                ),
+                activeColor: primaryColor,
                 onChanged: isInteractive
-                    ? (checked) {
-                        final newSet = Set<int>.from(selectedSubstepIndices);
-                        if (checked == true) {
+                    ? (val) {
+                        final newSet =
+                            Set<int>.from(widget.selectedSubstepIndices);
+                        if (val == true) {
                           newSet.add(index);
                         } else {
                           newSet.remove(index);
                         }
-                        onSubstepsChanged?.call(newSet);
+                        widget.onSubstepsChanged?.call(newSet);
                       }
                     : null,
               ),
             ),
-            const SizedBox(width: AppTokens.checkboxToTitleGap),
+            const SizedBox(width: AppTokens.spaceXs),
             Expanded(
               child: Text(
                 substep.title,
                 style: TextStyle(
                   fontSize: AppTokens.textBodySize,
-                  color: isInteractive ? primaryTextColor : secondaryTextColor,
+                  color: isSelected ? primaryTextColor : secondaryTextColor,
+                  decoration: isSelected ? null : TextDecoration.lineThrough,
+                  decorationColor: secondaryTextColor,
                 ),
               ),
             ),

@@ -27,6 +27,7 @@ void main() {
     bool isPersisting = false,
     bool isDiscarded = false,
     ValueChanged<Set<int>>? onSubstepsChanged,
+    ValueChanged<AiTaskParseResult>? onProposalChanged,
     VoidCallback? onConfirm,
     VoidCallback? onDiscard,
     ThemeMode themeMode = ThemeMode.dark,
@@ -49,6 +50,7 @@ void main() {
               isPersisting: isPersisting,
               isDiscarded: isDiscarded,
               onSubstepsChanged: onSubstepsChanged,
+              onProposalChanged: onProposalChanged,
               onConfirm: onConfirm,
               onDiscard: onDiscard,
             ),
@@ -177,6 +179,54 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('已放弃'), findsOneWidget);
+    });
+
+    testWidgets('点击优先级徽标可循环切换优先级并触发 onProposalChanged 回调', (tester) async {
+      AiTaskParseResult? updated;
+      await tester.pumpWidget(
+        buildTestWidget(
+          proposal: sampleResult,
+          onProposalChanged: (p) => updated = p,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 点击 P1 徽标 -> 切换到 P2 (priority 2)
+      await tester.tap(find.text('P1 · 重要紧急'));
+      await tester.pumpAndSettle();
+
+      expect(updated, isNotNull);
+      expect(updated!.priority, equals(2));
+    });
+
+    testWidgets('点击标题进入行内编辑并提交修改', (tester) async {
+      AiTaskParseResult? updated;
+      await tester.pumpWidget(
+        buildTestWidget(
+          proposal: sampleResult,
+          onProposalChanged: (p) => updated = p,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 点击标题进入编辑
+      await tester.tap(find.text('准备季度总结 PPT'));
+      await tester.pumpAndSettle();
+
+      // 应当出现 TextField
+      expect(find.byType(TextField), findsOneWidget);
+
+      // 输入新标题
+      await tester.enterText(find.byType(TextField), '修改后的全新任务标题');
+      await tester.pumpAndSettle();
+
+      // 点击确认保存勾选按钮
+      await tester.tap(find.byIcon(Icons.check));
+      await tester.pumpAndSettle();
+
+      expect(updated, isNotNull);
+      expect(updated!.title, equals('修改后的全新任务标题'));
+      expect(find.byType(TextField), findsNothing);
     });
   });
 }

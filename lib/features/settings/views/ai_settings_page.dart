@@ -8,6 +8,7 @@ import '../../../core/ai/services/ai_client.dart';
 import '../../../core/ai/services/ai_config_service.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../widgets/settings_card.dart';
 
 /// Maximum width for wide screens (Linear desktop style).
 const double _kFormMaxWidth = 560;
@@ -203,7 +204,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
       ),
       children: [
         // Provider card
-        _AiCard(
+        SettingsCard(
           children: [
             Text(
               l10n.aiProvider,
@@ -239,7 +240,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
         const SizedBox(height: AppTokens.spaceMd),
 
         // Endpoints & Models card
-        _AiCard(
+        SettingsCard(
           children: [
             TextField(
               controller: _baseUrlController,
@@ -271,7 +272,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
         const SizedBox(height: AppTokens.spaceMd),
 
         // API Key card
-        _AiCard(
+        SettingsCard(
           children: [
             Row(
               children: [
@@ -397,7 +398,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
         ],
 
         // Action Buttons Card
-        _AiCard(
+        SettingsCard(
           children: [
             SizedBox(
               width: double.infinity,
@@ -497,46 +498,6 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Linear style card container adhering strictly to AppTokens.
-class _AiCard extends StatelessWidget {
-  const _AiCard({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.all(AppTokens.spaceMd),
-      decoration: BoxDecoration(
-        color: isDark ? AppTokens.surfaceDark : AppTokens.surfaceCardLight,
-        borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-        border: Border.all(
-          color: isDark
-              ? AppTokens.borderSubtleDark
-              : AppTokens.borderSubtleNeutralLight,
-        ),
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                  color: AppTokens.borderSubtleLight,
-                  blurRadius: AppTokens.radiusXs,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: children,
       ),
     );
   }

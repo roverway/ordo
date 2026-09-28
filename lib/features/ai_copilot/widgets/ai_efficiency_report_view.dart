@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:ordo/core/ai/models/efficiency_stats.dart';
 import 'package:ordo/core/l10n/app_localizations.dart';
 import 'package:ordo/core/theme/app_tokens.dart';
+import 'package:ordo/shared/widgets/markdown_content_view.dart';
+import 'ai_shimmer_glow.dart';
 
 /// Linear-styled card widget visualizing weekly efficiency review and diagnostic.
 class AiEfficiencyReportView extends StatelessWidget {
@@ -360,9 +362,6 @@ class AiEfficiencyReportView extends StatelessWidget {
     bool isDark,
     AppLocalizations l10n,
   ) {
-    final textPrimary = isDark
-        ? AppTokens.textPrimaryDark
-        : AppTokens.textPrimaryLight;
     final textMuted = isDark
         ? AppTokens.textMutedDark
         : AppTokens.textMutedLight;
@@ -406,109 +405,16 @@ class AiEfficiencyReportView extends StatelessWidget {
             Row(
               key: loadingIndicatorKey,
               children: [
-                const SizedBox(
-                  width: AppTokens.spaceSm,
-                  height: AppTokens.spaceSm,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      AppTokens.colorInbox,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppTokens.spaceXs),
-                Text(
-                  l10n.efficiencyDiagnosisGenerating,
-                  style: TextStyle(
-                    fontSize: AppTokens.textCaptionSize,
-                    color: textMuted,
-                  ),
-                ),
+                AiThinkingPulse(label: l10n.efficiencyDiagnosisGenerating),
               ],
             )
           else if (analysisMarkdown != null)
-            _renderMarkdownText(analysisMarkdown!, textPrimary, textMuted),
+            MarkdownContentView(
+              content: analysisMarkdown!,
+              compact: true,
+            ),
         ],
       ),
-    );
-  }
-
-  Widget _renderMarkdownText(String text, Color textPrimary, Color textMuted) {
-    final lines = text.split('\n');
-    final widgets = <Widget>[];
-
-    final baseStyle = TextStyle(
-      fontSize: AppTokens.textBodySize,
-      height: 1.45,
-      color: textMuted,
-    );
-    final boldStyle = baseStyle.copyWith(
-      fontWeight: FontWeight.w600,
-      color: textPrimary,
-    );
-
-    for (final line in lines) {
-      final trimmed = line.trim();
-      if (trimmed.isEmpty) {
-        widgets.add(const SizedBox(height: AppTokens.spaceXxs));
-      } else if (trimmed.startsWith('### ') || trimmed.startsWith('## ')) {
-        final title = trimmed.replaceFirst(RegExp(r'^#+\s*'), '');
-        widgets.add(
-          Padding(
-            padding: const EdgeInsets.only(
-              top: AppTokens.spaceXs,
-              bottom: AppTokens.spaceXxs,
-            ),
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: AppTokens.textBodySize,
-                fontWeight: FontWeight.w600,
-                color: textPrimary,
-              ),
-            ),
-          ),
-        );
-      } else {
-        widgets.add(
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: AppTokens.spaceXxs / 2,
-            ),
-            child: _buildRichLine(trimmed, baseStyle, boldStyle),
-          ),
-        );
-      }
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: widgets,
-    );
-  }
-
-  Widget _buildRichLine(String line, TextStyle baseStyle, TextStyle boldStyle) {
-    if (!line.contains('**')) {
-      return Text(line, style: baseStyle);
-    }
-
-    final spans = <TextSpan>[];
-    final parts = line.split('**');
-    for (int i = 0; i < parts.length; i++) {
-      if (parts[i].isEmpty) continue;
-      // Odd indices are between **...**
-      final isBold = i % 2 == 1;
-      spans.add(
-        TextSpan(
-          text: parts[i],
-          style: isBold ? boldStyle : baseStyle,
-        ),
-      );
-    }
-
-    return Text.rich(
-      TextSpan(children: spans),
-      style: baseStyle,
     );
   }
 }

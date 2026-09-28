@@ -19,6 +19,7 @@ import 'app_logo.dart';
 import '../../core/utils/app_breakpoints.dart';
 import '../../features/custom_views/presentation/custom_view_editor_page.dart';
 import '../../features/settings/widgets/settings_side_sheet.dart';
+import '../../features/ai_copilot/views/ai_copilot_sheet.dart';
 import 'confirm_dialog.dart';
 
 String resolveCurrentRoute(BuildContext context) {
@@ -352,6 +353,17 @@ class _ScopeNavContentState extends ConsumerState<ScopeNavContent> {
                   },
                 ),
                 const Spacer(),
+                IconButton(
+                  tooltip: l10n.aiCopilot,
+                  icon: Icon(
+                    Icons.auto_awesome,
+                    size: 20,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  onPressed: () {
+                    AiCopilotSheet.show(context);
+                  },
+                ),
                 IconButton(
                   tooltip: l10n.settings,
                   icon: Icon(

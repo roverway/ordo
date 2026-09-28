@@ -370,6 +370,8 @@ abstract final class AppTokens {
 
   /// Overlay / sheet animations.
   static const Duration motionSlow = Duration(milliseconds: 350);
+  /// 脉冲呼吸动效循环周期（AI 思考脉冲等循环动画）
+  static const Duration motionPulse = Duration(milliseconds: 1400);
 
   /// Staggered list entrance delay per item.
   static const Duration motionStaggerDelay = Duration(milliseconds: 50);

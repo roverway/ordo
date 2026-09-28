@@ -252,6 +252,17 @@ class AiCopilotController extends Notifier<AiCopilotState> {
     );
   }
 
+  /// Updates task proposal details (e.g. inline title edits or priority toggles).
+  void updateProposal(String messageId, AiTaskParseResult proposal) {
+    state = state.copyWith(
+      messages: state.messages.map((msg) {
+        if (msg.id != messageId) return msg;
+        if (msg.isPersisted || msg.isDiscarded || msg.isPersisting) return msg;
+        return msg.copyWith(proposal: proposal);
+      }).toList(),
+    );
+  }
+
   /// Confirms and persists the task proposal card into the database.
   ///
   /// Defends against double submission (idempotent guard).
