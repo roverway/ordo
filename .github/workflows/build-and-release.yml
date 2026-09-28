@@ -83,33 +83,36 @@ jobs:
         include:
           - arch: x86_64
             os: ubuntu-22.04
+            container: "ubuntu:20.04"
             appimagetool_arch: x86_64
           - arch: aarch64
             os: ubuntu-24.04-arm
+            container: "ubuntu:20.04"
             appimagetool_arch: aarch64
     runs-on: ${{ matrix.os }}
+    container:
+      image: ${{ matrix.container }}
     steps:
+      - name: Install Git & Base Certificates
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y git ca-certificates
+          git config --global --add safe.directory '*'
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Install Linux build dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev libsqlite3-dev file
+          DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            curl wget unzip clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libsecret-1-dev libsqlite3-dev file
 
-      - name: Set up Flutter (x86_64)
-        if: matrix.arch == 'x86_64'
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-          cache: true
-
-      - name: Set up Flutter (aarch64 via Git)
-        if: matrix.arch == 'aarch64'
+      - name: Set up Flutter (via Git)
         run: |
-          git clone --depth 1 -b stable https://github.com/flutter/flutter.git $HOME/flutter
-          echo "$HOME/flutter/bin" >> $GITHUB_PATH
-          $HOME/flutter/bin/flutter doctor -v
+          git clone --depth 1 -b stable https://github.com/flutter/flutter.git /opt/flutter
+          echo "/opt/flutter/bin" >> $GITHUB_PATH
+          /opt/flutter/bin/flutter doctor -v
 
       - name: Install dependencies
         run: flutter pub get
@@ -142,9 +145,10 @@ jobs:
           cp linux/runner/ordo.png AppDir/
           ln -sf ordo.png AppDir/.DirIcon
 
-          # Bundle non-standard shared libraries (libsecret, libjson-glib) so minimal distros won't fail
-          find /usr/lib -name "libsecret-1.so.0*" -exec cp -d {} AppDir/lib/ \; 2>/dev/null || true
-          find /usr/lib -name "libjson-glib-1.0.so.0*" -exec cp -d {} AppDir/lib/ \; 2>/dev/null || true
+          # Bundle non-standard shared libraries and libstdc++ dereferencing symlinks so minimal/older distros won't fail
+          find /usr/lib -name "libsecret-1.so.0" -exec cp -L {} AppDir/lib/ \; 2>/dev/null || true
+          find /usr/lib -name "libjson-glib-1.0.so.0" -exec cp -L {} AppDir/lib/ \; 2>/dev/null || true
+          find /usr/lib -name "libstdc++.so.6" -exec cp -L {} AppDir/lib/ \; 2>/dev/null || true
 
           # Create robust AppRun entry point
           echo '#!/bin/sh' > AppDir/AppRun
