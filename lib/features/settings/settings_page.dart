@@ -1,4 +1,4 @@
-import 'dart:ui';
+import 'widgets/settings_card.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -187,7 +187,7 @@ class _AppearanceSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(title: l10n.settingsSectionAppearance),
-        _SettingsCard(
+        SettingsCard(
           children: [
             // 主题模式标题行
             Row(
@@ -460,7 +460,7 @@ class _TagsSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(title: l10n.taskTags),
-        _SettingsCard(
+        SettingsCard(
           padding: EdgeInsets.zero,
           children: [
             InkWell(
@@ -539,7 +539,7 @@ class _CalendarSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(title: l10n.settingsSectionCalendar),
-        _SettingsCard(
+        SettingsCard(
           children: [
             // 中国农历开关
             Row(
@@ -642,7 +642,7 @@ class _SyncSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(title: l10n.sync),
-        _SettingsCard(
+        SettingsCard(
           padding: EdgeInsets.zero,
           children: [
             InkWell(
@@ -861,7 +861,7 @@ class _AiSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(title: l10n.settingsSectionAi),
-        _SettingsCard(
+        SettingsCard(
           padding: EdgeInsets.zero,
           children: [
             InkWell(
@@ -934,7 +934,7 @@ class _HelpSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(title: l10n.settingsHelp),
-        _SettingsCard(
+        SettingsCard(
           padding: EdgeInsets.zero,
           children: [
             InkWell(
@@ -1012,7 +1012,7 @@ class _AboutSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(title: l10n.settingsSectionAbout),
-        _SettingsCard(
+        SettingsCard(
           children: [
             Row(
               children: [
@@ -1114,122 +1114,6 @@ class _SectionHeader extends StatelessWidget {
           color: isDark
               ? AppTokens.checkboxDisabledFgDark
               : AppTokens.checkboxDisabledFgLight,
-        ),
-      ),
-    );
-  }
-}
-
-/// 圆角卡片容器（对齐原型中的 .card 视觉规范，当存在壁纸时自动启用半透明与磨砂毛玻璃）。
-class _SettingsCard extends ConsumerWidget {
-  const _SettingsCard({
-    required this.children,
-    this.padding = const EdgeInsets.all(16),
-  });
-
-  final List<Widget> children;
-  final EdgeInsetsGeometry padding;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final hasWallpaper = ref.watch(appBackgroundConfigProvider).isEffective;
-
-    final baseCardColor = isDark
-        ? AppTokens.surfaceCardDark
-        : AppTokens.surfaceCardLight;
-    final cardColor = hasWallpaper
-        ? baseCardColor.withValues(
-            alpha: isDark
-                ? AppTokens.alphaCardFrostedDark
-                : AppTokens.alphaCardFrostedLight,
-          )
-        : baseCardColor;
-
-    final borderColor = isDark
-        ? Colors.white.withValues(
-            alpha: hasWallpaper
-                ? AppTokens.alphaTintStrong
-                : AppTokens.alphaTintFaint,
-          )
-        : Colors.black.withValues(
-            alpha: hasWallpaper
-                ? AppTokens.alphaTintSoft
-                : AppTokens.alphaTintFaint,
-          );
-
-    if (hasWallpaper) {
-      return Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(
-                alpha: isDark
-                    ? AppTokens.alphaBorderEmphasis
-                    : AppTokens.alphaTintFaint,
-              ),
-              blurRadius: 12,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(
-              sigmaX: AppTokens.blurFrostedGlass,
-              sigmaY: AppTokens.blurFrostedGlass,
-            ),
-            child: Material(
-              color: cardColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-                side: BorderSide(color: borderColor, width: 1),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Padding(
-                padding: padding,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: children,
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(
-              alpha: isDark
-                  ? AppTokens.alphaBorderEmphasis
-                  : AppTokens.alphaTintFaint,
-            ),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: cardColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-          side: BorderSide(color: borderColor, width: 1),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: padding,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: children,
-          ),
         ),
       ),
     );

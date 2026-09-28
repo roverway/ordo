@@ -437,6 +437,16 @@ class AiEfficiencyReportView extends StatelessWidget {
     final lines = text.split('\n');
     final widgets = <Widget>[];
 
+    final baseStyle = TextStyle(
+      fontSize: AppTokens.textBodySize,
+      height: 1.45,
+      color: textMuted,
+    );
+    final boldStyle = baseStyle.copyWith(
+      fontWeight: FontWeight.w600,
+      color: textPrimary,
+    );
+
     for (final line in lines) {
       final trimmed = line.trim();
       if (trimmed.isEmpty) {
@@ -465,14 +475,7 @@ class AiEfficiencyReportView extends StatelessWidget {
             padding: const EdgeInsets.symmetric(
               vertical: AppTokens.spaceXxs / 2,
             ),
-            child: Text(
-              trimmed,
-              style: TextStyle(
-                fontSize: AppTokens.textBodySize,
-                height: 1.45,
-                color: textMuted,
-              ),
-            ),
+            child: _buildRichLine(trimmed, baseStyle, boldStyle),
           ),
         );
       }
@@ -481,6 +484,31 @@ class AiEfficiencyReportView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: widgets,
+    );
+  }
+
+  Widget _buildRichLine(String line, TextStyle baseStyle, TextStyle boldStyle) {
+    if (!line.contains('**')) {
+      return Text(line, style: baseStyle);
+    }
+
+    final spans = <TextSpan>[];
+    final parts = line.split('**');
+    for (int i = 0; i < parts.length; i++) {
+      if (parts[i].isEmpty) continue;
+      // Odd indices are between **...**
+      final isBold = i % 2 == 1;
+      spans.add(
+        TextSpan(
+          text: parts[i],
+          style: isBold ? boldStyle : baseStyle,
+        ),
+      );
+    }
+
+    return Text.rich(
+      TextSpan(children: spans),
+      style: baseStyle,
     );
   }
 }

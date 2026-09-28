@@ -28,6 +28,7 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_breakpoints.dart';
 import '../../core/utils/dates.dart';
 import '../../shared/widgets/modern_segmented_control.dart';
+import '../settings/widgets/settings_card.dart';
 import 'sync_setup_providers.dart';
 
 /// 宽屏表单最大宽度（50-ui-ux §5.7：约 560dp）。
@@ -315,7 +316,7 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
       children: [
         _buildStatusCard(l10n, theme, syncState, configAsync),
         const SizedBox(height: AppTokens.spaceLg),
-        _SettingsCard(
+        SettingsCard(
           children: [
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
@@ -352,7 +353,7 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
           ],
         ),
         const SizedBox(height: AppTokens.spaceLg),
-        _SettingsCard(
+        SettingsCard(
           children: [
             TextField(
               controller: _serverUrl,
@@ -420,7 +421,7 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
           ],
         ),
         const SizedBox(height: AppTokens.spaceLg),
-        _SettingsCard(
+        SettingsCard(
           children: [
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
@@ -446,7 +447,7 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
           ],
         ),
         const SizedBox(height: AppTokens.spaceLg),
-        _SettingsCard(
+        SettingsCard(
           children: [
             Row(
               children: [
@@ -631,39 +632,3 @@ String _syncErrorText(AppLocalizations l10n, SyncErrorCode? errorCode) {
   };
 }
 
-/// 设置分组卡片
-class _SettingsCard extends StatelessWidget {
-  const _SettingsCard({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final borderColor = isDark
-        ? AppTokens.borderSubtleDark
-        : AppTokens.borderSubtleLight;
-
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-        boxShadow: isDark
-            ? AppTokens.cardShadowDarkList
-            : AppTokens.cardShadowLight,
-      ),
-      child: Material(
-        color: theme.colorScheme.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-          side: BorderSide(color: borderColor, width: 1),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: const EdgeInsets.all(AppTokens.spaceMd),
-          child: Column(children: children),
-        ),
-      ),
-    );
-  }
-}

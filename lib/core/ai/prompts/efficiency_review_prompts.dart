@@ -91,4 +91,42 @@ Style: Concise, professional, and actionable.''';
 - Q4 (Not Urgent & Unimportant): ${stats.q4Count} ($q4Pct%)''';
     }
   }
+
+  /// Generates rule-based offline efficiency diagnosis when offline or no API Key configured.
+  static String buildOfflineDiagnosis(
+    EfficiencyStats stats, {
+    String locale = 'zh',
+  }) {
+    final isZh = locale.toLowerCase().startsWith('zh');
+    if (isZh) {
+      final pct = stats.completionPercentage;
+      return '''### 核心战绩总览
+本周共处理任务 ${stats.totalCount} 项，完成 ${stats.completedCount} 项，完成率达到 $pct%。${stats.overdueCount > 0 ? '目前仍有 ${stats.overdueCount} 项任务已逾期，需及时关注。' : '全部到期任务均按时推进，执行力良好。'}
+
+### 四象限投入合理性分析
+- **Q1 (重要且紧急)**: 占比 ${(stats.q1Ratio * 100).toStringAsFixed(0)}%，${stats.q1Ratio > 0.4 ? '应急任务较多，容易导致被动救火与身心疲惫。' : '救火压力可控，保持平稳。'}
+- **Q2 (重要不紧急)**: 占比 ${(stats.q2Ratio * 100).toStringAsFixed(0)}%，${stats.q2Ratio < 0.3 ? '在长期规划与深度成长投入不足，建议提高权重。' : '长期高价值任务投入充足，效能基础稳健。'}
+- **Q3 (不重要紧急)**: 占比 ${(stats.q3Ratio * 100).toStringAsFixed(0)}%，${stats.q3Ratio > 0.25 ? '受琐事干扰偏多，建议尝试批量处理或委派。' : '琐事控制合理。'}
+- **Q4 (不重要不紧急)**: 占比 ${(stats.q4Ratio * 100).toStringAsFixed(0)}%，建议持续保持精简。
+
+### 下周行动优化建议
+1. **优先保障 Q2 黄金时间**：每天预留 1-2 小时专注文档、规划或深度学习。
+2. **清理逾期与挂起任务**：针对当前 ${stats.overdueCount} 项逾期任务进行清理或重新规划排期。
+3. **减少琐事打断**：合并碎片化沟通，设立固定免打扰专注时段。''';
+    } else {
+      return '''### Weekly Highlights & Overview
+Handled ${stats.totalCount} tasks with ${stats.completedCount} completed (${stats.completionPercentage}% completion rate).
+
+### Quadrant Distribution Analysis
+- Q1 (Crisis): ${(stats.q1Ratio * 100).toStringAsFixed(0)}%
+- Q2 (Long-term Value): ${(stats.q2Ratio * 100).toStringAsFixed(0)}%
+- Q3 (Distractions): ${(stats.q3Ratio * 100).toStringAsFixed(0)}%
+- Q4 (Waste): ${(stats.q4Ratio * 100).toStringAsFixed(0)}%
+
+### Recommendations for Next Week
+1. Protect dedicated deep work blocks for Q2 priority tasks.
+2. Review and reschedule pending or overdue tasks.
+3. Minimize non-essential context switching.''';
+    }
+  }
 }

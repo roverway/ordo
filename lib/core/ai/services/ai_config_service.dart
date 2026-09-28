@@ -51,11 +51,16 @@ class AiConfigService {
         ? storedModel
         : provider.defaultModel;
 
-    // Read API key from secure store
-    var apiKey = await _secureStore.read(AiSecureKeys.keyFor(provider));
-    if (apiKey == null || apiKey.isEmpty) {
-      // Fallback to generic key if present
-      apiKey = await _secureStore.read(AiSecureKeys.defaultApiKey);
+    // Read API key from secure store with exception defense for platform keyring issues
+    String? apiKey;
+    try {
+      apiKey = await _secureStore.read(AiSecureKeys.keyFor(provider));
+      if (apiKey == null || apiKey.isEmpty) {
+        // Fallback to generic key if present
+        apiKey = await _secureStore.read(AiSecureKeys.defaultApiKey);
+      }
+    } catch (_) {
+      apiKey = null;
     }
 
     return AiConfig(
@@ -125,11 +130,12 @@ class AiConfigNotifier extends AsyncNotifier<AiConfig> {
     return service.loadConfig();
   }
 
-  /// Updates and persists the AI configuration.
+  /// Updates and persists the AI configuration, then refreshes state with persisted values.
   Future<void> updateConfig(AiConfig newConfig) async {
     final service = ref.read(aiConfigServiceProvider);
     await service.saveConfig(newConfig);
-    state = AsyncData(newConfig);
+    final reloaded = await service.loadConfig();
+    state = AsyncData(reloaded);
   }
 
   /// Tests connectivity with given config.

@@ -257,28 +257,32 @@ class AiClient {
     );
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      final decoded = jsonDecode(response.body);
-      if (decoded is Map<String, dynamic>) {
-        if (config.provider == AiProviderType.claude) {
-          final content = decoded['content'];
-          if (content is List && content.isNotEmpty) {
-            final first = content.first;
-            if (first is Map && first['text'] != null) {
-              return first['text'].toString();
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          if (config.provider == AiProviderType.claude) {
+            final content = decoded['content'];
+            if (content is List && content.isNotEmpty) {
+              final first = content.first;
+              if (first is Map && first['text'] != null) {
+                return first['text'].toString();
+              }
             }
-          }
-        } else {
-          final choices = decoded['choices'];
-          if (choices is List && choices.isNotEmpty) {
-            final first = choices.first;
-            if (first is Map && first['message'] is Map) {
-              final msg = first['message'] as Map;
-              return msg['content']?.toString() ?? '';
+          } else {
+            final choices = decoded['choices'];
+            if (choices is List && choices.isNotEmpty) {
+              final first = choices.first;
+              if (first is Map && first['message'] is Map) {
+                final msg = first['message'] as Map;
+                return msg['content']?.toString() ?? '';
+              }
             }
           }
         }
+        return response.body;
+      } on FormatException {
+        throw Exception('服务商响应解析失败：返回了非 JSON 格式内容（可能是反向代理或网关错误页）');
       }
-      return response.body;
     }
 
     throw Exception(

@@ -21,11 +21,19 @@ class EfficiencyStatsService {
 
     // Filter tasks that belong to the past 7 days window
     final relevantTasks = allTasks.where((task) {
-      // 1. Task completed within past 7 days
-      if (task.completedAt != null &&
-          task.completedAt! >= windowStartMs &&
-          task.completedAt! <= nowMs) {
-        return true;
+      // 1. Task completed: only include if completed within past 7 days
+      if (task.status == TaskStatus.done) {
+        if (task.completedAt != null &&
+            task.completedAt! >= windowStartMs &&
+            task.completedAt! <= nowMs) {
+          return true;
+        }
+        if (task.completedAt == null &&
+            task.updatedAt >= windowStartMs &&
+            task.updatedAt <= nowMs) {
+          return true;
+        }
+        return false;
       }
       // 2. Task cancelled within past 7 days
       if (task.status == TaskStatus.cancelled &&
@@ -37,10 +45,16 @@ class EfficiencyStatsService {
       if (task.createdAt >= windowStartMs && task.createdAt <= nowMs) {
         return true;
       }
-      // 4. Task deadline within past 7 days
+      // 4. Task deadline within past 7 days (for active/todo/inProgress tasks)
       if (task.endAt != null &&
           task.endAt! >= windowStartMs &&
           task.endAt! <= nowMs) {
+        return true;
+      }
+      // 5. Task scheduled start within past 7 days
+      if (task.startAt != null &&
+          task.startAt! >= windowStartMs &&
+          task.startAt! <= nowMs) {
         return true;
       }
       return false;
@@ -57,10 +71,7 @@ class EfficiencyStatsService {
     var q4Count = 0;
 
     for (final task in relevantTasks) {
-      if (task.status == TaskStatus.done ||
-          (task.completedAt != null &&
-              task.completedAt! >= windowStartMs &&
-              task.completedAt! <= nowMs)) {
+      if (task.status == TaskStatus.done) {
         completedCount++;
       } else if (task.status == TaskStatus.cancelled) {
         cancelledCount++;

@@ -155,10 +155,18 @@ class AiTaskParseResult {
       return null;
     }
 
-    final startAt = parseTime(json['startAt'] ?? json['start_at']);
-    final dueAt = parseTime(
+    var startAt = parseTime(json['startAt'] ?? json['start_at']);
+    var dueAt = parseTime(
       json['dueAt'] ?? json['due_at'] ?? json['endAt'] ?? json['end_at'],
     );
+
+    // Defensive check: if startAt is later than dueAt, swap them to prevent database
+    // validation failure (TodoRepository._checkTimeRange throws RepositoryException).
+    if (startAt != null && dueAt != null && startAt > dueAt) {
+      final temp = startAt;
+      startAt = dueAt;
+      dueAt = temp;
+    }
 
     // 5. Tags (deduplicated non-empty strings)
     final tags = <String>[];
