@@ -2924,6 +2924,294 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'该象限当前无待办任务'**
   String get quadrantListEmpty;
+
+  /// 设置页 AI 助手分组标题
+  ///
+  /// In zh, this message translates to:
+  /// **'AI 智能助手'**
+  String get settingsSectionAi;
+
+  /// AI 助手设置条目名称
+  ///
+  /// In zh, this message translates to:
+  /// **'AI 助手设置'**
+  String get settingsAiAssistant;
+
+  /// AI 助手设置副标题
+  ///
+  /// In zh, this message translates to:
+  /// **'配置大模型服务商与 API Key'**
+  String get settingsAiAssistantSubtitle;
+
+  /// 服务商标签
+  ///
+  /// In zh, this message translates to:
+  /// **'服务商 (Provider)'**
+  String get aiProvider;
+
+  /// Base URL 标签
+  ///
+  /// In zh, this message translates to:
+  /// **'接口地址 (Base URL)'**
+  String get aiBaseUrl;
+
+  /// Base URL 提示
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入 API Base URL'**
+  String get aiBaseUrlHint;
+
+  /// 模型名称标签
+  ///
+  /// In zh, this message translates to:
+  /// **'模型名称 (Model)'**
+  String get aiModel;
+
+  /// 模型名称提示
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入模型名称'**
+  String get aiModelHint;
+
+  /// API Key 标签
+  ///
+  /// In zh, this message translates to:
+  /// **'API 密钥 (API Key)'**
+  String get aiApiKey;
+
+  /// API Key 输入框提示
+  ///
+  /// In zh, this message translates to:
+  /// **'输入新的密钥进行更新...'**
+  String get aiApiKeyHint;
+
+  /// 测试连接按钮
+  ///
+  /// In zh, this message translates to:
+  /// **'测试连接'**
+  String get aiTestConnection;
+
+  /// 测试连接进行中
+  ///
+  /// In zh, this message translates to:
+  /// **'正在测试连接...'**
+  String get aiTestingConnection;
+
+  /// 连接测试成功提示
+  ///
+  /// In zh, this message translates to:
+  /// **'连接成功 · {latency}ms'**
+  String aiTestSuccess(int latency);
+
+  /// 连接测试失败提示
+  ///
+  /// In zh, this message translates to:
+  /// **'连接失败'**
+  String get aiTestFailed;
+
+  /// 保存配置按钮
+  ///
+  /// In zh, this message translates to:
+  /// **'保存配置'**
+  String get aiSaveConfig;
+
+  /// 保存配置成功提示
+  ///
+  /// In zh, this message translates to:
+  /// **'AI 配置已保存'**
+  String get aiSaveSuccess;
+
+  /// AI 配置未配置
+  ///
+  /// In zh, this message translates to:
+  /// **'未配置'**
+  String get aiConfigNotSet;
+
+  /// 清除密钥按钮
+  ///
+  /// In zh, this message translates to:
+  /// **'清除密钥'**
+  String get aiClearKey;
+
+  /// 安全密钥提示
+  ///
+  /// In zh, this message translates to:
+  /// **'密钥已保存在系统安全存储中'**
+  String get aiKeyStoredSecurely;
+
+  /// AI 助手主标题或按钮
+  ///
+  /// In zh, this message translates to:
+  /// **'AI 助手'**
+  String get aiCopilot;
+
+  /// AI 助手 FAB 提示文案
+  ///
+  /// In zh, this message translates to:
+  /// **'打开 AI 智能助理'**
+  String get aiCopilotTooltip;
+
+  /// 清空 AI 对话按钮
+  ///
+  /// In zh, this message translates to:
+  /// **'清空对话'**
+  String get aiClearChat;
+
+  /// 关闭 AI 抽屉按钮
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭'**
+  String get aiClose;
+
+  /// AI 输入框占位提示
+  ///
+  /// In zh, this message translates to:
+  /// **'输入任务或指令，例如：帮我规划今天...'**
+  String get aiInputHint;
+
+  /// 发送消息按钮
+  ///
+  /// In zh, this message translates to:
+  /// **'发送'**
+  String get aiSend;
+
+  /// 快捷 Prompt: 生成周报
+  ///
+  /// In zh, this message translates to:
+  /// **'生成周报'**
+  String get aiCapsuleWeeklyReport;
+
+  /// 快捷 Prompt: 帮我规划今天
+  ///
+  /// In zh, this message translates to:
+  /// **'帮我规划今天'**
+  String get aiCapsulePlanToday;
+
+  /// 快捷 Prompt: 帮我拆解任务
+  ///
+  /// In zh, this message translates to:
+  /// **'帮我拆解任务'**
+  String get aiCapsuleBreakdownTask;
+
+  /// AI 抽屉欢迎提示
+  ///
+  /// In zh, this message translates to:
+  /// **'你可以用自然语言告诉我你的待办，或者点击下方快捷胶囊。'**
+  String get aiWelcomeTip;
+
+  /// 添加到待办按钮
+  ///
+  /// In zh, this message translates to:
+  /// **'添加到待办'**
+  String get aiAddTaskAction;
+
+  /// 已添加待办置灰状态
+  ///
+  /// In zh, this message translates to:
+  /// **'已添加'**
+  String get aiTaskAddedAction;
+
+  /// 添加待办加载状态
+  ///
+  /// In zh, this message translates to:
+  /// **'添加中...'**
+  String get aiTaskAddingAction;
+
+  /// 放弃任务卡片
+  ///
+  /// In zh, this message translates to:
+  /// **'放弃'**
+  String get aiDiscardAction;
+
+  /// 已放弃任务卡片状态
+  ///
+  /// In zh, this message translates to:
+  /// **'已放弃'**
+  String get aiDiscardedAction;
+
+  /// 任务提议卡片标题
+  ///
+  /// In zh, this message translates to:
+  /// **'建议任务'**
+  String get aiTaskProposalTitle;
+
+  /// 子步骤区域标题
+  ///
+  /// In zh, this message translates to:
+  /// **'子步骤'**
+  String get aiSubstepsTitle;
+
+  /// 任务添加到待办成功提示
+  ///
+  /// In zh, this message translates to:
+  /// **'任务已成功添加到待办'**
+  String get aiTaskAddedSuccess;
+
+  /// AI 助手思考中状态
+  ///
+  /// In zh, this message translates to:
+  /// **'思考中...'**
+  String get aiThinking;
+
+  /// 周度效能诊断标题
+  ///
+  /// In zh, this message translates to:
+  /// **'周度效能诊断'**
+  String get efficiencyWeeklyDiagnosis;
+
+  /// 近 7 天副标题
+  ///
+  /// In zh, this message translates to:
+  /// **'近 7 天'**
+  String get efficiencyPastDays;
+
+  /// 完成率指标标签
+  ///
+  /// In zh, this message translates to:
+  /// **'完成率'**
+  String get efficiencyCompletionRate;
+
+  /// 已完成指标标签
+  ///
+  /// In zh, this message translates to:
+  /// **'已完成'**
+  String get efficiencyCompletedCount;
+
+  /// 已放弃指标标签
+  ///
+  /// In zh, this message translates to:
+  /// **'已放弃'**
+  String get efficiencyCancelledCount;
+
+  /// 进行中指标标签
+  ///
+  /// In zh, this message translates to:
+  /// **'进行中'**
+  String get efficiencyInProgressCount;
+
+  /// 已逾期指标标签
+  ///
+  /// In zh, this message translates to:
+  /// **'已逾期'**
+  String get efficiencyOverdueCount;
+
+  /// 四象限分布标题
+  ///
+  /// In zh, this message translates to:
+  /// **'四象限投入分布'**
+  String get efficiencyQuadrantDistribution;
+
+  /// 周度效能分析生成中文案
+  ///
+  /// In zh, this message translates to:
+  /// **'AI 正在分析本周效能...'**
+  String get efficiencyDiagnosisGenerating;
+
+  /// 深度诊断建议标题
+  ///
+  /// In zh, this message translates to:
+  /// **'深度诊断与行动建议'**
+  String get efficiencyAnalysisTitle;
 }
 
 class _AppLocalizationsDelegate

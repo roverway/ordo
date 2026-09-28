@@ -10,6 +10,7 @@ import 'features/quadrant/presentation/quadrant_page.dart';
 import 'features/search/search_page.dart';
 import 'features/settings/settings_page.dart';
 import 'features/settings/user_manual_page.dart';
+import 'features/settings/views/ai_settings_page.dart';
 import 'features/sync_setup/sync_setup_page.dart';
 import 'features/tags/tags_page.dart';
 import 'features/tags/tags_detail_page.dart';
@@ -118,6 +119,12 @@ final GoRouter appRouter = GoRouter(
           path: 'sync',
           pageBuilder: (context, state) =>
               _slideFadePage(context, state, const SyncSetupPage()),
+        ),
+        // AI 助手设置页（绝对路径 /settings/ai）
+        GoRoute(
+          path: 'ai',
+          pageBuilder: (context, state) =>
+              _slideFadePage(context, state, const AiSettingsPage()),
         ),
         // 使用手册帮助页（绝对路径 /settings/help）
         GoRoute(

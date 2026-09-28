@@ -18,6 +18,7 @@ import '../../shared/widgets/loading_view.dart';
 import '../../shared/widgets/page_hero_header.dart';
 import '../../shared/widgets/scope_switcher_sheet.dart';
 import '../../shared/widgets/simple_task_tile.dart';
+import '../home/widgets/home_fab.dart';
 import '../projects/project_providers.dart';
 import '../today/today_providers.dart';
 import 'task_edit_page.dart';
@@ -151,12 +152,8 @@ class TaskListPage extends ConsumerWidget {
   }
 
   Widget _buildFab(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-
-    return FloatingActionButton.extended(
-      tooltip: l10n.newTask,
-      onPressed: () => switch (scope) {
+    return HomeDoubleFab(
+      onNativeAdd: () => switch (scope) {
         TodayTaskScope() => TaskCreateSheet.show(context),
         InboxTaskScope() => TaskCreateSheet.show(
           context,
@@ -167,20 +164,6 @@ class TaskListPage extends ConsumerWidget {
           projectId: projectId,
         ),
       },
-      backgroundColor: theme.colorScheme.primary,
-      foregroundColor: theme.colorScheme.onPrimary,
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-      ),
-      icon: const Icon(Icons.add, size: 20),
-      label: Text(
-        l10n.newTask,
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: AppTokens.textSecondarySize,
-        ),
-      ),
     );
   }
 }

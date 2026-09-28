@@ -1553,4 +1553,154 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get quadrantListEmpty => 'No tasks in this quadrant';
+
+  @override
+  String get settingsSectionAi => 'AI Assistant';
+
+  @override
+  String get settingsAiAssistant => 'AI Assistant Settings';
+
+  @override
+  String get settingsAiAssistantSubtitle => 'Configure LLM provider & API Key';
+
+  @override
+  String get aiProvider => 'Provider';
+
+  @override
+  String get aiBaseUrl => 'Base URL';
+
+  @override
+  String get aiBaseUrlHint => 'Enter API Base URL';
+
+  @override
+  String get aiModel => 'Model Name';
+
+  @override
+  String get aiModelHint => 'Enter model name';
+
+  @override
+  String get aiApiKey => 'API Key';
+
+  @override
+  String get aiApiKeyHint => 'Enter new key to update...';
+
+  @override
+  String get aiTestConnection => 'Test Connection';
+
+  @override
+  String get aiTestingConnection => 'Testing connection...';
+
+  @override
+  String aiTestSuccess(int latency) {
+    return 'Connected successfully · ${latency}ms';
+  }
+
+  @override
+  String get aiTestFailed => 'Connection failed';
+
+  @override
+  String get aiSaveConfig => 'Save Settings';
+
+  @override
+  String get aiSaveSuccess => 'AI settings saved';
+
+  @override
+  String get aiConfigNotSet => 'Not configured';
+
+  @override
+  String get aiClearKey => 'Clear Key';
+
+  @override
+  String get aiKeyStoredSecurely =>
+      'Key is encrypted and stored in secure storage';
+
+  @override
+  String get aiCopilot => 'AI Copilot';
+
+  @override
+  String get aiCopilotTooltip => 'Open AI Copilot';
+
+  @override
+  String get aiClearChat => 'Clear conversation';
+
+  @override
+  String get aiClose => 'Close';
+
+  @override
+  String get aiInputHint =>
+      'Type a task or command, e.g. Help me plan today...';
+
+  @override
+  String get aiSend => 'Send';
+
+  @override
+  String get aiCapsuleWeeklyReport => 'Weekly summary';
+
+  @override
+  String get aiCapsulePlanToday => 'Help me plan today';
+
+  @override
+  String get aiCapsuleBreakdownTask => 'Break down tasks';
+
+  @override
+  String get aiWelcomeTip =>
+      'Tell me about your tasks in plain language, or tap a quick prompt below.';
+
+  @override
+  String get aiAddTaskAction => 'Add to Tasks';
+
+  @override
+  String get aiTaskAddedAction => 'Added';
+
+  @override
+  String get aiTaskAddingAction => 'Adding...';
+
+  @override
+  String get aiDiscardAction => 'Discard';
+
+  @override
+  String get aiDiscardedAction => 'Discarded';
+
+  @override
+  String get aiTaskProposalTitle => 'Proposed Task';
+
+  @override
+  String get aiSubstepsTitle => 'Substeps';
+
+  @override
+  String get aiTaskAddedSuccess => 'Task successfully added to list';
+
+  @override
+  String get aiThinking => 'Thinking...';
+
+  @override
+  String get efficiencyWeeklyDiagnosis => 'Weekly Efficiency Diagnosis';
+
+  @override
+  String get efficiencyPastDays => 'Past 7 Days';
+
+  @override
+  String get efficiencyCompletionRate => 'Completion Rate';
+
+  @override
+  String get efficiencyCompletedCount => 'Completed';
+
+  @override
+  String get efficiencyCancelledCount => 'Discarded';
+
+  @override
+  String get efficiencyInProgressCount => 'In Progress';
+
+  @override
+  String get efficiencyOverdueCount => 'Overdue';
+
+  @override
+  String get efficiencyQuadrantDistribution => 'Quadrant Distribution';
+
+  @override
+  String get efficiencyDiagnosisGenerating =>
+      'AI is analyzing your weekly efficiency...';
+
+  @override
+  String get efficiencyAnalysisTitle => 'Diagnosis & Action Items';
 }

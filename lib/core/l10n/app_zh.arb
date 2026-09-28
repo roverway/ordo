@@ -984,5 +984,202 @@
   "quadrantListEmpty": "该象限当前无待办任务",
   "@quadrantListEmpty": {
     "description": "Empty state description for quadrant in list view"
+  },
+  "settingsSectionAi": "AI 智能助手",
+  "@settingsSectionAi": {
+    "description": "设置页 AI 助手分组标题"
+  },
+  "settingsAiAssistant": "AI 助手设置",
+  "@settingsAiAssistant": {
+    "description": "AI 助手设置条目名称"
+  },
+  "settingsAiAssistantSubtitle": "配置大模型服务商与 API Key",
+  "@settingsAiAssistantSubtitle": {
+    "description": "AI 助手设置副标题"
+  },
+  "aiProvider": "服务商 (Provider)",
+  "@aiProvider": {
+    "description": "服务商标签"
+  },
+  "aiBaseUrl": "接口地址 (Base URL)",
+  "@aiBaseUrl": {
+    "description": "Base URL 标签"
+  },
+  "aiBaseUrlHint": "请输入 API Base URL",
+  "@aiBaseUrlHint": {
+    "description": "Base URL 提示"
+  },
+  "aiModel": "模型名称 (Model)",
+  "@aiModel": {
+    "description": "模型名称标签"
+  },
+  "aiModelHint": "请输入模型名称",
+  "@aiModelHint": {
+    "description": "模型名称提示"
+  },
+  "aiApiKey": "API 密钥 (API Key)",
+  "@aiApiKey": {
+    "description": "API Key 标签"
+  },
+  "aiApiKeyHint": "输入新的密钥进行更新...",
+  "@aiApiKeyHint": {
+    "description": "API Key 输入框提示"
+  },
+  "aiTestConnection": "测试连接",
+  "@aiTestConnection": {
+    "description": "测试连接按钮"
+  },
+  "aiTestingConnection": "正在测试连接...",
+  "@aiTestingConnection": {
+    "description": "测试连接进行中"
+  },
+  "aiTestSuccess": "连接成功 · {latency}ms",
+  "@aiTestSuccess": {
+    "description": "连接测试成功提示",
+    "placeholders": {
+      "latency": {
+        "type": "int"
+      }
+    }
+  },
+  "aiTestFailed": "连接失败",
+  "@aiTestFailed": {
+    "description": "连接测试失败提示"
+  },
+  "aiSaveConfig": "保存配置",
+  "@aiSaveConfig": {
+    "description": "保存配置按钮"
+  },
+  "aiSaveSuccess": "AI 配置已保存",
+  "@aiSaveSuccess": {
+    "description": "保存配置成功提示"
+  },
+  "aiConfigNotSet": "未配置",
+  "@aiConfigNotSet": {
+    "description": "AI 配置未配置"
+  },
+  "aiClearKey": "清除密钥",
+  "@aiClearKey": {
+    "description": "清除密钥按钮"
+  },
+  "aiKeyStoredSecurely": "密钥已保存在系统安全存储中",
+  "@aiKeyStoredSecurely": {
+    "description": "安全密钥提示"
+  },
+  "aiCopilot": "AI 助手",
+  "@aiCopilot": {
+    "description": "AI 助手主标题或按钮"
+  },
+  "aiCopilotTooltip": "打开 AI 智能助理",
+  "@aiCopilotTooltip": {
+    "description": "AI 助手 FAB 提示文案"
+  },
+  "aiClearChat": "清空对话",
+  "@aiClearChat": {
+    "description": "清空 AI 对话按钮"
+  },
+  "aiClose": "关闭",
+  "@aiClose": {
+    "description": "关闭 AI 抽屉按钮"
+  },
+  "aiInputHint": "输入任务或指令，例如：帮我规划今天...",
+  "@aiInputHint": {
+    "description": "AI 输入框占位提示"
+  },
+  "aiSend": "发送",
+  "@aiSend": {
+    "description": "发送消息按钮"
+  },
+  "aiCapsuleWeeklyReport": "生成周报",
+  "@aiCapsuleWeeklyReport": {
+    "description": "快捷 Prompt: 生成周报"
+  },
+  "aiCapsulePlanToday": "帮我规划今天",
+  "@aiCapsulePlanToday": {
+    "description": "快捷 Prompt: 帮我规划今天"
+  },
+  "aiCapsuleBreakdownTask": "帮我拆解任务",
+  "@aiCapsuleBreakdownTask": {
+    "description": "快捷 Prompt: 帮我拆解任务"
+  },
+  "aiWelcomeTip": "你可以用自然语言告诉我你的待办，或者点击下方快捷胶囊。",
+  "@aiWelcomeTip": {
+    "description": "AI 抽屉欢迎提示"
+  },
+  "aiAddTaskAction": "添加到待办",
+  "@aiAddTaskAction": {
+    "description": "添加到待办按钮"
+  },
+  "aiTaskAddedAction": "已添加",
+  "@aiTaskAddedAction": {
+    "description": "已添加待办置灰状态"
+  },
+  "aiTaskAddingAction": "添加中...",
+  "@aiTaskAddingAction": {
+    "description": "添加待办加载状态"
+  },
+  "aiDiscardAction": "放弃",
+  "@aiDiscardAction": {
+    "description": "放弃任务卡片"
+  },
+  "aiDiscardedAction": "已放弃",
+  "@aiDiscardedAction": {
+    "description": "已放弃任务卡片状态"
+  },
+  "aiTaskProposalTitle": "建议任务",
+  "@aiTaskProposalTitle": {
+    "description": "任务提议卡片标题"
+  },
+  "aiSubstepsTitle": "子步骤",
+  "@aiSubstepsTitle": {
+    "description": "子步骤区域标题"
+  },
+  "aiTaskAddedSuccess": "任务已成功添加到待办",
+  "@aiTaskAddedSuccess": {
+    "description": "任务添加到待办成功提示"
+  },
+  "aiThinking": "思考中...",
+  "@aiThinking": {
+    "description": "AI 助手思考中状态"
+  },
+  "efficiencyWeeklyDiagnosis": "周度效能诊断",
+  "@efficiencyWeeklyDiagnosis": {
+    "description": "周度效能诊断标题"
+  },
+  "efficiencyPastDays": "近 7 天",
+  "@efficiencyPastDays": {
+    "description": "近 7 天副标题"
+  },
+  "efficiencyCompletionRate": "完成率",
+  "@efficiencyCompletionRate": {
+    "description": "完成率指标标签"
+  },
+  "efficiencyCompletedCount": "已完成",
+  "@efficiencyCompletedCount": {
+    "description": "已完成指标标签"
+  },
+  "efficiencyCancelledCount": "已放弃",
+  "@efficiencyCancelledCount": {
+    "description": "已放弃指标标签"
+  },
+  "efficiencyInProgressCount": "进行中",
+  "@efficiencyInProgressCount": {
+    "description": "进行中指标标签"
+  },
+  "efficiencyOverdueCount": "已逾期",
+  "@efficiencyOverdueCount": {
+    "description": "已逾期指标标签"
+  },
+  "efficiencyQuadrantDistribution": "四象限投入分布",
+  "@efficiencyQuadrantDistribution": {
+    "description": "四象限分布标题"
+  },
+  "efficiencyDiagnosisGenerating": "AI 正在分析本周效能...",
+  "@efficiencyDiagnosisGenerating": {
+    "description": "周度效能分析生成中文案"
+  },
+  "efficiencyAnalysisTitle": "深度诊断与行动建议",
+  "@efficiencyAnalysisTitle": {
+    "description": "深度诊断建议标题"
   }
 }

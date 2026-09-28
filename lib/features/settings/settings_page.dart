@@ -14,6 +14,7 @@ import '../../features/tags/tag_providers.dart';
 import '../../shared/widgets/app_background_wrapper.dart';
 import '../../shared/widgets/app_logo.dart';
 import '../../shared/widgets/modern_segmented_control.dart';
+import '../../core/ai/services/ai_config_service.dart';
 import 'settings_providers.dart';
 import 'widgets/backup_section.dart';
 import 'widgets/wallpaper_picker_sheet.dart';
@@ -47,6 +48,7 @@ class SettingsPage extends ConsumerWidget {
             constraints: const BoxConstraints(maxWidth: 580),
             child: SettingsBody(
               onOpenSync: () => context.push('/settings/sync'),
+              onOpenAi: () => context.push('/settings/ai'),
               onOpenTags: () => context.push('/tags'),
               onOpenHelp: () => context.push('/settings/help'),
             ),
@@ -100,6 +102,7 @@ class SettingsDrawer extends ConsumerWidget {
             Expanded(
               child: SettingsBody(
                 onOpenSync: () => context.push('/settings/sync'),
+                onOpenAi: () => context.push('/settings/ai'),
                 onOpenTags: () => context.push('/tags'),
                 onOpenHelp: () => context.push('/settings/help'),
               ),
@@ -117,11 +120,13 @@ class SettingsBody extends StatelessWidget {
     super.key,
     required this.onOpenSync,
     required this.onOpenTags,
+    this.onOpenAi,
     this.onOpenHelp,
   });
 
   final VoidCallback onOpenSync;
   final VoidCallback onOpenTags;
+  final VoidCallback? onOpenAi;
   final VoidCallback? onOpenHelp;
 
   @override
@@ -145,15 +150,21 @@ class SettingsBody extends StatelessWidget {
         _SyncSection(onOpenSync: onOpenSync),
         const SizedBox(height: 20),
 
-        // ── 5. 数据导入导出与安全备份 ──
+        // ── 5. AI 智能助手 ──
+        if (onOpenAi != null) ...[
+          _AiSection(onOpenAi: onOpenAi!),
+          const SizedBox(height: 20),
+        ],
+
+        // ── 6. 数据导入导出与安全备份 ──
         const BackupSection(),
         const SizedBox(height: 20),
 
-        // ── 6. 使用帮助 ──
+        // ── 7. 使用帮助 ──
         _HelpSection(onOpenHelp: onOpenHelp),
         const SizedBox(height: 20),
 
-        // ── 7. 关于 ──
+        // ── 8. 关于 ──
         const _AboutSection(),
       ],
     );
@@ -821,6 +832,90 @@ class _SyncSection extends ConsumerWidget {
       return '$target · ${l10n.syncLastSyncedAt(timeStr)}';
     }
     return target;
+  }
+}
+
+/// AI 助手设置卡片
+class _AiSection extends ConsumerWidget {
+  const _AiSection({required this.onOpenAi});
+
+  final VoidCallback onOpenAi;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
+    final aiConfigAsync = ref.watch(aiConfigProvider);
+
+    final subtitle = aiConfigAsync.maybeWhen(
+      data: (config) {
+        if (config.apiKey != null && config.apiKey!.isNotEmpty) {
+          return '${config.provider.displayName} · ${config.model}';
+        }
+        return l10n.aiConfigNotSet;
+      },
+      orElse: () => l10n.loading,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(title: l10n.settingsSectionAi),
+        _SettingsCard(
+          padding: EdgeInsets.zero,
+          children: [
+            InkWell(
+              onTap: onOpenAi,
+              borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                child: Row(
+                  children: [
+                    _IconBadge(
+                      icon: Icons.auto_awesome_outlined,
+                      color: colorScheme.primary,
+                    ),
+                    const SizedBox(width: 13),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.settingsAiAssistant,
+                            style: const TextStyle(
+                              fontSize: AppTokens.textBodySize,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            style: TextStyle(
+                              fontSize: AppTokens.textCaptionSize,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      size: 20,
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: AppTokens.alphaContentMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }
 

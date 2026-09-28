@@ -984,5 +984,202 @@
   "quadrantListEmpty": "No tasks in this quadrant",
   "@quadrantListEmpty": {
     "description": "Empty state description for quadrant in list view"
+  },
+  "settingsSectionAi": "AI Assistant",
+  "@settingsSectionAi": {
+    "description": "AI Assistant section title in settings"
+  },
+  "settingsAiAssistant": "AI Assistant Settings",
+  "@settingsAiAssistant": {
+    "description": "AI Assistant settings item title"
+  },
+  "settingsAiAssistantSubtitle": "Configure LLM provider & API Key",
+  "@settingsAiAssistantSubtitle": {
+    "description": "AI Assistant settings item subtitle"
+  },
+  "aiProvider": "Provider",
+  "@aiProvider": {
+    "description": "Provider label"
+  },
+  "aiBaseUrl": "Base URL",
+  "@aiBaseUrl": {
+    "description": "Base URL label"
+  },
+  "aiBaseUrlHint": "Enter API Base URL",
+  "@aiBaseUrlHint": {
+    "description": "Base URL placeholder"
+  },
+  "aiModel": "Model Name",
+  "@aiModel": {
+    "description": "Model name label"
+  },
+  "aiModelHint": "Enter model name",
+  "@aiModelHint": {
+    "description": "Model name placeholder"
+  },
+  "aiApiKey": "API Key",
+  "@aiApiKey": {
+    "description": "API Key label"
+  },
+  "aiApiKeyHint": "Enter new key to update...",
+  "@aiApiKeyHint": {
+    "description": "API Key placeholder"
+  },
+  "aiTestConnection": "Test Connection",
+  "@aiTestConnection": {
+    "description": "Test Connection button"
+  },
+  "aiTestingConnection": "Testing connection...",
+  "@aiTestingConnection": {
+    "description": "Testing connection progress"
+  },
+  "aiTestSuccess": "Connected successfully · {latency}ms",
+  "@aiTestSuccess": {
+    "description": "Connection test success message",
+    "placeholders": {
+      "latency": {
+        "type": "int"
+      }
+    }
+  },
+  "aiTestFailed": "Connection failed",
+  "@aiTestFailed": {
+    "description": "Connection test failed message"
+  },
+  "aiSaveConfig": "Save Settings",
+  "@aiSaveConfig": {
+    "description": "Save Settings button"
+  },
+  "aiSaveSuccess": "AI settings saved",
+  "@aiSaveSuccess": {
+    "description": "Save success message"
+  },
+  "aiConfigNotSet": "Not configured",
+  "@aiConfigNotSet": {
+    "description": "AI config not configured"
+  },
+  "aiClearKey": "Clear Key",
+  "@aiClearKey": {
+    "description": "Clear Key button"
+  },
+  "aiKeyStoredSecurely": "Key is encrypted and stored in secure storage",
+  "@aiKeyStoredSecurely": {
+    "description": "Key stored securely notice"
+  },
+  "aiCopilot": "AI Copilot",
+  "@aiCopilot": {
+    "description": "AI Copilot title or button"
+  },
+  "aiCopilotTooltip": "Open AI Copilot",
+  "@aiCopilotTooltip": {
+    "description": "AI Copilot FAB tooltip"
+  },
+  "aiClearChat": "Clear conversation",
+  "@aiClearChat": {
+    "description": "Clear AI conversation button"
+  },
+  "aiClose": "Close",
+  "@aiClose": {
+    "description": "Close AI sheet button"
+  },
+  "aiInputHint": "Type a task or command, e.g. Help me plan today...",
+  "@aiInputHint": {
+    "description": "AI input placeholder"
+  },
+  "aiSend": "Send",
+  "@aiSend": {
+    "description": "Send message button"
+  },
+  "aiCapsuleWeeklyReport": "Weekly summary",
+  "@aiCapsuleWeeklyReport": {
+    "description": "Quick prompt: weekly summary"
+  },
+  "aiCapsulePlanToday": "Help me plan today",
+  "@aiCapsulePlanToday": {
+    "description": "Quick prompt: help me plan today"
+  },
+  "aiCapsuleBreakdownTask": "Break down tasks",
+  "@aiCapsuleBreakdownTask": {
+    "description": "Quick prompt: break down tasks"
+  },
+  "aiWelcomeTip": "Tell me about your tasks in plain language, or tap a quick prompt below.",
+  "@aiWelcomeTip": {
+    "description": "AI sheet welcome tip"
+  },
+  "aiAddTaskAction": "Add to Tasks",
+  "@aiAddTaskAction": {
+    "description": "Button to confirm and add proposed task"
+  },
+  "aiTaskAddedAction": "Added",
+  "@aiTaskAddedAction": {
+    "description": "Disabled state when task has been added"
+  },
+  "aiTaskAddingAction": "Adding...",
+  "@aiTaskAddingAction": {
+    "description": "Loading state while adding task"
+  },
+  "aiDiscardAction": "Discard",
+  "@aiDiscardAction": {
+    "description": "Discard proposal button"
+  },
+  "aiDiscardedAction": "Discarded",
+  "@aiDiscardedAction": {
+    "description": "Disabled state when proposal is discarded"
+  },
+  "aiTaskProposalTitle": "Proposed Task",
+  "@aiTaskProposalTitle": {
+    "description": "Title label for task proposal card"
+  },
+  "aiSubstepsTitle": "Substeps",
+  "@aiSubstepsTitle": {
+    "description": "Substeps section label"
+  },
+  "aiTaskAddedSuccess": "Task successfully added to list",
+  "@aiTaskAddedSuccess": {
+    "description": "Notification when task is saved"
+  },
+  "aiThinking": "Thinking...",
+  "@aiThinking": {
+    "description": "Assistant thinking state"
+  },
+  "efficiencyWeeklyDiagnosis": "Weekly Efficiency Diagnosis",
+  "@efficiencyWeeklyDiagnosis": {
+    "description": "Weekly efficiency diagnosis title"
+  },
+  "efficiencyPastDays": "Past 7 Days",
+  "@efficiencyPastDays": {
+    "description": "Past 7 days badge"
+  },
+  "efficiencyCompletionRate": "Completion Rate",
+  "@efficiencyCompletionRate": {
+    "description": "Completion rate metric label"
+  },
+  "efficiencyCompletedCount": "Completed",
+  "@efficiencyCompletedCount": {
+    "description": "Completed count metric label"
+  },
+  "efficiencyCancelledCount": "Discarded",
+  "@efficiencyCancelledCount": {
+    "description": "Discarded count metric label"
+  },
+  "efficiencyInProgressCount": "In Progress",
+  "@efficiencyInProgressCount": {
+    "description": "In progress metric label"
+  },
+  "efficiencyOverdueCount": "Overdue",
+  "@efficiencyOverdueCount": {
+    "description": "Overdue metric label"
+  },
+  "efficiencyQuadrantDistribution": "Quadrant Distribution",
+  "@efficiencyQuadrantDistribution": {
+    "description": "Quadrant distribution title"
+  },
+  "efficiencyDiagnosisGenerating": "AI is analyzing your weekly efficiency...",
+  "@efficiencyDiagnosisGenerating": {
+    "description": "Diagnosis generating loading state"
+  },
+  "efficiencyAnalysisTitle": "Diagnosis & Action Items",
+  "@efficiencyAnalysisTitle": {
+    "description": "Analysis and action items title"
   }
 }

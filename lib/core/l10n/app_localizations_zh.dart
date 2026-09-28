@@ -1522,4 +1522,150 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get quadrantListEmpty => '该象限当前无待办任务';
+
+  @override
+  String get settingsSectionAi => 'AI 智能助手';
+
+  @override
+  String get settingsAiAssistant => 'AI 助手设置';
+
+  @override
+  String get settingsAiAssistantSubtitle => '配置大模型服务商与 API Key';
+
+  @override
+  String get aiProvider => '服务商 (Provider)';
+
+  @override
+  String get aiBaseUrl => '接口地址 (Base URL)';
+
+  @override
+  String get aiBaseUrlHint => '请输入 API Base URL';
+
+  @override
+  String get aiModel => '模型名称 (Model)';
+
+  @override
+  String get aiModelHint => '请输入模型名称';
+
+  @override
+  String get aiApiKey => 'API 密钥 (API Key)';
+
+  @override
+  String get aiApiKeyHint => '输入新的密钥进行更新...';
+
+  @override
+  String get aiTestConnection => '测试连接';
+
+  @override
+  String get aiTestingConnection => '正在测试连接...';
+
+  @override
+  String aiTestSuccess(int latency) {
+    return '连接成功 · ${latency}ms';
+  }
+
+  @override
+  String get aiTestFailed => '连接失败';
+
+  @override
+  String get aiSaveConfig => '保存配置';
+
+  @override
+  String get aiSaveSuccess => 'AI 配置已保存';
+
+  @override
+  String get aiConfigNotSet => '未配置';
+
+  @override
+  String get aiClearKey => '清除密钥';
+
+  @override
+  String get aiKeyStoredSecurely => '密钥已保存在系统安全存储中';
+
+  @override
+  String get aiCopilot => 'AI 助手';
+
+  @override
+  String get aiCopilotTooltip => '打开 AI 智能助理';
+
+  @override
+  String get aiClearChat => '清空对话';
+
+  @override
+  String get aiClose => '关闭';
+
+  @override
+  String get aiInputHint => '输入任务或指令，例如：帮我规划今天...';
+
+  @override
+  String get aiSend => '发送';
+
+  @override
+  String get aiCapsuleWeeklyReport => '生成周报';
+
+  @override
+  String get aiCapsulePlanToday => '帮我规划今天';
+
+  @override
+  String get aiCapsuleBreakdownTask => '帮我拆解任务';
+
+  @override
+  String get aiWelcomeTip => '你可以用自然语言告诉我你的待办，或者点击下方快捷胶囊。';
+
+  @override
+  String get aiAddTaskAction => '添加到待办';
+
+  @override
+  String get aiTaskAddedAction => '已添加';
+
+  @override
+  String get aiTaskAddingAction => '添加中...';
+
+  @override
+  String get aiDiscardAction => '放弃';
+
+  @override
+  String get aiDiscardedAction => '已放弃';
+
+  @override
+  String get aiTaskProposalTitle => '建议任务';
+
+  @override
+  String get aiSubstepsTitle => '子步骤';
+
+  @override
+  String get aiTaskAddedSuccess => '任务已成功添加到待办';
+
+  @override
+  String get aiThinking => '思考中...';
+
+  @override
+  String get efficiencyWeeklyDiagnosis => '周度效能诊断';
+
+  @override
+  String get efficiencyPastDays => '近 7 天';
+
+  @override
+  String get efficiencyCompletionRate => '完成率';
+
+  @override
+  String get efficiencyCompletedCount => '已完成';
+
+  @override
+  String get efficiencyCancelledCount => '已放弃';
+
+  @override
+  String get efficiencyInProgressCount => '进行中';
+
+  @override
+  String get efficiencyOverdueCount => '已逾期';
+
+  @override
+  String get efficiencyQuadrantDistribution => '四象限投入分布';
+
+  @override
+  String get efficiencyDiagnosisGenerating => 'AI 正在分析本周效能...';
+
+  @override
+  String get efficiencyAnalysisTitle => '深度诊断与行动建议';
 }

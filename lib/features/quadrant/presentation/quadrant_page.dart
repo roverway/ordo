@@ -12,6 +12,9 @@ import '../providers/quadrant_providers.dart';
 import '../widgets/quadrant_filter_bar.dart';
 import '../widgets/quadrant_grid.dart';
 import '../widgets/quadrant_list_view.dart';
+import '../../../core/utils/app_breakpoints.dart';
+import '../../home/widgets/home_fab.dart';
+import '../../tasks/widgets/task_create_sheet.dart';
 
 /// 四象限（艾森豪威尔矩阵）主页面。
 ///
@@ -83,6 +86,11 @@ class QuadrantPage extends ConsumerWidget {
           ],
         ),
       ),
+      floatingActionButton: AppBreakpoints.isNarrow(context)
+          ? HomeDoubleFab(
+              onNativeAdd: () => TaskCreateSheet.show(context),
+            )
+          : null,
     );
   }
 }
