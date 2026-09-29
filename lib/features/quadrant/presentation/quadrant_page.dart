@@ -9,20 +9,18 @@ import '../../../shared/widgets/page_hero_header.dart';
 import '../../../shared/widgets/scope_switcher_sheet.dart';
 import '../models/quadrant_models.dart';
 import '../providers/quadrant_providers.dart';
+import '../widgets/quadrant_cards_view.dart';
 import '../widgets/quadrant_filter_bar.dart';
 import '../widgets/quadrant_grid.dart';
 import '../widgets/quadrant_list_view.dart';
-import '../../../core/utils/app_breakpoints.dart';
-import '../../home/widgets/home_fab.dart';
-import '../../tasks/widgets/task_create_sheet.dart';
 
 /// 四象限（艾森豪威尔矩阵）主页面。
 ///
 /// 遵循全局极简沉浸式规范与设计系统：
 /// 1. 顶部 Hero 大标题（带下拉指示器、任务数副标题、标准尺寸环形进度条 HeroProgressRing）；
-/// 2. 工具栏 QuadrantFilterBar（左侧项目筛选胶囊 + 右侧 2x2 矩阵/聚焦列表双模式切换）；
-/// 3. 支持无缝在 2x2 田字格（宏观全局）与聚焦列表（单列纵向滚动）之间平滑切换；
-/// 4. 深度接入应用主题色、壁纸系统与语义令牌（零魔法值）。
+/// 2. 工具栏 QuadrantFilterBar（左侧项目筛选胶囊 + 右侧 2x2 矩阵/聚焦列表/滑卡多模式切换）；
+/// 3. 支持无缝在 2x2 田字格（宏观全局）、聚焦列表（单列纵向滚动）与水平滑卡（单手沉浸）之间平滑切换；
+/// 4. 深度接入应用主题色、壁纸系统与语义令牌（零魔法值），移除移动端多余 FAB。
 class QuadrantPage extends ConsumerWidget {
   const QuadrantPage({super.key});
 
@@ -60,7 +58,7 @@ class QuadrantPage extends ConsumerWidget {
             QuadrantFilterBar(totalTasksCount: totalCount),
             const SizedBox(height: AppTokens.spaceMicro),
 
-            // 矩阵 vs 列表双视图无缝切换
+            // 矩阵 vs 列表 vs 滑卡 三视图无缝切换
             Expanded(
               child: quadrantDataAsync.when(
                 skipLoadingOnRefresh: true,
@@ -71,26 +69,27 @@ class QuadrantPage extends ConsumerWidget {
                   duration: AppTokens.motionFast,
                   switchInCurve: AppTokens.motionSpring,
                   switchOutCurve: AppTokens.motionSpring,
-                  child: viewMode == QuadrantViewMode.matrix
-                      ? KeyedSubtree(
-                          key: const ValueKey('quadrant_matrix_view'),
-                          child: QuadrantGrid(data: data),
-                        )
-                      : KeyedSubtree(
-                          key: const ValueKey('quadrant_list_view'),
-                          child: QuadrantListView(data: data),
-                        ),
+                  child: switch (viewMode) {
+                    QuadrantViewMode.matrix => KeyedSubtree(
+                      key: const ValueKey('quadrant_matrix_view'),
+                      child: QuadrantGrid(data: data),
+                    ),
+                    QuadrantViewMode.list => KeyedSubtree(
+                      key: const ValueKey('quadrant_list_view'),
+                      child: QuadrantListView(data: data),
+                    ),
+                    QuadrantViewMode.cards => KeyedSubtree(
+                      key: const ValueKey('quadrant_cards_view'),
+                      child: QuadrantCardsView(data: data),
+                    ),
+                  },
                 ),
               ),
             ),
           ],
         ),
       ),
-      floatingActionButton: AppBreakpoints.isNarrow(context)
-          ? HomeDoubleFab(
-              onNativeAdd: () => TaskCreateSheet.show(context),
-            )
-          : null,
+      floatingActionButton: null,
     );
   }
 }

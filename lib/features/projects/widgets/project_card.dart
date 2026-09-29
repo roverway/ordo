@@ -11,8 +11,10 @@ import '../../../core/theme/preset_icons.dart';
 
 /// Project card — clean, minimal card with color dot, name, progress.
 ///
-/// 66 号外观升级：与任务卡/看板卡统一为「细边框 + 双层弥散阴影」的
-/// [DesktopHoverContainer] 语言；保留按压 scale 微反馈（63 §5 H）。
+/// 遵循乔布斯极简与 Linear 工业质感：
+/// - 细微 1px 描边与精致圆角；
+/// - 微型进度条高度收缩至 2.5dp（AppTokens.radiusMicro 圆角）；
+/// - 右侧直接展示完成比率与等宽数字（12/15 · 80%）。
 class ProjectCard extends ConsumerStatefulWidget {
   const ProjectCard({super.key, required this.project, this.onTap});
 
@@ -38,6 +40,7 @@ class _ProjectCardState extends ConsumerState<ProjectCard> {
     final uncompleted = summary.uncompletedCount;
     final projectProgress = summary.progress;
     final totalCount = summary.totalCount;
+    final completedCount = totalCount - uncompleted;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppTokens.spaceSm),
@@ -65,13 +68,19 @@ class _ProjectCardState extends ConsumerState<ProjectCard> {
                   width: AppTokens.projectBadgeSize,
                   height: AppTokens.projectBadgeSize,
                   decoration: BoxDecoration(
-                    color: projectColor.withValues(alpha: isDark ? 0.18 : 0.12),
+                    color: projectColor.withValues(
+                      alpha: isDark
+                          ? AppTokens.alphaTintStrong
+                          : AppTokens.alphaBorderSubtle,
+                    ),
                     borderRadius: BorderRadius.circular(
                       AppTokens.projectBadgeRadius,
                     ),
                     border: Border.all(
                       color: projectColor.withValues(
-                        alpha: isDark ? 0.35 : 0.22,
+                        alpha: isDark
+                            ? AppTokens.alphaBorderEmphasis
+                            : AppTokens.alphaTintStrong,
                       ),
                       width: 1,
                     ),
@@ -103,20 +112,37 @@ class _ProjectCardState extends ConsumerState<ProjectCard> {
                       ),
                       if (totalCount > 0) ...[
                         const SizedBox(height: AppTokens.spaceXxs),
-                        Text(
-                          l10n.tasksRemaining(uncompleted),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              l10n.tasksRemaining(uncompleted),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                                fontSize: AppTokens.textMicroSize,
+                              ),
+                            ),
+                            Text(
+                              '$completedCount/$totalCount · ${(projectProgress * 100).round()}%',
+                              style: TextStyle(
+                                fontFeatures: AppTokens.fontTabular,
+                                fontSize: AppTokens.textMicroSize,
+                                fontWeight: FontWeight.w600,
+                                color: projectProgress >= 1.0
+                                    ? AppTokens.colorDone
+                                    : colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: AppTokens.spaceXs),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(
-                            AppTokens.spaceXxs,
+                            AppTokens.radiusMicro,
                           ),
                           child: LinearProgressIndicator(
                             value: projectProgress,
-                            minHeight: 4,
+                            minHeight: 2.5,
                             backgroundColor: colorScheme.surfaceContainerHighest
                                 .withValues(alpha: AppTokens.alphaContentMuted),
                             valueColor: AlwaysStoppedAnimation<Color>(
@@ -130,39 +156,13 @@ class _ProjectCardState extends ConsumerState<ProjectCard> {
                     ],
                   ),
                 ),
-                // Task count badge.
-                if (totalCount > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppTokens.spaceXs,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: projectColor.withValues(
-                        alpha: isDark ? 0.18 : 0.10,
-                      ),
-                      borderRadius: BorderRadius.circular(AppTokens.radiusChip),
-                      border: Border.all(
-                        color: projectColor.withValues(
-                          alpha: isDark ? 0.30 : 0.20,
-                        ),
-                        width: 0.5,
-                      ),
-                    ),
-                    child: Text(
-                      uncompleted > 0 ? '$uncompleted' : '$totalCount',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: projectColor,
-                        fontSize: AppTokens.textMicroSize,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
                 const SizedBox(width: AppTokens.spaceXs),
                 Icon(
                   Icons.chevron_right,
                   size: 20,
-                  color: colorScheme.outline.withValues(alpha: AppTokens.alphaBorderEmphasis),
+                  color: colorScheme.outline.withValues(
+                    alpha: AppTokens.alphaBorderEmphasis,
+                  ),
                 ),
               ],
             ),

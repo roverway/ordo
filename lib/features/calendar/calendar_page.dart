@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -292,21 +291,14 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
       },
       onVerticalDragEnd: (details) {
         final velocity = details.primaryVelocity ?? 0;
-        final currentMode = ref.read(calendarStateProvider).mode;
         if (velocity < -150 || _verticalDelta < -30) {
           // 向上滑动 -> 收起为周视图（非水平翻页，方向归零仅淡入）
-          if (currentMode != CalendarMode.week) {
-            HapticFeedback.selectionClick();
-            _slideDirection = 0;
-            ref.read(calendarStateProvider.notifier).setMode(CalendarMode.week);
-          }
+          _slideDirection = 0;
+          ref.read(calendarStateProvider.notifier).setMode(CalendarMode.week);
         } else if (velocity > 150 || _verticalDelta > 30) {
           // 向下滑动 -> 展开为月视图
-          if (currentMode != CalendarMode.month) {
-            HapticFeedback.selectionClick();
-            _slideDirection = 0;
-            ref.read(calendarStateProvider.notifier).setMode(CalendarMode.month);
-          }
+          _slideDirection = 0;
+          ref.read(calendarStateProvider.notifier).setMode(CalendarMode.month);
         }
         _verticalDelta = 0;
       },

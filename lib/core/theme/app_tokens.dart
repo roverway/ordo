@@ -278,6 +278,9 @@ abstract final class AppTokens {
   static const double spaceXxl = 32;
   static const double spaceXxxl = 48;
 
+  /// 移动端底部悬浮胶囊坞防遮挡安全留白。
+  static const double bottomNavClearance = 120;
+
   // ── Typography ──
   //
   // 七档字阶（docs/66-ui-visual-polish-proposal.md §2）：
@@ -378,6 +381,9 @@ abstract final class AppTokens {
 
   /// 搜索输入防抖时长（300ms）。
   static const Duration searchDebounceDuration = Duration(milliseconds: 300);
+
+  /// 完成任务原位滞留确认时长（600ms），给用户确认与撤销的心智缓冲期。
+  static const Duration motionDoneGracePeriod = Duration(milliseconds: 600);
 
   /// 列表错落入场上限：超过该数量的列表不再错落（长列表直接平铺，
   /// 控制总错落时长 ≤ 15×50ms + 250ms ≈ 1s，docs/63-motion-polish.md §5 B）。

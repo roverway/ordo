@@ -19,11 +19,33 @@ import 'widgets/create_list_folder_sheet.dart';
 import 'widgets/project_card.dart';
 
 /// 项目概览页（对齐原型 overview.html：概览 Hero + 周进度条 + 文件夹分组项目卡片）。
-class ProjectsPage extends ConsumerWidget {
+///
+/// 遵循乔布斯极简与移动端交互规范：
+/// - 顶部操作收敛至 Hero 标题与轻量加号；
+/// - 移除移动端浮动操作按钮（FAB），与底部胶囊坞统一；
+/// - 文件夹标题支持点击折叠/展开，带平滑 90° 旋转 Chevron。
+class ProjectsPage extends ConsumerStatefulWidget {
   const ProjectsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProjectsPage> createState() => _ProjectsPageState();
+}
+
+class _ProjectsPageState extends ConsumerState<ProjectsPage> {
+  final Set<String> _collapsedFolderIds = <String>{};
+
+  void _toggleFolder(String folderId) {
+    setState(() {
+      if (_collapsedFolderIds.contains(folderId)) {
+        _collapsedFolderIds.remove(folderId);
+      } else {
+        _collapsedFolderIds.add(folderId);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -204,35 +226,41 @@ class ProjectsPage extends ConsumerWidget {
                                           .folderProjects[folder.id]
                                           ?.length ??
                                       0,
+                                  isExpanded: !_collapsedFolderIds.contains(folder.id),
+                                  onToggle: () => _toggleFolder(folder.id),
                                 ),
-                                for (final project
-                                    in grouping.folderProjects[folder.id] ??
-                                        const <Project>[])
-                                  StaggeredFadeSlide(
-                                    index: cardIndex++,
-                                    child: ProjectCard(
-                                      project: project,
-                                      onTap: () => context.push(
-                                        '/projects/${project.id}',
+                                if (!_collapsedFolderIds.contains(folder.id))
+                                  for (final project
+                                      in grouping.folderProjects[folder.id] ??
+                                          const <Project>[])
+                                    StaggeredFadeSlide(
+                                      index: cardIndex++,
+                                      child: ProjectCard(
+                                        project: project,
+                                        onTap: () => context.push(
+                                          '/projects/${project.id}',
+                                        ),
                                       ),
                                     ),
-                                  ),
                               ],
                               if (ungrouped.isNotEmpty) ...[
                                 _FolderSectionHeader(
                                   title: l10n.ungrouped,
                                   count: ungrouped.length,
+                                  isExpanded: !_collapsedFolderIds.contains('ungrouped'),
+                                  onToggle: () => _toggleFolder('ungrouped'),
                                 ),
-                                for (final project in ungrouped)
-                                  StaggeredFadeSlide(
-                                    index: cardIndex++,
-                                    child: ProjectCard(
-                                      project: project,
-                                      onTap: () => context.push(
-                                        '/projects/${project.id}',
+                                if (!_collapsedFolderIds.contains('ungrouped'))
+                                  for (final project in ungrouped)
+                                    StaggeredFadeSlide(
+                                      index: cardIndex++,
+                                      child: ProjectCard(
+                                        project: project,
+                                        onTap: () => context.push(
+                                          '/projects/${project.id}',
+                                        ),
                                       ),
                                     ),
-                                  ),
                               ],
                             ]),
                           ),
@@ -249,12 +277,12 @@ class ProjectsPage extends ConsumerWidget {
                                         .folderProjects[folder.id]
                                         ?.length ??
                                     0,
+                                isExpanded: !_collapsedFolderIds.contains(folder.id),
+                                onToggle: () => _toggleFolder(folder.id),
                               ),
                             ),
                           ),
-                          if ((grouping.folderProjects[folder.id] ??
-                                  const <Project>[])
-                              .isNotEmpty)
+                          if (!_collapsedFolderIds.contains(folder.id))
                             SliverPadding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 20,
@@ -270,8 +298,8 @@ class ProjectsPage extends ConsumerWidget {
                                     ),
                                 delegate: SliverChildBuilderDelegate(
                                   (context, idx) {
-                                    final project = grouping
-                                        .folderProjects[folder.id]![idx];
+                                    final project =
+                                        grouping.folderProjects[folder.id]![idx];
                                     return StaggeredFadeSlide(
                                       index: cardIndex++,
                                       child: ProjectCard(
@@ -296,38 +324,41 @@ class ProjectsPage extends ConsumerWidget {
                               child: _FolderSectionHeader(
                                 title: l10n.ungrouped,
                                 count: ungrouped.length,
+                                isExpanded: !_collapsedFolderIds.contains('ungrouped'),
+                                onToggle: () => _toggleFolder('ungrouped'),
                               ),
                             ),
                           ),
-                          SliverPadding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 8,
+                          if (!_collapsedFolderIds.contains('ungrouped'))
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 8,
+                              ),
+                              sliver: SliverGrid(
+                                gridDelegate:
+                                    const SliverGridDelegateWithMaxCrossAxisExtent(
+                                      maxCrossAxisExtent: 440,
+                                      mainAxisExtent: 110,
+                                      crossAxisSpacing: 16,
+                                      mainAxisSpacing: 12,
+                                    ),
+                                delegate: SliverChildBuilderDelegate((
+                                  context,
+                                  idx,
+                                ) {
+                                  final project = ungrouped[idx];
+                                  return StaggeredFadeSlide(
+                                    index: cardIndex++,
+                                    child: ProjectCard(
+                                      project: project,
+                                      onTap: () =>
+                                          context.push('/projects/${project.id}'),
+                                    ),
+                                  );
+                                }, childCount: ungrouped.length),
+                              ),
                             ),
-                            sliver: SliverGrid(
-                              gridDelegate:
-                                  const SliverGridDelegateWithMaxCrossAxisExtent(
-                                    maxCrossAxisExtent: 440,
-                                    mainAxisExtent: 110,
-                                    crossAxisSpacing: 16,
-                                    mainAxisSpacing: 12,
-                                  ),
-                              delegate: SliverChildBuilderDelegate((
-                                context,
-                                idx,
-                              ) {
-                                final project = ungrouped[idx];
-                                return StaggeredFadeSlide(
-                                  index: cardIndex++,
-                                  child: ProjectCard(
-                                    project: project,
-                                    onTap: () =>
-                                        context.push('/projects/${project.id}'),
-                                  ),
-                                );
-                              }, childCount: ungrouped.length),
-                            ),
-                          ),
                         ],
                       ],
 
@@ -393,40 +424,69 @@ class ProjectsPage extends ConsumerWidget {
   }
 }
 
-/// 概览页文件夹分组头
+/// 概览页文件夹分组头（带平滑 90° 旋转 Chevron 与折叠触觉反馈）。
 class _FolderSectionHeader extends StatelessWidget {
-  const _FolderSectionHeader({required this.title, required this.count});
+  const _FolderSectionHeader({
+    required this.title,
+    required this.count,
+    this.isExpanded = true,
+    this.onToggle,
+  });
 
   final String title;
   final int count;
+  final bool isExpanded;
+  final VoidCallback? onToggle;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 20, 4, 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title.toUpperCase(),
-            style: TextStyle(
-              fontSize: AppTokens.textSectionLabelSize,
-              fontWeight: AppTokens.textSectionLabelWeight,
-              letterSpacing: AppTokens.textSectionLabelLetterSpacing,
-              color: colorScheme.onSurfaceVariant,
+    return InkWell(
+      onTap: onToggle,
+      borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(4, 20, 4, 10),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (onToggle != null) ...[
+                  AnimatedRotation(
+                    turns: isExpanded ? 0.25 : 0.0,
+                    duration: AppTokens.motionFast,
+                    curve: Curves.easeInOut,
+                    child: Icon(
+                      Icons.chevron_right_rounded,
+                      size: 16,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(width: AppTokens.spaceXs),
+                ],
+                Text(
+                  title.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: AppTokens.textSectionLabelSize,
+                    fontWeight: AppTokens.textSectionLabelWeight,
+                    letterSpacing: AppTokens.textSectionLabelLetterSpacing,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
-          ),
-          Text(
-            '$count',
-            style: TextStyle(
-              fontFeatures: AppTokens.fontTabular,
-              fontSize: AppTokens.textSectionLabelSize,
-              fontWeight: AppTokens.textSectionLabelWeight,
-              color: colorScheme.onSurfaceVariant,
+            Text(
+              '$count',
+              style: TextStyle(
+                fontFeatures: AppTokens.fontTabular,
+                fontSize: AppTokens.textSectionLabelSize,
+                fontWeight: AppTokens.textSectionLabelWeight,
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

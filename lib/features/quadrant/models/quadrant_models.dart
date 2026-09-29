@@ -5,13 +5,16 @@ import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 
-/// 象限视图模式：2x2 田字矩阵 / 聚焦列表
+/// 象限视图模式：2x2 田字矩阵 / 聚焦列表 / 滑动聚焦卡
 enum QuadrantViewMode {
   /// 经典 2x2 矩阵模式
   matrix,
 
   /// 单列分栏纵向聚焦列表模式
   list,
+
+  /// 移动端专属：水平滑卡模式
+  cards,
 }
 
 /// 四象限类型枚举（艾森豪威尔矩阵）。
@@ -25,13 +28,10 @@ enum QuadrantType {
   /// 第三象限：不重要但紧急（Q3）
   urgentUnimportant,
 
-  /// 第四象限：不重要不紧急（Q4）
-  notUrgentUnimportant,
-}
+  /// 第四象限：不重要且不紧急（Q4）
+  notUrgentUnimportant;
 
-/// 四象限类型元数据与展示扩展。
-extension QuadrantTypeX on QuadrantType {
-  /// 象限特征强调色（遵循 AppTokens 设计规范，零魔法值）。
+  /// 语义强调主色。
   Color get accentColor {
     switch (this) {
       case QuadrantType.urgentImportant:
@@ -45,7 +45,19 @@ extension QuadrantTypeX on QuadrantType {
     }
   }
 
-  /// 标题文案。
+  /// 象限标识短标签（Q1 ~ Q4）。
+  String get tag => 'Q${index + 1}';
+
+  /// 罗马数字标号（I ~ IV）。
+  String get romanNumeral => ['I', 'II', 'III', 'IV'][index];
+
+  /// 象限纯数字（1 ~ 4）。
+  int get number => index + 1;
+}
+
+/// 象限多语言与视图交互派生扩展。
+extension QuadrantTypeX on QuadrantType {
+  /// 主标题文案。
   String title(AppLocalizations l10n) {
     switch (this) {
       case QuadrantType.urgentImportant:

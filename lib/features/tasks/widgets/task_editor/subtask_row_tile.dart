@@ -147,7 +147,7 @@ class _SubtaskRowTileState extends State<SubtaskRowTile> {
                               hintText: l10n.subtaskHint,
                               hintStyle: TextStyle(
                                 color: colorScheme.onSurfaceVariant.withValues(
-                                  alpha: 0.45,
+                                  alpha: AppTokens.alphaContentDisabled,
                                 ),
                                 fontSize: AppTokens.textSecondarySize,
                               ),
@@ -209,7 +209,7 @@ class _SubtaskRowTileState extends State<SubtaskRowTile> {
                             Icons.drag_handle,
                             size: 18,
                             color: colorScheme.onSurfaceVariant.withValues(
-                              alpha: 0.4,
+                              alpha: AppTokens.alphaBorderEmphasis,
                             ),
                           ),
                         ),

@@ -14,9 +14,9 @@ import '../../features/tasks/widgets/quick_capture_bar.dart';
 /// 遵循乔布斯极端极简与单手拇指热区哲学：
 /// 1. 悬浮居中圆角胶囊（48dp 高度，圆角 24dp，磨砂毛玻璃 16，细微微光描边）；
 /// 2. 拇指黄金扇形区：
-///    - 左侧：今日 (Today)、清单 (Projects)
-///    - 中央：灵感捕获加号 (Quick Capture +)，短按极速录入，长按呼唤 AI 智能助手
-///    - 右侧：象限 (Matrix)、全局搜索 (Search)
+///    - 左侧：今日 (Today)、日历 (Calendar)
+///    - 中央：灵感捕捉加号 (Quick Capture +)，短按极速录入，长按呼唤 AI 智能助手
+///    - 右侧：象限 (Matrix)、清单 (Projects)、全局搜索 (Search)
 class FloatingMinimalDock extends ConsumerWidget {
   const FloatingMinimalDock({super.key, this.currentRoute});
 
@@ -40,12 +40,17 @@ class FloatingMinimalDock extends ConsumerWidget {
     }
 
     final isToday = path == '/today' || path == '/';
-    final isProjects = path.startsWith('/projects');
+    final isCalendar = path.startsWith('/calendar');
     final isMatrix = path.startsWith('/matrix');
+    final isProjects = path.startsWith('/projects');
 
     final dockBg = isDark
-        ? AppTokens.surfaceCardDark.withValues(alpha: AppTokens.alphaCardFrostedDark)
-        : AppTokens.surfaceCardLight.withValues(alpha: AppTokens.alphaCardFrostedLight);
+        ? AppTokens.surfaceCardDark.withValues(
+            alpha: AppTokens.alphaCardFrostedDark,
+          )
+        : AppTokens.surfaceCardLight.withValues(
+            alpha: AppTokens.alphaCardFrostedLight,
+          );
 
     final borderColor = isDark
         ? AppTokens.borderSubtleDark
@@ -53,14 +58,18 @@ class FloatingMinimalDock extends ConsumerWidget {
 
     return Container(
       height: 48,
-      margin: const EdgeInsets.symmetric(horizontal: AppTokens.spaceLg),
+      margin: const EdgeInsets.symmetric(horizontal: AppTokens.spaceMd),
       decoration: BoxDecoration(
         color: dockBg,
         borderRadius: BorderRadius.circular(AppTokens.radiusPill),
         border: Border.all(color: borderColor, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.32 : 0.08),
+            color: Colors.black.withValues(
+              alpha: isDark
+                  ? AppTokens.alphaBorderEmphasis
+                  : AppTokens.alphaTintFaint,
+            ),
             blurRadius: 20,
             offset: const Offset(0, 6),
           ),
@@ -91,21 +100,21 @@ class FloatingMinimalDock extends ConsumerWidget {
                   },
                 ),
 
-                const SizedBox(width: AppTokens.spaceSm),
+                const SizedBox(width: AppTokens.spaceXs),
 
-                // 2. 清单 / 概览
+                // 2. 日历
                 _buildNavItem(
                   context: context,
-                  icon: isProjects
-                      ? Icons.folder_rounded
-                      : Icons.folder_outlined,
-                  color: isProjects
+                  icon: isCalendar
+                      ? Icons.calendar_today_rounded
+                      : Icons.calendar_today_outlined,
+                  color: isCalendar
                       ? colorScheme.primary
                       : colorScheme.onSurfaceVariant,
-                  tooltip: l10n.overview,
+                  tooltip: l10n.navCalendar,
                   onTap: () {
                     HapticFeedback.selectionClick();
-                    context.go('/projects');
+                    context.go('/calendar');
                   },
                 ),
 
@@ -132,9 +141,27 @@ class FloatingMinimalDock extends ConsumerWidget {
                   },
                 ),
 
-                const SizedBox(width: AppTokens.spaceSm),
+                const SizedBox(width: AppTokens.spaceXs),
 
-                // 5. 全局搜索
+                // 5. 清单 / 概览
+                _buildNavItem(
+                  context: context,
+                  icon: isProjects
+                      ? Icons.folder_rounded
+                      : Icons.folder_outlined,
+                  color: isProjects
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                  tooltip: l10n.overview,
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    context.go('/projects');
+                  },
+                ),
+
+                const SizedBox(width: AppTokens.spaceXs),
+
+                // 6. 全局搜索
                 _buildNavItem(
                   context: context,
                   icon: Icons.search_rounded,
@@ -161,11 +188,11 @@ class FloatingMinimalDock extends ConsumerWidget {
     required VoidCallback onTap,
   }) {
     return IconButton(
-      icon: Icon(icon, color: color, size: 22),
+      icon: Icon(icon, color: color, size: 20),
       tooltip: tooltip,
-      splashRadius: 20,
+      splashRadius: 18,
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
       onPressed: onTap,
     );
   }
@@ -194,7 +221,9 @@ class FloatingMinimalDock extends ConsumerWidget {
             color: colorScheme.primary,
             boxShadow: [
               BoxShadow(
-                color: colorScheme.primary.withValues(alpha: AppTokens.alphaBorderEmphasis),
+                color: colorScheme.primary.withValues(
+                  alpha: AppTokens.alphaBorderEmphasis,
+                ),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),

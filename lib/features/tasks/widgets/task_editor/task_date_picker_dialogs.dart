@@ -288,7 +288,7 @@ class DateSettingCard extends StatelessWidget {
                           color: hasValue
                               ? colorScheme.onSurface
                               : colorScheme.onSurfaceVariant.withValues(
-                                  alpha: 0.7,
+                                  alpha: AppTokens.alphaScrim,
                                 ),
                         ),
                       ),
@@ -313,30 +313,160 @@ class DateSettingCard extends StatelessWidget {
 }
 
 /// 自定义日期 + 时间选择（复用编辑页 showDatePicker + showTimePicker 逻辑）。
+/// 紧凑现代日期 + 时间选择器（底部浮层模式，单次点击直接确认）。
 Future<void> pickCustomDateTime(
   BuildContext context,
   TaskFormNotifier notifier, {
   required bool isStart,
 }) async {
   final now = DateTime.now();
-  final date = await showDatePicker(
+  await showModalBottomSheet<void>(
     context: context,
-    initialDate: now,
-    firstDate: DateTime(2020),
-    lastDate: DateTime(2030),
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (ctx) => _CompactDateTimePickerSheet(
+      isStart: isStart,
+      initialDate: now,
+      onConfirmed: (dt) {
+        final ms = dt.toUtc().millisecondsSinceEpoch;
+        if (isStart) {
+          notifier.updateStartAt(ms);
+        } else {
+          notifier.updateEndAt(ms);
+        }
+      },
+    ),
   );
-  if (date == null || !context.mounted) return;
-  final time = await showTimePicker(
-    context: context,
-    initialTime: TimeOfDay.fromDateTime(now),
-  );
-  if (time == null || !context.mounted) return;
-  final dt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
-  final ms = dt.toUtc().millisecondsSinceEpoch;
-  if (isStart) {
-    notifier.updateStartAt(ms);
-  } else {
-    notifier.updateEndAt(ms);
+}
+
+class _CompactDateTimePickerSheet extends StatefulWidget {
+  const _CompactDateTimePickerSheet({
+    required this.isStart,
+    required this.initialDate,
+    required this.onConfirmed,
+  });
+
+  final bool isStart;
+  final DateTime initialDate;
+  final ValueChanged<DateTime> onConfirmed;
+
+  @override
+  State<_CompactDateTimePickerSheet> createState() =>
+      _CompactDateTimePickerSheetState();
+}
+
+class _CompactDateTimePickerSheetState
+    extends State<_CompactDateTimePickerSheet> {
+  late DateTime _selectedDate;
+  TimeOfDay? _selectedTime;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDate = widget.initialDate;
+    _selectedTime = TimeOfDay.fromDateTime(widget.initialDate);
+  }
+
+  void _confirm() {
+    final time = _selectedTime ?? const TimeOfDay(hour: 9, minute: 0);
+    final dt = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      time.hour,
+      time.minute,
+    );
+    widget.onConfirmed(dt);
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppTokens.radiusSheet),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTokens.spaceMd,
+              vertical: AppTokens.spaceSm,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      widget.isStart ? l10n.taskStartTime : l10n.taskEndTime,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: AppTokens.textTitleWeight,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _confirm,
+                      child: Text(l10n.done),
+                    ),
+                  ],
+                ),
+                SizedBox(
+                  height: 280,
+                  child: CalendarDatePicker(
+                    initialDate: _selectedDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2030),
+                    onDateChanged: (d) => setState(() => _selectedDate = d),
+                  ),
+                ),
+                const SizedBox(height: AppTokens.spaceXs),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    _timeChip('全天', null),
+                    _timeChip('09:00', const TimeOfDay(hour: 9, minute: 0)),
+                    _timeChip('14:00', const TimeOfDay(hour: 14, minute: 0)),
+                    _timeChip('19:00', const TimeOfDay(hour: 19, minute: 0)),
+                  ],
+                ),
+                const SizedBox(height: AppTokens.spaceSm),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _timeChip(String label, TimeOfDay? time) {
+    final isSelected = (_selectedTime == null && time == null) ||
+        (_selectedTime?.hour == time?.hour && _selectedTime?.minute == time?.minute);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) {
+        setState(() => _selectedTime = time);
+      },
+      selectedColor: colorScheme.primary.withValues(alpha: AppTokens.alphaTintSoft),
+      labelStyle: TextStyle(
+        fontSize: AppTokens.textCaptionSize,
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        color: isSelected ? colorScheme.primary : colorScheme.onSurface,
+      ),
+    );
   }
 }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/db/database.dart';
 import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/platform/keyboard_inset_bridge.dart';
@@ -45,7 +46,8 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
   final TextEditingController _textController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
-  // 实时解析出的元数据
+  // 选定清单与解析元数据
+  String? _targetProjectId;
   DateTime? _parsedDate;
   String? _parsedTagName;
   TaskPriority? _parsedPriority;
@@ -53,6 +55,7 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
   @override
   void initState() {
     super.initState();
+    _targetProjectId = widget.initialProjectId;
     _textController.addListener(_onTextChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
@@ -199,7 +202,7 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
 
     final title = _cleanTitle(rawText);
     final repo = ref.read(todoRepositoryProvider);
-    final targetProjectId = widget.initialProjectId ?? inboxProjectId;
+    final targetProjectId = _targetProjectId ?? widget.initialProjectId ?? inboxProjectId;
 
     // 解析标签 ID（若存在对应名称的标签）
     List<String>? tagIds;
@@ -238,6 +241,120 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
     });
   }
 
+  bool _isSameDay(DateTime? a, DateTime? b) {
+    if (a == null || b == null) return false;
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  Future<void> _pickProject(
+    BuildContext context,
+    List<Project> projects,
+    AppLocalizations l10n,
+  ) async {
+    HapticFeedback.selectionClick();
+    final chosen = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        final cs = theme.colorScheme;
+        return Container(
+          decoration: BoxDecoration(
+            color: cs.surface,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(AppTokens.radiusSheet),
+            ),
+          ),
+          child: SafeArea(
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.inbox_outlined),
+                  title: Text(l10n.inbox),
+                  trailing: (_targetProjectId == null || _targetProjectId == inboxProjectId)
+                      ? Icon(Icons.check, color: cs.primary)
+                      : null,
+                  onTap: () => Navigator.of(ctx).pop(inboxProjectId),
+                ),
+                for (final p in projects)
+                  ListTile(
+                    leading: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: Color(p.color),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    title: Text(p.name),
+                    trailing: _targetProjectId == p.id
+                        ? Icon(Icons.check, color: cs.primary)
+                        : null,
+                    onTap: () => Navigator.of(ctx).pop(p.id),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (chosen != null && mounted) {
+      setState(() => _targetProjectId = chosen);
+    }
+  }
+
+  Widget _buildQuickCapsule({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+    Color? activeColor,
+    required ColorScheme colorScheme,
+  }) {
+    final color = isActive
+        ? (activeColor ?? colorScheme.primary)
+        : colorScheme.onSurfaceVariant;
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: isActive
+              ? color.withValues(alpha: AppTokens.alphaTintSoft)
+              : colorScheme.surfaceContainerHighest.withValues(
+                  alpha: AppTokens.alphaTintFaint,
+                ),
+          borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+          border: Border.all(
+            color: isActive
+                ? color.withValues(alpha: AppTokens.alphaBorderEmphasis)
+                : colorScheme.outlineVariant.withValues(
+                    alpha: AppTokens.alphaBorderSubtle,
+                  ),
+            width: 0.8,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: AppTokens.textMicroSize,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _expandToFullSheet() {
     Navigator.of(context).pop();
     TaskCreateSheet.show(
@@ -260,6 +377,19 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
         _parsedTagName != null ||
         _parsedPriority != null;
 
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day, 9);
+    final tomorrow = today.add(const Duration(days: 1));
+
+    final projects =
+        ref.watch(projectsStreamProvider).value ?? const <Project>[];
+    final selectedProject = projects
+        .where((p) =>
+            p.id ==
+            (_targetProjectId ?? widget.initialProjectId ?? inboxProjectId))
+        .firstOrNull;
+    final selectedProjectName = selectedProject?.name ?? l10n.inbox;
+
     final bg = isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCardLight;
     final borderColor = isDark
         ? AppTokens.borderSubtleDark
@@ -278,7 +408,7 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
         border: Border(top: BorderSide(color: borderColor, width: 1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.12),
+            color: Colors.black.withValues(alpha: isDark ? AppTokens.alphaBorderEmphasis : AppTokens.alphaBorderSubtle),
             blurRadius: 24,
             offset: const Offset(0, -6),
           ),
@@ -362,6 +492,87 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
                 ),
               ),
 
+            // 4个单手快捷常驻胶囊（今天、明天、优先级、所属清单）
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildQuickCapsule(
+                      icon: Icons.today_outlined,
+                      label: l10n.today,
+                      isActive: _isSameDay(_parsedDate, today),
+                      activeColor: AppTokens.colorNavToday,
+                      colorScheme: colorScheme,
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setState(() {
+                          if (_isSameDay(_parsedDate, today)) {
+                            _parsedDate = null;
+                          } else {
+                            _parsedDate = today;
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    _buildQuickCapsule(
+                      icon: Icons.wb_sunny_outlined,
+                      label: l10n.tomorrow,
+                      isActive: _isSameDay(_parsedDate, tomorrow),
+                      activeColor: AppTokens.colorNavToday,
+                      colorScheme: colorScheme,
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setState(() {
+                          if (_isSameDay(_parsedDate, tomorrow)) {
+                            _parsedDate = null;
+                          } else {
+                            _parsedDate = tomorrow;
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    _buildQuickCapsule(
+                      icon: Icons.flag_outlined,
+                      label: _parsedPriority != null
+                          ? _priorityLabel(_parsedPriority!, l10n)
+                          : l10n.priority,
+                      isActive: _parsedPriority != null,
+                      activeColor: _parsedPriority != null
+                          ? priorityColor(_parsedPriority!)
+                          : null,
+                      colorScheme: colorScheme,
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setState(() {
+                          _parsedPriority = switch (_parsedPriority) {
+                            null => TaskPriority.high,
+                            TaskPriority.none => TaskPriority.high,
+                            TaskPriority.high => TaskPriority.medium,
+                            TaskPriority.medium => TaskPriority.low,
+                            TaskPriority.low => null,
+                          };
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    _buildQuickCapsule(
+                      icon: Icons.folder_outlined,
+                      label: selectedProjectName,
+                      isActive: _targetProjectId != null &&
+                          _targetProjectId != inboxProjectId,
+                      activeColor: colorScheme.primary,
+                      colorScheme: colorScheme,
+                      onTap: () => _pickProject(context, projects, l10n),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
             // 输入框与提交操作行
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 12, 12),
@@ -382,7 +593,7 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
                         hintStyle: TextStyle(
                           fontSize: AppTokens.textBodySize,
                           color: colorScheme.onSurfaceVariant.withValues(
-                            alpha: 0.7,
+                            alpha: AppTokens.alphaScrim,
                           ),
                         ),
                         border: InputBorder.none,

@@ -6,6 +6,7 @@ import '../../core/theme/app_tokens.dart';
 //   持久=会话内，故用普通 NotifierProvider，不使用 autoDispose）；
 // - searchResultsProvider：查询（matchesSearch）+ 组合筛选（applyTaskFilter）
 //   的结果流；筛选纯函数与时间段匹配均在 view_rules.dart。
+// - searchHistoryProvider：最近搜索历史标签（支持快捷点击与一键清除）。
 //
 // 时间约定（view_rules.dart）：startAt/endAt 为 UTC 毫秒，时间段边界以本地
 // 时间计算（docs/40-data-model.md §4），此处基于 DateTime.now() 推导。
@@ -91,12 +92,48 @@ class SearchQueryNotifier extends Notifier<String> {
       state = value;
     });
   }
+
+  /// 立即更新 query（无需等待防抖，例如点击历史记录）。
+  void setImmediate(String value) {
+    _debounce?.cancel();
+    state = value;
+  }
 }
 
 /// 搜索查询 Provider（会话内保留，便于多次进出页面恢复输入）。
 final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(
   SearchQueryNotifier.new,
 );
+
+/// 最近搜索历史标签 Notifier
+class SearchHistoryNotifier extends Notifier<List<String>> {
+  @override
+  List<String> build() => const [];
+
+  void add(String query) {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+    final list = List<String>.from(state);
+    list.remove(trimmed);
+    list.insert(0, trimmed);
+    if (list.length > 8) {
+      list.removeLast();
+    }
+    state = list;
+  }
+
+  void remove(String query) {
+    state = state.where((item) => item != query).toList();
+  }
+
+  void clear() => state = const [];
+}
+
+/// 最近搜索历史标签 Provider
+final searchHistoryProvider =
+    NotifierProvider<SearchHistoryNotifier, List<String>>(
+      SearchHistoryNotifier.new,
+    );
 
 /// 会话内筛选状态（FR-VIEW-06）。
 class SearchFilterState {

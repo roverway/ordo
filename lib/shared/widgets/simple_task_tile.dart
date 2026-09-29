@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/db/database.dart';
 import '../../core/l10n/app_localizations.dart';
@@ -72,9 +74,55 @@ class SimpleTaskTile extends StatefulWidget {
 
 class _SimpleTaskTileState extends State<SimpleTaskTile> {
   bool _hovered = false;
+  Timer? _graceTimer;
+  late bool _isLocallyDone;
+
+  @override
+  void initState() {
+    super.initState();
+    _isLocallyDone = widget.isDone;
+  }
+
+  @override
+  void didUpdateWidget(covariant SimpleTaskTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isDone != widget.isDone) {
+      _graceTimer?.cancel();
+      _graceTimer = null;
+      _isLocallyDone = widget.isDone;
+    }
+  }
+
+  @override
+  void dispose() {
+    _graceTimer?.cancel();
+    super.dispose();
+  }
+
+  void _handleToggle(bool? val) {
+    if (widget.onToggleDone == null) return;
+    final targetDone = val ?? !_isLocallyDone;
+
+    if (targetDone) {
+      HapticFeedback.lightImpact();
+      setState(() => _isLocallyDone = true);
+      _graceTimer?.cancel();
+      _graceTimer = Timer(AppTokens.motionDoneGracePeriod, () {
+        if (mounted) {
+          widget.onToggleDone?.call(true);
+        }
+      });
+    } else {
+      _graceTimer?.cancel();
+      _graceTimer = null;
+      setState(() => _isLocallyDone = false);
+      widget.onToggleDone?.call(false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final effectiveDone = _isLocallyDone;
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -124,20 +172,20 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   CheckboxBounce(
-                    isDone: widget.isDone,
+                    isDone: effectiveDone,
                     child: widget.hasChildren
                         ? Tooltip(
                             message: l10n.statusDerivedFromChildren,
                             child: ModernCheckbox(
-                              checked: widget.isDone,
+                              checked: effectiveDone,
                               onChanged: null,
                               size: 20,
                               tapTargetSize: AppTokens.checkboxTapTargetSize,
                             ),
                           )
                         : ModernCheckbox(
-                            checked: widget.isDone,
-                            onChanged: (val) => widget.onToggleDone?.call(val),
+                            checked: effectiveDone,
+                            onChanged: (val) => _handleToggle(val),
                             size: 20,
                             tapTargetSize: AppTokens.checkboxTapTargetSize,
                           ),
@@ -154,14 +202,14 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                           // 任务标题（统一到二级任务字阶 15 / w500）
                           AnimatedStrikethrough(
                             text: widget.task.title,
-                            isDone: widget.isDone,
+                            isDone: effectiveDone,
                             style: theme.textTheme.bodyLarge?.copyWith(
                               fontSize: AppTokens.textTaskL2Size,
                               fontWeight: AppTokens.textTaskL2Weight,
                               height: 1.35,
-                              color: widget.isDone
+                              color: effectiveDone
                                   ? colorScheme.onSurfaceVariant.withValues(
-                                      alpha: 0.6,
+                                      alpha: AppTokens.alphaScrim,
                                     )
                                   : colorScheme.onSurface,
                             ),
@@ -176,7 +224,7 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                             Padding(
                               padding: const EdgeInsets.only(top: 6),
                               child: Opacity(
-                                opacity: widget.isDone ? 0.55 : 1.0,
+                                opacity: effectiveDone ? AppTokens.alphaContentMuted : 1.0,
                                 child: Wrap(
                                   spacing: 8,
                                   runSpacing: 4,
