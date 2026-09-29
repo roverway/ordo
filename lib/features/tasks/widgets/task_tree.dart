@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/db/database.dart';
@@ -42,6 +44,8 @@ class TaskTree extends ConsumerStatefulWidget {
 
 class _TaskTreeState extends ConsumerState<TaskTree> {
   String? _draggingTaskId;
+  double _spotlightOverscroll = 0.0;
+  bool _hasTriggeredSpotlight = false;
   String? _dragTargetId;
   bool _isInvalidDragTarget = false;
 
@@ -145,8 +149,34 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
         final childrenOf = _indexDirectChildren(treeNodes);
         final repo = ref.read(todoRepositoryProvider);
 
-        return ListView.builder(
-          padding: EdgeInsets.fromLTRB(20, AppTokens.spaceXs, 20, AppBreakpoints.isNarrow(context) ? 130 : AppTokens.spaceXl),
+        return NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            if (notification is ScrollUpdateNotification) {
+              if (notification.metrics.pixels < -60 && !_hasTriggeredSpotlight) {
+                _hasTriggeredSpotlight = true;
+                HapticFeedback.mediumImpact();
+                context.push('/search');
+              }
+            } else if (notification is OverscrollNotification) {
+              if (notification.overscroll < 0) {
+                _spotlightOverscroll -= notification.overscroll;
+                if (_spotlightOverscroll > 60 && !_hasTriggeredSpotlight) {
+                  _hasTriggeredSpotlight = true;
+                  HapticFeedback.mediumImpact();
+                  context.push('/search');
+                }
+              }
+            } else if (notification is ScrollEndNotification) {
+              _spotlightOverscroll = 0.0;
+              _hasTriggeredSpotlight = false;
+            }
+            return false;
+          },
+          child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            padding: EdgeInsets.fromLTRB(20, AppTokens.spaceXs, 20, AppBreakpoints.isNarrow(context) ? 130 : AppTokens.spaceXl),
           itemCount: roots.length + (_draggingTaskId != null ? 1 : 0),
           itemBuilder: (context, index) {
             // 拖拽进行时在列表末尾追加"回到 1 级"落点（FR-TSK-07）。
@@ -178,9 +208,10 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
               ),
             );
           },
-        );
-      },
-      loading: () => const LoadingView(),
+        ),
+      );
+    },
+    loading: () => const LoadingView(),
       error: (e, st) {
         logAsyncError(e, st);
         return ErrorView(

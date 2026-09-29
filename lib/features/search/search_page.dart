@@ -60,26 +60,55 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final tagsAsync = ref.watch(tagsStreamProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.search)),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppTokens.spaceMd,
-              AppTokens.spaceMd,
-              AppTokens.spaceMd,
-              AppTokens.spaceXs,
+      appBar: AppBar(
+        titleSpacing: 0,
+        title: Padding(
+          padding: const EdgeInsets.only(right: AppTokens.spaceMd),
+          child: Container(
+            height: 40,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaContentMuted),
+              borderRadius: BorderRadius.circular(AppTokens.radiusPill),
             ),
             child: TextField(
               controller: _queryController,
-              onChanged: (value) =>
-                  ref.read(searchQueryProvider.notifier).onQueryChanged(value),
+              autofocus: true,
+              textInputAction: TextInputAction.search,
+              onChanged: (value) {
+                ref.read(searchQueryProvider.notifier).onQueryChanged(value);
+                setState(() {});
+              },
               decoration: InputDecoration(
                 hintText: l10n.searchHint,
-                prefixIcon: const Icon(Icons.search),
+                hintStyle: TextStyle(
+                  fontSize: AppTokens.textSecondarySize,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                prefixIcon: const Icon(Icons.search, size: 20),
+                suffixIcon: _queryController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _queryController.clear();
+                          ref.read(searchQueryProvider.notifier).onQueryChanged('');
+                          setState(() {});
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppTokens.spaceSm,
+                  vertical: 10,
+                ),
               ),
             ),
           ),
+        ),
+      ),
+      body: Column(
+        children: [
           TaskFilterBar(
             status: filter.status,
             tagId: filter.tagId,

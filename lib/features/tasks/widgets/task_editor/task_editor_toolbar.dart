@@ -14,7 +14,7 @@ import 'tag_picker_sheet.dart';
 import 'task_date_picker_dialogs.dart';
 import 'task_editor_controller.dart';
 
-/// 底部工具栏：[日期] [状态] [标签] [优先级] [附件占位禁用]（D5/D6/D7）。
+/// 底部工具栏：[日期] [状态] [标签] [优先级]（D5/D6/D7）。
 class TaskEditorToolbar extends ConsumerWidget {
   const TaskEditorToolbar({super.key, this.statusDisabled = false});
 
@@ -68,13 +68,6 @@ class TaskEditorToolbar extends ConsumerWidget {
             iconColor: priorityColor(priority),
             active: priority != TaskPriority.none,
             onTap: () => showTaskPriorityPicker(context, ref),
-          ),
-          // 附件占位（v1 数据模型无附件字段，D5）。
-          _ToolbarAction(
-            tooltip: l10n.attachmentComingSoon,
-            icon: Icons.attach_file,
-            enabled: false,
-            onTap: null,
           ),
         ],
       ),

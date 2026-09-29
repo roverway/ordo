@@ -65,7 +65,7 @@ Future<TodoRepository> _pumpEdit(
   List<Task> existingTasks = const [],
   List<Project> extraProjects = const [],
   List<Folder> extraFolders = const [],
-  Size size = const Size(400, 800),
+  Size size = const Size(800, 800),
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
@@ -716,7 +716,7 @@ void main() {
       await tester.enterText(find.byType(TextField).last, '新子任务');
 
       // 保存 → 页面直接退出（Bug 1 修复前会弹「有未保存的更改」对话框）。
-      await tester.tap(find.text('保存'));
+      await tester.tap(find.byIcon(Icons.arrow_back));
       await tester.pumpAndSettle();
 
       expect(find.text('有未保存的更改'), findsNothing);
@@ -911,7 +911,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // 点击保存
-      await tester.tap(find.text('保存'));
+      await tester.tap(find.byIcon(Icons.arrow_back));
       await tester.pumpAndSettle();
 
       // 校验 DB 中子任务标题已更新
@@ -999,7 +999,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // 点击保存
-      await tester.tap(find.text('保存'));
+      await tester.tap(find.byIcon(Icons.arrow_back));
       await tester.pumpAndSettle();
 
       // 校验 DB 中子任务状态已更新为 done
@@ -1456,6 +1456,51 @@ void main() {
 
       // 组内项目重新可见
       expect(find.text('组内项目'), findsOneWidget);
+    });
+  });
+
+  // ────────────────────────────────────────
+  // 移动端体验（无保存按钮，自动保存）
+  // ────────────────────────────────────────
+  group('移动端无感自动保存（无保存按钮）', () {
+    testWidgets('移动端 AppBar 不展示保存文字按钮', (tester) async {
+      await _pumpEdit(tester, projectId: 'p1', size: const Size(400, 800));
+      expect(find.text('保存'), findsNothing);
+    });
+
+    testWidgets('移动端新建任务返回：标题非空时自动保存落库', (tester) async {
+      final repo = await _pumpEdit(
+        tester,
+        projectId: 'p1',
+        size: const Size(400, 800),
+      );
+
+      final titleField = find.byType(TextField).first;
+      await tester.enterText(titleField, '移动端自动保存任务');
+
+      // 点击返回
+      await tester.tap(find.byType(IconButton).first);
+      await tester.pumpAndSettle();
+
+      final tasks = await repo.tasks.getAllByProject('p1');
+      expect(tasks.map((t) => t.title), contains('移动端自动保存任务'));
+    });
+
+    testWidgets('移动端新建任务返回：标题为空时静默舍弃不报错误', (tester) async {
+      final repo = await _pumpEdit(
+        tester,
+        projectId: 'p1',
+        size: const Size(400, 800),
+      );
+
+      // 不输入任何标题，直接点击返回
+      await tester.tap(find.byType(IconButton).first);
+      await tester.pumpAndSettle();
+
+      // 无 SnackBar 报错，静默退出
+      expect(find.byType(SnackBar), findsNothing);
+      final tasks = await repo.tasks.getAllByProject('p1');
+      expect(tasks, isEmpty);
     });
   });
 }

@@ -6,9 +6,7 @@ import '../../core/db/database.dart';
 import '../../core/db/repositories/todo_repository.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
-import '../../core/utils/app_breakpoints.dart';
 import '../../shared/widgets/adaptive_leading_navigation.dart';
-import '../../shared/widgets/app_drawer.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
@@ -30,12 +28,9 @@ class TagsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final canPop = context.canPop() || onBack != null;
-    final narrow = AppBreakpoints.isNarrow(context);
     final tagsAsync = ref.watch(tagsStreamProvider);
 
     return Scaffold(
-      drawer: (narrow && !canPop) ? const AppDrawer() : null,
       appBar: AppBar(
         leading: AdaptiveLeadingNavigation(onBack: onBack),
         automaticallyImplyLeading: false,

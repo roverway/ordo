@@ -169,20 +169,20 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                             overflow: TextOverflow.ellipsis,
                           ),
 
-                          // 描述或元数据行（项目圆点 + 时间 + 标签）
+                          // 描述或元数据行（所属项目圆点 -> Linear 风格 #标签 -> 时间）
                           if (widget.projectName != null ||
-                              timeText.isNotEmpty ||
-                              widget.tags.isNotEmpty)
+                              widget.tags.isNotEmpty ||
+                              timeText.isNotEmpty)
                             Padding(
                               padding: const EdgeInsets.only(top: 6),
                               child: Opacity(
                                 opacity: widget.isDone ? 0.55 : 1.0,
                                 child: Wrap(
-                                  spacing: 10,
+                                  spacing: 8,
                                   runSpacing: 4,
                                   crossAxisAlignment: WrapCrossAlignment.center,
                                   children: [
-                                    // 所属项目
+                                    // 1. 所属项目（带 7dp 项目色圆点）
                                     if (widget.projectName != null &&
                                         widget.projectName!.isNotEmpty)
                                       Row(
@@ -213,7 +213,34 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                         ],
                                       ),
 
-                                    // 时间展示
+                                    // 2. Linear 风格 #标签
+                                    for (final tag in widget.tags.take(3))
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            '#',
+                                            style: theme.textTheme.bodySmall
+                                                ?.copyWith(
+                                                  color: Color(tag.color)
+                                                      .withValues(alpha: AppTokens.alphaScrim),
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: AppTokens.textMicroSize,
+                                                ),
+                                          ),
+                                          Text(
+                                            tag.name,
+                                            style: theme.textTheme.bodySmall
+                                                ?.copyWith(
+                                                  color: Color(tag.color),
+                                                  fontWeight: FontWeight.w500,
+                                                  fontSize: AppTokens.textMicroSize,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+
+                                    // 3. 时间展示（强行启用 fontTabular）
                                     if (timeText.isNotEmpty)
                                       Row(
                                         mainAxisSize: MainAxisSize.min,
@@ -244,48 +271,6 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                           ),
                                         ],
                                       ),
-
-                                    // 标签
-                                    for (final tag in widget.tags.take(3))
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: colorScheme.surface,
-                                          borderRadius: BorderRadius.circular(
-                                            100,
-                                          ),
-                                          border: Border.all(
-                                            color: borderColor,
-                                            width: 1,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Container(
-                                              width: 5,
-                                              height: 5,
-                                              decoration: BoxDecoration(
-                                                color: Color(tag.color),
-                                                shape: BoxShape.circle,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              tag.name,
-                                              style: theme.textTheme.bodySmall
-                                                  ?.copyWith(
-                                                    color: colorScheme
-                                                        .onSurfaceVariant,
-                                                    fontSize: AppTokens.textMicroSize,
-                                                  ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
                                   ],
                                 ),
                               ),
@@ -307,8 +292,8 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                             child: TaskProgressRing(
                               value: widget.progressValue!,
                             ),
-                          ),
-                        if (widget.subtaskProgressText != null)
+                          )
+                        else if (widget.subtaskProgressText != null)
                           Padding(
                             padding: const EdgeInsets.only(right: 4),
                             child: Text(

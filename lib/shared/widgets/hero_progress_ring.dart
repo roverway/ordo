@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/l10n/app_localizations.dart';
@@ -15,6 +16,7 @@ class HeroProgressRing extends StatelessWidget {
     this.size = AppTokens.progressRingHeroSize,
     this.strokeWidth = AppTokens.progressRingHeroWidth,
     this.customCenterText,
+    this.onTap,
   });
 
   final int completed;
@@ -22,6 +24,7 @@ class HeroProgressRing extends StatelessWidget {
   final double size;
   final double strokeWidth;
   final String? customCenterText;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +41,7 @@ class HeroProgressRing extends StatelessWidget {
 
     final barColor = colorScheme.primary;
 
-    return Semantics(
+    final ring = Semantics(
       label: AppLocalizations.of(context).progressA11y(labelText),
       child: ExcludeSemantics(
         child: SizedBox(
@@ -77,6 +80,18 @@ class HeroProgressRing extends StatelessWidget {
         ),
       ),
     );
+
+    if (onTap != null) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap!();
+        },
+        child: ring,
+      );
+    }
+    return ring;
   }
 }
 

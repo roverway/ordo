@@ -1,14 +1,13 @@
 // 任务编辑全屏页（59-task-editor-optimization.md §5.3 定稿）。
 //
-// 全屏容器：AppBar（返回 + 项目名 + 保存按钮 + ⋯ 菜单；新建态项目名带下拉箭头可切换，
+// 全屏容器：AppBar（返回 + 项目名 + 移动端自动保存 / 桌面端保存按钮；新建态项目名带下拉箭头可切换，
 // 编辑态只读展示）+ 共享编辑器 [TaskEditor]（showTopBar/showToolbar 均关，工具栏由本页
 // 在 body 内钉底渲染并随键盘上移）。
 //
-// - 保存：显式保存（AppBar 保存按钮）+ 未保存离开拦截（PopScope + hasChanges，
-//   含子任务改动），55 §8 现状保留（D2）。
-// - 子任务管理（D3）：加载现有子任务；新增/删除/拖拽排序**延迟到保存时统一执行**
-//   （与显式保存语义一致，取消编辑不产生意外数据变更）；删除现有子任务带确认。
-// - 删除任务（D4）：⋯ 菜单含删除，确认后级联硬删（repo.deleteTask）。
+// - 保存：移动端自动保存（失焦 / 返回自动静默保存）+ 桌面端显式保存（AppBar 保存按钮）。
+//   对于新建任务：若标题非空，退出时自动静默保存；若标题为空，退出时自动舍弃本次新建，静默 pop。
+// - 子任务管理（D3）：加载现有子任务；新增/删除/拖拽排序延迟到保存时统一执行。
+// - 删除任务（D4）：编辑态右上角提供删除操作入口，确认后级联硬删（repo.deleteTask）。
 // - 父任务（parentId 非空）：编辑器内只读信息行展示。
 
 import 'package:flutter/material.dart';
@@ -164,17 +163,14 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
       final repo = ref.read(todoRepositoryProvider);
       final pid = loadedState.projectId;
       if (pid != null) {
-        final children = await repo.tasks.getDirectChildren(
-          pid,
-          widget.taskId,
-        );
-      // 方案 B（59 讨论定稿）：子任务区展示条件 = 被编辑任务自身深度 < 3
-      // （3 级为最深，无法再创建子任务）。解决「有子任务的 2 级任务不显示子任务区」
-      // 与 1 级任务显示不一致的问题（点击现有任务出现两种编辑器的根因）。
-      final all = await repo.tasks.getAllByProject(loadedState.projectId!);
-      final byId = indexTasksById(all);
-      final taskEntry = byId[widget.taskId!];
-      final depth = taskEntry != null ? depthOf(taskEntry, byId) : 1;
+        final children = await repo.tasks.getDirectChildren(pid, widget.taskId);
+        // 方案 B（59 讨论定稿）：子任务区展示条件 = 被编辑任务自身深度 < 3
+        // （3 级为最深，无法再创建子任务）。解决「有子任务的 2 级任务不显示子任务区」
+        // 与 1 级任务显示不一致的问题（点击现有任务出现两种编辑器的根因）。
+        final all = await repo.tasks.getAllByProject(loadedState.projectId!);
+        final byId = indexTasksById(all);
+        final taskEntry = byId[widget.taskId!];
+        final depth = taskEntry != null ? depthOf(taskEntry, byId) : 1;
         if (mounted) {
           _editorController.initializeSubtasks(children);
           setState(() {
@@ -222,11 +218,23 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
   Future<bool> _autoSave() async {
     if (_isSaving) return true;
     final notifier = ref.read(taskFormProvider.notifier);
+    final formState = ref.read(taskFormProvider);
+
+    // 对于新建任务：若标题非空，退出时自动静默保存；若标题为空，退出时自动舍弃本次新建，静默 pop，不需要弹报错或警告框。
+    if (!_isEditing && formState.title.trim().isEmpty) {
+      ref.read(taskFormProvider.notifier).reset();
+      return true;
+    }
+
     if (notifier.hasChanges || _editorController.hasSubtaskChanges) {
       _isSaving = true;
       try {
         final errorKey = await notifier.save();
         if (errorKey != null) {
+          if (!_isEditing && errorKey == 'title_required') {
+            ref.read(taskFormProvider.notifier).reset();
+            return true;
+          }
           if (!mounted) return false;
           final l10n = AppLocalizations.of(context);
           final message = switch (errorKey) {
@@ -281,11 +289,18 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
           titleSpacing: AppTokens.spaceXs,
           title: TaskProjectSwitcher(interactive: !_isEditing),
           actions: [
-            TextButton.icon(
-              onPressed: _save,
-              icon: const Icon(Icons.check, size: 18),
-              label: Text(l10n.save),
-            ),
+            if (isWide)
+              TextButton.icon(
+                onPressed: _save,
+                icon: const Icon(Icons.check, size: 18),
+                label: Text(l10n.save),
+              )
+            else if (_isEditing)
+              IconButton(
+                icon: const Icon(Icons.delete_outline, size: 22),
+                tooltip: l10n.deleteTask,
+                onPressed: _confirmDeleteTask,
+              ),
           ],
         ),
         body: _TaskEditContentArea(
@@ -300,7 +315,7 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
     );
   }
 
-  // ── 删除任务（D4，⋯ 菜单入口，带确认弹窗）─────────────────────────
+  // ── 删除任务（D4，AppBar 或底部删除入口，带确认弹窗）─────────────────────
 
   Future<void> _confirmDeleteTask() async {
     final l10n = AppLocalizations.of(context);
@@ -337,7 +352,7 @@ class _TaskEditPageState extends ConsumerState<TaskEditPage> {
     }
   }
 
-  // ── 显式保存（D2）─────────────────────────────────────────────────
+  // ── 显式保存（桌面端宽屏 / D2）───────────────────────────────────
 
   Future<void> _save() async {
     if (_isSaving) return; // 防双击重复落库（59 评审 Bug 3）。

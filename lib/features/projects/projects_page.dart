@@ -105,6 +105,13 @@ class ProjectsPage extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(width: AppTokens.spaceMd),
+                      ] else ...[
+                        IconButton(
+                          tooltip: l10n.newProject,
+                          icon: const Icon(Icons.add_rounded),
+                          onPressed: () => _showNewProjectDialog(context, ref),
+                        ),
+                        const SizedBox(width: AppTokens.spaceXs),
                       ],
                       HeroProgressRing(
                         completed: totalCompleted,

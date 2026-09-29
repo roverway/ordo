@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/l10n/app_localizations.dart';
@@ -74,63 +75,109 @@ class QuadrantListView extends ConsumerWidget {
 
         const SizedBox(height: AppTokens.spaceSm),
 
-        // 纵向列表内容区
+        // 纵向列表内容区（支持一指横向轻扫无缝切换象限）
         Expanded(
-          child: ListView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTokens.spaceMd,
-              vertical: AppTokens.spaceXs,
-            ),
-            children: [
-              if (focusTab == null) ...[
-                // 展示全部 4 个象限分组
-                _buildQuadrantGroup(
-                  context: context,
-                  ref: ref,
-                  type: QuadrantType.urgentImportant,
-                  tasks: data.q1UrgentImportant,
-                  l10n: l10n,
-                ),
-                const SizedBox(height: AppTokens.spaceMd),
-                _buildQuadrantGroup(
-                  context: context,
-                  ref: ref,
-                  type: QuadrantType.notUrgentImportant,
-                  tasks: data.q2NotUrgentImportant,
-                  l10n: l10n,
-                ),
-                const SizedBox(height: AppTokens.spaceMd),
-                _buildQuadrantGroup(
-                  context: context,
-                  ref: ref,
-                  type: QuadrantType.urgentUnimportant,
-                  tasks: data.q3UrgentUnimportant,
-                  l10n: l10n,
-                ),
-                const SizedBox(height: AppTokens.spaceMd),
-                _buildQuadrantGroup(
-                  context: context,
-                  ref: ref,
-                  type: QuadrantType.notUrgentUnimportant,
-                  tasks: data.q4NotUrgentUnimportant,
-                  l10n: l10n,
-                ),
-              ] else ...[
-                // 单个象限聚焦展示
-                _buildQuadrantGroup(
-                  context: context,
-                  ref: ref,
-                  type: focusTab,
-                  tasks: data.tasksOf(focusTab),
-                  l10n: l10n,
-                ),
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onHorizontalDragEnd: (details) {
+              final velocity = details.primaryVelocity ?? 0;
+              if (velocity < -200) {
+                // 向左滑：切换到下一个象限
+                final next = focusTab == null ? QuadrantType.urgentImportant : _nextQuadrant(focusTab);
+                if (next != null) {
+                  HapticFeedback.selectionClick();
+                  focusTabNotifier.setTab(next);
+                }
+              } else if (velocity > 200) {
+                // 向右滑：切换到上一个象限
+                final prev = focusTab == null ? null : _prevQuadrant(focusTab);
+                HapticFeedback.selectionClick();
+                focusTabNotifier.setTab(prev);
+              }
+            },
+            child: ListView(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTokens.spaceMd,
+                vertical: AppTokens.spaceXs,
+              ),
+              children: [
+                if (focusTab == null) ...[
+                  // 展示全部 4 个象限分组
+                  _buildQuadrantGroup(
+                    context: context,
+                    ref: ref,
+                    type: QuadrantType.urgentImportant,
+                    tasks: data.q1UrgentImportant,
+                    l10n: l10n,
+                  ),
+                  const SizedBox(height: AppTokens.spaceMd),
+                  _buildQuadrantGroup(
+                    context: context,
+                    ref: ref,
+                    type: QuadrantType.notUrgentImportant,
+                    tasks: data.q2NotUrgentImportant,
+                    l10n: l10n,
+                  ),
+                  const SizedBox(height: AppTokens.spaceMd),
+                  _buildQuadrantGroup(
+                    context: context,
+                    ref: ref,
+                    type: QuadrantType.urgentUnimportant,
+                    tasks: data.q3UrgentUnimportant,
+                    l10n: l10n,
+                  ),
+                  const SizedBox(height: AppTokens.spaceMd),
+                  _buildQuadrantGroup(
+                    context: context,
+                    ref: ref,
+                    type: QuadrantType.notUrgentUnimportant,
+                    tasks: data.q4NotUrgentUnimportant,
+                    l10n: l10n,
+                  ),
+                ] else ...[
+                  // 单个象限聚焦展示
+                  _buildQuadrantGroup(
+                    context: context,
+                    ref: ref,
+                    type: focusTab,
+                    tasks: data.tasksOf(focusTab),
+                    l10n: l10n,
+                  ),
+                ],
+                const SizedBox(height: AppTokens.spaceXl),
               ],
-              const SizedBox(height: AppTokens.spaceXl),
-            ],
+            ),
           ),
         ),
       ],
     );
+  }
+
+
+  QuadrantType? _nextQuadrant(QuadrantType current) {
+    switch (current) {
+      case QuadrantType.urgentImportant:
+        return QuadrantType.notUrgentImportant;
+      case QuadrantType.notUrgentImportant:
+        return QuadrantType.urgentUnimportant;
+      case QuadrantType.urgentUnimportant:
+        return QuadrantType.notUrgentUnimportant;
+      case QuadrantType.notUrgentUnimportant:
+        return null;
+    }
+  }
+
+  QuadrantType? _prevQuadrant(QuadrantType current) {
+    switch (current) {
+      case QuadrantType.urgentImportant:
+        return null;
+      case QuadrantType.notUrgentImportant:
+        return QuadrantType.urgentImportant;
+      case QuadrantType.urgentUnimportant:
+        return QuadrantType.notUrgentImportant;
+      case QuadrantType.notUrgentUnimportant:
+        return QuadrantType.urgentUnimportant;
+    }
   }
 
   Widget _buildTabBar({
