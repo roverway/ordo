@@ -1,5 +1,5 @@
-import 'package:intl/intl.dart';
 import '../ai_tool.dart';
+import 'ai_date_parser.dart';
 
 /// Tool for proposing creation of a task with optional subtasks, tags, dates, and priorities.
 /// Generates a structured proposal for user confirmation (Human-in-the-loop).
@@ -71,25 +71,11 @@ class CreateTasksTool extends AiTool {
     }
 
     final description = arguments['description']?.toString().trim();
-    final priority = (arguments['priority'] as num?)?.toInt() ?? 0;
+    final rawPriority = (arguments['priority'] as num?)?.toInt() ?? 0;
+    final priority = rawPriority.clamp(0, 3);
 
-    int? parseDateToUtcMs(dynamic raw) {
-      if (raw == null) return null;
-      final str = raw.toString().trim();
-      if (str.isEmpty) return null;
-      try {
-        final parsed = DateTime.tryParse(str);
-        if (parsed != null) return parsed.toUtc().millisecondsSinceEpoch;
-      } catch (_) {}
-      try {
-        final parsed = DateFormat('yyyy-MM-dd HH:mm').parse(str);
-        return parsed.toUtc().millisecondsSinceEpoch;
-      } catch (_) {}
-      return null;
-    }
-
-    final startAt = parseDateToUtcMs(arguments['startDate']);
-    final dueAt = parseDateToUtcMs(arguments['dueDate']);
+    final startAt = AiDateParser.parseToUtcMs(arguments['startDate']);
+    final dueAt = AiDateParser.parseToUtcMs(arguments['dueDate']);
 
     final tags =
         (arguments['tags'] as List?)

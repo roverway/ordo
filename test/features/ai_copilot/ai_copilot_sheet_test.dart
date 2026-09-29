@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ordo/core/ai/models/ai_config.dart';
 import 'package:ordo/core/ai/models/ai_task_parse_result.dart';
+import 'package:ordo/core/ai/services/ai_config_service.dart';
 import 'package:ordo/core/ai/services/ai_task_parser.dart';
 import 'package:ordo/core/ai/services/ai_task_persistence_service.dart';
 import 'package:ordo/core/db/database.dart';
@@ -15,6 +16,15 @@ import 'package:ordo/features/ai_copilot/widgets/ai_chat_input_box.dart';
 import 'package:ordo/features/ai_copilot/widgets/ai_prompt_capsule.dart';
 import 'package:ordo/features/ai_copilot/widgets/ai_task_proposal_card.dart';
 import 'package:ordo/shared/widgets/markdown_content_view.dart';
+
+class _FakeAiConfigService implements AiConfigService {
+  @override
+  Future<AiConfig> loadConfig([AiProviderType? targetProvider]) async =>
+      AiConfig.initial();
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 class _FakeAiTaskParser implements AiTaskParser {
   @override
@@ -77,10 +87,13 @@ class _FakePersistenceService implements AiTaskPersistenceService {
 Widget _buildTestApp({
   required Widget child,
   Size screenSize = const Size(390, 844),
-  dynamic overrides = const [],
+  List<dynamic> overrides = const [],
 }) {
   return ProviderScope(
-    overrides: overrides is List ? overrides.cast() : const [],
+    overrides: [
+      aiConfigServiceProvider.overrideWithValue(_FakeAiConfigService()),
+      ...overrides.cast(),
+    ],
     child: MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -398,7 +411,11 @@ void main() {
     testWidgets(
       'renders assistant messages using MarkdownContentView for rich formatting',
       (tester) async {
-        final container = ProviderContainer();
+        final container = ProviderContainer(
+          overrides: [
+            aiConfigServiceProvider.overrideWithValue(_FakeAiConfigService()),
+          ],
+        );
         addTearDown(container.dispose);
 
         // Directly seed an assistant message containing markdown

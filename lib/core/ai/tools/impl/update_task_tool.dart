@@ -1,6 +1,6 @@
-import 'package:intl/intl.dart';
 import 'package:ordo/core/db/tables.dart';
 import '../ai_tool.dart';
+import 'ai_date_parser.dart';
 
 /// Tool for proposing updates to existing tasks (title, status, priority, due date).
 /// Follows human-in-the-loop review principle.
@@ -87,15 +87,7 @@ class UpdateTaskTool extends AiTool {
       if (dueDateRaw == 'clear' || dueDateRaw == 'none' || dueDateRaw.isEmpty) {
         clearDueDate = true;
       } else {
-        final parsedIso = DateTime.tryParse(dueDateRaw);
-        if (parsedIso != null) {
-          newDueAtMs = parsedIso.toUtc().millisecondsSinceEpoch;
-        } else {
-          try {
-            final parsedFmt = DateFormat('yyyy-MM-dd HH:mm').parse(dueDateRaw);
-            newDueAtMs = parsedFmt.toUtc().millisecondsSinceEpoch;
-          } catch (_) {}
-        }
+        newDueAtMs = AiDateParser.parseToUtcMs(dueDateRaw);
       }
     }
 

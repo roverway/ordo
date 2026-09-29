@@ -6,6 +6,7 @@ import 'package:ordo/core/utils/derived.dart';
 import 'package:ordo/core/utils/task_query_engine.dart';
 import 'package:ordo/core/utils/tree.dart';
 import '../ai_tool.dart';
+import 'ai_date_parser.dart';
 
 /// Read-only tool reusing the unified [TaskQueryEngine] to perform multi-dimensional
 /// filtering and searching over tasks directly from memory cache.
@@ -100,27 +101,7 @@ class QueryTasksTool extends AiTool {
     },
   };
 
-  static int? _parseDateToUtcMs(dynamic raw) {
-    if (raw == null) return null;
-    if (raw is int) return raw;
-    if (raw is num) return raw.toInt();
-    final str = raw.toString().trim();
-    final asInt = int.tryParse(str);
-    if (asInt != null) return asInt;
-    try {
-      final parsed = DateTime.parse(str);
-      return parsed.toUtc().millisecondsSinceEpoch;
-    } catch (_) {}
-    try {
-      final df = DateFormat('yyyy-MM-dd HH:mm');
-      return df.parse(str).toUtc().millisecondsSinceEpoch;
-    } catch (_) {}
-    try {
-      final df = DateFormat('yyyy-MM-dd');
-      return df.parse(str).toUtc().millisecondsSinceEpoch;
-    } catch (_) {}
-    return null;
-  }
+  static int? _parseDateToUtcMs(dynamic raw) => AiDateParser.parseToUtcMs(raw);
 
   @override
   Future<AiToolResult> execute(

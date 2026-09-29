@@ -96,6 +96,30 @@ void main() {
         contains('POST'),
       );
     });
+
+    test('allows localhost Origin and reflects it', () async {
+      final request = await httpClient.getUrl(
+        Uri.parse('http://127.0.0.1:$serverPort/mcp'),
+      );
+      request.headers.set('Origin', 'http://localhost:3000');
+      final response = await request.close();
+
+      expect(response.statusCode, HttpStatus.ok);
+      expect(
+        response.headers.value('Access-Control-Allow-Origin'),
+        'http://localhost:3000',
+      );
+    });
+
+    test('blocks external Origin with 403 Forbidden', () async {
+      final request = await httpClient.getUrl(
+        Uri.parse('http://127.0.0.1:$serverPort/mcp'),
+      );
+      request.headers.set('Origin', 'https://malicious-website.com');
+      final response = await request.close();
+
+      expect(response.statusCode, HttpStatus.forbidden);
+    });
   });
 
   group('McpServer JSON-RPC 2.0 Protocol', () {

@@ -135,23 +135,6 @@ class AiCopilotController extends Notifier<AiCopilotState> {
     );
 
     try {
-      // If parser is mocked in tests or custom fake injected, delegate directly
-      if (_parser.runtimeType.toString().contains('Fake')) {
-        final proposal = await _parser.parse(trimmed, locale: locale);
-        final proposalMsgId = _generateId();
-        final proposalMessage = AiChatMessage.taskProposal(
-          id: proposalMsgId,
-          proposal: proposal,
-          createdAt: DateTime.now(),
-        );
-
-        state = state.copyWith(
-          messages: [...state.messages, proposalMessage],
-          isLoading: false,
-        );
-        return;
-      }
-
       AiConfig? config;
       try {
         config = await ref.read(aiConfigServiceProvider).loadConfig();
@@ -191,6 +174,7 @@ class AiCopilotController extends Notifier<AiCopilotState> {
           ? previousMessages.sublist(previousMessages.length - 10)
           : previousMessages;
 
+      final isZh = locale.toLowerCase().startsWith('zh');
       for (final m in window) {
         if (m.type == AiChatMessageType.user) {
           historyList.add({'role': 'user', 'content': m.content});
@@ -202,17 +186,23 @@ class AiCopilotController extends Notifier<AiCopilotState> {
             m.proposal != null) {
           final p = m.proposal!;
           final subs = p.substeps.isNotEmpty
-              ? '（包含 ${p.substeps.length} 个子步骤：${p.substeps.map((s) => s.title).join('、')}）'
+              ? (isZh
+                    ? '（包含 ${p.substeps.length} 个子步骤：${p.substeps.map((s) => s.title).join('、')}）'
+                    : ' (contains ${p.substeps.length} substeps: ${p.substeps.map((s) => s.title).join(', ')})')
               : '';
           historyList.add({
             'role': 'assistant',
-            'content': '已提议任务方案：《${p.title}》$subs',
+            'content': isZh
+                ? '已提议任务方案：《${p.title}》$subs'
+                : 'Proposed task: "${p.title}"$subs',
           });
         } else if (m.type == AiChatMessageType.efficiencyReport &&
             m.efficiencyStats != null) {
           historyList.add({
             'role': 'assistant',
-            'content': '已生成效能报告：总任务 ${m.efficiencyStats!.totalCount} 个。',
+            'content': isZh
+                ? '已生成效能报告：总任务 ${m.efficiencyStats!.totalCount} 个。'
+                : 'Generated efficiency report: ${m.efficiencyStats!.totalCount} tasks in total.',
           });
         }
       }

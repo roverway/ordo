@@ -31,8 +31,21 @@ class GetMetadataTool extends AiTool {
       nowMs,
       isUtc: true,
     ).toLocal();
+
+    final isEn = context.locale.toLowerCase().startsWith('en');
     final weekDayNamesZh = ['一', '二', '三', '四', '五', '六', '日'];
-    final weekDayName = weekDayNamesZh[nowDateTime.weekday - 1];
+    final weekDayNamesEn = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    final weekdayString = isEn
+        ? weekDayNamesEn[nowDateTime.weekday - 1]
+        : '星期${weekDayNamesZh[nowDateTime.weekday - 1]}';
 
     final projects = await context.repository.projects.getAll();
     final tags = await context.repository.tags.getAll();
@@ -42,7 +55,7 @@ class GetMetadataTool extends AiTool {
         'iso': nowDateTime.toIso8601String(),
         'date': DateFormat('yyyy-MM-dd').format(nowDateTime),
         'time': DateFormat('HH:mm:ss').format(nowDateTime),
-        'weekday': '星期$weekDayName',
+        'weekday': weekdayString,
       },
       'projects': projects
           .map(

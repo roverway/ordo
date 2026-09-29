@@ -16,7 +16,7 @@ import '../tools/ai_tool_registry.dart';
 ///
 /// Security: Binds strictly to [InternetAddress.loopbackIPv4] (`127.0.0.1`)
 /// so that only local client applications (e.g. Cursor, Claude Desktop, local scripts)
-/// can communicate with this service.
+/// can communicate with this service. CORS is constrained to localhost or non-browser callers.
 class McpServer {
   McpServer({
     required AiToolRegistry registry,
@@ -94,12 +94,55 @@ class McpServer {
     await serverToClose?.close(force: true);
   }
 
-  /// Internal HTTP request dispatcher with CORS support.
+  /// Safely closes an HTTP response without uncaught broken pipe exceptions.
+  Future<void> _safeClose(HttpResponse response) async {
+    try {
+      await response.close();
+    } catch (_) {
+      // Ignore socket reset or broken pipe from client disconnect
+    }
+  }
+
+  /// Safely writes JSON content and closes the HTTP response.
+  Future<void> _safeSendJson(
+    HttpResponse response,
+    dynamic data, {
+    int statusCode = HttpStatus.ok,
+  }) async {
+    try {
+      response.headers.contentType = ContentType.json;
+      response.statusCode = statusCode;
+      response.write(jsonEncode(data));
+      await response.close();
+    } catch (_) {
+      // Ignore premature client socket close
+    }
+  }
+
+  /// Internal HTTP request dispatcher with localhost CORS protection.
   Future<void> _handleRequest(HttpRequest request) async {
     final response = request.response;
 
-    // Standard CORS headers for local tools & browser extensions
-    response.headers.set('Access-Control-Allow-Origin', '*');
+    // Origin header inspection to defend against cross-origin browser DNS rebinding/port scanning
+    final origin = request.headers.value('origin');
+    if (origin != null && origin.isNotEmpty) {
+      final uri = Uri.tryParse(origin);
+      final isLocal =
+          uri != null &&
+          (uri.host == 'localhost' ||
+              uri.host == '127.0.0.1' ||
+              uri.host == '::1');
+      if (!isLocal) {
+        response.statusCode = HttpStatus.forbidden;
+        await _safeClose(response);
+        return;
+      }
+      response.headers.set('Access-Control-Allow-Origin', origin);
+    } else {
+      // Non-browser local CLI / desktop tools (Claude Desktop, Cursor, curl)
+      response.headers.set('Access-Control-Allow-Origin', '*');
+    }
+
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     response.headers.set(
       'Access-Control-Allow-Headers',
@@ -108,14 +151,12 @@ class McpServer {
 
     if (request.method == 'OPTIONS') {
       response.statusCode = HttpStatus.noContent;
-      await response.close();
+      await _safeClose(response);
       return;
     }
 
     // Health-check / Status info via GET
     if (request.method == 'GET') {
-      response.headers.contentType = ContentType.json;
-      response.statusCode = HttpStatus.ok;
       final statusInfo = {
         'status': 'ok',
         'server': serverName,
@@ -124,14 +165,13 @@ class McpServer {
         'toolsCount': _registry.allTools.length,
         'endpoint': endpointUrl,
       };
-      response.write(jsonEncode(statusInfo));
-      await response.close();
+      await _safeSendJson(response, statusInfo);
       return;
     }
 
     if (request.method != 'POST') {
       response.statusCode = HttpStatus.methodNotAllowed;
-      await response.close();
+      await _safeClose(response);
       return;
     }
 
@@ -139,7 +179,7 @@ class McpServer {
     try {
       final bodyString = await utf8.decoder.bind(request).join();
       if (bodyString.trim().isEmpty) {
-        _writeJsonRpcError(
+        await _writeJsonRpcError(
           response,
           id: null,
           code: -32600,
@@ -158,20 +198,17 @@ class McpServer {
             if (res != null) responses.add(res);
           }
         }
-        response.headers.contentType = ContentType.json;
-        response.write(jsonEncode(responses));
-        await response.close();
+        await _safeSendJson(response, responses);
       } else if (decoded is Map<String, dynamic>) {
         final result = await _processSingleRpc(decoded);
         if (result != null) {
-          response.headers.contentType = ContentType.json;
-          response.write(jsonEncode(result));
+          await _safeSendJson(response, result);
         } else {
           response.statusCode = HttpStatus.noContent;
+          await _safeClose(response);
         }
-        await response.close();
       } else {
-        _writeJsonRpcError(
+        await _writeJsonRpcError(
           response,
           id: null,
           code: -32600,
@@ -179,14 +216,14 @@ class McpServer {
         );
       }
     } on FormatException {
-      _writeJsonRpcError(
+      await _writeJsonRpcError(
         response,
         id: null,
         code: -32700,
         message: 'Parse error: invalid JSON',
       );
     } catch (e) {
-      _writeJsonRpcError(
+      await _writeJsonRpcError(
         response,
         id: null,
         code: -32603,
@@ -313,11 +350,10 @@ class McpServer {
     required int code,
     required String message,
   }) async {
-    response.headers.contentType = ContentType.json;
-    response.statusCode = HttpStatus.ok;
-    response.write(
-      jsonEncode(_buildRpcError(id: id, code: code, message: message)),
+    await _safeSendJson(
+      response,
+      _buildRpcError(id: id, code: code, message: message),
+      statusCode: HttpStatus.ok,
     );
-    await response.close();
   }
 }
