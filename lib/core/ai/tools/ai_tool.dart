@@ -1,0 +1,99 @@
+import 'package:ordo/core/db/repositories/todo_repository.dart';
+
+/// Context provided to [AiTool] execution containing repositories and runtime state.
+class AiToolContext {
+  const AiToolContext({
+    required this.repository,
+    this.nowUtcMs,
+    this.locale = 'zh',
+  });
+
+  /// The primary repository for accessing tasks, projects, and tags.
+  final TodoRepository repository;
+
+  /// Optional current timestamp in milliseconds UTC (defaults to [DateTime.now]).
+  final int? nowUtcMs;
+
+  /// Current UI language/locale.
+  final String locale;
+
+  /// Returns effective current timestamp in milliseconds UTC.
+  int get currentNowUtcMs =>
+      nowUtcMs ?? DateTime.now().toUtc().millisecondsSinceEpoch;
+}
+
+/// Result returned from executing an [AiTool].
+class AiToolResult {
+  const AiToolResult({
+    required this.success,
+    this.data,
+    this.error,
+  });
+
+  factory AiToolResult.ok(Map<String, dynamic> data) =>
+      AiToolResult(success: true, data: data);
+
+  factory AiToolResult.failure(String error) =>
+      AiToolResult(success: false, error: error);
+
+  final bool success;
+  final Map<String, dynamic>? data;
+  final String? error;
+
+  Map<String, dynamic> toJson() => {
+        'success': success,
+        if (data != null) 'data': data,
+        if (error != null) 'error': error,
+      };
+}
+
+/// Abstract base class for AI tools compatible with both Model Context Protocol (MCP)
+/// and LLM Native Function Calling (OpenAI / Claude).
+abstract class AiTool {
+  const AiTool();
+
+  /// Unique identifier of the tool (e.g., 'query_tasks').
+  String get name;
+
+  /// Detailed human & model-readable explanation of when and how to use this tool.
+  String get description;
+
+  /// JSON Schema specification of the parameters accepted by this tool.
+  Map<String, dynamic> get inputSchema;
+
+  /// Executes the tool with the given [arguments] under [context].
+  Future<AiToolResult> execute(
+    Map<String, dynamic> arguments,
+    AiToolContext context,
+  );
+
+  /// Converts this tool specification into OpenAI function calling format.
+  Map<String, dynamic> toOpenAiTool() {
+    return {
+      'type': 'function',
+      'function': {
+        'name': name,
+        'description': description,
+        'parameters': inputSchema,
+      },
+    };
+  }
+
+  /// Converts this tool specification into Claude/Anthropic tool format.
+  Map<String, dynamic> toClaudeTool() {
+    return {
+      'name': name,
+      'description': description,
+      'input_schema': inputSchema,
+    };
+  }
+
+  /// Converts this tool specification into Model Context Protocol (MCP) definition format.
+  Map<String, dynamic> toMcpDefinition() {
+    return {
+      'name': name,
+      'description': description,
+      'inputSchema': inputSchema,
+    };
+  }
+}

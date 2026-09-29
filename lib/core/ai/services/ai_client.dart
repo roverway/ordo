@@ -3,14 +3,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../models/ai_config.dart';
+import '../models/ai_tool_call.dart';
 
 /// Lightweight HTTP response representation for AI service communication.
 class AiHttpResponse {
   const AiHttpResponse({
     required this.statusCode,
     required this.body,
-    this.headers = const {},
-  });
+    this.headers = const {},  });
 
   final int statusCode;
   final String body;
@@ -347,6 +347,25 @@ class AiClient {
     Duration timeout = const Duration(seconds: 30),
     String locale = 'zh',
   }) async {
+    final response = await chatWithTools(
+      config,
+      messages.map((m) => Map<String, dynamic>.from(m)).toList(),
+      temperature: temperature,
+      timeout: timeout,
+      locale: locale,
+    );
+    return response.text;
+  }
+
+  /// Sends a chat request supporting Tool Calling (OpenAI function calling & Claude tool_use).
+  Future<AiChatResponse> chatWithTools(
+    AiConfig config,
+    List<Map<String, dynamic>> messages, {
+    List<Map<String, dynamic>>? tools,
+    double temperature = 0.2,
+    Duration timeout = const Duration(seconds: 30),
+    String locale = 'zh',
+  }) async {
     final endpoint = normalizeEndpoint(config);
     final Map<String, String> headers;
     final Map<String, dynamic> body;
@@ -359,19 +378,19 @@ class AiClient {
       };
       final systemMessages = messages
           .where((m) => m['role'] == 'system')
-          .toList();
-      final nonSystemMessages = messages
+          .map((m) => m['content'].toString())
+          .join('\n');
+      final conversationMessages = messages
           .where((m) => m['role'] != 'system')
           .toList();
+
       body = {
         'model': config.model,
-        if (systemMessages.isNotEmpty)
-          'system': systemMessages.map((m) => m['content']).join('\n\n'),
-        'messages': nonSystemMessages
-            .map((m) => {'role': m['role'], 'content': m['content']})
-            .toList(),
-        'max_tokens': 2048,
+        if (systemMessages.isNotEmpty) 'system': systemMessages,
+        'messages': conversationMessages,
+        'max_tokens': 4096,
         'temperature': temperature,
+        if (tools != null && tools.isNotEmpty) 'tools': tools,
       };
     } else {
       headers = {
@@ -382,6 +401,7 @@ class AiClient {
         'model': config.model,
         'messages': messages,
         'temperature': temperature,
+        if (tools != null && tools.isNotEmpty) 'tools': tools,
       };
     }
 
@@ -397,25 +417,77 @@ class AiClient {
         final decoded = jsonDecode(response.body);
         if (decoded is Map<String, dynamic>) {
           if (config.provider == AiProviderType.claude) {
-            final content = decoded['content'];
-            if (content is List && content.isNotEmpty) {
-              final first = content.first;
-              if (first is Map && first['text'] != null) {
-                return first['text'].toString();
+            final contentList = decoded['content'];
+            final textParts = <String>[];
+            final toolCalls = <AiToolCall>[];
+            if (contentList is List) {
+              for (final item in contentList) {
+                if (item is Map) {
+                  if (item['type'] == 'text' && item['text'] != null) {
+                    textParts.add(item['text'].toString());
+                  } else if (item['type'] == 'tool_use') {
+                    final id = item['id']?.toString() ?? '';
+                    final name = item['name']?.toString() ?? '';
+                    final input = item['input'] is Map
+                        ? Map<String, dynamic>.from(item['input'] as Map)
+                        : <String, dynamic>{};
+                    toolCalls.add(
+                      AiToolCall(id: id, name: name, arguments: input),
+                    );
+                  }
+                }
               }
             }
+            return AiChatResponse(
+              text: textParts.join('\n'),
+              toolCalls: toolCalls,
+              rawResponse: decoded,
+            );
           } else {
             final choices = decoded['choices'];
             if (choices is List && choices.isNotEmpty) {
               final first = choices.first;
               if (first is Map && first['message'] is Map) {
-                final msg = first['message'] as Map;
-                return msg['content']?.toString() ?? '';
+                final msg = Map<String, dynamic>.from(first['message'] as Map);
+                final content = msg['content']?.toString();
+                final rawCalls = msg['tool_calls'];
+                final toolCalls = <AiToolCall>[];
+                if (rawCalls is List) {
+                  for (final rc in rawCalls) {
+                    if (rc is Map) {
+                      final id = rc['id']?.toString() ?? '';
+                      final fn = rc['function'];
+                      if (fn is Map) {
+                        final name = fn['name']?.toString() ?? '';
+                        Map<String, dynamic> args = {};
+                        final argsRaw = fn['arguments'];
+                        if (argsRaw is String && argsRaw.trim().isNotEmpty) {
+                          try {
+                            final parsed = jsonDecode(argsRaw);
+                            if (parsed is Map) {
+                              args = Map<String, dynamic>.from(parsed);
+                            }
+                          } catch (_) {}
+                        } else if (argsRaw is Map) {
+                          args = Map<String, dynamic>.from(argsRaw);
+                        }
+                        toolCalls.add(
+                          AiToolCall(id: id, name: name, arguments: args),
+                        );
+                      }
+                    }
+                  }
+                }
+                return AiChatResponse(
+                  text: content ?? '',
+                  toolCalls: toolCalls,
+                  rawResponse: decoded,
+                );
               }
             }
           }
         }
-        return response.body;
+        return AiChatResponse(text: response.body);
       } on FormatException {
         final isZh = locale.toLowerCase().startsWith('zh');
         throw Exception(

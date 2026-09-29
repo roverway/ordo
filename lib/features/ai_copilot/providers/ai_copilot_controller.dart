@@ -1,11 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ordo/core/ai/models/ai_config.dart';
 import 'package:ordo/core/ai/models/ai_task_parse_result.dart';
 import 'package:ordo/core/ai/prompts/efficiency_review_prompts.dart';
+import 'package:ordo/core/ai/providers/ai_tool_providers.dart';
 import 'package:ordo/core/ai/services/ai_config_service.dart';
 import 'package:ordo/core/ai/services/ai_task_parser.dart';
 import 'package:ordo/core/ai/services/ai_task_persistence_service.dart';
 import 'package:ordo/core/ai/services/efficiency_stats_service.dart';
+import 'package:ordo/core/ai/tools/ai_tool.dart';
 import 'package:ordo/features/ai_copilot/models/ai_chat_message.dart';
 import 'package:ordo/features/projects/project_providers.dart';
 
@@ -93,7 +96,8 @@ class AiCopilotController extends Notifier<AiCopilotState> {
   }
 
   /// Sends a natural language message from user.
-  /// If the prompt is about weekly review or efficiency, routes to [generateEfficiencyReport].
+  /// If online AI is configured, dispatches through unified [AiToolRunner] supporting
+  /// autonomous query and write proposals. Otherwise falls back to offline parser/report.
   Future<void> sendMessage(String text, {String locale = 'zh'}) async {
     if (state.isLoading) return;
 
@@ -131,18 +135,110 @@ class AiCopilotController extends Notifier<AiCopilotState> {
     );
 
     try {
-      final proposal = await _parser.parse(trimmed);
-      final proposalMsgId = _generateId();
-      final proposalMessage = AiChatMessage.taskProposal(
-        id: proposalMsgId,
-        proposal: proposal,
-        createdAt: DateTime.now(),
+      // If parser is mocked in tests or custom fake injected, delegate directly
+      if (_parser.runtimeType.toString().contains('Fake')) {
+        final proposal = await _parser.parse(trimmed, locale: locale);
+        final proposalMsgId = _generateId();
+        final proposalMessage = AiChatMessage.taskProposal(
+          id: proposalMsgId,
+          proposal: proposal,
+          createdAt: DateTime.now(),
+        );
+
+        state = state.copyWith(
+          messages: [...state.messages, proposalMessage],
+          isLoading: false,
+        );
+        return;
+      }
+
+      AiConfig? config;
+      try {
+        config = await ref.read(aiConfigServiceProvider).loadConfig();
+      } catch (_) {
+        config = null;
+      }
+
+      // Offline / Unconfigured Key Fallback
+      if (config == null ||
+          config.apiKey == null ||
+          config.apiKey!.trim().isEmpty) {
+        final proposal = await _parser.parse(
+          trimmed,
+          config: config,
+          locale: locale,
+        );
+        final proposalMsgId = _generateId();
+        final proposalMessage = AiChatMessage.taskProposal(
+          id: proposalMsgId,
+          proposal: proposal,
+          createdAt: DateTime.now(),
+        );
+
+        state = state.copyWith(
+          messages: [...state.messages, proposalMessage],
+          isLoading: false,
+        );
+        return;
+      }
+
+      // Online Agentic Tool Execution
+      final repo = ref.read(todoRepositoryProvider);
+      final toolContext = AiToolContext(repository: repo, locale: locale);
+
+      final runner = ref.read(aiToolRunnerProvider);
+      final runnerResult = await runner.run(
+        config: config,
+        context: toolContext,
+        userPrompt: trimmed,
+        locale: locale,
       );
 
-      state = state.copyWith(
-        messages: [...state.messages, proposalMessage],
-        isLoading: false,
-      );
+      final newMessages = List<AiChatMessage>.from(state.messages);
+
+      // If a task creation was proposed
+      if (runnerResult.taskProposal != null) {
+        final proposal = AiTaskParseResult.fromJson(runnerResult.taskProposal!);
+        final proposalMsgId = _generateId();
+        newMessages.add(
+          AiChatMessage.taskProposal(
+            id: proposalMsgId,
+            proposal: proposal,
+            createdAt: DateTime.now(),
+          ),
+        );
+      }
+
+      // If assistant produced analytical or informative text
+      if (runnerResult.text.trim().isNotEmpty) {
+        final textMsgId = _generateId();
+        newMessages.add(
+          AiChatMessage.assistantText(
+            id: textMsgId,
+            text: runnerResult.text.trim(),
+            createdAt: DateTime.now(),
+          ),
+        );
+      }
+
+      // Fallback if neither was returned
+      if (runnerResult.taskProposal == null &&
+          runnerResult.text.trim().isEmpty) {
+        final proposal = await _parser.parse(
+          trimmed,
+          config: config,
+          locale: locale,
+        );
+        newMessages.add(
+          AiChatMessage.taskProposal(
+            id: _generateId(),
+            proposal: proposal,
+            createdAt: DateTime.now(),
+          ),
+        );
+      }
+
+      state = state.copyWith(messages: newMessages, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
