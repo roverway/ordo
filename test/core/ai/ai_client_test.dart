@@ -314,4 +314,17 @@ void main() {
       expect(models, ['moonshot-v1-128k', 'moonshot-v1-32k', 'moonshot-v1-8k']);
     });
   });
+
+  group('PooledAiHttpClient connection pooling', () {
+    test('PooledAiHttpClient closes cached client safely', () {
+      final pool = PooledAiHttpClient(idleTimeout: const Duration(seconds: 10));
+      expect(() => pool.close(), returnsNormally);
+      expect(() => pool.close(force: true), returnsNormally);
+    });
+
+    test('AiClient.dispose releases underlying PooledAiHttpClient safely', () {
+      final client = AiClient();
+      expect(() => client.dispose(), returnsNormally);
+    });
+  });
 }

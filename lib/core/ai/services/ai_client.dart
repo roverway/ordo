@@ -33,9 +33,19 @@ abstract class AiHttpClient {
   }) async => const AiHttpResponse(statusCode: 200, body: '{"data":[]}');
 }
 
-/// Production implementation of [AiHttpClient] using Dart's native `dart:io` [HttpClient].
-class DefaultAiHttpClient implements AiHttpClient {
-  const DefaultAiHttpClient();
+/// Production implementation of [AiHttpClient] using Dart's native `dart:io` [HttpClient]
+/// with connection pooling, Keep-Alive, and configurable idle timeout.
+class PooledAiHttpClient implements AiHttpClient {
+  PooledAiHttpClient({
+    Duration idleTimeout = const Duration(seconds: 30),
+  }) : _idleTimeout = idleTimeout;
+
+  final Duration _idleTimeout;
+  HttpClient? _cachedClient;
+
+  HttpClient _getClient() {
+    return _cachedClient ??= HttpClient()..idleTimeout = _idleTimeout;
+  }
 
   @override
   Future<AiHttpResponse> post(
@@ -44,32 +54,28 @@ class DefaultAiHttpClient implements AiHttpClient {
     Object? body,
     Duration? timeout,
   }) async {
-    final client = HttpClient();
+    final client = _getClient();
     final effectiveTimeout = timeout ?? const Duration(seconds: 15);
-    try {
-      final request = await client.postUrl(uri).timeout(effectiveTimeout);
-      if (headers != null) {
-        headers.forEach((k, v) => request.headers.set(k, v));
-      }
-      if (body != null) {
-        final bodyBytes = utf8.encode(body is String ? body : jsonEncode(body));
-        request.headers.contentLength = bodyBytes.length;
-        request.add(bodyBytes);
-      }
-      final response = await request.close().timeout(effectiveTimeout);
-      final responseBody = await utf8
-          .decodeStream(response)
-          .timeout(effectiveTimeout);
-      final responseHeaders = <String, String>{};
-      response.headers.forEach((k, v) => responseHeaders[k] = v.join(','));
-      return AiHttpResponse(
-        statusCode: response.statusCode,
-        body: responseBody,
-        headers: responseHeaders,
-      );
-    } finally {
-      client.close(force: true);
+    final request = await client.postUrl(uri).timeout(effectiveTimeout);
+    if (headers != null) {
+      headers.forEach((k, v) => request.headers.set(k, v));
     }
+    if (body != null) {
+      final bodyBytes = utf8.encode(body is String ? body : jsonEncode(body));
+      request.headers.contentLength = bodyBytes.length;
+      request.add(bodyBytes);
+    }
+    final response = await request.close().timeout(effectiveTimeout);
+    final responseBody = await utf8
+        .decodeStream(response)
+        .timeout(effectiveTimeout);
+    final responseHeaders = <String, String>{};
+    response.headers.forEach((k, v) => responseHeaders[k] = v.join(','));
+    return AiHttpResponse(
+      statusCode: response.statusCode,
+      body: responseBody,
+      headers: responseHeaders,
+    );
   }
 
   @override
@@ -78,28 +84,35 @@ class DefaultAiHttpClient implements AiHttpClient {
     Map<String, String>? headers,
     Duration? timeout,
   }) async {
-    final client = HttpClient();
+    final client = _getClient();
     final effectiveTimeout = timeout ?? const Duration(seconds: 15);
-    try {
-      final request = await client.getUrl(uri).timeout(effectiveTimeout);
-      if (headers != null) {
-        headers.forEach((k, v) => request.headers.set(k, v));
-      }
-      final response = await request.close().timeout(effectiveTimeout);
-      final responseBody = await utf8
-          .decodeStream(response)
-          .timeout(effectiveTimeout);
-      final responseHeaders = <String, String>{};
-      response.headers.forEach((k, v) => responseHeaders[k] = v.join(','));
-      return AiHttpResponse(
-        statusCode: response.statusCode,
-        body: responseBody,
-        headers: responseHeaders,
-      );
-    } finally {
-      client.close(force: true);
+    final request = await client.getUrl(uri).timeout(effectiveTimeout);
+    if (headers != null) {
+      headers.forEach((k, v) => request.headers.set(k, v));
     }
+    final response = await request.close().timeout(effectiveTimeout);
+    final responseBody = await utf8
+        .decodeStream(response)
+        .timeout(effectiveTimeout);
+    final responseHeaders = <String, String>{};
+    response.headers.forEach((k, v) => responseHeaders[k] = v.join(','));
+    return AiHttpResponse(
+      statusCode: response.statusCode,
+      body: responseBody,
+      headers: responseHeaders,
+    );
   }
+
+  /// Closes the cached [HttpClient] and releases underlying socket pool.
+  void close({bool force = false}) {
+    _cachedClient?.close(force: force);
+    _cachedClient = null;
+  }
+}
+
+/// Default implementation of [AiHttpClient] based on [PooledAiHttpClient].
+class DefaultAiHttpClient extends PooledAiHttpClient {
+  DefaultAiHttpClient({super.idleTimeout});
 }
 
 /// Structured diagnostic result of a ping connection test.
@@ -120,7 +133,14 @@ class AiPingResult {
 /// Lightweight client for AI connectivity and protocol communication.
 class AiClient {
   AiClient({AiHttpClient? httpClient})
-    : _httpClient = httpClient ?? const DefaultAiHttpClient();
+    : _httpClient = httpClient ?? DefaultAiHttpClient();
+
+  /// Releases resources held by the underlying client.
+  void dispose() {
+    if (_httpClient is PooledAiHttpClient) {
+      _httpClient.close();
+    }
+  }
 
   final AiHttpClient _httpClient;
 

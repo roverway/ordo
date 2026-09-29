@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:ordo/core/ai/models/ai_task_parse_result.dart';
 import 'package:ordo/core/l10n/app_localizations.dart';
 import 'package:ordo/core/theme/app_tokens.dart';
+import 'proposal_substep_tile.dart';
 
 /// Linear-style task proposal card rendered inside AI Copilot chat list.
 ///
@@ -72,9 +73,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
   late FocusNode _descFocusNode;
   bool _isEditingDesc = false;
 
-  int? _editingSubstepIndex;
-  late TextEditingController _substepController;
-  late FocusNode _substepFocusNode;
+  int? _newlyAddedSubstepIndex;
 
   bool get isInteractive =>
       !widget.isPersisted && !widget.isDiscarded && !widget.isPersisting;
@@ -90,8 +89,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
     );
     _descFocusNode = FocusNode();
 
-    _substepController = TextEditingController();
-    _substepFocusNode = FocusNode();
+
   }
 
   @override
@@ -112,8 +110,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
     _titleFocusNode.dispose();
     _descController.dispose();
     _descFocusNode.dispose();
-    _substepController.dispose();
-    _substepFocusNode.dispose();
+
     super.dispose();
   }
 
@@ -562,9 +559,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
     );
     final updated = widget.proposal.copyWith(substeps: updatedList);
     widget.onProposalChanged?.call(updated);
-    setState(() {
-      _editingSubstepIndex = null;
-    });
+
   }
 
   void _removeSubstep(int index) {
@@ -606,8 +601,7 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
 
     // Start editing this new step right away
     setState(() {
-      _editingSubstepIndex = updatedList.length - 1;
-      _substepController.text = newStep.title;
+      _newlyAddedSubstepIndex = updatedList.length - 1;
     });
   }
 
@@ -1263,15 +1257,32 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
             ),
             const SizedBox(height: AppTokens.spaceXs),
             for (int i = 0; i < widget.proposal.substeps.length; i++) ...[
-              _buildSubstepRow(
-                context,
+              ProposalSubstepTile(
+                key: ValueKey(i),
                 index: i,
                 substep: widget.proposal.substeps[i],
                 isSelected: widget.selectedSubstepIndices.contains(i),
                 isInteractive: isInteractive,
+                initialEditing: _newlyAddedSubstepIndex == i,
                 primaryColor: theme.colorScheme.primary,
                 primaryTextColor: primaryTextColor,
                 secondaryTextColor: secondaryTextColor,
+                onToggle: (checked) {
+                  final updated = Set<int>.from(widget.selectedSubstepIndices);
+                  if (checked) {
+                    updated.add(i);
+                  } else {
+                    updated.remove(i);
+                  }
+                  widget.onSubstepsChanged?.call(updated);
+                },
+                onTitleSubmitted: (newTitle) {
+                  _editSubstep(i, newTitle);
+                  if (_newlyAddedSubstepIndex == i) {
+                    setState(() => _newlyAddedSubstepIndex = null);
+                  }
+                },
+                onDelete: () => _removeSubstep(i),
               ),
               if (i < widget.proposal.substeps.length - 1)
                 const SizedBox(height: AppTokens.spaceXxs),
@@ -1349,126 +1360,4 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
     );
   }
 
-  Widget _buildSubstepRow(
-    BuildContext context, {
-    required int index,
-    required AiSubstep substep,
-    required bool isSelected,
-    required bool isInteractive,
-    required Color primaryColor,
-    required Color primaryTextColor,
-    required Color secondaryTextColor,
-  }) {
-    final isEditing = _editingSubstepIndex == index;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2.0),
-      child: Row(
-        children: [
-          // Checkbox matching design token radius
-          SizedBox(
-            width: 24,
-            height: 24,
-            child: Checkbox(
-              value: isSelected,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
-              ),
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              onChanged: isInteractive
-                  ? (checked) {
-                      HapticFeedback.selectionClick();
-                      final updated = Set<int>.from(widget.selectedSubstepIndices);
-                      if (checked == true) {
-                        updated.add(index);
-                      } else {
-                        updated.remove(index);
-                      }
-                      widget.onSubstepsChanged?.call(updated);
-                    }
-                  : null,
-            ),
-          ),
-          const SizedBox(width: AppTokens.spaceXs),
-
-          // Substep title: inline editing or display
-          if (isEditing) ...[
-            Expanded(
-              child: TextField(
-                controller: _substepController,
-                focusNode: _substepFocusNode,
-                autofocus: true,
-                style: TextStyle(
-                  fontSize: AppTokens.textSecondarySize,
-                  color: primaryTextColor,
-                ),
-                decoration: InputDecoration(
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: AppTokens.spaceXxs,
-                  ),
-                  border: UnderlineInputBorder(
-                    borderSide: BorderSide(color: primaryColor),
-                  ),
-                ),
-                onSubmitted: (val) => _editSubstep(index, val),
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.check, size: 16),
-              color: primaryColor,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
-              onPressed: () =>
-                  _editSubstep(index, _substepController.text),
-            ),
-          ] else ...[
-            Expanded(
-              child: InkWell(
-                borderRadius:
-                    BorderRadius.circular(AppTokens.radiusMicro),
-                onTap: isInteractive
-                    ? () {
-                        setState(() {
-                          _editingSubstepIndex = index;
-                          _substepController.text = substep.title;
-                        });
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          _substepFocusNode.requestFocus();
-                        });
-                      }
-                    : null,
-                child: Text(
-                  substep.title,
-                  style: TextStyle(
-                    fontSize: AppTokens.textSecondarySize,
-                    color: isSelected ? primaryTextColor : secondaryTextColor,
-                    decoration:
-                        isSelected ? null : TextDecoration.lineThrough,
-                  ),
-                ),
-              ),
-            ),
-            if (isInteractive) ...[
-              InkWell(
-                borderRadius:
-                    BorderRadius.circular(AppTokens.radiusMicro),
-                onTap: () => _removeSubstep(index),
-                child: Padding(
-                  padding: const EdgeInsets.all(AppTokens.spaceMicro),
-                  child: Icon(
-                    Icons.close,
-                    size: 14,
-                    color: secondaryTextColor.withValues(
-                      alpha: AppTokens.alphaOverlayHeavy,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ],
-      ),
-    );
-  }
 }

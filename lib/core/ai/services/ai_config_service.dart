@@ -181,7 +181,9 @@ class AiConfigService {
 
 /// Provider for [AiClient].
 final aiClientProvider = Provider<AiClient>((ref) {
-  return AiClient();
+  final client = AiClient();
+  ref.onDispose(() => client.dispose());
+  return client;
 });
 
 /// Provider for [AiConfigService].

@@ -10,7 +10,9 @@ import '../../../core/ai/services/ai_config_service.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../widgets/settings_card.dart';
-import '../../../core/ai/providers/mcp_server_provider.dart';
+import '../widgets/ai_mcp_server_card.dart';
+import '../widgets/ai_ping_result_card.dart';
+import '../widgets/ai_provider_picker_sheet.dart';
 
 /// Maximum width for wide screens (Linear desktop style).
 const double _kFormMaxWidth = 560;
@@ -274,179 +276,11 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
   }
 
   void _showProviderPickerSheet() {
-    HapticFeedback.selectionClick();
-    final l10n = AppLocalizations.of(context);
-    final languageCode = Localizations.localeOf(context).languageCode;
-    showModalBottomSheet<void>(
+    showAiProviderPickerSheet(
       context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        final theme = Theme.of(sheetContext);
-        final isDark = theme.brightness == Brightness.dark;
-        final sheetBg = isDark
-            ? AppTokens.surfaceCardDark
-            : AppTokens.surfaceCard;
-        final borderColor = isDark
-            ? AppTokens.borderSubtleDark
-            : AppTokens.borderSubtleLight;
-
-        return Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(sheetContext).size.height * 0.7,
-          ),
-          decoration: BoxDecoration(
-            color: sheetBg,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(AppTokens.radiusCard),
-            ),
-            border: Border.all(color: borderColor, width: 0.5),
-          ),
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppTokens.spaceMd,
-            vertical: AppTokens.spaceSm,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? AppTokens.borderSubtleDark
-                        : AppTokens.borderSubtleLight,
-                    borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppTokens.spaceSm),
-              Text(
-                l10n.aiSelectProviderTitle,
-                style: TextStyle(
-                  fontSize: AppTokens.textTitleSize,
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: AppTokens.spaceXs),
-              Text(
-                l10n.aiSelectProviderSubtitle,
-                style: TextStyle(
-                  fontSize: AppTokens.textMicroSize,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: AppTokens.spaceSm),
-              Divider(height: 1, color: borderColor),
-              Expanded(
-                child: ListView.separated(
-                  itemCount: AiProviderType.values.length,
-                  separatorBuilder: (context, index) =>
-                      Divider(height: 1, color: borderColor),
-                  itemBuilder: (context, index) {
-                    final p = AiProviderType.values[index];
-                    final isSelected = p == _provider;
-                    final hasKey = _providerKeyStatus[p] ?? false;
-
-                    return ListTile(
-                      dense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: AppTokens.spaceXs,
-                        vertical: AppTokens.spaceMicro,
-                      ),
-                      leading: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? theme.colorScheme.primary.withValues(
-                                  alpha: AppTokens.alphaTintSoft,
-                                )
-                              : (isDark
-                                  ? AppTokens.surfaceSubtleDark
-                                  : AppTokens.surfaceSubtleLight),
-                          borderRadius:
-                              BorderRadius.circular(AppTokens.radiusChip),
-                        ),
-                        child: Icon(
-                          _providerIcon(p),
-                          size: 18,
-                          color: isSelected
-                              ? theme.colorScheme.primary
-                              : theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      title: Row(
-                        children: [
-                          Text(
-                            p.localizedName(languageCode),
-                            style: TextStyle(
-                              fontSize: AppTokens.textBodySize,
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.w500,
-                              color: isSelected
-                                  ? theme.colorScheme.primary
-                                  : theme.colorScheme.onSurface,
-                            ),
-                          ),
-                          const SizedBox(width: AppTokens.spaceXs),
-                          if (hasKey)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppTokens.spaceMicro + 2,
-                                vertical: AppTokens.spaceMicro,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppTokens.colorSuccess.withValues(
-                                  alpha: AppTokens.alphaTintSoft,
-                                ),
-                                borderRadius: BorderRadius.circular(
-                                  AppTokens.radiusMicro,
-                                ),
-                              ),
-                              child: Text(
-                                l10n.aiKeyConfigured,
-                                style: TextStyle(
-                                  fontSize: AppTokens.textMicroSize,
-                                  color: AppTokens.colorSuccess,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      subtitle: Text(
-                        _providerSubtitle(p, l10n),
-                        style: TextStyle(
-                          fontSize: AppTokens.textMicroSize,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: isSelected
-                          ? Icon(
-                              Icons.check,
-                              color: theme.colorScheme.primary,
-                              size: 20,
-                            )
-                          : null,
-                      onTap: () {
-                        Navigator.pop(sheetContext);
-                        _onProviderChanged(p);
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+      selectedProvider: _provider,
+      providerKeyStatus: _providerKeyStatus,
+      onSelected: _onProviderChanged,
     );
   }
 
@@ -633,30 +467,6 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
     );
   }
 
-  String _providerSubtitle(AiProviderType p, AppLocalizations l10n) {
-    return switch (p) {
-      AiProviderType.deepseek => l10n.aiProviderDeepSeekSubtitle,
-      AiProviderType.kimi => l10n.aiProviderKimiSubtitle,
-      AiProviderType.qwen => l10n.aiProviderQwenSubtitle,
-      AiProviderType.glm => l10n.aiProviderGlmSubtitle,
-      AiProviderType.openai => l10n.aiProviderOpenAiSubtitle,
-      AiProviderType.claude => l10n.aiProviderClaudeSubtitle,
-      AiProviderType.custom => l10n.aiProviderCustomSubtitle,
-    };
-  }
-
-  IconData _providerIcon(AiProviderType p) {
-    return switch (p) {
-      AiProviderType.deepseek => Icons.psychology_outlined,
-      AiProviderType.kimi => Icons.dark_mode_outlined,
-      AiProviderType.qwen => Icons.cloud_outlined,
-      AiProviderType.glm => Icons.diamond_outlined,
-      AiProviderType.openai => Icons.grain_outlined,
-      AiProviderType.claude => Icons.bubble_chart_outlined,
-      AiProviderType.custom => Icons.tune_outlined,
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -732,7 +542,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                             BorderRadius.circular(AppTokens.radiusMicro),
                       ),
                       child: Icon(
-                        _providerIcon(_provider),
+                        getAiProviderIcon(_provider),
                         size: 16,
                         color: colorScheme.primary,
                       ),
@@ -751,7 +561,7 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                             ),
                           ),
                           Text(
-                            _providerSubtitle(_provider, l10n),
+                            getAiProviderSubtitle(_provider, l10n),
                             style: TextStyle(
                               fontSize: AppTokens.textMicroSize,
                               color: colorScheme.onSurfaceVariant,
@@ -997,13 +807,13 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
         const SizedBox(height: AppTokens.spaceMd),
 
         // MCP External Integration Card
-        _buildMcpCard(l10n, colorScheme, isDark),
+        AiMcpServerCard(isDark: isDark),
 
         const SizedBox(height: AppTokens.spaceMd),
 
         // Ping diagnostic indicator if available
         if (_lastPingResult != null) ...[
-          _buildPingResultCard(_lastPingResult!, l10n, isDark),
+          AiPingResultCard(result: _lastPingResult!, isDark: isDark),
           const SizedBox(height: AppTokens.spaceMd),
         ],
 
@@ -1088,298 +898,4 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
     );
   }
 
-  Widget _buildPingResultCard(
-    AiPingResult result,
-    AppLocalizations l10n,
-    bool isDark,
-  ) {
-    final isSuccess = result.isSuccess;
-    final color = isSuccess ? AppTokens.colorSuccess : AppTokens.colorDanger;
-    final icon = isSuccess ? Icons.check_circle_outline : Icons.error_outline;
-    final text = isSuccess
-        ? l10n.aiTestSuccess(result.durationMs)
-        : (result.errorMessage ?? l10n.aiTestFailed);
-
-    return Container(
-      padding: const EdgeInsets.all(AppTokens.spaceSm),
-      decoration: BoxDecoration(
-        color: color.withValues(
-          alpha: isDark
-              ? AppTokens.alphaTintStrong
-              : AppTokens.alphaTintSoft,
-        ),
-        borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-        border: Border.all(
-          color: color.withValues(
-            alpha: isDark
-                ? AppTokens.alphaBorderEmphasis
-                : AppTokens.alphaBorderSubtle,
-          ),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(width: AppTokens.spaceSm),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: AppTokens.textFootnoteSize,
-                color: isSuccess
-                    ? AppTokens.colorSuccessText
-                    : AppTokens.colorDangerText,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMcpCard(
-    AppLocalizations l10n,
-    ColorScheme colorScheme,
-    bool isDark,
-  ) {
-    final mcpState = ref.watch(mcpServerStateProvider);
-
-    return SettingsCard(
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: colorScheme.primary.withValues(
-                  alpha: AppTokens.alphaTintSoft,
-                ),
-                borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
-              ),
-              child: Icon(
-                Icons.hub_outlined,
-                size: 18,
-                color: colorScheme.primary,
-              ),
-            ),
-            const SizedBox(width: AppTokens.spaceSm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.aiMcpCardTitle,
-                    style: TextStyle(
-                      fontSize: AppTokens.textBodySize,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: AppTokens.spaceMicro),
-                  Text(
-                    l10n.aiMcpCardSubtitle,
-                    style: TextStyle(
-                      fontSize: AppTokens.textMicroSize,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: AppTokens.spaceSm),
-            Transform.scale(
-              scale: 0.88,
-              child: Switch(
-                activeTrackColor: colorScheme.primary,
-                activeThumbColor: colorScheme.onPrimary,
-                value: mcpState.isEnabled,
-                onChanged: (val) {
-                  HapticFeedback.selectionClick();
-                  ref.read(mcpServerStateProvider.notifier).toggleEnabled(val);
-                },
-              ),
-            ),
-          ],
-        ),
-        if (mcpState.isEnabled) ...[
-          const SizedBox(height: AppTokens.spaceSm),
-          Divider(
-            height: 1,
-            color: isDark
-                ? AppTokens.borderSubtleDark
-                : AppTokens.borderSubtleLight,
-          ),
-          const SizedBox(height: AppTokens.spaceSm),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTokens.spaceXs,
-                  vertical: AppTokens.spaceMicro,
-                ),
-                decoration: BoxDecoration(
-                  color: (mcpState.isRunning
-                          ? AppTokens.colorSuccess
-                          : AppTokens.colorDanger)
-                      .withValues(alpha: AppTokens.alphaTintSoft),
-                  borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.circle,
-                      size: 8,
-                      color: mcpState.isRunning
-                          ? AppTokens.colorSuccess
-                          : AppTokens.colorDanger,
-                    ),
-                    const SizedBox(width: AppTokens.spaceMicro),
-                    Text(
-                      mcpState.isRunning
-                          ? l10n.aiMcpStatusRunning
-                          : l10n.aiMcpStatusStopped,
-                      style: TextStyle(
-                        fontSize: AppTokens.textMicroSize,
-                        fontWeight: FontWeight.w500,
-                        color: mcpState.isRunning
-                            ? AppTokens.colorSuccessText
-                            : AppTokens.colorDangerText,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              if (mcpState.endpointUrl != null)
-                Text(
-                  l10n.aiMcpEndpointLabel,
-                  style: TextStyle(
-                    fontSize: AppTokens.textMicroSize,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-            ],
-          ),
-          if (mcpState.endpointUrl != null) ...[
-            const SizedBox(height: AppTokens.spaceXs),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTokens.spaceSm,
-                vertical: AppTokens.spaceXs,
-              ),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? AppTokens.surfaceSubtleDark
-                    : AppTokens.surfaceSubtleLight,
-                borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-                border: Border.all(
-                  color: isDark
-                      ? AppTokens.borderSubtleDark
-                      : AppTokens.borderSubtleLight,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.terminal_outlined,
-                    size: 16,
-                    color: colorScheme.primary,
-                  ),
-                  const SizedBox(width: AppTokens.spaceXs),
-                  Expanded(
-                    child: SelectableText(
-                      mcpState.endpointUrl!,
-                      style: const TextStyle(
-                        fontFamily: AppTokens.fontMonoFamily,
-                        fontSize: AppTokens.textFootnoteSize,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.copy_outlined, size: 16),
-                    tooltip: l10n.aiMcpEndpointCopied,
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () {
-                      HapticFeedback.selectionClick();
-                      Clipboard.setData(
-                        ClipboardData(text: mcpState.endpointUrl!),
-                      );
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(l10n.aiMcpEndpointCopied),
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ],
-          if (mcpState.errorMessage != null) ...[
-            const SizedBox(height: AppTokens.spaceXs),
-            Container(
-              padding: const EdgeInsets.all(AppTokens.spaceSm),
-              decoration: BoxDecoration(
-                color: AppTokens.colorDanger.withValues(
-                  alpha: AppTokens.alphaTintSoft,
-                ),
-                borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-                border: Border.all(
-                  color: AppTokens.colorDanger.withValues(
-                    alpha: AppTokens.alphaBorderSubtle,
-                  ),
-                ),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    size: 16,
-                    color: AppTokens.colorDanger,
-                  ),
-                  const SizedBox(width: AppTokens.spaceXs),
-                  Expanded(
-                    child: Text(
-                      mcpState.errorMessage!,
-                      style: const TextStyle(
-                        fontSize: AppTokens.textMicroSize,
-                        color: AppTokens.colorDangerText,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          const SizedBox(height: AppTokens.spaceXs),
-          Row(
-            children: [
-              Icon(
-                Icons.shield_outlined,
-                size: 14,
-                color: colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: AppTokens.spaceXxs),
-              Expanded(
-                child: Text(
-                  l10n.aiMcpSecurityHint,
-                  style: TextStyle(
-                    fontSize: AppTokens.textMicroSize,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ],
-    );
-  }
 }

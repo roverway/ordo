@@ -448,18 +448,18 @@ final container = ProviderContainer(
 
 ---
 
-### 2. 识别出的尚未改进但值得改进的任务清单（演进 Backlog）
+### 2. 本轮全面改进完成情况（TODO-01 ~ TODO-05）
 
-在全量 Code Review 审查过程中，我们从代码整洁度、组件解耦、高频网络开销和容错边界等维度，识别出以下 **6 项具有高架构演进价值但目前尚未实施的任务**。在后续迭代中，可按优先级规划落地：
+依据用户要求与“**避免过度设计、精准解决痛点**”的架构原则，已在当前分支全面完成 **TODO-01 到 TODO-05** 的落地重构与全量测试验证（TODO-06 保持在长期演进 Backlog 中）：
 
-| 任务编号 | 所属模块 | 优化项名称 | 现有缺陷与隐患分析 | 推荐重构方案 | 价值与优先级评估 |
-| :---: | :---: | :--- | :--- | :--- | :---: |
-| **TODO-01** | **模块 7 (UI)** | **`AiTaskProposalCard` 上帝组件拆解与微状态抽离** | 单文件达 1,366 行，`_AiTaskProposalCardState` 管理 10+ 控制器。任何子任务编辑均触发全卡片 `setState()`，UI 嵌套层级深达 12~15 层，存在频繁 Rebuild 和潜在控制器泄露风险。 | 抽取 `ProposalSubstepTile` 独立无状态/微状态组件，将日期拾取与标签选择拆为独立子组件。卡片外壳仅管理草稿状态流转。 | **高价值**<br>大幅提升 UI 渲染性能与可维护性，降低单文件体积至 300 行左右。 |
-| **TODO-02** | **模块 8 (UI)** | **`AiSettingsPage` 模块化卡片拆分** | 单文件达 1,108 行，混合了厂商切换、API 凭据安全交互、模型探测下拉、MCP 服务开关与端口配置等所有业务，职责过重，维护困难。 | 拆分为三个专有 Section 卡片组件：<br>1. `AiProviderConfigCard`<br>2. `AiModelSelectionCard`<br>3. `AiMcpServerCard` | **高价值**<br>符合单一职责原则（SRP），降低页面代码复杂度，便于独立组件测试。 |
-| **TODO-03** | **模块 4 (Net)** | **`PooledAiHttpClient` 连接池复用与 Keep-Alive 优化** | `DefaultAiHttpClient` 在每次发送请求时均创建新的 `HttpClient()` 并在完成后 `close(force: true)`。这导致多轮 Tool Calls 时频繁进行 TCP 三次握手与 TLS 协商，增加请求耗时。 | 封装带有 `idleTimeout`（如 30 秒）的连接池式 `PooledAiHttpClient`，在连续对话与工具派发阶段复用底层 TCP/TLS 链路，适时释放。 | **中高价值**<br>降低多轮交互延迟 100~300ms，减轻本地套接字分配开销。 |
-| **TODO-04** | **模块 5 (Robust)** | **`AiTaskParser.extractJsonPayload` 括号深度平衡计数器** | 目前仅采用 `text.indexOf('{')` 与 `text.lastIndexOf('}')`。若大模型回复的前后解释文本中恰巧带有大括号（如描述某种语法或符号），首尾截取会包含非 JSON 杂质导致解析崩溃。 | 引入括号平衡扫描器（Bracket Balance Scanner），通过字符深度计数器精准识别并提取最外层有效 JSON 闭包，防御前后文本污染。 | **中价值**<br>提升对长文本输出与异常格式大模型输出的极端容错率。 |
-| **TODO-05** | **模块 3 (Engine)** | **统一搜索引擎夏令时跨日边界日历级计算** | `custom_view_models.dart` 中周过滤范围使用了固定 `Duration(days: 7)`。在每年两次的夏令时交替当日，固定 24 小时相加会导致计算出来的 UTC 毫秒产生 1 小时偏差。 | 将固定的 `Duration(days: 7)` 加减改为日历安全天数步进：`DateTime(today.year, today.month, today.day + 7)`。 | **中价值**<br>彻底规避极少数跨时区与夏令时用户的周统计边界微小偏差。 |
-| **TODO-06** | **模块 2 (Perf)** | **`QueryTasksTool` 大数据量从全库装载向数据库层下沉** | `QueryTasksTool.execute` 目前调用 `await context.repository.exportAll()` 装载全量任务后在内存进行 `TaskQueryEngine.filterFlat`。当任务量达到数千条历史归档时内存分配开销偏高。 | 在持久层（`TodoRepository` / `AppDatabase`）提供支持直接接收 `FilterCriteria` 的专用过滤方法，让部分重度过滤在 SQLite SQL 层面直接完成。 | **长期演进项**<br>大体量用户场景下显著降低内存峰值，避免不必要的大对象装载。 |
+| 任务编号 | 所属模块 | 优化项名称 | 实施方案与重构内容 | 状态 | 验证结果 |
+| :---: | :---: | :--- | :--- | :---: | :--- |
+| **TODO-01** | **模块 7 (UI)** | **`AiTaskProposalCard` 上帝组件拆解与微状态抽离** | 拆分出自包含的子步骤单项组件 `ProposalSubstepTile`，将行内编辑的 `TextEditingController` 与 `FocusNode` 封装进独立微状态中，主卡片消除 10+ 冗余控制器与 `_buildSubstepRow`，解决全量 Rebuild 性能损耗与内存泄露隐患。 | [x] **已完成并验证** | 单文件降至更清晰结构，`test/features/ai_copilot/ai_task_proposal_card_test.dart` 13 个交互用例全绿通过。 |
+| **TODO-02** | **模块 8 (UI)** | **`AiSettingsPage` 模块化卡片拆分** | 拆分为独立高内聚组件：<br>1. `AiMcpServerCard`（集成 Riverpod 状态与复制交互）<br>2. `AiPingResultCard`（延迟/错误提示组件）<br>3. `AiProviderPickerSheet`（提供商切换弹窗与快捷图标映射）<br>`AiSettingsPage` 主体代码减少近 500 行。 | [x] **已完成并验证** | `test/features/settings/ai_settings_page_test.dart` 10 个测试用例全部通过，零 analyzer 告警。 |
+| **TODO-03** | **模块 4 (Net)** | **`PooledAiHttpClient` 连接池复用与 Keep-Alive 优化** | 抽象 `PooledAiHttpClient`，默认提供 30 秒空闲超时复用与自动回收机制；`DefaultAiHttpClient` 继承连接池并完全向后兼容；`AiClient` 增加 `dispose()` 并在 `aiConfigService.aiClientProvider` 注入生命周期释放钩子。 | [x] **已完成并验证** | 消除连续 Tool Calls 阶段高频 TLS 握手开销；`test/core/ai/ai_client_test.dart` 11 个单测用例全部通过。 |
+| **TODO-04** | **模块 5 (Robust)** | **`AiTaskParser.extractJsonPayload` 括号深度平衡计数器** | 用**字符深度平衡扫描器（Bracket Balance Scanner）**重构 JSON 截取逻辑：精准感知双引号字符串闭包与反斜杠转义符，严格提取最外层平衡 `{...}` 闭包，彻底规避模型前后附带代码块或大括号杂质导致的崩溃。 | [x] **已完成并验证** | 极端边界测试（含大括号干扰说明等）全量覆盖，`test/core/ai/ai_task_parser_test.dart` 13 个单测全绿。 |
+| **TODO-05** | **模块 3 (Engine)** | **统一搜索引擎夏令时跨日边界日历级计算** | 在 `custom_view_models.dart` 中将固定 `Duration(days: 7)` 替换为原生安全的日历级加减 `_addCalendarDays`，修复跨夏令时与时区切换时 1 小时的边界误差。 | [x] **已完成并验证** | `test/core/utils/task_query_engine_test.dart` 全部用例通过。 |
+| **TODO-06** | **模块 2 (Perf)** | **`QueryTasksTool` 大数据量从全库装载向数据库层下沉** | 在持久层（`TodoRepository` / `AppDatabase`）提供支持直接接收 `FilterCriteria` 的专用过滤方法，让部分重度过滤在 SQLite SQL 层面直接完成。 | [ ] **待排期（长期演进项）** | 暂不引入过度设计，保留在架构演进池中。 |
 
 ---
 

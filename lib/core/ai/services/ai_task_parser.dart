@@ -17,13 +17,13 @@ class AiTaskParser {
 
   /// Extracts the innermost or outermost JSON object payload from raw LLM text,
   /// stripping code block fences (```json ... ```) and conversational banter.
-  static String? extractJsonPayload(String response) {
+    static String? extractJsonPayload(String response) {
     var text = response.trim();
     if (text.isEmpty) return null;
 
     // 1. Strip Markdown code fences if present
     final fenceRegex = RegExp(
-      r'```(?:json)?\s*([\s\S]*?)\s*```',
+      r'''```(?:json)?\s*([\s\S]*?)\s*```''',
       caseSensitive: false,
     );
     final match = fenceRegex.firstMatch(text);
@@ -31,10 +31,54 @@ class AiTaskParser {
       text = match.group(1)!.trim();
     }
 
-    // 2. Locate the outermost curly braces { ... }
+    // 2. Bracket Balance Scanner with string literal awareness
+    int depth = 0;
+    int start = -1;
+    bool inString = false;
+    bool isEscaped = false;
+
+    for (int i = 0; i < text.length; i++) {
+      final char = text[i];
+
+      if (inString) {
+        if (isEscaped) {
+          isEscaped = false;
+        } else if (char == r'\') {
+          isEscaped = true;
+        } else if (char == '"') {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (char == '"') {
+        inString = true;
+      } else if (char == '{') {
+        if (depth == 0) {
+          start = i;
+        }
+        depth++;
+      } else if (char == '}') {
+        if (depth > 0) {
+          depth--;
+          if (depth == 0 && start != -1) {
+            final candidate = text.substring(start, i + 1);
+            try {
+              final decoded = jsonDecode(candidate);
+              if (decoded is Map) {
+                return candidate;
+              }
+            } catch (_) {
+              start = -1;
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Fallback: simple first/last index
     final startIdx = text.indexOf('{');
     final endIdx = text.lastIndexOf('}');
-
     if (startIdx != -1 && endIdx != -1 && endIdx > startIdx) {
       return text.substring(startIdx, endIdx + 1);
     }
@@ -43,9 +87,6 @@ class AiTaskParser {
   }
 
   /// Parses a raw LLM text response into [AiTaskParseResult].
-  ///
-  /// If extraction or JSON decoding fails and [originalInput] is provided,
-  /// a safe fallback result is returned instead of throwing.
   AiTaskParseResult parseRawResponse(
     String response, {
     String? originalInput,

@@ -433,6 +433,10 @@ List<CustomViewPanelConfig> createPriorityKanbanPanels({
   ];
 }
 
+/// 日历安全天数步进函数，防御跨夏令时（DST 23/25小时）交替日的毫秒计算偏差。
+DateTime _addCalendarDays(DateTime base, int days) =>
+    DateTime(base.year, base.month, base.day + days);
+
 /// 纯函数：判断单个任务是否满足 [FilterCriteria] 条件。
 bool matchesFilter(
   Task task,
@@ -516,8 +520,7 @@ bool matchesFilter(
     final todayStart = DateTime(localNow.year, localNow.month, localNow.day);
     final todayStartUtcMs = todayStart.toUtc().millisecondsSinceEpoch;
     final todayEndUtcMs =
-        todayStart.add(const Duration(days: 1)).toUtc().millisecondsSinceEpoch -
-        1;
+        _addCalendarDays(todayStart, 1).toUtc().millisecondsSinceEpoch - 1;
 
     switch (filter.dateScope) {
       case DateScopeEnum.noDate:
@@ -563,14 +566,10 @@ bool matchesFilter(
         }
         break;
       case DateScopeEnum.tomorrow:
-        final tomorrowStart = todayStart.add(const Duration(days: 1));
+        final tomorrowStart = _addCalendarDays(todayStart, 1);
         final tomorrowStartUtcMs = tomorrowStart.toUtc().millisecondsSinceEpoch;
         final tomorrowEndUtcMs =
-            tomorrowStart
-                .add(const Duration(days: 1))
-                .toUtc()
-                .millisecondsSinceEpoch -
-            1;
+            _addCalendarDays(todayStart, 2).toUtc().millisecondsSinceEpoch - 1;
         final hasStartTomorrow =
             task.startAt != null &&
             task.startAt! >= tomorrowStartUtcMs &&
@@ -584,14 +583,10 @@ bool matchesFilter(
       case DateScopeEnum.thisWeek:
         // 本周（周一至周日）
         final weekday = localNow.weekday; // 1=Mon .. 7=Sun
-        final weekStart = todayStart.subtract(Duration(days: weekday - 1));
+        final weekStart = _addCalendarDays(todayStart, -(weekday - 1));
         final weekStartUtcMs = weekStart.toUtc().millisecondsSinceEpoch;
         final weekEndUtcMs =
-            weekStart
-                .add(const Duration(days: 7))
-                .toUtc()
-                .millisecondsSinceEpoch -
-            1;
+            _addCalendarDays(weekStart, 7).toUtc().millisecondsSinceEpoch - 1;
         final inRange =
             (task.endAt != null &&
                 task.endAt! >= weekStartUtcMs &&
@@ -654,32 +649,24 @@ bool matchesFilter(
       case CompletedScopeEnum.today:
         rangeStartUtcMs = todayStart.toUtc().millisecondsSinceEpoch;
         rangeEndUtcMs =
-            todayStart
-                .add(const Duration(days: 1))
-                .toUtc()
-                .millisecondsSinceEpoch -
-            1;
+            _addCalendarDays(todayStart, 1).toUtc().millisecondsSinceEpoch - 1;
         break;
       case CompletedScopeEnum.yesterday:
-        final yestStart = todayStart.subtract(const Duration(days: 1));
+        final yestStart = _addCalendarDays(todayStart, -1);
         rangeStartUtcMs = yestStart.toUtc().millisecondsSinceEpoch;
         rangeEndUtcMs = todayStart.toUtc().millisecondsSinceEpoch - 1;
         break;
       case CompletedScopeEnum.thisWeek:
         final weekday = todayStart.weekday; // 1=Mon .. 7=Sun
-        final weekStart = todayStart.subtract(Duration(days: weekday - 1));
+        final weekStart = _addCalendarDays(todayStart, -(weekday - 1));
         rangeStartUtcMs = weekStart.toUtc().millisecondsSinceEpoch;
         rangeEndUtcMs =
-            weekStart
-                .add(const Duration(days: 7))
-                .toUtc()
-                .millisecondsSinceEpoch -
-            1;
+            _addCalendarDays(weekStart, 7).toUtc().millisecondsSinceEpoch - 1;
         break;
       case CompletedScopeEnum.lastWeek:
         final weekday = todayStart.weekday;
-        final thisWeekStart = todayStart.subtract(Duration(days: weekday - 1));
-        final lastWeekStart = thisWeekStart.subtract(const Duration(days: 7));
+        final thisWeekStart = _addCalendarDays(todayStart, -(weekday - 1));
+        final lastWeekStart = _addCalendarDays(thisWeekStart, -7);
         rangeStartUtcMs = lastWeekStart.toUtc().millisecondsSinceEpoch;
         rangeEndUtcMs = thisWeekStart.toUtc().millisecondsSinceEpoch - 1;
         break;
