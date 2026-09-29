@@ -343,5 +343,43 @@ void main() {
         );
       }
     });
+
+    testWidgets('MCP External Integration switch can be toggled on/off', (tester) async {
+      await _pumpAiSettingsPage(
+        tester,
+        repo: repo,
+        secureStore: secureStore,
+        httpClient: httpClient,
+      );
+
+      // Verify MCP card exists
+      expect(find.text('MCP 外部集成 (Model Context Protocol)'), findsOneWidget);
+
+      // Initially off, no endpoint URL displayed
+      expect(find.text('端点地址'), findsNothing);
+
+      // Toggle switch to ON
+      final switchFinder = find.byType(Switch);
+      expect(switchFinder, findsOneWidget);
+      var switchWidget = tester.widget<Switch>(switchFinder);
+      expect(switchWidget.value, isFalse);
+
+      switchWidget.onChanged!(true);
+      await tester.pumpAndSettle();
+
+      // Now running, endpoint URL is displayed
+      expect(find.text('服务运行中'), findsOneWidget);
+      expect(find.text('端点地址'), findsOneWidget);
+      expect(find.textContaining('http://127.0.0.1:'), findsOneWidget);
+
+      // Toggle switch back to OFF
+      switchWidget = tester.widget<Switch>(switchFinder);
+      switchWidget.onChanged!(false);
+      await tester.pumpAndSettle();
+
+      // Endpoint URL disappeared
+      expect(find.text('端点地址'), findsNothing);
+      expect(find.text('未启动'), findsNothing);
+    });
   });
 }

@@ -1838,4 +1838,26 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiGoToConfigure => '去配置';
+
+  @override
+  String get aiMcpCardTitle => 'MCP 外部集成 (Model Context Protocol)';
+
+  @override
+  String get aiMcpCardSubtitle =>
+      '支持 Cursor、Claude Desktop 等外部开发工具直接连接本应用，安全检索任务与元数据';
+
+  @override
+  String get aiMcpStatusRunning => '服务运行中';
+
+  @override
+  String get aiMcpStatusStopped => '未启动';
+
+  @override
+  String get aiMcpEndpointLabel => '端点地址';
+
+  @override
+  String get aiMcpEndpointCopied => '端点地址已复制到剪贴板';
+
+  @override
+  String get aiMcpSecurityHint => '仅监听本机回环地址 (127.0.0.1)，外部网络无法访问，确保本地数据安全';
 }

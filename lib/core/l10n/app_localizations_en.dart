@@ -1884,4 +1884,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiGoToConfigure => 'Configure';
+
+  @override
+  String get aiMcpCardTitle => 'MCP Integration (Model Context Protocol)';
+
+  @override
+  String get aiMcpCardSubtitle =>
+      'Enable Cursor, Claude Desktop and developer tools to query tasks and metadata safely';
+
+  @override
+  String get aiMcpStatusRunning => 'Running';
+
+  @override
+  String get aiMcpStatusStopped => 'Stopped';
+
+  @override
+  String get aiMcpEndpointLabel => 'Endpoint URL';
+
+  @override
+  String get aiMcpEndpointCopied => 'Endpoint URL copied to clipboard';
+
+  @override
+  String get aiMcpSecurityHint =>
+      'Listens strictly on loopback interface (127.0.0.1); inaccessible from external network';
 }

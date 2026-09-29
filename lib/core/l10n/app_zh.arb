@@ -1418,5 +1418,33 @@
   "aiGoToConfigure": "去配置",
   "@aiGoToConfigure": {
     "description": "Go to configure AI settings action button"
+  },
+  "aiMcpCardTitle": "MCP 外部集成 (Model Context Protocol)",
+  "@aiMcpCardTitle": {
+    "description": "MCP integration card title"
+  },
+  "aiMcpCardSubtitle": "支持 Cursor、Claude Desktop 等外部开发工具直接连接本应用，安全检索任务与元数据",
+  "@aiMcpCardSubtitle": {
+    "description": "MCP integration card subtitle"
+  },
+  "aiMcpStatusRunning": "服务运行中",
+  "@aiMcpStatusRunning": {
+    "description": "MCP server running badge"
+  },
+  "aiMcpStatusStopped": "未启动",
+  "@aiMcpStatusStopped": {
+    "description": "MCP server stopped badge"
+  },
+  "aiMcpEndpointLabel": "端点地址",
+  "@aiMcpEndpointLabel": {
+    "description": "MCP endpoint label"
+  },
+  "aiMcpEndpointCopied": "端点地址已复制到剪贴板",
+  "@aiMcpEndpointCopied": {
+    "description": "MCP endpoint copied toast"
+  },
+  "aiMcpSecurityHint": "仅监听本机回环地址 (127.0.0.1)，外部网络无法访问，确保本地数据安全",
+  "@aiMcpSecurityHint": {
+    "description": "MCP loopback security notice"
   }
 }

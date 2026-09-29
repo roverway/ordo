@@ -3530,6 +3530,48 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'去配置'**
   String get aiGoToConfigure;
+
+  /// MCP integration card title
+  ///
+  /// In zh, this message translates to:
+  /// **'MCP 外部集成 (Model Context Protocol)'**
+  String get aiMcpCardTitle;
+
+  /// MCP integration card subtitle
+  ///
+  /// In zh, this message translates to:
+  /// **'支持 Cursor、Claude Desktop 等外部开发工具直接连接本应用，安全检索任务与元数据'**
+  String get aiMcpCardSubtitle;
+
+  /// MCP server running badge
+  ///
+  /// In zh, this message translates to:
+  /// **'服务运行中'**
+  String get aiMcpStatusRunning;
+
+  /// MCP server stopped badge
+  ///
+  /// In zh, this message translates to:
+  /// **'未启动'**
+  String get aiMcpStatusStopped;
+
+  /// MCP endpoint label
+  ///
+  /// In zh, this message translates to:
+  /// **'端点地址'**
+  String get aiMcpEndpointLabel;
+
+  /// MCP endpoint copied toast
+  ///
+  /// In zh, this message translates to:
+  /// **'端点地址已复制到剪贴板'**
+  String get aiMcpEndpointCopied;
+
+  /// MCP loopback security notice
+  ///
+  /// In zh, this message translates to:
+  /// **'仅监听本机回环地址 (127.0.0.1)，外部网络无法访问，确保本地数据安全'**
+  String get aiMcpSecurityHint;
 }
 
 class _AppLocalizationsDelegate

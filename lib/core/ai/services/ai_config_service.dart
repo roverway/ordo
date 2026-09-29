@@ -11,6 +11,8 @@ abstract final class AiSettingsKeys {
   static const String provider = 'ai_provider';
   static const String baseUrl = 'ai_base_url';
   static const String model = 'ai_model';
+  static const String mcpEnabled = 'ai_mcp_enabled';
+  static const String mcpPort = 'ai_mcp_port';
 
   /// Per-provider specific settings keys
   static String baseUrlFor(AiProviderType p) => 'ai_base_url_${p.id}';
@@ -48,9 +50,12 @@ class AiConfigService {
     final provider = targetProvider ?? activeProvider;
 
     // 1. Try provider-specific baseUrl, then fallback to global baseUrl (if provider matches active), then default
-    final providerBaseUrl = await _settingsDao.get(AiSettingsKeys.baseUrlFor(provider));
+    final providerBaseUrl = await _settingsDao.get(
+      AiSettingsKeys.baseUrlFor(provider),
+    );
     String? storedBaseUrl = providerBaseUrl;
-    if ((storedBaseUrl == null || storedBaseUrl.isEmpty) && provider == activeProvider) {
+    if ((storedBaseUrl == null || storedBaseUrl.isEmpty) &&
+        provider == activeProvider) {
       storedBaseUrl = await _settingsDao.get(AiSettingsKeys.baseUrl);
     }
     final baseUrl = (storedBaseUrl != null && storedBaseUrl.isNotEmpty)
@@ -58,9 +63,12 @@ class AiConfigService {
         : provider.defaultBaseUrl;
 
     // 2. Try provider-specific model, then fallback to global model (if provider matches active), then default
-    final providerModel = await _settingsDao.get(AiSettingsKeys.modelFor(provider));
+    final providerModel = await _settingsDao.get(
+      AiSettingsKeys.modelFor(provider),
+    );
     String? storedModel = providerModel;
-    if ((storedModel == null || storedModel.isEmpty) && provider == activeProvider) {
+    if ((storedModel == null || storedModel.isEmpty) &&
+        provider == activeProvider) {
       storedModel = await _settingsDao.get(AiSettingsKeys.model);
     }
     final model = (storedModel != null && storedModel.isNotEmpty)
@@ -82,19 +90,19 @@ class AiConfigService {
       provider: provider,
       baseUrl: baseUrl,
       model: model,
-      apiKey: (apiKey != null && apiKey.isNotEmpty) ? apiKey : null,
+      apiKey: apiKey,
     );
   }
 
-  /// Checks if an API key is stored for [provider].
+  /// Checks if an API key exists for the given provider without exposing it.
   Future<bool> hasKeyFor(AiProviderType provider) async {
     try {
       final key = await _secureStore.read(AiSecureKeys.keyFor(provider));
       if (key != null && key.isNotEmpty) return true;
       final activeProviderId = await _settingsDao.get(AiSettingsKeys.provider);
-      if (activeProviderId == provider.id) {
-        final defKey = await _secureStore.read(AiSecureKeys.defaultApiKey);
-        return defKey != null && defKey.isNotEmpty;
+      if (provider == AiProviderType.fromId(activeProviderId)) {
+        final defaultKey = await _secureStore.read(AiSecureKeys.defaultApiKey);
+        return defaultKey != null && defaultKey.isNotEmpty;
       }
       return false;
     } catch (_) {
@@ -102,17 +110,19 @@ class AiConfigService {
     }
   }
 
-  /// Saves AI configuration.
-  ///
-  /// Non-sensitive fields are written to `settings` table.
-  /// API key (if provided and non-empty) is written to `flutter_secure_storage`.
-  /// If `config.apiKey` is null, existing API key in secure storage is preserved.
+  /// Saves non-sensitive configuration to Drift settings and API key to secure store.
   Future<void> saveConfig(AiConfig config) async {
     await _settingsDao.set(AiSettingsKeys.provider, config.provider.id);
     await _settingsDao.set(AiSettingsKeys.baseUrl, config.baseUrl);
     await _settingsDao.set(AiSettingsKeys.model, config.model);
-    await _settingsDao.set(AiSettingsKeys.baseUrlFor(config.provider), config.baseUrl);
-    await _settingsDao.set(AiSettingsKeys.modelFor(config.provider), config.model);
+    await _settingsDao.set(
+      AiSettingsKeys.baseUrlFor(config.provider),
+      config.baseUrl,
+    );
+    await _settingsDao.set(
+      AiSettingsKeys.modelFor(config.provider),
+      config.model,
+    );
 
     if (config.apiKey != null) {
       if (config.apiKey!.isNotEmpty) {
@@ -131,6 +141,31 @@ class AiConfigService {
   Future<void> clearApiKey(AiProviderType provider) async {
     await _secureStore.delete(AiSecureKeys.keyFor(provider));
     await _secureStore.delete(AiSecureKeys.defaultApiKey);
+  }
+
+  /// Checks whether MCP Server support is enabled.
+  Future<bool> isMcpEnabled() async {
+    final val = await _settingsDao.get(AiSettingsKeys.mcpEnabled);
+    return val == 'true';
+  }
+
+  /// Sets whether MCP Server support is enabled.
+  Future<void> setMcpEnabled(bool enabled) async {
+    await _settingsDao.set(
+      AiSettingsKeys.mcpEnabled,
+      enabled ? 'true' : 'false',
+    );
+  }
+
+  /// Gets the configured MCP Server port (defaults to 8765).
+  Future<int> getMcpPort() async {
+    final val = await _settingsDao.get(AiSettingsKeys.mcpPort);
+    return (val != null ? int.tryParse(val) : null) ?? 8765;
+  }
+
+  /// Sets the configured MCP Server port.
+  Future<void> setMcpPort(int port) async {
+    await _settingsDao.set(AiSettingsKeys.mcpPort, port.toString());
   }
 
   /// Tests connectivity and authentication using [AiClient].
@@ -163,22 +198,15 @@ final aiConfigProvider = AsyncNotifierProvider<AiConfigNotifier, AiConfig>(
 
 class AiConfigNotifier extends AsyncNotifier<AiConfig> {
   @override
-  Future<AiConfig> build() async {
-    final service = ref.watch(aiConfigServiceProvider);
-    return service.loadConfig();
+  Future<AiConfig> build() {
+    return ref.watch(aiConfigServiceProvider).loadConfig();
   }
 
-  /// Updates and persists the AI configuration, then refreshes state with persisted values.
-  Future<void> updateConfig(AiConfig newConfig) async {
-    final service = ref.read(aiConfigServiceProvider);
-    await service.saveConfig(newConfig);
-    final reloaded = await service.loadConfig();
-    state = AsyncData(reloaded);
-  }
-
-  /// Tests connectivity with given config.
-  Future<AiPingResult> testConnection(AiConfig config, {String locale = 'zh'}) async {
-    final service = ref.read(aiConfigServiceProvider);
-    return service.testConnection(config, locale: locale);
+  Future<void> updateConfig(AiConfig config) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(aiConfigServiceProvider).saveConfig(config);
+      return config;
+    });
   }
 }

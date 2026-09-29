@@ -1418,5 +1418,33 @@
   "aiGoToConfigure": "Configure",
   "@aiGoToConfigure": {
     "description": "Go to configure AI settings action button"
+  },
+  "aiMcpCardTitle": "MCP Integration (Model Context Protocol)",
+  "@aiMcpCardTitle": {
+    "description": "MCP integration card title"
+  },
+  "aiMcpCardSubtitle": "Enable Cursor, Claude Desktop and developer tools to query tasks and metadata safely",
+  "@aiMcpCardSubtitle": {
+    "description": "MCP integration card subtitle"
+  },
+  "aiMcpStatusRunning": "Running",
+  "@aiMcpStatusRunning": {
+    "description": "MCP server running badge"
+  },
+  "aiMcpStatusStopped": "Stopped",
+  "@aiMcpStatusStopped": {
+    "description": "MCP server stopped badge"
+  },
+  "aiMcpEndpointLabel": "Endpoint URL",
+  "@aiMcpEndpointLabel": {
+    "description": "MCP endpoint label"
+  },
+  "aiMcpEndpointCopied": "Endpoint URL copied to clipboard",
+  "@aiMcpEndpointCopied": {
+    "description": "MCP endpoint copied toast"
+  },
+  "aiMcpSecurityHint": "Listens strictly on loopback interface (127.0.0.1); inaccessible from external network",
+  "@aiMcpSecurityHint": {
+    "description": "MCP loopback security notice"
   }
 }
