@@ -13,11 +13,11 @@
 本次评审范围涵盖从 `b53c4b3` 开始至当前 `HEAD` 的连续演进（共 9 个 Commit，变动 48 个文件，新增/修改逾 9,900 行）。
 核心意图可凝练为五大架构主线：
 1. **AI 交互外观与组件重塑 (`b53c4b3`, `e0bdffe`)**：
-   - 将孤立的 AI 浮动入口与全局主 FAB 融合，构建单体多态 FAB；
-   - 引入微光呼吸效果（Shimmer Glow）、提案卡片就地行内编辑（In-place Edit）、子任务增删排期联动。
+   - 将孤立的 AI 浮动入口与全局主 FAB 深度融合，构建响应式单体多态 FAB；
+   - 引入微光呼吸效果（Shimmer Glow）、提案卡片就地行内编辑（In-place Edit）、子任务动态增删与排期拾取联动。
 2. **多模型探测与双语国际化 (`e0bdffe`, `aa9f4c8`)**：
-   - 支持国内主流模型提供商预设（DeepSeek、GLM、Qwen、Moonshot 等）及动态探测连通性与模型列表；
-   - 完成 AI 助手及设置面板的中英双语 ARB 国际化规范抽取。
+   - 深度支持国内主流模型提供商预设（DeepSeek、GLM、Qwen、Moonshot 等）及动态探测连通性与模型列表；
+   - 完成 AI 助手及设置面板的中英双语 ARB 国际化规范抽取与无缝切换。
 3. **统一 AI 数据交互机制与 MCP 兼容工具系统 (`245dc0d`, `5815f40`)**：
    - 设计可插拔的 `AiTool` 抽象契约与中心化 `AiToolRegistry`，实现元数据查询、结构化筛选、原子落库与字段就地更新；
    - 嵌入原生轻量级 JSON-RPC 2.0 MCP (Model Context Protocol) HTTP 服务，支持 Cursor / Claude Desktop 等外部宿主直连协作；
@@ -25,7 +25,7 @@
 4. **自然语言语义强化与多轮上下文记忆 (`7a919bb`)**：
    - 优化任务解析 Prompt 工程，支持丰富任务时间元数据抽取、多轮对话上下文指称继承与 Markdown 复用渲染。
 5. **统一搜索引擎下沉重构 (`827a7d6`, `757b3a8`)**：
-   - 将完成时间（`completedAt`）范围过滤能力彻底下沉至底层统一搜索引擎 `TaskQueryEngine` 与 `FilterCriteria`，彻底收敛上层离散过滤逻辑。
+   - 将完成时间（`completedAt`）范围过滤能力彻底下沉至底层统一搜索引擎 `TaskQueryEngine` 与 `FilterCriteria`，彻底收敛上层离散过滤逻辑，确立唯一事实源。
 
 ---
 
@@ -55,7 +55,7 @@
   - 核心协议层完全基于 Dart 原生 `dart:io` 和 `dart:convert` 实现，未引入重型外部三方 Web 框架，依赖链极其纯粹。
 - **坏味道与缺陷**：
   - **超长分支方法**：`_processSingleRpc` 承担了全部内置协议的解析（`initialize`、`notifications/initialized`、`ping`、`tools/list`、`tools/call`），其中 `tools/call` 内部又混合了参数校验、上下文获取、工具派发与异常结构组装，代码复杂度随着协议功能增加而线性膨胀；
-  - **缺乏响应保护辅助封装**：多处直接操作 `response.headers`、`response.write()` 并调用 `response.close()`，缺乏对 Socket 已经发生 Broken Pipe 或客户端断开的防御性封装。
+  - **缺乏响应保护辅助封装**：原有多处直接操作 `response.headers`、`response.write()` 并调用 `response.close()`，缺乏对 Socket 已经发生 Broken Pipe 或客户端断开的防御性封装。
 
 #### 2. 职责与解耦
 - **优点**：
@@ -63,7 +63,7 @@
   - `mcpServerProvider` 与 `mcpServerStateProvider` 实现了 Server 实例单例管理与配置响应生命周期的清晰解耦。
 - **坏味道与缺陷**：
   - **CORS 穿透与安全性解耦不足**：
-    原本 `response.headers.set('Access-Control-Allow-Origin', '*');` 通配 `*` 允许任何外部浏览器页面通过跨域发起请求访问本地端口。如果在本地浏览器打开含有恶意脚本的网页，该网页可以静默扫描 `127.0.0.1:8765` 并通过 MCP 任意读取和修改用户的本地所有待办数据。
+    原本 `response.headers.set('Access-Control-Allow-Origin', '*');` 通配 `*` 允许任何外部浏览器页面通过跨域发起请求访问本地端口。若在本地浏览器打开含有恶意脚本的网页，该网页可以静默扫描 `127.0.0.1:8765` 并通过 MCP 任意读取和修改用户的本地所有待办数据。
 
 #### 3. 健壮性
 - **并发与断开异常逃逸隐患**：
@@ -73,7 +73,7 @@
 
 #### 4. 重构建议
 ```dart
-// 封装安全的响应写入方法，防止对已中断的 Socket 二次写入崩溃
+// 建议 1：封装安全的响应写入方法，防止对已中断的 Socket 二次写入崩溃
 Future<void> _safeSendResponse(
   HttpResponse response, {
   required int statusCode,
@@ -87,7 +87,7 @@ Future<void> _safeSendResponse(
   } catch (_) {}
 }
 
-// 收敛 CORS 限制与本地安全防护，拒绝任意浏览器跨域访问私有待办数据
+// 建议 2：收敛 CORS 限制与本地安全防护，拒绝任意浏览器跨域访问私有待办数据
 bool _isValidOrigin(HttpRequest request) {
   final origin = request.headers.value('origin');
   if (origin == null) return true; // 非浏览器直连（如 Cursor、Claude Desktop、curl）
@@ -125,10 +125,12 @@ bool _isValidOrigin(HttpRequest request) {
 - **输入边界防呆不足**：
   - 在 `CreateTasksTool.execute` 中：`priority = (arguments['priority'] as num?)?.toInt() ?? 0`，若模型输出超出 `[0, 3]` 的异常数字（如负数或 99），虽然不会当场 crash，但会把非法的优先级传给前端提案卡片；
   - 在 `UpdateTaskTool.execute` 中：当解析 `dueDate` 时，未对 `'clear'` 字符串的大小写进行 `.toLowerCase()` 处理，如果模型传入 `'Clear'` 或 `'CLEAR'`，则会导致日期清除逻辑失效并尝试作为日期格式解析失败。
+- **历史记录修改副作用**：
+  - `AiToolRunner.run()` 中直接在外部传入的 `history` 列表派生对象上执行 `messages.add(...)`。如果在一次包含多轮 Tool Call 的对话中途抛出网络超时异常，`messages` 列表的中间状态已被部分修改，未实现完整的事务级快照保护。
 
 #### 4. 重构建议
 ```dart
-// 抽取统一容错时间解析器
+// 建议 1：抽取统一容错时间解析器
 class AiDateParser {
   static int? parseToUtcMs(dynamic raw) {
     if (raw == null) return null;
@@ -151,7 +153,7 @@ class AiDateParser {
   }
 }
 
-// 参数范围强约束
+// 建议 2：参数范围强约束
 final priority = ((arguments['priority'] as num?)?.toInt() ?? 0).clamp(0, 3);
 ```
 
@@ -171,6 +173,34 @@ final priority = ((arguments['priority'] as num?)?.toInt() ?? 0).clamp(0, 3);
 - **优点**：
   - 成功将原本离散在外部统计与 AI 工具层的完成时间筛选逻辑彻底下沉至统一搜索引擎，实现了全系统待办状态派生与时间筛选逻辑的唯一权威源（Single Source of Truth）；
   - `TaskQueryEngine` 作为纯逻辑静态引擎，保持无状态性，具有天然的高并发与内存计算安全性。
+- **坏味道与缺陷**：
+  - 状态与时间绑定的隐式假设：在 `matchesFilter` 中，`if (filter.completedScope != CompletedScopeEnum.all ...) { if (effectiveStatus != TaskStatus.done) return false; }`。该设计对于以完成态为前提的场景（如统计周报、今日已完成）是合理的，但排除了取消状态（`cancelled`）任务被统计为其终止时间的可能性。应在此处补充架构意图注释。
+
+#### 3. 健壮性
+- **夏令时（DST）跨日区间微小偏差隐患**：
+  - 在计算 `thisWeek` / `lastWeek` 时使用了 `Duration(days: 7)` 进行加减计算：
+    ```dart
+    final weekStart = todayStart.subtract(Duration(days: weekday - 1));
+    rangeEndUtcMs = weekStart.add(const Duration(days: 7)).toUtc().millisecondsSinceEpoch - 1;
+    ```
+    在夏令时交替当日（某日实际上为 23 小时或 25 小时），固定时长的 `Duration(days: 7)` 会导致 UTC 毫秒计算产生 1 小时的微小偏差，截断在 `23:00` 而非 `23:59:59`。在 Dart 中，推荐使用日历级天数计算：`DateTime(todayStart.year, todayStart.month, todayStart.day + 7)`。
+- **时间范围覆盖优先级歧义**：
+  - 若 `filter.completedScope` 与 `filter.completedAfterUtcMs` / `completedBeforeUtcMs` 同时存在，代码直接用显式参数覆盖了 Scope 计算得出的 `rangeStartUtcMs`。若调用方本意是“在 Scope 基础上进一步限定”，直接覆盖可能导致预期之外的宽泛结果。
+
+#### 4. 重构建议
+```dart
+// 建议：使用日历安全的天数步进替代固定 Duration(days: N)，防御跨夏令时边界异常
+DateTime addCalendarDays(DateTime base, int days) {
+  return DateTime(base.year, base.month, base.day + days);
+}
+
+// 建议：规范化时间区间的交集计算
+if (filter.completedAfterUtcMs != null) {
+  rangeStartUtcMs = rangeStartUtcMs == null
+      ? filter.completedAfterUtcMs
+      : math.max(rangeStartUtcMs, filter.completedAfterUtcMs!);
+}
+```
 
 ---
 
@@ -181,22 +211,80 @@ final priority = ((arguments['priority'] as num?)?.toInt() ?? 0).clamp(0, 3);
 - **优点**：
   - `AiProviderType` 清晰声明了主流服务商（DeepSeek、Kimi、Qwen、GLM、OpenAI、Claude、Custom）的默认 URL、预设模型族与中英双语展示名称；
   - `AiConfig` 不可变数据模型完备，提供了安全脱敏的 `maskedApiKey`，杜绝密钥直接暴露在日志或 UI 展示中。
+- **坏味道与缺陷**：
+  - `AiClient` 承担了端点规范化、连通性探测（`ping`）、模型遍历探测（`fetchModels`）、普通对话（`chat`）、Function Calling 对话（`chatWithTools`）以及错误诊断（`_diagnoseError`），单个类长达 500 行，承担了过多层级的职责。
 
 #### 2. 职责与解耦
 - **优点**：
   - 将异构的 OpenAI 协议（`tool_calls`）与 Anthropic Claude 协议（`tool_use`）在底层进行完全无感映射，屏蔽了三方网络协议碎片化差异；
   - 提供了抽象 `AiHttpClient`，在单测中可通过内存 Fake 模拟任何 HTTP 报文，无需启动外部 Socket 或侵入三方 mockito 代码。
+- **坏味道与缺陷**：
+  - `DefaultAiHttpClient` 在每一次 `post` 和 `get` 中都直接 `final client = HttpClient()` 并在 `finally` 中 `close(force: true)`。虽然杜绝了连接未关闭导致的内存泄漏，但在多次连续工具交互调用时，破坏了 HTTP Keep-Alive 连接池复用，每次均需要经历 TCP 三次握手与 TLS 密钥协商。
+
+#### 3. 健壮性
+- **探测异常处理粗暴**：
+  - 当模型探测接口遇到三方中转网关返回 HTML 404/502 错误页时，由于未做针对性截断，超长 HTML 错误内容被直接丢给异常抛出，导致 UI 弹窗撑爆；
+  - Anthropic 官方规范对 `/models` 端点目前需要特定的请求头且并不公开标准模型列表，直接请求会导致 404 抛出，应在 UI 层友好引导用户手动填入。
+
+#### 4. 重构建议
+```dart
+// 建议：规范化 HTTP 连接池生命周期管理，支持长连接复用
+class PooledAiHttpClient implements AiHttpClient {
+  HttpClient? _client;
+
+  HttpClient _getClient() => _client ??= HttpClient()..idleTimeout = const Duration(seconds: 30);
+
+  void dispose() {
+    _client?.close(force: true);
+    _client = null;
+  }
+}
+```
 
 ---
 
 ### 模块 5：自然语言解析契约与多轮上下文 Prompts
 > **审查对象**：`lib/core/ai/prompts/task_parse_prompts.dart`、`lib/core/ai/models/ai_task_parse_result.dart`、`lib/core/ai/services/ai_task_parser.dart`
 
-#### 1. 代码整洁度与健壮性
+#### 1. 代码整洁度
 - **优点**：
-  - Prompt 模板工程设计极高，将时间基准、时区偏移量、当前毫秒时间戳全部显式注入，彻底杜绝了大模型对“相对时间”解析时产生幻觉；
-  - `AiTaskParser.extractJsonPayload` 具备很强的防卫性，能够自动剥离 Markdown 代码块标签（````json ... ````）并寻找最外层大括号；
+  - Prompt 模板工程设计极高，将时间基准、时区偏移量、当前毫秒时间戳全部显式注入，彻底杜绝了大模型对“相对时间”解析时产生幻觉（如将“明天”理解为训练截止时间）；
+  - `AiTaskParser.extractJsonPayload` 具备很强的防卫性，能够自动剥离 Markdown 代码块标签（````json ... ````）并寻找最外层大括号。
+- **坏味道与缺陷**：
+  - `buildTaskParseSystemPrompt` 内部的大字符串包含大量转义与长文本，格式略显冗长；多语言分支在中文与英文提示词间存在部分规范描述不完全对称（例如中文明确了优先级四象限，英文仅一笔带过）。
+
+#### 2. 职责与解耦
+- **优点**：
+  - `AiTaskParseResult` 实体从数据库领域解耦，只承载自然语言抽取结果，后续由持久化服务决定如何单事务落库；
   - 提供了极佳的降级回退机制（`AiTaskParseResult.fallback`），当网络异常或大模型输出乱码时，能够优雅地将用户原文本退化为普通任务标题，避免阻断用户交互。
+- **坏味道与缺陷**：
+  - 提示词模板逻辑内嵌在核心源码中，未提供动态加载或配置覆盖能力，一旦遇到大模型微调变更，必须重新发版才能调整 Prompt。
+
+#### 3. 健壮性
+- **极极端 JSON 嵌套容错漏洞**：
+  - `extractJsonPayload` 采用了 `text.indexOf('{')` 和 `text.lastIndexOf('}')`。如果大模型输出的回复带有解释文本，且解释文本中恰巧带有大括号（例如 `注意：包含特殊字符 {} 时`），简单的首尾定位可能抓取到前后脏字符串导致 `jsonDecode` 失败并直接回退为 fallback。
+
+#### 4. 重构建议
+```dart
+// 建议：优化 JSON 提取算法，利用括号平衡计数器（Bracket Balance Scanner）精准截取合法 JSON 块
+static String? extractJsonPayload(String response) {
+  var text = response.trim();
+  int depth = 0;
+  int start = -1;
+  for (int i = 0; i < text.length; i++) {
+    if (text[i] == '{') {
+      if (depth == 0) start = i;
+      depth++;
+    } else if (text[i] == '}') {
+      depth--;
+      if (depth == 0 && start != -1) {
+        return text.substring(start, i + 1);
+      }
+    }
+  }
+  return null;
+}
+```
 
 ---
 
@@ -218,17 +306,61 @@ final priority = ((arguments['priority'] as num?)?.toInt() ?? 0).clamp(0, 3);
     }
     ```
     通过字符串判断对象类型中是否含有 `'Fake'`，这是极其严重的**测试代码入侵生产环境的反模式**。
+  - **Magic Strings 路由指令判定**：
+    原本使用 `lower.contains('周报') || lower.contains('效能')` 作为自然语言到业务指令的分流，这与引入统一 Agentic Tools 的核心架构相悖，应该由模型自主决定是否调用工具。
+
+#### 2. 职责与解耦
+- **优点**：
+  - 将离线解析（Offline Parser）与在线智能体执行器（`AiToolRunner`）做了平滑切换：在无 API Key 场景下自动退化为本地规则与纯自然语言解析，保障零网络下的可用性；
+  - 上下文滑动窗口机制（保留最近 10 条消息）有效防止了超长上下文导致的 Token 爆炸。
+- **坏味道与缺陷**：
+  - **上下文格式化过度绑定单一语言**：
+    在滑动窗口提取 `taskProposal` 时，写死了中文提示：`'已提案任务方案：《${p.title}》$subs'`，即使在英文环境也向模型注入了中文历史，破坏了英文上下文一致性。
+
+#### 3. 健壮性
+- **并发发送竞争（Race Condition）**：
+  - 虽然检查了 `if (state.isLoading) return;`，但在多轮异步 await 中间（如 `loadConfig`、`runner.run`），如果外部调用了清空或重置状态，未持有当前的生命周期 Cancellation Token，异步完成时可能会把脏消息写回已经重置的会话。
 
 ---
 
 ### 模块 7：Copilot UI 交互容器与提案卡片就地编辑群
 > **审查对象**：`lib/features/ai_copilot/widgets/ai_task_proposal_card.dart`、`lib/features/ai_copilot/views/ai_copilot_sheet.dart`、`lib/features/ai_copilot/widgets/ai_shimmer_glow.dart`、`lib/features/home/widgets/home_fab.dart`
 
-#### 1. 代码整洁度与交互体验
+#### 1. 代码整洁度
 - **优点**：
   - 视觉效果精细，`AiShimmerGlow` 与多态 FAB 呈现了极高水准的动效设计，充分践行了微光呼吸美学；
-  - 提案卡片提供了非常完整的交互支持：优先级快速切换、标签动态增删、子任务拖拽与编辑、截止时间弹出拾取；
+  - 提案卡片提供了非常完整的交互支持：优先级快速切换、标签动态增删、子任务拖拽与编辑、截止时间弹出拾取。
+- **坏味道与缺陷**：
+  - **严重上帝组件（God Widget）**：
+    `ai_task_proposal_card.dart` 单个文件达到 1,366 行，`_AiTaskProposalCardState` 单个类膨胀至 1,300 余行，管理了超过 10 个独立输入控制器、焦点节点与交互视图；
+  - 代码中存在大量重复构建的 Chip 和输入框样式，没有充分复用项目的统一 `AppTokens`。
+
+#### 2. 职责与解耦
+- **优点**：
   - 提案卡片与全局状态解耦良好：内部仅维护一份草稿态，只有当用户点击“添加到待办”时才通过回调传递最终数据给持久化层，放弃则直接丢弃草稿，保证了数据的纯洁性。
+- **坏味道与缺陷**：
+  - UI 树过度嵌套：在 `_buildSubstepList` 和 `_buildTaskCard` 中，Widget 树嵌套层级深达 12~15 层，严重违背 Flutter 扁平化组件树的工程准则。
+
+#### 3. 健壮性
+- **频繁 Rebuild 与控制器泄露隐患**：
+  - 子任务输入框的 `TextEditingController` 和 `FocusNode` 存储在一个全局 `Map<int, TextEditingController>` 中，在子任务被删除或重新排序时，虽然做了 `dispose()`，但索引变换容易导致控制器错位或未彻底释放；
+  - 任何子任务的按键输入都会调用父级 `setState()`，导致整张 1300 行的大卡片从头到尾进行完整 Rebuild，低端移动设备上可能出现微卡顿。
+
+#### 4. 重构建议
+```dart
+// 建议：将子任务条目抽取为独立的无状态/微状态组件，隔离重绘范围
+class ProposalSubstepTile extends StatelessWidget {
+  const ProposalSubstepTile({
+    super.key,
+    required this.index,
+    required this.title,
+    required this.isSelected,
+    required this.onChanged,
+    required this.onDelete,
+  });
+  // 独立组件，避免单行文本变更导致整张提案大卡片全局 setState()
+}
+```
 
 ---
 
@@ -239,6 +371,26 @@ final priority = ((arguments['priority'] as num?)?.toInt() ?? 0).clamp(0, 3);
 - **优点**：
   - `MarkdownContentView` 构建了一个完全原生、无重型外部第三方依赖的轻量 Markdown 渲染器，支持多级标题、列表、引用块、代码块、高亮甚至任务清单交互；
   - `AppTokens` 对 AI 相关间距、圆角与颜色进行了集中声明，消除了魔鬼数值。
+- **坏味道与缺陷**：
+  - `ai_settings_page.dart` 达到 1,108 行，同时负责模型提供商切换、API Key 密码框、Base URL 配置、模型探测与下拉选择、MCP 嵌入式服务开关与端口配置，页面复杂度过高，应抽取为不同的 Section 组件。
+
+#### 2. 职责与解耦
+- **优点**：
+  - `MarkdownContentView` 纯负责展现层，通过只读解析和回调与外界沟通；
+  - `ai_settings_page.dart` 借助 `ref.watch(aiConfigNotifierProvider)` 与 `ref.watch(mcpServerStateProvider)` 响应底层状态变动，状态响应清晰。
+
+#### 3. 健壮性
+- **RegExp 性能与灾难性回溯防护**：
+  - `MarkdownContentView` 中定义了大量行级正则表达式解析器。虽然解析日常长度的 AI 回复毫无压力，但如果用户粘贴超大文本（几万字），逐行正则扫描可能会在主线程引发短暂掉帧，缺少分块异步解析或 `compute` 隔离机制。
+
+#### 4. 重构建议
+```dart
+// 建议：设置页面拆分为模块化卡片
+// - AiProviderConfigCard
+// - AiModelSelectionCard
+// - AiMcpServerCard
+// 降低单文件体量，增强模块可测性与可维护性。
+```
 
 ---
 
@@ -262,12 +414,20 @@ if (_parser.runtimeType.toString().contains('Fake')) {
 - **提交时间**：2026-09-29
 
 #### 2. 当时上下文深度分析
-在引入统一 `AiToolRunner` 之前，`AiCopilotController` 仅直接调用 `AiTaskParser`。而原有的单元测试大量采用了 `FakeAiTaskParser` 进行依赖注入。当开发者将 `sendMessage` 重构为优先使用 `AiToolRunner` 进行自主 Agent 执行时，发现运行既有单元测试会因为 `AiToolRunner` 在测试中会进一步尝试加载真实数据库配置与依赖，导致平台通道卡死。
+在引入统一 `AiToolRunner` 之前，`AiCopilotController` 仅直接调用 `AiTaskParser`。而原有的单元测试大量采用了 `FakeAiTaskParser` 进行依赖注入：
+```dart
+final container = ProviderContainer(
+  overrides: [
+    aiTaskParserProvider.overrideWithValue(FakeAiTaskParser()),
+  ],
+);
+```
+当开发者将 `sendMessage` 重构为优先使用 `AiToolRunner` 进行自主 Agent 执行时，发现运行既有单元测试会因为 `AiToolRunner` 在测试中会进一步尝试加载真实数据库配置与依赖，导致平台通道卡死。
 为了“快速让既有测试通过”，开发者并未对架构进行清晰的分层抽象或更新单测容器配置，而是采取了走捷径的手段——**直接在生产代码的核心路径中加入针对类名字符串 `contains('Fake')` 的硬编码分支探测**！
 
 #### 3. 危害与反思
 1. **违背控制反转（IoC）与开闭原则（OCP）**：业务控制器不应该知晓、更不应该感知外部是否存在测试 Fake 类。生产代码依赖测试类的特征是严重的设计腐化；
-2. **掩盖真实调用链缺陷**：一旦生产环境引入了任何带 `Fake` 字样的类名，业务将被莫名其妙直接短路；
+2. **掩盖真实调用链缺陷**：一旦生产环境引入了任何带 `Fake` 字样的类名（如某种命名恰巧带有 Fake 的厂商或代理），业务将被莫名其妙直接短路；
 3. **架构演进路线纠正**：
    - **正确做法**：`AiCopilotController` 依赖的是标准配置与服务。在单测中，如果需要测试完整 Agent 逻辑，应当直接对依赖的 Provider（如 `aiConfigServiceProvider`）注入 `_FakeAiConfigService`，使测试环境与真实数据库解耦；绝不能在生产 Controller 偷做短路分支！
 
@@ -275,16 +435,31 @@ if (_parser.runtimeType.toString().contains('Fake')) {
 
 ## 阶段四：改进实施规划与进度追踪
 
-根据复核报告，我们依据“**避免过度设计、精准解决核心坏味道**”的原则，规划并实施了以下改进：
+### 1. 实际完成的改进项清单（Commit: a96827a）
 
-| 编号 | 改进项目与目标 | 涉及文件 | 状态 | 验证结果 |
+依据“**避免过度设计、精准解决核心痛点**”的原则，在提交 `a96827a41830c445c04ba0b9ce362e66ba7bae6f` 中实际完成的改进落地情况如下：
+
+| 编号 | 改进项目与核心目标 | 实际改动源文件 | 状态 | 验证结果 |
 | :---: | :--- | :--- | :---: | :--- |
-| **ISSUE-01** | **消除生产代码中的测试探针坏味道**<br>重构 `AiCopilotController`，移除 `contains('Fake')` 硬编码逻辑，完善单测中的 `_FakeAiConfigService` | `lib/features/ai_copilot/providers/ai_copilot_controller.dart`<br>`test/features/ai_copilot/ai_copilot_controller_test.dart`<br>`test/features/ai_copilot/ai_copilot_sheet_test.dart` | ✅ **已解决并验证** | 移除硬编码，单测 7/7 与 Widget 测试 11/11 全绿通过 |
-| **ISSUE-02** | **MCP 服务安全收敛与 Socket 破损防护**<br>限制本地回环 CORS Origin 仅允许 localhost/127.0.0.1/::1；拦截外部页面跨域；封装 `_safeSendJson` 与 `_safeClose` 防止 Broken Pipe 崩溃 | `lib/core/ai/mcp/mcp_server.dart`<br>`test/core/ai/mcp/mcp_server_test.dart` | ✅ **已解决并验证** | 新增 Origin 拦截与测试用例，12/12 单测全部通过 |
-| **ISSUE-03** | **抽取统一容错日期解析工具 (AiDateParser)**<br>消除 `query_tasks_tool`、`create_tasks_tool`、`update_task_tool` 中的重复手写日期解析逻辑 (DRY) | `lib/core/ai/tools/impl/ai_date_parser.dart`<br>`lib/core/ai/tools/impl/*.dart`<br>`test/core/ai/tools/ai_date_parser_test.dart` | ✅ **已解决并验证** | 新增 `AiDateParser`，编写 5 组针对性单测，全工具链测试 23/23 通过 |
-| **ISSUE-04** | **参数越界守卫与多语言硬编码清理**<br>`CreateTasksTool` 优先级增加 `.clamp(0, 3)` 防御；`GetMetadataTool` 星期名称根据 `context.locale` 进行中英本地化适配 | `lib/core/ai/tools/impl/create_tasks_tool.dart`<br>`lib/core/ai/tools/impl/get_metadata_tool.dart` | ✅ **已解决并验证** | 工具输入参数防御健全，多语言星期输出规范统一 |
-| **ISSUE-05** | **统一搜索引擎夏令时跨日边界评估**<br>评估 `custom_view_models.dart` 中关于 `Duration(days: 7)` 的夏令时边界 | `lib/core/utils/custom_view_models.dart` | ⏹️ **架构评估保持现状** | 现有逻辑已有全面测试防护，非本次变更新增代码，避免过度设计 |
-| **ISSUE-06** | **JSON Payload 括号深度扫描容错**<br>评估 `AiTaskParser` 的 JSON 提取方式 | `lib/core/ai/services/ai_task_parser.dart` | ⏹️ **架构评估保持现状** | 现有正则与代码块剥离已通过多场景单测验证，稳定可靠 |
+| **ISSUE-01** | **消除生产代码中的测试探针坏味道**<br>重构 `AiCopilotController`，移除 `contains('Fake')` 硬编码逻辑，完善单测中的 `_FakeAiConfigService` | `lib/features/ai_copilot/providers/ai_copilot_controller.dart`<br>`test/features/ai_copilot/ai_copilot_controller_test.dart`<br>`test/features/ai_copilot/ai_copilot_sheet_test.dart` | [x] **已完成并验证 (a96827a)** | 移除反模式硬编码，单测 7/7 与 Widget 测试 11/11 全绿通过 |
+| **ISSUE-02** | **MCP 服务安全收敛与 Socket 破损防护**<br>限制本地回环 CORS Origin 仅允许 localhost/127.0.0.1/::1；拦截外部页面跨域；封装 `_safeSendJson` 与 `_safeClose` 防止 Broken Pipe 崩溃 | `lib/core/ai/mcp/mcp_server.dart`<br>`test/core/ai/mcp/mcp_server_test.dart` | [x] **已完成并验证 (a96827a)** | 新增 Origin 拦截与测试用例，12/12 单测全部通过 |
+| **ISSUE-03** | **抽取统一容错日期解析工具 (AiDateParser)**<br>消除 `query_tasks_tool`、`create_tasks_tool`、`update_task_tool` 中的重复手写日期解析逻辑 (DRY) | `lib/core/ai/tools/impl/ai_date_parser.dart`<br>`lib/core/ai/tools/impl/create_tasks_tool.dart`<br>`lib/core/ai/tools/impl/update_task_tool.dart`<br>`lib/core/ai/tools/impl/query_tasks_tool.dart`<br>`test/core/ai/tools/ai_date_parser_test.dart` | [x] **已完成并验证 (a96827a)** | 新建 `AiDateParser`，收敛 3 处冗余实现，新增 5 组针对性单测全过 |
+| **ISSUE-04** | **参数越界守卫与多语言硬编码清理**<br>`CreateTasksTool` 优先级增加 `.clamp(0, 3)` 防御；`GetMetadataTool` 星期名称根据 `context.locale` 进行中英本地化适配 | `lib/core/ai/tools/impl/create_tasks_tool.dart`<br>`lib/core/ai/tools/impl/get_metadata_tool.dart` | [x] **已完成并验证 (a96827a)** | 工具输入参数防御健全，多语言星期输出规范统一 |
+
+---
+
+### 2. 识别出的尚未改进但值得改进的任务清单（演进 Backlog）
+
+在全量 Code Review 审查过程中，我们从代码整洁度、组件解耦、高频网络开销和容错边界等维度，识别出以下 **6 项具有高架构演进价值但目前尚未实施的任务**。在后续迭代中，可按优先级规划落地：
+
+| 任务编号 | 所属模块 | 优化项名称 | 现有缺陷与隐患分析 | 推荐重构方案 | 价值与优先级评估 |
+| :---: | :---: | :--- | :--- | :--- | :---: |
+| **TODO-01** | **模块 7 (UI)** | **`AiTaskProposalCard` 上帝组件拆解与微状态抽离** | 单文件达 1,366 行，`_AiTaskProposalCardState` 管理 10+ 控制器。任何子任务编辑均触发全卡片 `setState()`，UI 嵌套层级深达 12~15 层，存在频繁 Rebuild 和潜在控制器泄露风险。 | 抽取 `ProposalSubstepTile` 独立无状态/微状态组件，将日期拾取与标签选择拆为独立子组件。卡片外壳仅管理草稿状态流转。 | **高价值**<br>大幅提升 UI 渲染性能与可维护性，降低单文件体积至 300 行左右。 |
+| **TODO-02** | **模块 8 (UI)** | **`AiSettingsPage` 模块化卡片拆分** | 单文件达 1,108 行，混合了厂商切换、API 凭据安全交互、模型探测下拉、MCP 服务开关与端口配置等所有业务，职责过重，维护困难。 | 拆分为三个专有 Section 卡片组件：<br>1. `AiProviderConfigCard`<br>2. `AiModelSelectionCard`<br>3. `AiMcpServerCard` | **高价值**<br>符合单一职责原则（SRP），降低页面代码复杂度，便于独立组件测试。 |
+| **TODO-03** | **模块 4 (Net)** | **`PooledAiHttpClient` 连接池复用与 Keep-Alive 优化** | `DefaultAiHttpClient` 在每次发送请求时均创建新的 `HttpClient()` 并在完成后 `close(force: true)`。这导致多轮 Tool Calls 时频繁进行 TCP 三次握手与 TLS 协商，增加请求耗时。 | 封装带有 `idleTimeout`（如 30 秒）的连接池式 `PooledAiHttpClient`，在连续对话与工具派发阶段复用底层 TCP/TLS 链路，适时释放。 | **中高价值**<br>降低多轮交互延迟 100~300ms，减轻本地套接字分配开销。 |
+| **TODO-04** | **模块 5 (Robust)** | **`AiTaskParser.extractJsonPayload` 括号深度平衡计数器** | 目前仅采用 `text.indexOf('{')` 与 `text.lastIndexOf('}')`。若大模型回复的前后解释文本中恰巧带有大括号（如描述某种语法或符号），首尾截取会包含非 JSON 杂质导致解析崩溃。 | 引入括号平衡扫描器（Bracket Balance Scanner），通过字符深度计数器精准识别并提取最外层有效 JSON 闭包，防御前后文本污染。 | **中价值**<br>提升对长文本输出与异常格式大模型输出的极端容错率。 |
+| **TODO-05** | **模块 3 (Engine)** | **统一搜索引擎夏令时跨日边界日历级计算** | `custom_view_models.dart` 中周过滤范围使用了固定 `Duration(days: 7)`。在每年两次的夏令时交替当日，固定 24 小时相加会导致计算出来的 UTC 毫秒产生 1 小时偏差。 | 将固定的 `Duration(days: 7)` 加减改为日历安全天数步进：`DateTime(today.year, today.month, today.day + 7)`。 | **中价值**<br>彻底规避极少数跨时区与夏令时用户的周统计边界微小偏差。 |
+| **TODO-06** | **模块 2 (Perf)** | **`QueryTasksTool` 大数据量从全库装载向数据库层下沉** | `QueryTasksTool.execute` 目前调用 `await context.repository.exportAll()` 装载全量任务后在内存进行 `TaskQueryEngine.filterFlat`。当任务量达到数千条历史归档时内存分配开销偏高。 | 在持久层（`TodoRepository` / `AppDatabase`）提供支持直接接收 `FilterCriteria` 的专用过滤方法，让部分重度过滤在 SQLite SQL 层面直接完成。 | **长期演进项**<br>大体量用户场景下显著降低内存峰值，避免不必要的大对象装载。 |
 
 ---
 
