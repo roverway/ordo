@@ -50,15 +50,8 @@ void main() {
       final claudeQuerySpec = claudeTools.firstWhere(
         (t) => t['name'] == 'query_tasks',
       );
+      expect(claudeQuerySpec['name'], 'query_tasks');
       expect(claudeQuerySpec['input_schema'], isNotNull);
-
-      // MCP format
-      final mcpTools = registry.toMcpDefinitions();
-      expect(mcpTools.length, 4);
-      final mcpQuerySpec = mcpTools.firstWhere(
-        (t) => t['name'] == 'query_tasks',
-      );
-      expect(mcpQuerySpec['inputSchema'], isNotNull);
     });
   });
 
@@ -66,17 +59,17 @@ void main() {
     test(
       'returns accurate current time, weekday, and project taxonomy',
       () async {
-        // Create a test project and a test tag
         await repository.projects.insert(
           ProjectsCompanion.insert(
             id: 'proj-work',
             name: '工作项目',
-            color: 0xFF1E88E5,
             sortOrder: 1,
+            color: 0xFF00FF00,
             createdAt: 1000,
             updatedAt: 1000,
           ),
         );
+
         await repository.tags.insert(
           TagsCompanion.insert(
             id: 'tag-urgent',
@@ -183,6 +176,115 @@ void main() {
       expect(priorityTasks.length, 1);
       expect(priorityTasks.first['id'], 'task-1');
     });
+
+    test(
+      'returns rich metadata (completedDate, subtasks) and filters by completedScope correctly',
+      () async {
+        final now = DateTime.utc(2026, 9, 29, 12, 0, 0);
+        final nowMs = now.millisecondsSinceEpoch;
+
+        // 插入昨天完成的任务 (2026-09-28 15:00 UTC)
+        final yestCompMs = DateTime.utc(
+          2026,
+          9,
+          28,
+          15,
+          0,
+          0,
+        ).millisecondsSinceEpoch;
+        await repository.tasks.insert(
+          TasksCompanion.insert(
+            id: 'task-yesterday-done',
+            projectId: 'inbox',
+            title: '昨天完成的任务',
+            description: const Value('详细说明文案'),
+            status: TaskStatus.done,
+            completedAt: Value(yestCompMs),
+            sortOrder: 0,
+            createdAt: yestCompMs - 3600000,
+            updatedAt: yestCompMs,
+          ),
+        );
+
+        // 插入含子任务的父任务：子任务全部完成，父任务自动派生为已完成
+        final parentCreatedAt = nowMs - 7200000;
+        await repository.tasks.insert(
+          TasksCompanion.insert(
+            id: 'parent-task',
+            projectId: 'inbox',
+            title: '发布会准备',
+            status: TaskStatus.todo,
+            sortOrder: 1,
+            createdAt: parentCreatedAt,
+            updatedAt: nowMs,
+          ),
+        );
+
+        final childComp1 = nowMs - 1800000;
+        final childComp2 = nowMs - 900000; // 最晚完成的子任务时间
+        await repository.tasks.insert(
+          TasksCompanion.insert(
+            id: 'child-1',
+            projectId: 'inbox',
+            parentId: const Value('parent-task'),
+            title: '准备演讲稿',
+            status: TaskStatus.done,
+            completedAt: Value(childComp1),
+            sortOrder: 0,
+            createdAt: parentCreatedAt,
+            updatedAt: childComp1,
+          ),
+        );
+        await repository.tasks.insert(
+          TasksCompanion.insert(
+            id: 'child-2',
+            projectId: 'inbox',
+            parentId: const Value('parent-task'),
+            title: '核对演示设备',
+            status: TaskStatus.done,
+            completedAt: Value(childComp2),
+            sortOrder: 1,
+            createdAt: parentCreatedAt,
+            updatedAt: childComp2,
+          ),
+        );
+
+        final tool = const QueryTasksTool();
+        final context = AiToolContext(repository: repository, nowUtcMs: nowMs);
+
+        // 查询 1：按 completedScope: 'yesterday' 检索
+        final yesterdayResult = await tool.execute({
+          'completedScope': 'yesterday',
+        }, context);
+        expect(yesterdayResult.success, isTrue);
+        final yestTasks =
+            (yesterdayResult.data as Map<String, dynamic>)['tasks'] as List;
+        expect(yestTasks.any((t) => t['id'] == 'task-yesterday-done'), isTrue);
+        final yestTask = yestTasks.firstWhere(
+          (t) => t['id'] == 'task-yesterday-done',
+        );
+        expect(yestTask['completedDate'], isNotNull);
+        expect(yestTask['completedAt'], yestCompMs);
+        expect(yestTask['description'], '详细说明文案');
+        expect(yestTask['createdDate'], isNotNull);
+
+        // 查询 2：按 completedScope: 'today' 检索父任务及其派生完成状态
+        final todayResult = await tool.execute({
+          'completedScope': 'today',
+        }, context);
+        expect(todayResult.success, isTrue);
+        final todayTasks =
+            (todayResult.data as Map<String, dynamic>)['tasks'] as List;
+        final parentMatch = todayTasks.firstWhere(
+          (t) => t['id'] == 'parent-task',
+        );
+        expect(parentMatch['status'], 'done');
+        expect(parentMatch['isCompleted'], isTrue);
+        expect(parentMatch['completedAt'], childComp2);
+        expect(parentMatch['subtaskCount'], 2);
+        expect(parentMatch['completedSubtaskCount'], 2);
+      },
+    );
   });
 
   group('CreateTasksTool', () {

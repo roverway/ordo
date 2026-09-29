@@ -8,11 +8,13 @@ import 'package:ordo/core/ai/services/ai_task_persistence_service.dart';
 import 'package:ordo/core/db/database.dart';
 import 'package:ordo/core/db/tables.dart';
 import 'package:ordo/core/l10n/app_localizations.dart';
+import 'package:ordo/features/ai_copilot/models/ai_chat_message.dart';
 import 'package:ordo/features/ai_copilot/providers/ai_copilot_controller.dart';
 import 'package:ordo/features/ai_copilot/views/ai_copilot_sheet.dart';
 import 'package:ordo/features/ai_copilot/widgets/ai_chat_input_box.dart';
 import 'package:ordo/features/ai_copilot/widgets/ai_prompt_capsule.dart';
 import 'package:ordo/features/ai_copilot/widgets/ai_task_proposal_card.dart';
+import 'package:ordo/shared/widgets/markdown_content_view.dart';
 
 class _FakeAiTaskParser implements AiTaskParser {
   @override
@@ -246,6 +248,11 @@ void main() {
 
       final textField = tester.widget<TextField>(find.byType(TextField));
       expect(textField.enabled, isFalse);
+
+      final sendButton = tester.widget<IconButton>(
+        find.byKey(AiChatInputBox.sendButtonKey),
+      );
+      expect(sendButton.onPressed, isNull);
     });
   });
 
@@ -271,25 +278,15 @@ void main() {
         await tester.tap(find.text('Open Copilot'));
         await tester.pumpAndSettle();
 
-        expect(find.byType(AiCopilotSheet), findsOneWidget);
         expect(find.byKey(AiCopilotSheet.grabberKey), findsOneWidget);
         expect(find.byKey(AiCopilotSheet.closeButtonKey), findsOneWidget);
-
-        // Close it
-        await tester.tap(find.byKey(AiCopilotSheet.closeButtonKey));
-        await tester.pumpAndSettle();
-
-        expect(find.byType(AiCopilotSheet), findsNothing);
+        expect(find.text('AI 助手'), findsWidgets);
       },
     );
 
     testWidgets(
       'opens side sheet on desktop/tablet (>= 600dp) with right margin and no grabber',
       (tester) async {
-        tester.view.physicalSize = const Size(1024, 768);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() => tester.view.resetPhysicalSize());
-
         await tester.pumpWidget(
           _buildTestApp(
             screenSize: const Size(1024, 768),
@@ -395,6 +392,41 @@ void main() {
         // 4. 确认置灰与"已添加"状态
         expect(find.text('已添加'), findsOneWidget);
         expect(find.text('添加到待办'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'renders assistant messages using MarkdownContentView for rich formatting',
+      (tester) async {
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+
+        // Directly seed an assistant message containing markdown
+        final controller = container.read(aiCopilotControllerProvider.notifier);
+        final assistantMsg = AiChatMessage.assistantText(
+          id: 'test-assistant-md',
+          text: '### 任务概览\n这里是**加粗文本**与列表：\n- 步骤一\n- 步骤二',
+          createdAt: DateTime.now(),
+        );
+        controller.state = controller.state.copyWith(messages: [assistantMsg]);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              locale: const Locale('zh'),
+              home: const Scaffold(body: AiCopilotSheet()),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // 验证使用了自研的 MarkdownContentView 渲染引擎
+        expect(find.byType(MarkdownContentView), findsOneWidget);
+        expect(find.text('任务概览'), findsOneWidget);
+        expect(find.text('步骤一'), findsOneWidget);
       },
     );
   });

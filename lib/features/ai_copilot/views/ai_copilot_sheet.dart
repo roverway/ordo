@@ -11,6 +11,7 @@ import 'package:ordo/features/ai_copilot/widgets/ai_prompt_capsule.dart';
 import 'package:ordo/features/ai_copilot/widgets/ai_task_proposal_card.dart';
 import 'package:ordo/features/ai_copilot/widgets/ai_shimmer_glow.dart';
 import 'package:ordo/features/settings/views/ai_settings_page.dart';
+import 'package:ordo/shared/widgets/markdown_content_view.dart';
 
 /// Modal bottom sheet (narrow screens) or right side sheet (wide screens)
 /// hosting the AI Copilot natural language dialogue interface.
@@ -371,9 +372,7 @@ class _AiCopilotSheetState extends ConsumerState<AiCopilotSheet> {
             padding: const EdgeInsets.only(bottom: AppTokens.spaceSm),
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: [
-                AiThinkingPulse(label: l10n.aiThinking),
-              ],
+              children: [AiThinkingPulse(label: l10n.aiThinking)],
             ),
           );
         }
@@ -435,6 +434,11 @@ class _AiCopilotSheetState extends ConsumerState<AiCopilotSheet> {
         }
 
         final isUser = msg.type == AiChatMessageType.user;
+        final maxWidth = isUser
+            ? 280.0
+            : (widget.isSideSheet
+                  ? AppTokens.sideSheetWidth - 48
+                  : MediaQuery.of(context).size.width * 0.88);
 
         return Align(
           alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -444,7 +448,7 @@ class _AiCopilotSheetState extends ConsumerState<AiCopilotSheet> {
               horizontal: AppTokens.spaceMd,
               vertical: AppTokens.spaceSm,
             ),
-            constraints: const BoxConstraints(maxWidth: 280),
+            constraints: BoxConstraints(maxWidth: maxWidth),
             decoration: BoxDecoration(
               color: isUser
                   ? theme.colorScheme.primary
@@ -460,14 +464,14 @@ class _AiCopilotSheetState extends ConsumerState<AiCopilotSheet> {
                           : AppTokens.borderSubtleLight,
                     ),
             ),
-            child: Text(
-              msg.content,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: isUser
-                    ? theme.colorScheme.onPrimary
-                    : theme.colorScheme.onSurface,
-              ),
-            ),
+            child: isUser
+                ? Text(
+                    msg.content,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onPrimary,
+                    ),
+                  )
+                : MarkdownContentView(content: msg.content, compact: true),
           ),
         );
       },
@@ -481,11 +485,13 @@ class _AiCopilotSheetState extends ConsumerState<AiCopilotSheet> {
   ) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final isConfigError = errorMessage.contains('未配置') ||
+    final isConfigError =
+        errorMessage.contains('未配置') ||
         errorMessage.contains('API Key') ||
         errorMessage.contains('401') ||
         errorMessage.toLowerCase().contains('unauthorized') ||
-        errorMessage.toLowerCase().contains('config') || errorMessage.toLowerCase().contains('not configured');
+        errorMessage.toLowerCase().contains('config') ||
+        errorMessage.toLowerCase().contains('not configured');
 
     return Container(
       margin: const EdgeInsets.symmetric(
@@ -500,7 +506,9 @@ class _AiCopilotSheetState extends ConsumerState<AiCopilotSheet> {
         color: AppTokens.colorDanger.withValues(alpha: AppTokens.alphaTintSoft),
         borderRadius: BorderRadius.circular(AppTokens.radiusButton),
         border: Border.all(
-          color: AppTokens.colorDanger.withValues(alpha: AppTokens.alphaBorderEmphasis),
+          color: AppTokens.colorDanger.withValues(
+            alpha: AppTokens.alphaBorderEmphasis,
+          ),
           width: 1,
         ),
       ),

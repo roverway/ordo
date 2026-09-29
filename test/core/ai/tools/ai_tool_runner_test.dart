@@ -182,6 +182,50 @@ void main() {
       expect(result.taskProposal!['title'], '需求评审会议');
       expect(result.taskProposal!['priority'], 2);
     });
+
+    test(
+      'injects conversation history before user prompt when history is provided',
+      () async {
+        late _MockAiHttpClient mockHttpClient;
+        mockHttpClient = _MockAiHttpClient((uri, headers, body) async {
+          return const AiHttpResponse(
+            statusCode: 200,
+            body: jsonFinalAnswerOpenAi,
+          );
+        });
+
+        final client = AiClient(httpClient: mockHttpClient);
+        final registry = AiToolRegistry.standard();
+        final runner = AiToolRunner(aiClient: client, registry: registry);
+
+        final context = AiToolContext(repository: repository);
+        final history = [
+          {'role': 'user', 'content': '帮我规划新功能开发'},
+          {'role': 'assistant', 'content': '已提议任务方案：《新功能开发》'},
+        ];
+
+        await runner.run(
+          config: testConfig,
+          context: context,
+          userPrompt: '把它细化拆解一下',
+          history: history,
+        );
+
+        expect(mockHttpClient.recordedBodies.isNotEmpty, isTrue);
+        final sentMessages =
+            mockHttpClient.recordedBodies.first['messages'] as List;
+
+        // 验证结构: system prompt -> 2 条 history -> 最新 user prompt
+        expect(sentMessages.length, 4);
+        expect(sentMessages[0]['role'], 'system');
+        expect(sentMessages[1]['role'], 'user');
+        expect(sentMessages[1]['content'], '帮我规划新功能开发');
+        expect(sentMessages[2]['role'], 'assistant');
+        expect(sentMessages[2]['content'], '已提议任务方案：《新功能开发》');
+        expect(sentMessages[3]['role'], 'user');
+        expect(sentMessages[3]['content'], '把它细化拆解一下');
+      },
+    );
   });
 }
 
@@ -227,14 +271,14 @@ const jsonCreateTaskToolCallOpenAi = '''
     {
       "message": {
         "role": "assistant",
-        "content": "已为您规划以下任务：",
+        "content": null,
         "tool_calls": [
           {
-            "id": "call_create_1",
+            "id": "call_456",
             "type": "function",
             "function": {
               "name": "create_tasks",
-              "arguments": "{\\"title\\": \\"需求评审会议\\", \\"priority\\": 2, \\"substeps\\": [\\"准备 PPT\\", \\"预约会议室\\"]}"
+              "arguments": "{\\"title\\": \\"需求评审会议\\", \\"priority\\": 2}"
             }
           }
         ]

@@ -99,58 +99,60 @@ void main() {
     });
 
     test('sendMessage 成功解析后生成用户消息与任务提案消息', () async {
-      final parseResult = AiTaskParseResult(
-        title: '周五前完成财务对账',
+      const parseResult = AiTaskParseResult(
+        title: '明天下午3点团队周会',
         priority: 2,
-        dueAt: DateTime(2026, 10, 2, 18, 0).millisecondsSinceEpoch,
-        substeps: const [
-          AiSubstep(title: '核对发票明细', sortOrder: 0),
-          AiSubstep(title: '导出银行流水', sortOrder: 1),
-        ],
+        substeps: [],
       );
 
       fakeParser.resultToReturn = parseResult;
 
       final controller = container.read(aiCopilotControllerProvider.notifier);
-      await controller.sendMessage('周五前完成财务对账');
+      await controller.sendMessage('明天下午3点团队周会');
 
       final state = container.read(aiCopilotControllerProvider);
       expect(state.messages.length, 2);
-
-      // 第一条：用户输入
       expect(state.messages[0].type, AiChatMessageType.user);
-      expect(state.messages[0].content, '周五前完成财务对账');
+      expect(state.messages[0].content, '明天下午3点团队周会');
 
-      // 第二条：任务提案
       expect(state.messages[1].type, AiChatMessageType.taskProposal);
-      expect(state.messages[1].proposal?.title, '周五前完成财务对账');
-      expect(state.messages[1].selectedSubstepIndices, const {0, 1});
-      expect(state.messages[1].isPersisted, isFalse);
+      expect(state.messages[1].proposal?.title, '明天下午3点团队周会');
+      expect(state.messages[1].proposal?.priority, 2);
+      expect(state.isLoading, isFalse);
     });
 
     test('toggleSubstep 能够正确选中与取消子步骤', () async {
       final parseResult = const AiTaskParseResult(
-        title: '测试任务',
+        title: '开发新功能',
         priority: 1,
         substeps: [
-          AiSubstep(title: '步骤 1', sortOrder: 0),
-          AiSubstep(title: '步骤 2', sortOrder: 1),
+          AiSubstep(title: '需求分析', sortOrder: 0),
+          AiSubstep(title: '接口定义', sortOrder: 1),
         ],
       );
 
       fakeParser.resultToReturn = parseResult;
 
       final controller = container.read(aiCopilotControllerProvider.notifier);
-      await controller.sendMessage('测试任务');
+      await controller.sendMessage('开发新功能');
 
       final msgId = container.read(aiCopilotControllerProvider).messages[1].id;
 
-      // 取消步骤 1
+      // 默认所有子步骤均被选中：{0, 1}
+      expect(
+        container
+            .read(aiCopilotControllerProvider)
+            .messages[1]
+            .selectedSubstepIndices,
+        const {0, 1},
+      );
+
+      // 点击步骤 0，取消选中
       controller.toggleSubstep(msgId, 0);
       var proposalMsg = container.read(aiCopilotControllerProvider).messages[1];
       expect(proposalMsg.selectedSubstepIndices, const {1});
 
-      // 再次点击步骤 1，恢复选中
+      // 再次点击步骤 0，恢复选中
       controller.toggleSubstep(msgId, 0);
       proposalMsg = container.read(aiCopilotControllerProvider).messages[1];
       expect(proposalMsg.selectedSubstepIndices, const {0, 1});
@@ -193,6 +195,31 @@ void main() {
       // 二次点击确认不应重复执行持久化
       await controller.confirmTaskProposal(msgId);
       expect(fakePersistenceService.persistCallCount, 1);
+    });
+
+    test('updateProposal 实时更新任务提案属性', () async {
+      const parseResult = AiTaskParseResult(
+        title: '原始标题',
+        priority: 0,
+        substeps: [],
+      );
+
+      fakeParser.resultToReturn = parseResult;
+
+      final controller = container.read(aiCopilotControllerProvider.notifier);
+      await controller.sendMessage('原始标题');
+
+      final msgId = container.read(aiCopilotControllerProvider).messages[1].id;
+      final updated = parseResult.copyWith(title: '修改后的新标题', priority: 3);
+
+      controller.updateProposal(msgId, updated);
+
+      final currentProposal = container
+          .read(aiCopilotControllerProvider)
+          .messages[1]
+          .proposal!;
+      expect(currentProposal.title, '修改后的新标题');
+      expect(currentProposal.priority, 3);
     });
 
     test('discardProposal 标记提案为已放弃', () async {

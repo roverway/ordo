@@ -97,7 +97,7 @@ class AiCopilotController extends Notifier<AiCopilotState> {
 
   /// Sends a natural language message from user.
   /// If online AI is configured, dispatches through unified [AiToolRunner] supporting
-  /// autonomous query and write proposals. Otherwise falls back to offline parser/report.
+  /// autonomous query, multi-turn history, and write proposals. Otherwise falls back to offline parser/report.
   Future<void> sendMessage(String text, {String locale = 'zh'}) async {
     if (state.isLoading) return;
 
@@ -182,6 +182,41 @@ class AiCopilotController extends Notifier<AiCopilotState> {
         return;
       }
 
+      // Build sliding window history for multi-turn conversational context
+      final historyList = <Map<String, dynamic>>[];
+      final previousMessages = state.messages.length > 1
+          ? state.messages.sublist(0, state.messages.length - 1)
+          : const <AiChatMessage>[];
+      final window = previousMessages.length > 10
+          ? previousMessages.sublist(previousMessages.length - 10)
+          : previousMessages;
+
+      for (final m in window) {
+        if (m.type == AiChatMessageType.user) {
+          historyList.add({'role': 'user', 'content': m.content});
+        } else if (m.type == AiChatMessageType.assistantText) {
+          if (m.content.trim().isNotEmpty) {
+            historyList.add({'role': 'assistant', 'content': m.content});
+          }
+        } else if (m.type == AiChatMessageType.taskProposal &&
+            m.proposal != null) {
+          final p = m.proposal!;
+          final subs = p.substeps.isNotEmpty
+              ? '（包含 ${p.substeps.length} 个子步骤：${p.substeps.map((s) => s.title).join('、')}）'
+              : '';
+          historyList.add({
+            'role': 'assistant',
+            'content': '已提议任务方案：《${p.title}》$subs',
+          });
+        } else if (m.type == AiChatMessageType.efficiencyReport &&
+            m.efficiencyStats != null) {
+          historyList.add({
+            'role': 'assistant',
+            'content': '已生成效能报告：总任务 ${m.efficiencyStats!.totalCount} 个。',
+          });
+        }
+      }
+
       // Online Agentic Tool Execution
       final repo = ref.read(todoRepositoryProvider);
       final toolContext = AiToolContext(repository: repo, locale: locale);
@@ -191,12 +226,13 @@ class AiCopilotController extends Notifier<AiCopilotState> {
         config: config,
         context: toolContext,
         userPrompt: trimmed,
+        history: historyList,
         locale: locale,
       );
 
       final newMessages = List<AiChatMessage>.from(state.messages);
 
-      // If a task creation was proposed
+      // If a task creation was proposed via tool
       if (runnerResult.taskProposal != null) {
         final proposal = AiTaskParseResult.fromJson(runnerResult.taskProposal!);
         final proposalMsgId = _generateId();
@@ -221,21 +257,71 @@ class AiCopilotController extends Notifier<AiCopilotState> {
         );
       }
 
-      // Fallback if neither was returned
-      if (runnerResult.taskProposal == null &&
-          runnerResult.text.trim().isEmpty) {
-        final proposal = await _parser.parse(
-          trimmed,
-          config: config,
-          locale: locale,
-        );
-        newMessages.add(
-          AiChatMessage.taskProposal(
-            id: _generateId(),
-            proposal: proposal,
-            createdAt: DateTime.now(),
-          ),
-        );
+      // Fallback / Progressive enhancement:
+      // If no task proposal was emitted by tool, check if user had explicit breakdown or creation intention
+      // or if assistant output contains structured list that should be converted into a proposal card.
+      if (runnerResult.taskProposal == null) {
+        final hasExplicitBreakdownIntent =
+            lower.contains('分解') ||
+            lower.contains('拆解') ||
+            lower.contains('细化') ||
+            lower.contains('拆细') ||
+            lower.contains('步骤') ||
+            lower.contains('break down') ||
+            lower.contains('decompose');
+
+        final looksLikeMarkdownList =
+            runnerResult.text.contains(
+              RegExp(r'(?:^|\n)\s*(?:\d+\.|\-|\*)\s+'),
+            ) &&
+            runnerResult.text.length < 500;
+
+        if (hasExplicitBreakdownIntent &&
+            (runnerResult.text.isEmpty || looksLikeMarkdownList)) {
+          try {
+            // Find reference target title from history if user used pronouns
+            String parsingInput = trimmed;
+            if (previousMessages.isNotEmpty) {
+              for (final prev in previousMessages.reversed) {
+                if (prev.proposal != null) {
+                  parsingInput = '${prev.proposal!.title}，$trimmed';
+                  break;
+                }
+              }
+            }
+
+            final proposal = await _parser.parse(
+              parsingInput,
+              config: config,
+              locale: locale,
+            );
+            if (proposal.title.isNotEmpty) {
+              newMessages.add(
+                AiChatMessage.taskProposal(
+                  id: _generateId(),
+                  proposal: proposal,
+                  createdAt: DateTime.now(),
+                ),
+              );
+            }
+          } catch (_) {
+            // Safe ignore, assistant text already present
+          }
+        } else if (runnerResult.text.trim().isEmpty) {
+          // Both proposal and text empty, fallback to parser
+          final proposal = await _parser.parse(
+            trimmed,
+            config: config,
+            locale: locale,
+          );
+          newMessages.add(
+            AiChatMessage.taskProposal(
+              id: _generateId(),
+              proposal: proposal,
+              createdAt: DateTime.now(),
+            ),
+          );
+        }
       }
 
       state = state.copyWith(messages: newMessages, isLoading: false);
