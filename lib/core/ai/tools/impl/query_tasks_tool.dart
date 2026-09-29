@@ -98,26 +98,26 @@ class QueryTasksTool extends AiTool {
         'description': 'Maximum number of tasks to return (default: 30).',
       },
     },
-    'required': [],
   };
 
-  int? _parseDateToUtcMs(dynamic raw) {
+  static int? _parseDateToUtcMs(dynamic raw) {
     if (raw == null) return null;
+    if (raw is int) return raw;
+    if (raw is num) return raw.toInt();
     final str = raw.toString().trim();
-    if (str.isEmpty) return null;
     final asInt = int.tryParse(str);
     if (asInt != null) return asInt;
     try {
-      final parsed = DateTime.tryParse(str);
-      if (parsed != null) return parsed.toUtc().millisecondsSinceEpoch;
-    } catch (_) {}
-    try {
-      final parsed = DateFormat('yyyy-MM-dd HH:mm').parse(str);
+      final parsed = DateTime.parse(str);
       return parsed.toUtc().millisecondsSinceEpoch;
     } catch (_) {}
     try {
-      final parsed = DateFormat('yyyy-MM-dd').parse(str);
-      return parsed.toUtc().millisecondsSinceEpoch;
+      final df = DateFormat('yyyy-MM-dd HH:mm');
+      return df.parse(str).toUtc().millisecondsSinceEpoch;
+    } catch (_) {}
+    try {
+      final df = DateFormat('yyyy-MM-dd');
+      return df.parse(str).toUtc().millisecondsSinceEpoch;
     } catch (_) {}
     return null;
   }
@@ -179,6 +179,23 @@ class QueryTasksTool extends AiTool {
     final searchQuery = arguments['searchQuery']?.toString();
     final limit = (arguments['limit'] as num?)?.toInt() ?? 30;
 
+    // Map completedScope and completion range
+    CompletedScopeEnum completedScope = CompletedScopeEnum.all;
+    if (arguments['completedScope'] != null) {
+      final scopeStr = arguments['completedScope'].toString();
+      for (final val in CompletedScopeEnum.values) {
+        if (val.name == scopeStr) {
+          completedScope = val;
+          break;
+        }
+      }
+    }
+
+    final completedAfterRaw = arguments['completedAfter'];
+    final completedBeforeRaw = arguments['completedBefore'];
+    final completedAfterUtcMs = _parseDateToUtcMs(completedAfterRaw);
+    final completedBeforeUtcMs = _parseDateToUtcMs(completedBeforeRaw);
+
     final criteria = FilterCriteria(
       dateScope: dateScope,
       statuses: statuses,
@@ -186,6 +203,9 @@ class QueryTasksTool extends AiTool {
       projectIds: projectIds,
       tagIds: tagIds,
       searchQuery: searchQuery,
+      completedScope: completedScope,
+      completedAfterUtcMs: completedAfterUtcMs,
+      completedBeforeUtcMs: completedBeforeUtcMs,
     );
 
     // 3. Prepare index structures for TaskQueryEngine
@@ -197,8 +217,8 @@ class QueryTasksTool extends AiTool {
     final tagsById = {for (final t in export.tags) t.id: t};
     final childrenIndex = indexChildrenByParent(export.tasks);
 
-    // 4. Run unified filterFlat
-    var matchedTasks = TaskQueryEngine.filterFlat(
+    // 4. Run unified filterFlat directly through TaskQueryEngine
+    final matchedTasks = TaskQueryEngine.filterFlat(
       tasks: export.tasks,
       criteria: criteria,
       projectsById: projectsById,
@@ -206,84 +226,7 @@ class QueryTasksTool extends AiTool {
       nowUtcMs: context.currentNowUtcMs,
     );
 
-    // 5. Apply completedScope / completed timeframe filtering if requested
-    final completedScope = arguments['completedScope']?.toString();
-    final completedAfterRaw = arguments['completedAfter'];
-    final completedBeforeRaw = arguments['completedBefore'];
-
-    if ((completedScope != null && completedScope != 'all') ||
-        completedAfterRaw != null ||
-        completedBeforeRaw != null) {
-      final nowLocal = DateTime.fromMillisecondsSinceEpoch(
-        context.currentNowUtcMs,
-        isUtc: true,
-      ).toLocal();
-      final todayStart = DateTime(nowLocal.year, nowLocal.month, nowLocal.day);
-
-      int? rangeStartUtcMs;
-      int? rangeEndUtcMs;
-
-      if (completedScope == 'today') {
-        rangeStartUtcMs = todayStart.toUtc().millisecondsSinceEpoch;
-        rangeEndUtcMs =
-            todayStart
-                .add(const Duration(days: 1))
-                .toUtc()
-                .millisecondsSinceEpoch -
-            1;
-      } else if (completedScope == 'yesterday') {
-        final yestStart = todayStart.subtract(const Duration(days: 1));
-        rangeStartUtcMs = yestStart.toUtc().millisecondsSinceEpoch;
-        rangeEndUtcMs = todayStart.toUtc().millisecondsSinceEpoch - 1;
-      } else if (completedScope == 'thisWeek') {
-        final weekday = todayStart.weekday; // 1=Mon .. 7=Sun
-        final weekStart = todayStart.subtract(Duration(days: weekday - 1));
-        rangeStartUtcMs = weekStart.toUtc().millisecondsSinceEpoch;
-        rangeEndUtcMs =
-            weekStart
-                .add(const Duration(days: 7))
-                .toUtc()
-                .millisecondsSinceEpoch -
-            1;
-      } else if (completedScope == 'lastWeek') {
-        final weekday = todayStart.weekday;
-        final thisWeekStart = todayStart.subtract(Duration(days: weekday - 1));
-        final lastWeekStart = thisWeekStart.subtract(const Duration(days: 7));
-        rangeStartUtcMs = lastWeekStart.toUtc().millisecondsSinceEpoch;
-        rangeEndUtcMs = thisWeekStart.toUtc().millisecondsSinceEpoch - 1;
-      }
-
-      if (completedAfterRaw != null) {
-        final customAfter = _parseDateToUtcMs(completedAfterRaw);
-        if (customAfter != null) {
-          rangeStartUtcMs = customAfter;
-        }
-      }
-      if (completedBeforeRaw != null) {
-        final customBefore = _parseDateToUtcMs(completedBeforeRaw);
-        if (customBefore != null) {
-          rangeEndUtcMs = customBefore;
-        }
-      }
-
-      matchedTasks = matchedTasks.where((task) {
-        final directChildren = childrenIndex[task.id] ?? const <Task>[];
-        final effectiveStatus = directChildren.isEmpty
-            ? task.status
-            : derivedStatus(task, directChildren);
-        if (effectiveStatus != TaskStatus.done) return false;
-
-        final compAt = derivedCompletedAt(task, childrenIndex);
-        if (compAt == null) return false;
-
-        if (rangeStartUtcMs != null && compAt < rangeStartUtcMs) return false;
-        if (rangeEndUtcMs != null && compAt > rangeEndUtcMs) return false;
-
-        return true;
-      }).toList();
-    }
-
-    // 6. Serialize matched tasks with complete metadata (completion time, subtask stats, etc.)
+    // 5. Serialize matched tasks with complete metadata (completion time, subtask stats, etc.)
     final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
     final limited = matchedTasks.take(limit).map((Task t) {
       final proj = projectsById[t.projectId];
@@ -344,8 +287,8 @@ class QueryTasksTool extends AiTool {
         'startDate': ?startStr,
         'dueDate': ?dueStr,
         'isCompleted': isDone,
-        if (completedStr != null) 'completedDate': completedStr,
-        if (effectiveCompAt != null) 'completedAt': effectiveCompAt,
+        'completedDate': ?completedStr,
+        'completedAt': ?effectiveCompAt,
         'createdDate': createdStr,
         'createdAt': t.createdAt,
         if (directChildren.isNotEmpty) ...{

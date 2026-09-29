@@ -19,6 +19,17 @@ enum DateScopeEnum {
   completedToday,
 }
 
+
+/// 完成时间筛选范围枚举。
+enum CompletedScopeEnum {
+  all,
+  today,
+  yesterday,
+  thisWeek,
+  lastWeek,
+  customRange,
+}
+
 /// 层级筛选范围枚举。
 enum HierarchyScopeEnum { all, rootOnly, subtasksOnly }
 
@@ -34,6 +45,9 @@ class FilterCriteria {
     this.dateScope = DateScopeEnum.all,
     this.customDateStart,
     this.customDateEnd,
+    this.completedScope = CompletedScopeEnum.all,
+    this.completedAfterUtcMs,
+    this.completedBeforeUtcMs,
     this.hierarchyScope = HierarchyScopeEnum.all,
     this.searchQuery,
   });
@@ -65,6 +79,15 @@ class FilterCriteria {
   /// 自定义截止时间（UTC 毫秒）。
   final int? customDateEnd;
 
+  /// 完成时间范围。
+  final CompletedScopeEnum completedScope;
+
+  /// 完成时间起始（UTC 毫秒）。
+  final int? completedAfterUtcMs;
+
+  /// 完成时间截止（UTC 毫秒）。
+  final int? completedBeforeUtcMs;
+
   /// 层级范围。
   final HierarchyScopeEnum hierarchyScope;
 
@@ -79,6 +102,9 @@ class FilterCriteria {
         priorities.isNotEmpty ||
         statuses.isNotEmpty ||
         dateScope != DateScopeEnum.all ||
+        completedScope != CompletedScopeEnum.all ||
+        completedAfterUtcMs != null ||
+        completedBeforeUtcMs != null ||
         hierarchyScope != HierarchyScopeEnum.all ||
         (searchQuery != null && searchQuery!.trim().isNotEmpty);
   }
@@ -93,6 +119,9 @@ class FilterCriteria {
     DateScopeEnum? dateScope,
     int? customDateStart,
     int? customDateEnd,
+    CompletedScopeEnum? completedScope,
+    int? completedAfterUtcMs,
+    int? completedBeforeUtcMs,
     HierarchyScopeEnum? hierarchyScope,
     String? searchQuery,
   }) {
@@ -106,6 +135,9 @@ class FilterCriteria {
       dateScope: dateScope ?? this.dateScope,
       customDateStart: customDateStart ?? this.customDateStart,
       customDateEnd: customDateEnd ?? this.customDateEnd,
+      completedScope: completedScope ?? this.completedScope,
+      completedAfterUtcMs: completedAfterUtcMs ?? this.completedAfterUtcMs,
+      completedBeforeUtcMs: completedBeforeUtcMs ?? this.completedBeforeUtcMs,
       hierarchyScope: hierarchyScope ?? this.hierarchyScope,
       searchQuery: searchQuery ?? this.searchQuery,
     );
@@ -122,6 +154,11 @@ class FilterCriteria {
       'dateScope': dateScope.name,
       if (customDateStart != null) 'customDateStart': customDateStart,
       if (customDateEnd != null) 'customDateEnd': customDateEnd,
+      'completedScope': completedScope.name,
+      if (completedAfterUtcMs != null)
+        'completedAfterUtcMs': completedAfterUtcMs,
+      if (completedBeforeUtcMs != null)
+        'completedBeforeUtcMs': completedBeforeUtcMs,
       'hierarchyScope': hierarchyScope.name,
       if (searchQuery != null) 'searchQuery': searchQuery,
     };
@@ -167,6 +204,12 @@ class FilterCriteria {
       ),
       customDateStart: json['customDateStart'] as int?,
       customDateEnd: json['customDateEnd'] as int?,
+      completedScope: CompletedScopeEnum.values.firstWhere(
+        (e) => e.name == json['completedScope'],
+        orElse: () => CompletedScopeEnum.all,
+      ),
+      completedAfterUtcMs: json['completedAfterUtcMs'] as int?,
+      completedBeforeUtcMs: json['completedBeforeUtcMs'] as int?,
       hierarchyScope: HierarchyScopeEnum.values.firstWhere(
         (e) => e.name == json['hierarchyScope'],
         orElse: () => HierarchyScopeEnum.all,
@@ -188,6 +231,9 @@ class FilterCriteria {
         other.dateScope == dateScope &&
         other.customDateStart == customDateStart &&
         other.customDateEnd == customDateEnd &&
+        other.completedScope == completedScope &&
+        other.completedAfterUtcMs == completedAfterUtcMs &&
+        other.completedBeforeUtcMs == completedBeforeUtcMs &&
         other.hierarchyScope == hierarchyScope &&
         other.searchQuery == searchQuery;
   }
@@ -203,6 +249,9 @@ class FilterCriteria {
     dateScope,
     customDateStart,
     customDateEnd,
+    completedScope,
+    completedAfterUtcMs,
+    completedBeforeUtcMs,
     hierarchyScope,
     searchQuery,
   );
@@ -583,8 +632,76 @@ bool matchesFilter(
     }
   }
 
+  // 9. 完成时间范围筛选（基于派生状态和派生完成时间）
+  if (filter.completedScope != CompletedScopeEnum.all ||
+      filter.completedAfterUtcMs != null ||
+      filter.completedBeforeUtcMs != null) {
+    if (effectiveStatus != TaskStatus.done) return false;
+
+    final compAt = derivedCompletedAt(task, effectiveChildrenIndex);
+    if (compAt == null) return false;
+
+    final localNow = DateTime.fromMillisecondsSinceEpoch(
+      nowUtcMs,
+      isUtc: true,
+    ).toLocal();
+    final todayStart = DateTime(localNow.year, localNow.month, localNow.day);
+
+    int? rangeStartUtcMs;
+    int? rangeEndUtcMs;
+
+    switch (filter.completedScope) {
+      case CompletedScopeEnum.today:
+        rangeStartUtcMs = todayStart.toUtc().millisecondsSinceEpoch;
+        rangeEndUtcMs =
+            todayStart
+                .add(const Duration(days: 1))
+                .toUtc()
+                .millisecondsSinceEpoch -
+            1;
+        break;
+      case CompletedScopeEnum.yesterday:
+        final yestStart = todayStart.subtract(const Duration(days: 1));
+        rangeStartUtcMs = yestStart.toUtc().millisecondsSinceEpoch;
+        rangeEndUtcMs = todayStart.toUtc().millisecondsSinceEpoch - 1;
+        break;
+      case CompletedScopeEnum.thisWeek:
+        final weekday = todayStart.weekday; // 1=Mon .. 7=Sun
+        final weekStart = todayStart.subtract(Duration(days: weekday - 1));
+        rangeStartUtcMs = weekStart.toUtc().millisecondsSinceEpoch;
+        rangeEndUtcMs =
+            weekStart
+                .add(const Duration(days: 7))
+                .toUtc()
+                .millisecondsSinceEpoch -
+            1;
+        break;
+      case CompletedScopeEnum.lastWeek:
+        final weekday = todayStart.weekday;
+        final thisWeekStart = todayStart.subtract(Duration(days: weekday - 1));
+        final lastWeekStart = thisWeekStart.subtract(const Duration(days: 7));
+        rangeStartUtcMs = lastWeekStart.toUtc().millisecondsSinceEpoch;
+        rangeEndUtcMs = thisWeekStart.toUtc().millisecondsSinceEpoch - 1;
+        break;
+      case CompletedScopeEnum.customRange:
+      case CompletedScopeEnum.all:
+        break;
+    }
+
+    if (filter.completedAfterUtcMs != null) {
+      rangeStartUtcMs = filter.completedAfterUtcMs;
+    }
+    if (filter.completedBeforeUtcMs != null) {
+      rangeEndUtcMs = filter.completedBeforeUtcMs;
+    }
+
+    if (rangeStartUtcMs != null && compAt < rangeStartUtcMs) return false;
+    if (rangeEndUtcMs != null && compAt > rangeEndUtcMs) return false;
+  }
+
   return true;
 }
+
 
 /// 纯函数：对面板内的任务列表进行排序。
 List<Task> sortPanelTasks(

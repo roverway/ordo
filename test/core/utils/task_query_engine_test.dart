@@ -112,6 +112,63 @@ void main() {
 
       expect(results.map((t) => t.id).toList(), ['done_today']);
     });
+
+    test('completedScope.yesterday 与 thisWeek：统一搜索引擎原生支持完成时间范围筛选', () {
+      final tasks = [
+        createTask(
+          'done_today',
+          status: TaskStatus.done,
+          completedAt: todayStartUtcMs + 3600000,
+        ),
+        createTask(
+          'done_yesterday',
+          status: TaskStatus.done,
+          completedAt: yesterdayUtcMs,
+        ),
+        createTask(
+          'done_long_ago',
+          status: TaskStatus.done,
+          completedAt: DateTime(2026, 8, 1).toUtc().millisecondsSinceEpoch,
+        ),
+      ];
+
+      // 测试 yesterday
+      final yesterdayResults = TaskQueryEngine.filterFlat(
+        tasks: tasks,
+        criteria: const FilterCriteria(
+          completedScope: CompletedScopeEnum.yesterday,
+        ),
+        projectsById: {'p1': projectA},
+        taskTagIdsMap: const {},
+        nowUtcMs: nowUtcMs,
+      );
+      expect(yesterdayResults.map((t) => t.id).toList(), ['done_yesterday']);
+
+      // 测试 thisWeek (2026-09-03 周四，周一为 2026-08-31)
+      final thisWeekResults = TaskQueryEngine.filterFlat(
+        tasks: tasks,
+        criteria: const FilterCriteria(
+          completedScope: CompletedScopeEnum.thisWeek,
+        ),
+        projectsById: {'p1': projectA},
+        taskTagIdsMap: const {},
+        nowUtcMs: nowUtcMs,
+      );
+      expect(thisWeekResults.map((t) => t.id).toSet(), {
+        'done_today',
+        'done_yesterday',
+      });
+
+      // 测试绝对时间戳 completedAfterUtcMs
+      final afterResults = TaskQueryEngine.filterFlat(
+        tasks: tasks,
+        criteria: FilterCriteria(completedAfterUtcMs: todayStartUtcMs),
+        projectsById: {'p1': projectA},
+        taskTagIdsMap: const {},
+        nowUtcMs: nowUtcMs,
+      );
+      expect(afterResults.map((t) => t.id).toList(), ['done_today']);
+    });
   });
 
   group('TaskQueryEngine.filterTree', () {
