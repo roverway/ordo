@@ -532,6 +532,15 @@ abstract final class AppTokens {
   /// 弹出菜单项高度（M3 默认 48 的紧凑化；50-ui-ux §2.6 菜单规格）。
   static const double menuItemHeight = 40;
 
+  /// 搜索条容器高度（40，紧凑极简输入框）。
+  static const double searchBarHeight = 40;
+
+  /// Linear 风格筛选胶囊高度（28，极简紧凑药丸）。
+  static const double filterChipHeight = 28;
+
+  /// Linear 风格筛选下拉菜单项高度（36，紧凑浮动菜单）。
+  static const double filterMenuItemHeight = 36;
+
   /// 菜单项图标尺寸（统一各调用点 16/18/20 混用）。
   static const double menuItemIconSize = 18;
 

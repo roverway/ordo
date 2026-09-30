@@ -1,19 +1,20 @@
 // 筛选条（FR-VIEW-06）：状态筛选 + 标签筛选 + 时间段筛选 + 清除按钮。
 //
-// 横向可滚动紧凑筛选组合；任一筛选条件激活时显示「清除」（clearFilter）。
-// 本组件仅搜索页使用（M3 无其他调用方）；不感知 Provider，参数由调用方传入
-// （当前筛选状态 + 全部标签 + 回调）。全部颜色/圆角/间距使用 AppTokens。
+// 遵循 Linear 风格极致工业质感与乔布斯无冗余交互哲学：
+// - 精致紧凑的极简胶囊药丸（filterChipHeight = 28dp）；
+// - 未激活态微透边框卡片，激活态微光品牌色罩染与高亮描边；
+// - 下拉浮动菜单采用 Linear 紧凑卡片、圆角、极细微边框与打勾状态。
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/db/database.dart';
 import '../../core/db/tables.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../features/search/search_providers.dart';
-import 'app_menu_item.dart';
 
-/// 筛选条（FR-VIEW-06）。
+/// Linear 风格精致筛选条（FR-VIEW-06）。
 class TaskFilterBar extends StatelessWidget {
   const TaskFilterBar({
     super.key,
@@ -56,6 +57,10 @@ class TaskFilterBar extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final anyActive = status != null || tagId != null || range != TimeRange.all;
 
+    // 防御：tagId 指向已删除/不存在的标签时回退「全部」。
+    final selectedTag = tags.where((t) => t.id == tagId).firstOrNull;
+    final validTagId = selectedTag != null ? tagId : null;
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(
@@ -64,49 +69,57 @@ class TaskFilterBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _FilterDropdown(
+          // 状态筛选
+          _LinearFilterChip<TaskStatus?>(
             label: l10n.filterStatus,
-            child: _FilterMenu<TaskStatus?>(
-              value: status,
-              entries: [
-                MapEntry(null, l10n.filterAll),
-                for (final s in TaskStatus.values)
-                  MapEntry(s, _statusLabel(l10n, s)),
-              ],
-              onChanged: onStatusChanged,
-            ),
+            value: status,
+            isActive: status != null,
+            selectedText: status != null ? _statusLabel(l10n, status!) : null,
+            entries: [
+              MapEntry(null, l10n.filterAll),
+              for (final s in TaskStatus.values)
+                MapEntry(s, _statusLabel(l10n, s)),
+            ],
+            onChanged: onStatusChanged,
           ),
-          _FilterDropdown(
+          const SizedBox(width: AppTokens.spaceXs),
+
+          // 标签筛选
+          _LinearFilterChip<String?>(
             label: l10n.filterTag,
-            child: _FilterMenu<String?>(
-              // 防御：tagId 指向已删除/不存在的标签时回退「全部」。
-              value: tags.any((t) => t.id == tagId) ? tagId : null,
-              entries: [
-                MapEntry(null, l10n.filterAll),
-                for (final tag in tags) MapEntry(tag.id, tag.name),
-              ],
-              onChanged: onTagChanged,
-            ),
+            value: validTagId,
+            isActive: validTagId != null,
+            selectedText: selectedTag?.name,
+            entries: [
+              MapEntry(null, l10n.filterAll),
+              for (final tag in tags) MapEntry(tag.id, tag.name),
+            ],
+            onChanged: onTagChanged,
           ),
-          _FilterDropdown(
+          const SizedBox(width: AppTokens.spaceXs),
+
+          // 时间段筛选
+          _LinearFilterChip<TimeRange>(
             label: l10n.filterTimeRange,
-            child: _FilterMenu<TimeRange>(
-              value: range,
-              entries: [
-                for (final r in TimeRange.values)
-                  MapEntry(r, _timeRangeLabel(l10n, r)),
-              ],
-              onChanged: (value) {
-                if (value != null) onTimeRangeChanged(value);
-              },
-            ),
+            value: range,
+            isActive: range != TimeRange.all,
+            selectedText: range != TimeRange.all
+                ? _timeRangeLabel(l10n, range)
+                : null,
+            entries: [
+              for (final r in TimeRange.values)
+                MapEntry(r, _timeRangeLabel(l10n, r)),
+            ],
+            onChanged: (value) {
+              if (value != null) onTimeRangeChanged(value);
+            },
           ),
-          if (anyActive)
-            TextButton.icon(
-              onPressed: onClear,
-              icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
-              label: Text(l10n.clearFilter),
-            ),
+
+          // 清除全部激活筛选的小药丸
+          if (anyActive) ...[
+            const SizedBox(width: AppTokens.spaceXs),
+            _ClearFilterChip(onClear: onClear, label: l10n.clearFilter),
+          ],
         ],
       ),
     );
@@ -127,92 +140,218 @@ class TaskFilterBar extends StatelessWidget {
   };
 }
 
-/// 筛选弹出菜单（用户打磨 2026-08：与全局三点菜单同规格紧凑化）。
-///
-/// 替代 DropdownButton——后者的菜单项（48 高、默认文本样式）不受
-/// popupMenuTheme 管辖；本组件菜单项走共享 [AppMenuItem]（高 40 /
-/// bodyMedium，容器圆角/描边/底色/内边距由 popupMenuTheme 统一），当前
-/// 选中项带 check 图标；触发区显示选中项文字 + 下拉箭头。
-class _FilterMenu<T> extends StatelessWidget {
-  const _FilterMenu({
+/// Linear 风格紧凑筛选药丸。
+class _LinearFilterChip<T> extends StatelessWidget {
+  const _LinearFilterChip({
+    required this.label,
     required this.value,
+    required this.isActive,
+    required this.selectedText,
     required this.entries,
     required this.onChanged,
   });
 
-  /// 当前选中值（与 [entries] 的 key 比较）。
+  final String label;
   final T? value;
-
-  /// 可选项（值 + 文案），首项通常为「全部」。
+  final bool isActive;
+  final String? selectedText;
   final List<MapEntry<T?, String>> entries;
-
   final ValueChanged<T?> onChanged;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final selectedLabel = entries
-        .firstWhere((e) => e.key == value, orElse: () => entries.first)
-        .value;
-    return PopupMenuButton<T>(
-      padding: EdgeInsets.zero,
-      position: PopupMenuPosition.under,
-      onSelected: onChanged,
-      icon: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: AppTokens.spaceXxs),
-            child: Text(selectedLabel, style: theme.textTheme.bodyMedium),
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    final borderColor = isActive
+        ? colorScheme.primary.withValues(alpha: AppTokens.alphaBorderEmphasis)
+        : (isDark ? AppTokens.borderSubtleDark : AppTokens.borderSubtleLight);
+
+    final bgColor = isActive
+        ? colorScheme.primary.withValues(alpha: AppTokens.alphaTintFaint)
+        : (isDark
+              ? AppTokens.surfaceCardDark.withValues(
+                  alpha: AppTokens.alphaCardFrostedDark,
+                )
+              : AppTokens.surfaceCardLight.withValues(
+                  alpha: AppTokens.alphaCardFrostedLight,
+                ));
+
+    final textColor = isActive
+        ? colorScheme.primary
+        : colorScheme.onSurfaceVariant;
+
+    return Theme(
+      data: theme.copyWith(
+        popupMenuTheme: PopupMenuThemeData(
+          color: isDark
+              ? AppTokens.surfaceCardDark
+              : AppTokens.surfaceCardLight,
+          surfaceTintColor: Colors.transparent,
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+            side: BorderSide(
+              color: isDark
+                  ? AppTokens.borderSubtleDark
+                  : AppTokens.borderSubtleLight,
+              width: 1,
+            ),
           ),
-          const SizedBox(width: AppTokens.spaceXxs),
-          Icon(
-            Icons.arrow_drop_down,
-            size: 20,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ],
+        ),
       ),
-      itemBuilder: (_) => [
-        for (final entry in entries)
-          AppMenuItem<T>(
-            value: entry.key,
-            label: entry.value,
-            icon: entry.key == value ? Icons.check : null,
+      child: PopupMenuButton<T?>(
+        position: PopupMenuPosition.under,
+        offset: const Offset(0, 4),
+        onSelected: (val) {
+          HapticFeedback.selectionClick();
+          onChanged(val);
+        },
+        itemBuilder: (context) => [
+          for (final entry in entries)
+            PopupMenuItem<T?>(
+              value: entry.key,
+              height: AppTokens.filterMenuItemHeight,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTokens.spaceSm,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      entry.value,
+                      style: TextStyle(
+                        fontSize: AppTokens.textSecondarySize,
+                        fontWeight: entry.key == value
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                        color: entry.key == value
+                            ? colorScheme.primary
+                            : colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                  if (entry.key == value) ...[
+                    const SizedBox(width: AppTokens.spaceXs),
+                    Icon(
+                      Icons.check_rounded,
+                      size: 14,
+                      color: colorScheme.primary,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+        ],
+        child: AnimatedContainer(
+          duration: AppTokens.motionFast,
+          height: AppTokens.filterChipHeight,
+          padding: const EdgeInsets.symmetric(horizontal: AppTokens.spaceSm),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+            border: Border.all(color: borderColor, width: 1),
           ),
-      ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: AppTokens.textCaptionSize,
+                  fontWeight: FontWeight.w500,
+                  color: textColor,
+                ),
+              ),
+              if (selectedText != null) ...[
+                Text(
+                  ': ',
+                  style: TextStyle(
+                    fontSize: AppTokens.textCaptionSize,
+                    fontWeight: FontWeight.w500,
+                    color: textColor,
+                  ),
+                ),
+                Text(
+                  selectedText!,
+                  style: TextStyle(
+                    fontSize: AppTokens.textCaptionSize,
+                    fontWeight: FontWeight.w600,
+                    color: isActive
+                        ? colorScheme.primary
+                        : colorScheme.onSurface,
+                  ),
+                ),
+              ],
+              const SizedBox(width: AppTokens.spaceXxs),
+              Icon(
+                Icons.keyboard_arrow_down_rounded,
+                size: 14,
+                color: textColor,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
 
-/// 单个筛选下拉的容器（标签 + 下拉，chip 化外观）。
-class _FilterDropdown extends StatelessWidget {
-  const _FilterDropdown({required this.label, required this.child});
+/// Linear 风格清除筛选按钮。
+class _ClearFilterChip extends StatelessWidget {
+  const _ClearFilterChip({required this.onClear, required this.label});
 
+  final VoidCallback onClear;
   final String label;
-  final Widget child;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      margin: const EdgeInsets.only(right: AppTokens.spaceXs),
-      padding: const EdgeInsets.only(left: AppTokens.spaceSm),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaContentMuted),
-        borderRadius: BorderRadius.circular(AppTokens.radiusChip),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    final borderColor = isDark
+        ? AppTokens.borderSubtleDark
+        : AppTokens.borderSubtleLight;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onClear();
+      },
+      child: Container(
+        height: AppTokens.filterChipHeight,
+        padding: const EdgeInsets.symmetric(horizontal: AppTokens.spaceSm),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest.withValues(
+            alpha: AppTokens.alphaTintSoft,
           ),
-          child,
-        ],
+          borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+          border: Border.all(color: borderColor, width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.close_rounded,
+              size: 12,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: AppTokens.spaceXxs),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: AppTokens.textCaptionSize,
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

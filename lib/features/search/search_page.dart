@@ -1,10 +1,11 @@
 // 搜索页（FR-VIEW-05 / FR-VIEW-06，M3）。
 //
 // 遵循 Linear 风格极致工业质感与乔布斯无冗余交互哲学：
-// - 极度扁平、紧凑的微发光搜索输入条，右侧标配触觉反馈「取消」键；
+// - 极简紧凑的微发光搜索输入条，左侧集成触觉反馈返回键，移除了冗余的取消按钮；
+// - 输入框与占位文本绝对垂直居中（零魔法值，纯净度量对齐）；
 // - 输入即搜：防抖 300ms（searchQueryProvider），按标题/描述/备注匹配；
 // - 结果卡片采用 Linear 纯净无杂质列表，支持微交互滑动与状态标记；
-// - 空搜索态优雅陈列「最近搜索」历史胶囊，支持轻触快速重填与一键清除。
+// - 空搜索态优雅陈列「最近搜索」历史胶囊，支持轻触快速重填与一键清空。
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -104,20 +105,38 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Linear 风格沉浸式搜索顶栏（搜索条 + 取消按键）
+            // Linear 风格沉浸式搜索顶栏（左侧返回 + 居中搜索框，去除了冗余取消按钮）
             Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppTokens.spaceMd,
-                AppTokens.spaceSm,
-                AppTokens.spaceSm,
-                AppTokens.spaceXs,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTokens.spaceMd,
+                vertical: AppTokens.spaceSm,
               ),
               child: Row(
                 children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                    tooltip: MaterialLocalizations.of(
+                      context,
+                    ).backButtonTooltip,
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 36,
+                      minHeight: 36,
+                    ),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      Navigator.of(context).maybePop();
+                    },
+                  ),
+                  const SizedBox(width: AppTokens.spaceXs),
                   Expanded(
                     child: AnimatedContainer(
                       duration: AppTokens.motionFast,
-                      height: 40,
+                      height: AppTokens.searchBarHeight,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTokens.spaceSm,
+                      ),
                       decoration: BoxDecoration(
                         color: inputBg,
                         borderRadius: BorderRadius.circular(
@@ -136,85 +155,69 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                               ]
                             : null,
                       ),
-                      child: TextField(
-                        controller: _queryController,
-                        focusNode: _focusNode,
-                        autofocus: true,
-                        textInputAction: TextInputAction.search,
-                        onSubmitted: _onSearchSubmitted,
-                        onChanged: (value) {
-                          ref
-                              .read(searchQueryProvider.notifier)
-                              .onQueryChanged(value);
-                          setState(() {});
-                        },
-                        style: TextStyle(
-                          fontSize: AppTokens.textSecondarySize,
-                          color: colorScheme.onSurface,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: l10n.searchHint,
-                          hintStyle: TextStyle(
-                            fontSize: AppTokens.textSecondarySize,
-                            color: colorScheme.onSurfaceVariant.withValues(
-                              alpha: AppTokens.alphaContentMuted,
-                            ),
-                          ),
-                          prefixIcon: Icon(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Icon(
                             Icons.search,
                             size: 18,
                             color: _isFocused
                                 ? colorScheme.primary
                                 : colorScheme.onSurfaceVariant,
                           ),
-                          suffixIcon: _queryController.text.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(
-                                    Icons.close_rounded,
-                                    size: 16,
-                                  ),
-                                  splashRadius: 16,
-                                  onPressed: () {
-                                    _queryController.clear();
-                                    ref
-                                        .read(searchQueryProvider.notifier)
-                                        .setImmediate('');
-                                    setState(() {});
-                                  },
-                                )
-                              : null,
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: AppTokens.spaceSm,
-                            vertical: 10,
+                          const SizedBox(width: AppTokens.spaceXs),
+                          Expanded(
+                            child: TextField(
+                              controller: _queryController,
+                              focusNode: _focusNode,
+                              autofocus: true,
+                              textAlignVertical: TextAlignVertical.center,
+                              textInputAction: TextInputAction.search,
+                              onSubmitted: _onSearchSubmitted,
+                              onChanged: (value) {
+                                ref
+                                    .read(searchQueryProvider.notifier)
+                                    .onQueryChanged(value);
+                                setState(() {});
+                              },
+                              style: TextStyle(
+                                fontSize: AppTokens.textSecondarySize,
+                                color: colorScheme.onSurface,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: l10n.searchHint,
+                                hintStyle: TextStyle(
+                                  fontSize: AppTokens.textSecondarySize,
+                                  color: colorScheme.onSurfaceVariant
+                                      .withValues(
+                                        alpha: AppTokens.alphaContentMuted,
+                                      ),
+                                ),
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                isCollapsed: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppTokens.spaceXs),
-                  // 右侧原生优雅「取消」按钮
-                  TextButton(
-                    onPressed: () {
-                      HapticFeedback.selectionClick();
-                      Navigator.of(context).pop();
-                    },
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppTokens.spaceSm,
-                        vertical: 8,
-                      ),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    child: Text(
-                      l10n.cancel,
-                      style: TextStyle(
-                        fontSize: AppTokens.textSecondarySize,
-                        fontWeight: FontWeight.w500,
-                        color: colorScheme.primary,
+                          if (_queryController.text.isNotEmpty)
+                            IconButton(
+                              icon: const Icon(Icons.close_rounded, size: 16),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 28,
+                                minHeight: 28,
+                              ),
+                              onPressed: () {
+                                _queryController.clear();
+                                ref
+                                    .read(searchQueryProvider.notifier)
+                                    .setImmediate('');
+                                setState(() {});
+                              },
+                            ),
+                        ],
                       ),
                     ),
                   ),
@@ -321,7 +324,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppTokens.spaceXs,
-                    vertical: 2,
+                    vertical: AppTokens.spaceMicro,
                   ),
                   child: Text(
                     l10n.localeName == 'zh' ? '清空' : 'Clear',
@@ -348,7 +351,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppTokens.spaceSm,
-                      vertical: 5,
+                      vertical: AppTokens.spaceXxs,
                     ),
                     decoration: BoxDecoration(
                       color: chipBg,
@@ -365,7 +368,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                             alpha: AppTokens.alphaContentMuted,
                           ),
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: AppTokens.spaceXxs),
                         Text(
                           keyword,
                           style: TextStyle(
@@ -391,10 +394,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     List<Task> allTasks,
   ) {
     if (results.isEmpty) {
-      return EmptyState(
-        icon: Icons.search_off,
-        message: l10n.emptySearch,
-      );
+      return EmptyState(icon: Icons.search_off, message: l10n.emptySearch);
     }
 
     final projects =
@@ -432,7 +432,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     .read(todoRepositoryProvider)
                     .updateTask(
                       task.id,
-                      status: (done ?? false) ? TaskStatus.done : TaskStatus.todo,
+                      status: (done ?? false)
+                          ? TaskStatus.done
+                          : TaskStatus.todo,
                     );
               },
             ),

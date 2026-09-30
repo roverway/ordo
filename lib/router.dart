@@ -29,41 +29,109 @@ import 'shared/widgets/app_shell.dart';
 /// 仅用于「下级页」路由（/task/:id、/settings 等 push 目标）；
 /// 一级目的地（今日/日历/项目/标签等 tab 级切换）在 ShellRoute 内通过
 /// NoTransitionPage 实现静默无闪烁切换，左侧栏 100% 物理常驻静止。
+/// 下级钻取页面转场（Push 目标：/task/:id、/settings、/search 等）：
+/// - 新页面：右→左滑入 + 淡入；
+/// - 旧页面（被推入下层）：优雅淡出 + 轻微视差偏移（-0.25），杜绝页面重叠与残留闪烁；
+/// - 使用 ValueKey(state.uri.toString()) 保证精准路由标识。
 Page<void> _slideFadePage(
   BuildContext context,
   GoRouterState state,
   Widget child,
 ) {
   return CustomTransitionPage<void>(
-    key: state.pageKey,
+    key: ValueKey(state.uri.toString()),
     transitionDuration: motionNormal(context),
     reverseTransitionDuration: motionNormal(context),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      final slide = Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
-          .animate(
-            CurvedAnimation(parent: animation, curve: motionCurve(context)),
-          );
-      return FadeTransition(
-        opacity: animation,
-        child: SlideTransition(position: slide, child: child),
+      final curve = motionCurve(context);
+
+      final slideIn = Tween<Offset>(
+        begin: const Offset(1, 0),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(parent: animation, curve: curve));
+
+      final fadeIn = CurvedAnimation(parent: animation, curve: curve);
+
+      final fadeOut = Tween<double>(begin: 1.0, end: 0.5).animate(
+        CurvedAnimation(parent: secondaryAnimation, curve: curve),
+      );
+      final slideOut = Tween<Offset>(
+        begin: Offset.zero,
+        end: const Offset(-0.25, 0),
+      ).animate(CurvedAnimation(parent: secondaryAnimation, curve: curve));
+
+      return SlideTransition(
+        position: slideOut,
+        child: FadeTransition(
+          opacity: fadeOut,
+          child: SlideTransition(
+            position: slideIn,
+            child: FadeTransition(
+              opacity: fadeIn,
+              child: child,
+            ),
+          ),
+        ),
       );
     },
     child: child,
   );
 }
 
-/// 响应式主视图转场页面：
-/// - 移动端（<600dp）：采用统一的右→左滑动淡入转场，使任务组、视图组、设置、搜索的切换动效完全和谐统一；
-/// - 电脑端（>=600dp）：采用 NoTransitionPage 静默无闪烁切换，确保左侧常驻侧边栏稳定不撕裂。
+/// 平级主页面转场（任务组内、视图组内、任务组与视图组之间）：
+/// - 遵循乔布斯极简审美与 Apple HIG / Linear 设计哲学：
+///   主导航（今日/收件箱/项目清单/日历/四象限/项目概览/自定义视图）为同级维度映射，
+///   绝非层级下钻，统一采用微呼吸交叉淡入淡出（Subtle Cross-Fade with Micro-Scale）。
+/// - 进入页面（Entering）：优雅淡入（0 -> 1），伴随轻微自然的微呼吸展开（0.985 -> 1.0）；
+/// - 退出页面（Exiting / SecondaryAnimation）：同步平滑淡出（1 -> 0），伴随微收缩（1.0 -> 0.985）；
+/// - 动效时长 motionNormal（200ms），曲线 Curves.easeOutCubic；
+/// - 使用 ValueKey(state.uri.toString()) 确保同路径不同参数（如 /projects/1 到 /projects/2）
+///   之间切换时，也能触发平滑连贯的统一转场动效，杜绝部分页面“无动画”的问题；
+/// - 电脑端（>=600dp）保持 NoTransitionPage 极速静默切换，确保左侧常驻侧边栏稳定无抖动。
 Page<void> _responsiveMainPage(
   BuildContext context,
   GoRouterState state,
   Widget child,
 ) {
+  final pageKey = ValueKey(state.uri.toString());
   if (AppBreakpoints.isWide(context)) {
-    return NoTransitionPage(key: state.pageKey, child: child);
+    return NoTransitionPage(key: pageKey, child: child);
   }
-  return _slideFadePage(context, state, child);
+  return CustomTransitionPage<void>(
+    key: pageKey,
+    transitionDuration: motionNormal(context),
+    reverseTransitionDuration: motionNormal(context),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curve = motionCurve(context);
+
+      // 进入页面的淡入与微缩放（0.985 -> 1.0）
+      final fadeIn = CurvedAnimation(parent: animation, curve: curve);
+      final scaleIn = Tween<double>(begin: 0.985, end: 1.0).animate(fadeIn);
+
+      // 退出页面的淡出与微缩放（1.0 -> 0.985）
+      final fadeOut = Tween<double>(begin: 1.0, end: 0.0).animate(
+        CurvedAnimation(parent: secondaryAnimation, curve: curve),
+      );
+      final scaleOut = Tween<double>(begin: 1.0, end: 0.985).animate(
+        CurvedAnimation(parent: secondaryAnimation, curve: curve),
+      );
+
+      return FadeTransition(
+        opacity: fadeIn,
+        child: ScaleTransition(
+          scale: scaleIn,
+          child: FadeTransition(
+            opacity: fadeOut,
+            child: ScaleTransition(
+              scale: scaleOut,
+              child: child,
+            ),
+          ),
+        ),
+      );
+    },
+    child: child,
+  );
 }
 
 /// Global routing table — single source of truth (30-architecture.md §4).

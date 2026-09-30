@@ -56,6 +56,7 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
     final projectsAsync = ref.watch(projectsStreamProvider);
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         bottom: false,
         child: groupingAsync.when(

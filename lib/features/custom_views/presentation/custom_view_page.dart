@@ -94,11 +94,11 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
 
     return viewAsync.when(
       loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (err, _) => Scaffold(body: Center(child: Text(err.toString()))),
+          const Scaffold(backgroundColor: Colors.transparent, body: Center(child: CircularProgressIndicator())),
+      error: (err, _) => Scaffold(backgroundColor: Colors.transparent, body: Center(child: Text(err.toString()))),
       data: (CustomView? view) {
         if (view == null) {
-          return Scaffold(body: Center(child: Text(l10n.noCustomViews)));
+          return Scaffold(backgroundColor: Colors.transparent, body: Center(child: Text(l10n.noCustomViews)));
         }
 
         final panels = ref.watch(customViewPanelsProvider(widget.viewId));
@@ -112,6 +112,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
 
         if (panels.isEmpty) {
           return Scaffold(
+            backgroundColor: Colors.transparent,
             body: SafeArea(
               bottom: false,
               child: Column(
@@ -182,6 +183,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
         if (isKanban) {
           // 看板模式：横向多列滚动
           return Scaffold(
+            backgroundColor: Colors.transparent,
             body: SafeArea(
               bottom: false,
               child: Column(

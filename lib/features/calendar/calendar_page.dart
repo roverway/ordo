@@ -47,6 +47,7 @@ class CalendarPage extends ConsumerWidget {
     final bucketsAsync = ref.watch(calendarBucketsProvider);
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         bottom: false,
         child: Column(
