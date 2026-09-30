@@ -148,8 +148,8 @@ void main() {
     testWidgets('点击 FAB 打开 TaskCreateSheet（恒显示）', (tester) async {
       await _pumpInbox(tester, tasks: [_task('leaf', title: '叶子任务')]);
 
-      expect(find.byType(FloatingActionButton), findsOneWidget);
-      await tester.tap(find.byType(FloatingActionButton));
+      expect(find.byIcon(Icons.add_rounded), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.add_rounded));
       await tester.pumpAndSettle();
 
       // 弹窗打开（不再是全屏 /task/new 路由）。
@@ -163,10 +163,10 @@ void main() {
       // TaskTree 空态（ARB：emptyProjectDetail）。
       expect(find.text('还没有任务，点击下方按钮新建'), findsOneWidget);
       // FAB 恒显示（收件箱项目恒存在）；旧版空态「添加任务」按钮已移除。
-      expect(find.byType(FloatingActionButton), findsOneWidget);
+      expect(find.byIcon(Icons.add_rounded), findsOneWidget);
       expect(find.text('添加任务'), findsNothing);
 
-      await tester.tap(find.byType(FloatingActionButton));
+      await tester.tap(find.byIcon(Icons.add_rounded));
       await tester.pumpAndSettle();
 
       expect(find.byType(TaskCreateSheet), findsOneWidget);

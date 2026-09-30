@@ -17,7 +17,7 @@ class AiTaskParser {
 
   /// Extracts the innermost or outermost JSON object payload from raw LLM text,
   /// stripping code block fences (```json ... ```) and conversational banter.
-    static String? extractJsonPayload(String response) {
+  static String? extractJsonPayload(String response) {
     var text = response.trim();
     if (text.isEmpty) return null;
 

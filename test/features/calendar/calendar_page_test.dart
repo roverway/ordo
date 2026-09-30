@@ -247,7 +247,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // 议程联动区出现：任务行 A、B（新建入口统一走底部 FAB，头部无按钮）。
-    expect(find.byType(FloatingActionButton), findsOneWidget);
+    expect(find.byIcon(Icons.add_rounded), findsOneWidget);
     expect(find.text('A'), findsOneWidget);
     expect(find.text('B'), findsOneWidget);
   });
@@ -271,7 +271,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // 新建入口 = 底部 FAB（与选中日联动）
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.byIcon(Icons.add_rounded));
     await tester.pumpAndSettle();
 
     // 打开的是底部弹窗
@@ -462,7 +462,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // 打开新建任务（底部 FAB）
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.byIcon(Icons.add_rounded));
     await tester.pumpAndSettle();
     expect(find.byType(TaskCreateSheet), findsOneWidget);
 

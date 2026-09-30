@@ -19,6 +19,7 @@ import '../../shared/widgets/page_hero_header.dart';
 import '../../shared/widgets/scope_switcher_sheet.dart';
 import '../../shared/widgets/simple_task_tile.dart';
 import '../projects/project_providers.dart';
+import '../tasks/page_context_provider.dart';
 import '../tasks/task_edit_page.dart';
 import '../tasks/task_providers.dart';
 import '../tasks/widgets/task_create_sheet.dart';
@@ -45,6 +46,13 @@ class CalendarPage extends ConsumerWidget {
     final isNarrow = AppBreakpoints.isNarrow(context);
     final state = ref.watch(calendarStateProvider);
     final bucketsAsync = ref.watch(calendarBucketsProvider);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(pageContextScopeProvider.notifier).setCalendarDate(
+            state.selectedDate,
+            route: '/calendar',
+          );
+    });
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -80,6 +88,12 @@ class CalendarPage extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: AppTokens.spaceMd),
+                  ] else ...[
+                    IconButton(
+                      tooltip: l10n.newTask,
+                      icon: const Icon(Icons.add_rounded),
+                      onPressed: () => _createTaskOnDay(context, ref, state.selectedDate),
+                    ),
                   ],
                   IconButton(
                     tooltip: l10n.goToToday,

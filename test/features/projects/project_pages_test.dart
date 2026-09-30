@@ -163,7 +163,7 @@ void main() {
 
       expect(find.text('工作'), findsOneWidget);
       expect(find.text('个人'), findsOneWidget);
-      expect(find.byType(FloatingActionButton), findsOneWidget);
+      expect(find.byIcon(Icons.add_rounded), findsOneWidget);
       expect(find.text('还没有项目'), findsNothing);
     });
 
@@ -259,7 +259,7 @@ void main() {
         projects: [_project('p1', '工作')],
       );
 
-      await tester.tap(find.byType(FloatingActionButton));
+      await tester.tap(find.byIcon(Icons.add_rounded));
       await tester.pumpAndSettle();
 
       // 模态底栏模式 (CreateListFolderSheet)
@@ -281,7 +281,7 @@ void main() {
         projects: [_project('p1', '工作')],
       );
 
-      await tester.tap(find.byType(FloatingActionButton));
+      await tester.tap(find.byIcon(Icons.add_rounded));
       await tester.pumpAndSettle();
 
       // 未输入名称时点完成，不会关闭
@@ -302,7 +302,7 @@ void main() {
         projects: [_project('p1', '工作')],
       );
 
-      await tester.tap(find.byType(FloatingActionButton));
+      await tester.tap(find.byIcon(Icons.add_rounded));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField), '新项目');
@@ -326,7 +326,7 @@ void main() {
         projects: [_project('p1', '工作')],
       );
 
-      await tester.tap(find.byType(FloatingActionButton));
+      await tester.tap(find.byIcon(Icons.add_rounded));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('取消'));
@@ -346,7 +346,7 @@ void main() {
         projects: [_project('p1', '工作')],
       );
 
-      await tester.tap(find.byType(FloatingActionButton));
+      await tester.tap(find.byIcon(Icons.add_rounded));
       await tester.pumpAndSettle();
 
       // 默认清单模式有所属文件夹
@@ -436,7 +436,7 @@ void main() {
       );
 
       expect(find.text('工作'), findsOneWidget);
-      expect(find.byType(FloatingActionButton), findsOneWidget);
+      expect(find.byIcon(Icons.add_rounded), findsOneWidget);
     });
 
     testWidgets('空项目任务列表显示空态', (tester) async {

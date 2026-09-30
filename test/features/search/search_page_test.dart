@@ -369,7 +369,7 @@ void main() {
     expect(find.text('任务-无时间'), findsOneWidget);
 
     // 时间段下拉 →「今天」。
-    await tester.tap(find.byType(PopupMenuButton<TimeRange>));
+    await tester.tap(find.byType(PopupMenuButton<TimeRange?>));
     await tester.pumpAndSettle();
     await tester.tap(find.text('今天').last);
     await tester.pumpAndSettle();

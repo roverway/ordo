@@ -488,8 +488,8 @@ void main() {
     );
 
     // 右下角 FAB（无全屏新建路由可跳，只有底部弹窗）。
-    expect(find.byType(FloatingActionButton), findsOneWidget);
-    await tester.tap(find.byType(FloatingActionButton));
+    expect(find.byIcon(Icons.add_rounded), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.add_rounded));
     await tester.pumpAndSettle();
 
     expect(find.byType(TaskCreateSheet), findsOneWidget);
@@ -499,8 +499,8 @@ void main() {
     await _pumpToday(tester, tasks: [_task('n1', title: '无时间任务')]);
 
     expect(find.byType(EmptyState), findsOneWidget);
-    expect(find.byType(FloatingActionButton), findsOneWidget);
-    await tester.tap(find.byType(FloatingActionButton));
+    expect(find.byIcon(Icons.add_rounded), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.add_rounded));
     await tester.pumpAndSettle();
 
     expect(find.byType(TaskCreateSheet), findsOneWidget);

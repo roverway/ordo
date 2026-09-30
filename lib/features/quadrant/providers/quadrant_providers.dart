@@ -18,7 +18,11 @@ class QuadrantViewModeNotifier extends Notifier<QuadrantViewMode> {
   QuadrantViewMode build() {
     final cache = ref.watch(appSettingsCacheProvider);
     final raw = cache.get(quadrantViewModePrefKey);
-    return raw == 'list' ? QuadrantViewMode.list : QuadrantViewMode.matrix;
+    return switch (raw) {
+      'list' => QuadrantViewMode.list,
+      'cards' => QuadrantViewMode.cards,
+      _ => QuadrantViewMode.matrix,
+    };
   }
 
   void setMode(QuadrantViewMode mode) {

@@ -19,12 +19,21 @@ import 'task_create_sheet.dart';
 /// - Stage 1 极速捕捉：紧贴软键盘，支持连续回车发送，无需反复打开/关闭页面；
 /// - Stage 2 语法分词：输入文字时实时解析时间（明天/后天）、标签（#工作）、优先级（!高/!1），以微型胶囊 Chip 呈现实时反馈。
 class QuickCaptureBar extends ConsumerStatefulWidget {
-  const QuickCaptureBar({super.key, this.initialProjectId});
+  const QuickCaptureBar({
+    super.key,
+    this.initialProjectId,
+    this.initialDate,
+  });
 
   final String? initialProjectId;
+  final DateTime? initialDate;
 
   /// 唤起吸顶快速录入栏
-  static Future<void> show(BuildContext context, {String? initialProjectId}) {
+  static Future<void> show(
+    BuildContext context, {
+    String? initialProjectId,
+    DateTime? initialDate,
+  }) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -32,7 +41,10 @@ class QuickCaptureBar extends ConsumerStatefulWidget {
       builder: (ctx) => KeyboardInsetBuilder(
         builder: (context, keyboardHeight, bottomInset, child) => Padding(
           padding: EdgeInsets.only(bottom: keyboardHeight),
-          child: QuickCaptureBar(initialProjectId: initialProjectId),
+          child: QuickCaptureBar(
+            initialProjectId: initialProjectId,
+            initialDate: initialDate,
+          ),
         ),
       ),
     );
@@ -51,11 +63,15 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
   DateTime? _parsedDate;
   String? _parsedTagName;
   TaskPriority? _parsedPriority;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
     _targetProjectId = widget.initialProjectId;
+    if (widget.initialDate != null) {
+      _parsedDate = widget.initialDate;
+    }
     _textController.addListener(_onTextChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
@@ -77,11 +93,11 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
 
   void _parseInput(String input) {
     if (input.isEmpty) {
-      if (_parsedDate != null ||
+      if (_parsedDate != widget.initialDate ||
           _parsedTagName != null ||
           _parsedPriority != null) {
         setState(() {
-          _parsedDate = null;
+          _parsedDate = widget.initialDate;
           _parsedTagName = null;
           _parsedPriority = null;
         });
@@ -89,7 +105,7 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
       return;
     }
 
-    DateTime? date;
+    DateTime? date = widget.initialDate;
     String? tag;
     TaskPriority? priority;
 
@@ -197,48 +213,65 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
   }
 
   Future<void> _submitTask() async {
+    if (_isSubmitting) return;
     final rawText = _textController.text.trim();
     if (rawText.isEmpty) return;
 
-    final title = _cleanTitle(rawText);
-    final repo = ref.read(todoRepositoryProvider);
-    final targetProjectId = _targetProjectId ?? widget.initialProjectId ?? inboxProjectId;
+    _isSubmitting = true;
+    try {
+      final title = _cleanTitle(rawText);
+      final repo = ref.read(todoRepositoryProvider);
+      final targetProjectId = _targetProjectId ?? widget.initialProjectId ?? inboxProjectId;
 
-    // 解析标签 ID（若存在对应名称的标签）
-    List<String>? tagIds;
-    if (_parsedTagName != null) {
-      final tagsAsync = ref.read(tagsStreamProvider);
-      final existingTag = tagsAsync.value
-          ?.where((t) => t.name.toLowerCase() == _parsedTagName!.toLowerCase())
-          .firstOrNull;
-      if (existingTag != null) {
-        tagIds = [existingTag.id];
+      // 解析标签 ID（若存在对应名称的标签）
+      List<String>? tagIds;
+      if (_parsedTagName != null) {
+        final tagsAsync = ref.read(tagsStreamProvider);
+        final existingTag = tagsAsync.value
+            ?.where((t) => t.name.toLowerCase() == _parsedTagName!.toLowerCase())
+            .firstOrNull;
+        if (existingTag != null) {
+          tagIds = [existingTag.id];
+        }
       }
+
+      final startAtMs = (_parsedDate ?? widget.initialDate)?.millisecondsSinceEpoch;
+
+      final createdTask = await repo.createTask(
+        title: title,
+        projectId: targetProjectId,
+        priority: _parsedPriority ?? TaskPriority.none,
+        startAt: startAtMs,
+      );
+
+      if (tagIds != null && tagIds.isNotEmpty) {
+        await repo.tags.setTaskTags(createdTask.id, tagIds);
+      }
+
+      // 震感反馈：干脆利落的轻震
+      HapticFeedback.mediumImpact();
+
+      // 清空输入框留在原地，准备连续录入下一条
+      _textController.clear();
+      if (mounted) {
+        setState(() {
+          _parsedDate = widget.initialDate;
+          _parsedTagName = null;
+          _parsedPriority = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } finally {
+      _isSubmitting = false;
     }
-
-    final startAtMs = _parsedDate?.millisecondsSinceEpoch;
-
-    final createdTask = await repo.createTask(
-      title: title,
-      projectId: targetProjectId,
-      priority: _parsedPriority ?? TaskPriority.none,
-      startAt: startAtMs,
-    );
-
-    if (tagIds != null && tagIds.isNotEmpty) {
-      await repo.tags.setTaskTags(createdTask.id, tagIds);
-    }
-
-    // 震感反馈：干脆利落的轻震
-    HapticFeedback.mediumImpact();
-
-    // 清空输入框留在原地，准备连续录入下一条
-    _textController.clear();
-    setState(() {
-      _parsedDate = null;
-      _parsedTagName = null;
-      _parsedPriority = null;
-    });
   }
 
   bool _isSameDay(DateTime? a, DateTime? b) {
@@ -359,9 +392,9 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
     Navigator.of(context).pop();
     TaskCreateSheet.show(
       context,
-      projectId: widget.initialProjectId,
+      projectId: _targetProjectId ?? widget.initialProjectId,
       initialPriority: _parsedPriority,
-      initialStartAt: _parsedDate?.millisecondsSinceEpoch,
+      initialStartAt: (_parsedDate ?? widget.initialDate)?.millisecondsSinceEpoch,
     );
   }
 
@@ -499,6 +532,24 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
+                    if (_parsedDate != null &&
+                        !_isSameDay(_parsedDate, today) &&
+                        !_isSameDay(_parsedDate, tomorrow)) ...[
+                      _buildQuickCapsule(
+                        icon: Icons.event_available_outlined,
+                        label: _formatParsedDate(_parsedDate!),
+                        isActive: true,
+                        activeColor: AppTokens.colorNavToday,
+                        colorScheme: colorScheme,
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          setState(() {
+                            _parsedDate = null;
+                          });
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                     _buildQuickCapsule(
                       icon: Icons.today_outlined,
                       label: l10n.today,

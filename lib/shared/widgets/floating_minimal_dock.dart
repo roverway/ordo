@@ -11,7 +11,9 @@ import '../../features/ai_copilot/views/ai_copilot_sheet.dart';
 import '../../features/custom_views/providers/custom_view_providers.dart';
 import '../../features/custom_views/widgets/icon_picker_dialog.dart';
 import '../../features/projects/project_providers.dart';
+import '../../features/calendar/calendar_providers.dart';
 import '../../features/settings/settings_providers.dart';
+import '../../features/tasks/page_context_provider.dart';
 import '../../features/tasks/widgets/quick_capture_bar.dart';
 
 /// 移动端悬浮双岛操作栏（Floating Dual-Island Dock）。
@@ -31,6 +33,44 @@ class FloatingMinimalDock extends ConsumerWidget {
   const FloatingMinimalDock({super.key, this.currentRoute});
 
   final String? currentRoute;
+
+  PageContextScope _resolveFallbackScope(WidgetRef ref, String path) {
+    if (path == '/today' || path == '/') {
+      final now = DateTime.now();
+      return PageContextScope(
+        focusedDate: DateTime(now.year, now.month, now.day, 9),
+        route: path,
+      );
+    }
+    if (path == '/inbox') {
+      return const PageContextScope(
+        projectId: inboxProjectId,
+        route: '/inbox',
+      );
+    }
+    if (path.startsWith('/projects/') && path != '/projects') {
+      final pid = path.replaceFirst('/projects/', '');
+      return PageContextScope(
+        projectId: pid,
+        route: path,
+      );
+    }
+    if (path.startsWith('/calendar')) {
+      try {
+        final cal = ref.read(calendarStateProvider);
+        return PageContextScope(
+          focusedDate: cal.selectedDate,
+          route: path,
+        );
+      } catch (_) {
+        return PageContextScope(
+          focusedDate: DateTime.now(),
+          route: path,
+        );
+      }
+    }
+    return PageContextScope(route: path);
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -298,7 +338,20 @@ class FloatingMinimalDock extends ConsumerWidget {
                     shape: const CircleBorder(),
                     onPressed: () {
                       HapticFeedback.mediumImpact();
-                      QuickCaptureBar.show(context);
+                      var scope = ref.read(pageContextScopeProvider);
+                      if (scope.route != null &&
+                          path.isNotEmpty &&
+                          scope.route != path) {
+                        scope = _resolveFallbackScope(ref, path);
+                      } else if (scope.projectId == null &&
+                          scope.focusedDate == null) {
+                        scope = _resolveFallbackScope(ref, path);
+                      }
+                      QuickCaptureBar.show(
+                        context,
+                        initialProjectId: scope.projectId,
+                        initialDate: scope.focusedDate,
+                      );
                     },
                     child: Container(
                       width: 34,

@@ -28,27 +28,8 @@ import 'widgets/task_create_sheet.dart';
 import 'widgets/task_swipe_wrapper.dart';
 import 'widgets/task_tree.dart';
 
-/// 任务作用域（56-task-scope-page.md §3.1，路由驱动）。
-sealed class TaskScope {
-  const TaskScope();
-}
-
-/// 今日作用域：逾期 + 今天分组列表。
-final class TodayTaskScope extends TaskScope {
-  const TodayTaskScope();
-}
-
-/// 收集箱作用域：内置收件箱项目（inboxProjectId）下的任务树。
-final class InboxTaskScope extends TaskScope {
-  const InboxTaskScope();
-}
-
-/// 项目作用域：任务树。
-final class ProjectTaskScope extends TaskScope {
-  const ProjectTaskScope(this.projectId);
-
-  final String projectId;
-}
+export 'page_context_provider.dart';
+import 'page_context_provider.dart';
 
 /// 通用任务页（Task Scope Page）—— modern-minimal 纯净单屏交互。
 class TaskListPage extends ConsumerWidget {
@@ -58,6 +39,17 @@ class TaskListPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(pageContextScopeProvider.notifier).setFromTaskScope(
+            scope,
+            route: switch (scope) {
+              ProjectTaskScope(:final projectId) => '/projects/$projectId',
+              InboxTaskScope() => '/inbox',
+              TodayTaskScope() => '/today',
+            },
+          );
+    });
+
     final isNarrow = AppBreakpoints.isNarrow(context);
 
     final projectId = switch (scope) {
@@ -237,57 +229,60 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
           title: dateStr,
           showDropdownChevron: true,
           onTitleTapWithContext: (ctx) => showTaskScopeSheet(ctx),
-          subtitleWidget: Row(
-            mainAxisSize: dynamicMainAxisSize(view),
-            children: [
-              Text(
-                weekdayStr,
-                style: TextStyle(
-                  fontSize: AppTokens.textCaptionSize,
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.onSurface,
+          subtitleWidget: Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: weekdayStr,
+                  style: TextStyle(
+                    fontSize: AppTokens.textCaptionSize,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurface,
+                  ),
                 ),
-              ),
-              Text(
-                ' · ${l10n.overdueSubtitle} ',
-                style: TextStyle(
-                  fontSize: AppTokens.textCaptionSize,
-                  color: colorScheme.onSurfaceVariant,
+                TextSpan(
+                  text: ' · ${l10n.overdueSubtitle} ',
+                  style: TextStyle(
+                    fontSize: AppTokens.textCaptionSize,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-              Text(
-                '${view.overdue.length}',
-                style: TextStyle(
-                  fontSize: AppTokens.textCaptionSize,
-                  fontWeight: FontWeight.w700,
-                  color: view.overdue.isNotEmpty
-                      ? AppTokens.colorOverdue
-                      : colorScheme.onSurfaceVariant,
+                TextSpan(
+                  text: '${view.overdue.length}',
+                  style: TextStyle(
+                    fontSize: AppTokens.textCaptionSize,
+                    fontWeight: FontWeight.w700,
+                    color: view.overdue.isNotEmpty
+                        ? AppTokens.colorOverdue
+                        : colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-              Text(
-                ' · ${l10n.completedSubtitle} ',
-                style: TextStyle(
-                  fontSize: AppTokens.textCaptionSize,
-                  color: colorScheme.onSurfaceVariant,
+                TextSpan(
+                  text: ' · ${l10n.completedSubtitle} ',
+                  style: TextStyle(
+                    fontSize: AppTokens.textCaptionSize,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-              Text(
-                '$completedCount',
-                style: TextStyle(
-                  fontSize: AppTokens.textCaptionSize,
-                  fontWeight: FontWeight.w700,
-                  color: colorScheme.onSurface,
+                TextSpan(
+                  text: '$completedCount',
+                  style: TextStyle(
+                    fontSize: AppTokens.textCaptionSize,
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
+                  ),
                 ),
-              ),
-              Text(
-                '/$totalCount',
-                style: TextStyle(
-                  fontSize: AppTokens.textCaptionSize,
-                  color: colorScheme.onSurfaceVariant,
+                TextSpan(
+                  text: '/$totalCount',
+                  style: TextStyle(
+                    fontSize: AppTokens.textCaptionSize,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
@@ -314,6 +309,13 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                   ),
                 ),
                 const SizedBox(width: AppTokens.spaceMd),
+              ] else ...[
+                IconButton(
+                  tooltip: l10n.newTask,
+                  icon: const Icon(Icons.add_rounded),
+                  onPressed: () => TaskCreateSheet.show(context),
+                ),
+                const SizedBox(width: AppTokens.spaceXs),
               ],
               HeroProgressRing(completed: completedCount, total: totalCount),
             ],
@@ -755,6 +757,18 @@ class _ProjectOrInboxBodyState extends ConsumerState<_ProjectOrInboxBody> {
                       ),
                     ),
                     const SizedBox(width: AppTokens.spaceMd),
+                  ] else ...[
+                    IconButton(
+                      tooltip: l10n.newTask,
+                      icon: const Icon(Icons.add_rounded),
+                      onPressed: () => TaskCreateSheet.show(
+                        context,
+                        projectId: widget.isInbox
+                            ? inboxProjectId
+                            : widget.projectId,
+                      ),
+                    ),
+                    const SizedBox(width: AppTokens.spaceXs),
                   ],
                   HeroProgressRing(completed: doneCount, total: totalCount),
                 ],
