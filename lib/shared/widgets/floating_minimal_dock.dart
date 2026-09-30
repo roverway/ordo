@@ -6,8 +6,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/theme/preset_icons.dart';
 import '../../features/ai_copilot/views/ai_copilot_sheet.dart';
 import '../../features/custom_views/providers/custom_view_providers.dart';
+import '../../features/custom_views/widgets/icon_picker_dialog.dart';
 import '../../features/projects/project_providers.dart';
 import '../../features/settings/settings_providers.dart';
 import '../../features/tasks/widgets/quick_capture_bar.dart';
@@ -17,14 +19,15 @@ import 'default_route_selector_sheet.dart';
 ///
 /// 遵循乔布斯极简设计哲学与 Linear 设计语言：
 /// 1. 左岛（Navigation Island）：负责功能区域切换
-///    - 1.1 任务清单按钮：短按直达默认任务页（默认今日），长按呼出默认选择器
-///    - 1.2 特殊视图按钮：短按直达默认特殊视图（默认四象限），长按呼出默认选择器
+///    - 1.1 任务清单按钮：短按直达默认任务页（图标动态响应默认项），长按呼出默认选择器
+///    - 1.2 特殊视图按钮：短按直达默认特殊视图（图标动态响应默认项），长按呼出默认选择器
 ///    - 1.3 设置按钮：直达设置页
 ///    - 1.4 搜索按钮：直达搜索页
 /// 2. 右岛（Action Island）：AI 功能与快速新建一体式胶囊
 ///    - 左侧 AI 星芒按钮：呼出 AI Copilot
 ///    - 微光超细分割线
-///    - 右侧一体化新建按钮：极速录入待办（长按呼唤 AI）
+///    - 右侧一体化新建按钮：轻微发光光晕 + 极速录入待办（长按呼唤 AI）
+/// 3. 两岛靠拢并在屏幕水平方向整体居中对齐。
 class FloatingMinimalDock extends ConsumerWidget {
   const FloatingMinimalDock({super.key, this.currentRoute});
 
@@ -48,6 +51,12 @@ class FloatingMinimalDock extends ConsumerWidget {
       }
     }
 
+    // 默认路由读取
+    final defaultTasksRoute = ref.watch(defaultTasksRouteProvider);
+    final defaultSpecialViewsRoute = ref.watch(
+      defaultSpecialViewsRouteProvider,
+    );
+
     // 激活状态判断
     // 1. 任务清单组：今日、收件箱、具体项目清单 (/projects/:id 但非 /projects)
     final isTasksActive =
@@ -69,6 +78,59 @@ class FloatingMinimalDock extends ConsumerWidget {
     // 4. 搜索
     final isSearchActive = path.startsWith('/search');
 
+    // 动态图标计算
+    // 1.1 任务清单组图标（随默认目标动态自适应）
+    IconData getTasksIcon(bool isActive) {
+      if (defaultTasksRoute == '/today' || defaultTasksRoute == '/') {
+        return isActive ? Icons.today_rounded : Icons.today_outlined;
+      }
+      if (defaultTasksRoute == '/inbox') {
+        return isActive ? Icons.inbox_rounded : Icons.inbox_outlined;
+      }
+      if (defaultTasksRoute.startsWith('/projects/')) {
+        final pid = defaultTasksRoute.replaceFirst('/projects/', '');
+        final projects = ref.watch(projectsStreamProvider).value;
+        final matched = projects?.where((p) => p.id == pid).firstOrNull;
+        if (matched != null) {
+          return getIconDataById(
+            matched.icon,
+            fallback: isActive
+                ? Icons.check_circle_rounded
+                : Icons.check_circle_outline_rounded,
+          );
+        }
+      }
+      return isActive
+          ? Icons.check_circle_rounded
+          : Icons.check_circle_outline_rounded;
+    }
+
+    // 1.2 特殊视图组图标（随默认目标动态自适应）
+    IconData getViewsIcon(bool isActive) {
+      if (defaultSpecialViewsRoute == '/matrix') {
+        return isActive ? Icons.grid_view_rounded : Icons.grid_view_outlined;
+      }
+      if (defaultSpecialViewsRoute == '/calendar') {
+        return isActive
+            ? Icons.calendar_month_rounded
+            : Icons.calendar_month_outlined;
+      }
+      if (defaultSpecialViewsRoute == '/projects') {
+        return isActive
+            ? Icons.view_agenda_rounded
+            : Icons.view_agenda_outlined;
+      }
+      if (defaultSpecialViewsRoute.startsWith('/custom_view/')) {
+        final vid = defaultSpecialViewsRoute.replaceFirst('/custom_view/', '');
+        final views = ref.watch(customViewsStreamProvider).value;
+        final matched = views?.where((v) => v.id == vid).firstOrNull;
+        if (matched != null) {
+          return getCustomViewIcon(matched.icon);
+        }
+      }
+      return isActive ? Icons.grid_view_rounded : Icons.grid_view_outlined;
+    }
+
     final dockBg = isDark
         ? AppTokens.surfaceCardDark.withValues(
             alpha: AppTokens.alphaCardFrostedDark,
@@ -81,11 +143,10 @@ class FloatingMinimalDock extends ConsumerWidget {
         ? AppTokens.borderSubtleDark
         : AppTokens.borderSubtleLight;
 
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 460),
-      padding: const EdgeInsets.symmetric(horizontal: AppTokens.spaceMd),
+    return Center(
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // 左岛：功能区域切换
           _buildIslandContainer(
@@ -98,9 +159,7 @@ class FloatingMinimalDock extends ConsumerWidget {
               children: [
                 // 1.1 任务清单按钮 (带长按修改默认目标)
                 _buildNavItem(
-                  icon: isTasksActive
-                      ? Icons.check_circle_rounded
-                      : Icons.check_circle_outline_rounded,
+                  icon: getTasksIcon(isTasksActive),
                   color: isTasksActive
                       ? colorScheme.primary
                       : colorScheme.onSurfaceVariant,
@@ -116,9 +175,7 @@ class FloatingMinimalDock extends ConsumerWidget {
 
                 // 1.2 特殊视图按钮 (带长按修改默认目标)
                 _buildNavItem(
-                  icon: isViewsActive
-                      ? Icons.grid_view_rounded
-                      : Icons.grid_view_outlined,
+                  icon: getViewsIcon(isViewsActive),
                   color: isViewsActive
                       ? AppTokens.colorNavQuadrant
                       : colorScheme.onSurfaceVariant,
@@ -167,8 +224,7 @@ class FloatingMinimalDock extends ConsumerWidget {
             ),
           ),
 
-          const SizedBox(width: AppTokens.spaceSm),
-
+          const SizedBox(width: AppTokens.spaceSm), // 左右两部分紧靠，中间 8dp 间距
           // 右岛：AI 功能与快速新建一体式胶囊
           _buildIslandContainer(
             dockBg: dockBg,
@@ -218,24 +274,39 @@ class FloatingMinimalDock extends ConsumerWidget {
                         ),
                 ),
 
-                // 快速新建按钮 (一体化 FloatingActionButton)
-                FloatingActionButton.small(
-                  heroTag: 'dock_quick_add_fab_hero',
-                  tooltip: l10n.newTask,
-                  elevation: 0,
-                  focusElevation: 0,
-                  hoverElevation: 0,
-                  highlightElevation: 0,
-                  backgroundColor: colorScheme.primary,
-                  foregroundColor: colorScheme.onPrimary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                // 快速新建按钮 (带柔和呼吸感光晕投影)
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: colorScheme.primary.withValues(
+                          alpha: isDark ? AppTokens.alphaBorderEmphasis : 0.38,
+                        ),
+                        blurRadius: 10,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  onPressed: () {
-                    HapticFeedback.mediumImpact();
-                    QuickCaptureBar.show(context);
-                  },
-                  child: const Icon(Icons.add_rounded, size: 20),
+                  child: FloatingActionButton.small(
+                    heroTag: 'dock_quick_add_fab_hero',
+                    tooltip: l10n.newTask,
+                    elevation: 0,
+                    focusElevation: 0,
+                    hoverElevation: 0,
+                    highlightElevation: 0,
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                    ),
+                    onPressed: () {
+                      HapticFeedback.mediumImpact();
+                      QuickCaptureBar.show(context);
+                    },
+                    child: const Icon(Icons.add_rounded, size: 20),
+                  ),
                 ),
               ],
             ),
