@@ -7,6 +7,7 @@ import '../../../shared/widgets/modal_side_sheet.dart';
 import '../../sync_setup/sync_setup_page.dart';
 import '../../tags/tags_page.dart';
 import '../settings_page.dart';
+import '../views/ai_settings_page.dart';
 
 /// 宽屏（≥600dp）弹出右侧透明模态设置面板（Side Sheet）。
 Future<void> showSettingsSideSheet(BuildContext context) {
@@ -34,11 +35,12 @@ class _SettingsSheetNavigator extends StatefulWidget {
 class _SettingsSheetNavigatorState extends State<_SettingsSheetNavigator> {
   bool _showingSync = false;
   bool _showingTags = false;
+  bool _showingAi = false;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final isSubPage = _showingSync || _showingTags;
+    final isSubPage = _showingSync || _showingTags || _showingAi;
 
     Widget child;
     if (_showingSync) {
@@ -55,6 +57,18 @@ class _SettingsSheetNavigatorState extends State<_SettingsSheetNavigator> {
       );
     } else if (_showingTags) {
       child = TagsPage(onBack: () => setState(() => _showingTags = false));
+    } else if (_showingAi) {
+      child = Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            tooltip: l10n.cancel,
+            onPressed: () => setState(() => _showingAi = false),
+          ),
+          title: Text(l10n.settingsAiAssistant),
+        ),
+        body: const AiSettingsBody(),
+      );
     } else {
       child = Scaffold(
         appBar: AppBar(
@@ -68,6 +82,7 @@ class _SettingsSheetNavigatorState extends State<_SettingsSheetNavigator> {
         body: SettingsBody(
           onOpenSync: () => setState(() => _showingSync = true),
           onOpenTags: () => setState(() => _showingTags = true),
+          onOpenAi: () => setState(() => _showingAi = true),
           onOpenHelp: () => context.push('/settings/help'),
         ),
       );
@@ -80,6 +95,7 @@ class _SettingsSheetNavigatorState extends State<_SettingsSheetNavigator> {
           setState(() {
             _showingSync = false;
             _showingTags = false;
+            _showingAi = false;
           });
         }
       },

@@ -13,20 +13,19 @@ import '../../features/custom_views/widgets/icon_picker_dialog.dart';
 import '../../features/projects/project_providers.dart';
 import '../../features/settings/settings_providers.dart';
 import '../../features/tasks/widgets/quick_capture_bar.dart';
-import 'default_route_selector_sheet.dart';
 
 /// 移动端悬浮双岛操作栏（Floating Dual-Island Dock）。
 ///
 /// 遵循乔布斯极简设计哲学与 Linear 设计语言：
 /// 1. 左岛（Navigation Island）：负责功能区域切换
-///    - 1.1 任务清单按钮：短按直达默认任务页（图标动态响应默认项），长按呼出默认选择器
-///    - 1.2 特殊视图按钮：短按直达默认特殊视图（图标动态响应默认项），长按呼出默认选择器
+///    - 1.1 任务清单按钮：短按直达默认任务页，长按直接将当前页面设为默认任务页（弹出 Linear HUD 提示）
+///    - 1.2 特殊视图按钮：短按直达默认特殊视图，长按直接将当前页面设为默认特殊视图（弹出 Linear HUD 提示）
 ///    - 1.3 设置按钮：直达设置页
 ///    - 1.4 搜索按钮：直达搜索页
 /// 2. 右岛（Action Island）：AI 功能与快速新建一体式胶囊
 ///    - 左侧 AI 星芒按钮：呼出 AI Copilot
 ///    - 微光超细分割线
-///    - 右侧一体化新建按钮：轻微发光光晕 + 极速录入待办（长按呼唤 AI）
+///    - 右侧一体化新建按钮：34dp 紧凑圆形，自然微光光晕不截断 + 极速录入待办
 /// 3. 两岛靠拢并在屏幕水平方向整体居中对齐。
 class FloatingMinimalDock extends ConsumerWidget {
   const FloatingMinimalDock({super.key, this.currentRoute});
@@ -157,34 +156,44 @@ class FloatingMinimalDock extends ConsumerWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 1.1 任务清单按钮 (带长按修改默认目标)
+                // 1.1 任务清单按钮 (长按直接设当前页为默认)
                 _buildNavItem(
                   icon: getTasksIcon(isTasksActive),
                   color: isTasksActive
                       ? colorScheme.primary
                       : colorScheme.onSurfaceVariant,
-                  tooltip: isZh ? '任务清单' : 'Tasks',
+                  tooltip: isZh
+                      ? '任务清单（长按设当前为默认）'
+                      : 'Tasks (Long-press to set default)',
                   onTap: () => _handleTasksTap(context, ref),
-                  onLongPress: () {
-                    HapticFeedback.heavyImpact();
-                    showDefaultTasksRouteSelectorSheet(context);
-                  },
+                  onLongPress: () => _handleTasksLongPress(
+                    context,
+                    ref,
+                    path,
+                    isTasksActive,
+                    isZh,
+                  ),
                 ),
 
                 const SizedBox(width: 4),
 
-                // 1.2 特殊视图按钮 (带长按修改默认目标)
+                // 1.2 特殊视图按钮 (长按直接设当前页为默认)
                 _buildNavItem(
                   icon: getViewsIcon(isViewsActive),
                   color: isViewsActive
                       ? AppTokens.colorNavQuadrant
                       : colorScheme.onSurfaceVariant,
-                  tooltip: isZh ? '特殊视图' : 'Special Views',
+                  tooltip: isZh
+                      ? '特殊视图（长按设当前为默认）'
+                      : 'Special Views (Long-press to set default)',
                   onTap: () => _handleViewsTap(context, ref),
-                  onLongPress: () {
-                    HapticFeedback.heavyImpact();
-                    showDefaultSpecialViewsRouteSelectorSheet(context);
-                  },
+                  onLongPress: () => _handleViewsLongPress(
+                    context,
+                    ref,
+                    path,
+                    isViewsActive,
+                    isZh,
+                  ),
                 ),
 
                 const SizedBox(width: 4),
@@ -230,7 +239,7 @@ class FloatingMinimalDock extends ConsumerWidget {
             dockBg: dockBg,
             borderColor: borderColor,
             isDark: isDark,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 5),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -266,7 +275,7 @@ class FloatingMinimalDock extends ConsumerWidget {
                 Container(
                   width: 1.0,
                   height: 18.0,
-                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
                   color: isDark
                       ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
                       : Colors.black.withValues(
@@ -274,21 +283,10 @@ class FloatingMinimalDock extends ConsumerWidget {
                         ),
                 ),
 
-                // 快速新建按钮 (带柔和呼吸感光晕投影)
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: colorScheme.primary.withValues(
-                          alpha: isDark ? AppTokens.alphaBorderEmphasis : 0.38,
-                        ),
-                        blurRadius: 10,
-                        spreadRadius: 1,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
+                // 快速新建按钮 (缩小至 34dp 直径，光晕完整柔和散发，不被 48dp 操作栏截断)
+                SizedBox(
+                  width: 34,
+                  height: 34,
                   child: FloatingActionButton.small(
                     heroTag: 'dock_quick_add_fab_hero',
                     tooltip: l10n.newTask,
@@ -296,16 +294,38 @@ class FloatingMinimalDock extends ConsumerWidget {
                     focusElevation: 0,
                     hoverElevation: 0,
                     highlightElevation: 0,
-                    backgroundColor: colorScheme.primary,
-                    foregroundColor: colorScheme.onPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-                    ),
+                    backgroundColor: Colors.transparent,
+                    shape: const CircleBorder(),
                     onPressed: () {
                       HapticFeedback.mediumImpact();
                       QuickCaptureBar.show(context);
                     },
-                    child: const Icon(Icons.add_rounded, size: 20),
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: colorScheme.primary,
+                        boxShadow: [
+                          BoxShadow(
+                            color: colorScheme.primary.withValues(
+                              alpha: isDark
+                                  ? AppTokens.alphaBorderEmphasis
+                                  : 0.38,
+                            ),
+                            blurRadius: 8,
+                            spreadRadius: 0,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        Icons.add_rounded,
+                        size: 20,
+                        color: colorScheme.onPrimary,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -334,7 +354,7 @@ class FloatingMinimalDock extends ConsumerWidget {
             color: Colors.black.withValues(
               alpha: isDark
                   ? AppTokens.alphaBorderEmphasis
-                  : AppTokens.alphaTintFaint,
+                  : AppTokens.alphaBorderSubtle,
             ),
             blurRadius: 20,
             offset: const Offset(0, 6),
@@ -409,5 +429,79 @@ class FloatingMinimalDock extends ConsumerWidget {
     }
 
     context.go(defaultRoute);
+  }
+
+  void _handleTasksLongPress(
+    BuildContext context,
+    WidgetRef ref,
+    String currentPath,
+    bool isTasksActive,
+    bool isZh,
+  ) {
+    if (!isTasksActive) {
+      _showToast(
+        context,
+        isZh ? '请先进入目标清单或今日页面再长按设为默认' : 'Please navigate to a task list first',
+      );
+      return;
+    }
+
+    HapticFeedback.heavyImpact();
+    ref
+        .read(defaultTasksRouteProvider.notifier)
+        .setDefaultTasksRoute(currentPath);
+    _showToast(
+      context,
+      isZh ? '已将当前页面设为默认任务清单' : 'Set current page as default task list',
+    );
+  }
+
+  void _handleViewsLongPress(
+    BuildContext context,
+    WidgetRef ref,
+    String currentPath,
+    bool isViewsActive,
+    bool isZh,
+  ) {
+    if (!isViewsActive) {
+      _showToast(
+        context,
+        isZh
+            ? '请先进入目标视图或日历页面再长按设为默认'
+            : 'Please navigate to a special view first',
+      );
+      return;
+    }
+
+    HapticFeedback.heavyImpact();
+    ref
+        .read(defaultSpecialViewsRouteProvider.notifier)
+        .setDefaultSpecialViewsRoute(currentPath);
+    _showToast(
+      context,
+      isZh ? '已将当前页面设为默认特殊视图' : 'Set current view as default special view',
+    );
+  }
+
+  void _showToast(BuildContext context, String message) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(
+            fontSize: AppTokens.textBodySize,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTokens.radiusButton),
+        ),
+        duration: const Duration(seconds: 2),
+        margin: const EdgeInsets.only(bottom: 76, left: 24, right: 24),
+      ),
+    );
   }
 }

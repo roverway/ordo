@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ordo/core/l10n/app_localizations.dart';
 import 'package:ordo/features/settings/settings_providers.dart';
+import 'package:ordo/features/settings/widgets/settings_side_sheet.dart';
 import 'package:ordo/shared/widgets/default_route_selector_sheet.dart';
 import 'package:ordo/shared/widgets/floating_minimal_dock.dart';
 import 'package:ordo/shared/widgets/scope_nav_content.dart';
@@ -92,6 +93,89 @@ void main() {
         expect(find.byIcon(Icons.calendar_month_outlined), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'Long press on task button directly sets current route as default',
+      (tester) async {
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: const MaterialApp(
+              locale: Locale('zh'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(
+                body: Center(
+                  child: FloatingMinimalDock(currentRoute: '/inbox'),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        // 初始默认路由是 /today
+        expect(container.read(defaultTasksRouteProvider), '/today');
+
+        // 长按任务按钮（带 Tooltip '任务清单（长按设当前为默认）'）
+        await tester.longPress(find.byTooltip('任务清单（长按设当前为默认）'));
+        await tester.pumpAndSettle();
+
+        // 验证当前路径 /inbox 已经直接被保存为默认任务路由！
+        expect(container.read(defaultTasksRouteProvider), '/inbox');
+        // 验证弹出了 SnackBar 提示
+        expect(find.byType(SnackBar), findsOneWidget);
+        expect(find.text('已将当前页面设为默认任务清单'), findsOneWidget);
+      },
+    );
+
+    testWidgets('SettingsSideSheet includes AI Assistant section for desktop', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1280, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () => showSettingsSideSheet(context),
+                  child: const Text('Open Settings'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Open Settings'));
+      await tester.pumpAndSettle();
+
+      // 验证大屏侧边抽屉中包含了 AI 智能助手设置入口
+      expect(find.text('AI 智能助手'), findsOneWidget);
+
+      // 验证点击可进入 AI 设置子页面
+      await tester.tap(find.text('AI 智能助手'));
+      await tester.pumpAndSettle();
+
+      // 关闭抽屉
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+    });
 
     testWidgets('DefaultRouteSelectorContent mounts tree options correctly', (
       tester,

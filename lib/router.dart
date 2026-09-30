@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/utils/app_breakpoints.dart';
 import 'core/utils/motion.dart';
 import 'features/calendar/calendar_page.dart';
 import 'features/custom_views/presentation/custom_view_editor_page.dart';
@@ -51,6 +52,20 @@ Page<void> _slideFadePage(
   );
 }
 
+/// 响应式主视图转场页面：
+/// - 移动端（<600dp）：采用统一的右→左滑动淡入转场，使任务组、视图组、设置、搜索的切换动效完全和谐统一；
+/// - 电脑端（>=600dp）：采用 NoTransitionPage 静默无闪烁切换，确保左侧常驻侧边栏稳定不撕裂。
+Page<void> _responsiveMainPage(
+  BuildContext context,
+  GoRouterState state,
+  Widget child,
+) {
+  if (AppBreakpoints.isWide(context)) {
+    return NoTransitionPage(key: state.pageKey, child: child);
+  }
+  return _slideFadePage(context, state, child);
+}
+
 /// Global routing table — single source of truth (30-architecture.md §4).
 ///
 /// 任务类入口（今日/收件箱/项目）统一渲染 `TaskListPage`（作用域驱动，
@@ -78,7 +93,7 @@ final GoRouter appRouter = GoRouter(
       pageBuilder: (context, state) {
         final projectId = state.uri.queryParameters['projectId'];
         final parentId = state.uri.queryParameters['parentId'];
-        // 日历「点日期新建」等场景可预填起止时间（UTC 毫秒，M3）。
+        // 日历「点日期新建」等场景可预填起讫时间（UTC 毫秒，M3）。
         final startAt = int.tryParse(
           state.uri.queryParameters['startAt'] ?? '',
         );
@@ -112,21 +127,16 @@ final GoRouter appRouter = GoRouter(
       pageBuilder: (context, state) =>
           _slideFadePage(context, state, const SettingsPage()),
       routes: [
-        // 同步配置页是设置页的**子路由**（绝对路径仍为 /settings/sync）。
-        // 从设置页 `push('/settings/sync')` 时导航栈为 任务页→settings→sync，
-        // 返回箭头一路可用：sync 回 settings、settings 回任务页。
         GoRoute(
           path: 'sync',
           pageBuilder: (context, state) =>
               _slideFadePage(context, state, const SyncSetupPage()),
         ),
-        // AI 助手设置页（绝对路径 /settings/ai）
         GoRoute(
           path: 'ai',
           pageBuilder: (context, state) =>
               _slideFadePage(context, state, const AiSettingsPage()),
         ),
-        // 使用手册帮助页（绝对路径 /settings/help）
         GoRoute(
           path: 'help',
           pageBuilder: (context, state) =>
@@ -155,43 +165,49 @@ final GoRouter appRouter = GoRouter(
       routes: [
         GoRoute(
           path: '/inbox',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: TaskListPage(scope: InboxTaskScope()),
+          pageBuilder: (context, state) => _responsiveMainPage(
+            context,
+            state,
+            const TaskListPage(scope: InboxTaskScope()),
           ),
         ),
         GoRoute(
           path: '/today',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: TaskListPage(scope: TodayTaskScope()),
+          pageBuilder: (context, state) => _responsiveMainPage(
+            context,
+            state,
+            const TaskListPage(scope: TodayTaskScope()),
           ),
         ),
         GoRoute(
           path: '/calendar',
           pageBuilder: (context, state) =>
-              const NoTransitionPage(child: CalendarPage()),
+              _responsiveMainPage(context, state, const CalendarPage()),
         ),
         GoRoute(
           path: '/matrix',
           pageBuilder: (context, state) =>
-              const NoTransitionPage(child: QuadrantPage()),
+              _responsiveMainPage(context, state, const QuadrantPage()),
         ),
         GoRoute(
           path: '/projects',
           pageBuilder: (context, state) =>
-              const NoTransitionPage(child: ProjectsPage()),
+              _responsiveMainPage(context, state, const ProjectsPage()),
         ),
         GoRoute(
           path: '/projects/:id',
-          pageBuilder: (context, state) => NoTransitionPage(
-            child: TaskListPage(
-              scope: ProjectTaskScope(state.pathParameters['id']!),
-            ),
+          pageBuilder: (context, state) => _responsiveMainPage(
+            context,
+            state,
+            TaskListPage(scope: ProjectTaskScope(state.pathParameters['id']!)),
           ),
         ),
         GoRoute(
           path: '/custom_view/:id',
-          pageBuilder: (context, state) => NoTransitionPage(
-            child: CustomViewPage(viewId: state.pathParameters['id']!),
+          pageBuilder: (context, state) => _responsiveMainPage(
+            context,
+            state,
+            CustomViewPage(viewId: state.pathParameters['id']!),
           ),
         ),
       ],

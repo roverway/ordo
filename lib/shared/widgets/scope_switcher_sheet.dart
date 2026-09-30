@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,7 +24,12 @@ Future<void> showViewScopeSheet(BuildContext context, {String? currentRoute}) {
   );
 }
 
-/// 呼出清单/作用域切换浮动菜单（从 Hero 标题下方弹出，左右不占满屏幕）。
+/// 呼出清单/作用域切换浮动菜单。
+///
+/// 遵循极简 Popover 弹出菜单设计：
+/// 1. 紧贴 Hero 标题正下方展开，靠左对齐；
+/// 2. 宽度紧凑（288dp），更像一个随手呼出的弹出菜单，不占满全宽；
+/// 3. 任务清单组与特殊视图组高度一致克制（最大高度 330dp），绝不遮挡 Hero 标题。
 Future<void> showScopeSwitcherSheet(
   BuildContext context, {
   String? currentRoute,
@@ -33,39 +39,47 @@ Future<void> showScopeSwitcherSheet(
   final mediaQuery = MediaQuery.of(context);
   final isDark = Theme.of(context).brightness == Brightness.dark;
 
-  // 尝试获取触发组件在屏幕中的全局位置，以紧贴 Hero 标题正下方弹出
-  double topOffset = mediaQuery.padding.top + 64.0;
+  // 精准计算 Hero 标题在屏幕中的全局位置，紧贴标题下方，靠左对齐展开
+  double topOffset = mediaQuery.padding.top + 56.0;
+  double leftOffset = 16.0;
+
   try {
     final renderBox = context.findRenderObject() as RenderBox?;
     if (renderBox != null && renderBox.hasSize) {
       final position = renderBox.localToGlobal(Offset.zero);
-      final calcTop = position.dy + renderBox.size.height + 4;
+      final calcTop = position.dy + renderBox.size.height + 6.0;
       if (calcTop > mediaQuery.padding.top &&
-          calcTop < mediaQuery.size.height * 0.45) {
+          calcTop < mediaQuery.size.height * 0.40) {
         topOffset = calcTop;
+      }
+      if (position.dx >= 12.0 && position.dx < mediaQuery.size.width * 0.5) {
+        leftOffset = position.dx;
       }
     }
   } catch (_) {}
+
+  // 限制最大高度与视图组一致，精致紧凑，绝不遮挡 Hero 标题
+  final menuMaxHeight = math.min(mediaQuery.size.height * 0.45, 330.0);
 
   return showGeneralDialog<void>(
     context: context,
     barrierDismissible: true,
     barrierLabel: 'Dismiss',
-    barrierColor: Colors.black.withValues(alpha: isDark ? 0.45 : 0.25),
+    barrierColor: Colors.black.withValues(alpha: isDark ? 0.35 : 0.18),
     transitionDuration: AppTokens.motionFast,
     pageBuilder: (dialogContext, animation, secondaryAnimation) {
       return Stack(
         children: [
           Positioned(
             top: topOffset,
-            left: 16,
+            left: leftOffset,
             right: 16,
             child: Align(
-              alignment: Alignment.topCenter,
+              alignment: Alignment.topLeft,
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxWidth: 380,
-                  maxHeight: mediaQuery.size.height * 0.65,
+                  maxWidth: 288,
+                  maxHeight: menuMaxHeight,
                 ),
                 child: ScopeSwitcherSheet(currentRoute: route, filter: filter),
               ),
@@ -83,7 +97,7 @@ Future<void> showScopeSwitcherSheet(
         opacity: curved,
         child: ScaleTransition(
           scale: Tween<double>(begin: 0.94, end: 1.0).animate(curved),
-          alignment: Alignment.topCenter,
+          alignment: Alignment.topLeft,
           child: child,
         ),
       );
@@ -91,7 +105,7 @@ Future<void> showScopeSwitcherSheet(
   );
 }
 
-/// 现代极简风格的清单/视图切换浮动卡片（不占满全宽，带毛玻璃与微光阴影）。
+/// 现代极简风格的清单/视图切换浮动卡片（紧凑靠左弹出菜单，带毛玻璃与微光阴影）。
 class ScopeSwitcherSheet extends ConsumerWidget {
   const ScopeSwitcherSheet({
     super.key,
@@ -137,8 +151,8 @@ class ScopeSwitcherSheet extends ConsumerWidget {
                         ? AppTokens.alphaBorderEmphasis
                         : AppTokens.alphaBorderSubtle,
                   ),
-                  blurRadius: 32,
-                  offset: const Offset(0, 10),
+                  blurRadius: 28,
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
@@ -147,21 +161,26 @@ class ScopeSwitcherSheet extends ConsumerWidget {
               bottom: false,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // 顶部微光短装饰条
-                  Container(
-                    width: 32,
-                    height: 4,
-                    margin: const EdgeInsets.only(top: 8, bottom: 4),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.onSurface.withValues(
-                        alpha: AppTokens.alphaTintStrong,
+                  // 顶部微光细短装饰把手
+                  Center(
+                    child: Container(
+                      width: 28,
+                      height: 3,
+                      margin: const EdgeInsets.only(top: 8, bottom: 4),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: AppTokens.alphaTintStrong,
+                        ),
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusPill,
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(AppTokens.radiusPill),
                     ),
                   ),
 
-                  // 核心导航树与清单列表
+                  // 核心导航树与清单列表（紧凑滚动）
                   Flexible(
                     child: ScopeNavContent(
                       currentRoute: currentRoute,
