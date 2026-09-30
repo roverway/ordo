@@ -20,7 +20,6 @@ import '../../shared/widgets/loading_view.dart';
 import '../../shared/widgets/page_hero_header.dart';
 import '../../shared/widgets/scope_switcher_sheet.dart';
 import '../../shared/widgets/simple_task_tile.dart';
-import '../home/widgets/home_fab.dart';
 import '../projects/project_providers.dart';
 import '../today/today_providers.dart';
 import 'task_edit_page.dart';
@@ -61,25 +60,6 @@ class TaskListPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isNarrow = AppBreakpoints.isNarrow(context);
 
-    // FAB 显示守卫
-    final showFab = switch (scope) {
-      TodayTaskScope() => true,
-      InboxTaskScope() =>
-        ref
-            .watch(projectsStreamProvider)
-            .maybeWhen(
-              data: (projects) => projects.any((p) => p.id == inboxProjectId),
-              orElse: () => false,
-            ),
-      ProjectTaskScope(:final projectId) =>
-        ref
-            .watch(projectsStreamProvider)
-            .maybeWhen(
-              data: (projects) => projects.any((p) => p.id == projectId),
-              orElse: () => false,
-            ),
-    };
-
     final projectId = switch (scope) {
       ProjectTaskScope(:final projectId) => projectId,
       InboxTaskScope() => inboxProjectId,
@@ -99,9 +79,7 @@ class TaskListPage extends ConsumerWidget {
           child: (isDualPane && selectedTaskId != null)
               ? Row(
                   children: [
-                    Expanded(
-                      child: _buildBody(context, ref, isNarrow),
-                    ),
+                    Expanded(child: _buildBody(context, ref, isNarrow)),
                     Container(
                       width: 420,
                       decoration: BoxDecoration(
@@ -124,15 +102,15 @@ class TaskListPage extends ConsumerWidget {
                   ],
                 )
               : (isNarrow
-                  ? _buildBody(context, ref, isNarrow)
-                  : Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 860),
-                        child: _buildBody(context, ref, isNarrow),
-                      ),
-                    )),
+                    ? _buildBody(context, ref, isNarrow)
+                    : Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 860),
+                          child: _buildBody(context, ref, isNarrow),
+                        ),
+                      )),
         ),
-        floatingActionButton: (showFab && isNarrow) ? _buildFab(context) : null,
+        floatingActionButton: null,
       ),
     );
   }
@@ -151,22 +129,6 @@ class TaskListPage extends ConsumerWidget {
         isNarrow: isNarrow,
       ),
     };
-  }
-
-  Widget _buildFab(BuildContext context) {
-    return HomeDoubleFab(
-      onNativeAdd: () => switch (scope) {
-        TodayTaskScope() => TaskCreateSheet.show(context),
-        InboxTaskScope() => TaskCreateSheet.show(
-          context,
-          projectId: inboxProjectId,
-        ),
-        ProjectTaskScope(:final projectId) => TaskCreateSheet.show(
-          context,
-          projectId: projectId,
-        ),
-      },
-    );
   }
 }
 
@@ -270,10 +232,11 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
 
     return Column(
       children: [
-        // 固定顶部 Hero 头部
+        // 固定顶部 Hero 头部（支持点击展开任务清单组下拉菜单）
         PageHeroHeader(
           title: dateStr,
-          onTitleTap: () => showScopeSwitcherSheet(context),
+          showDropdownChevron: true,
+          onTitleTap: () => showTaskScopeSheet(context),
           subtitleWidget: Row(
             mainAxisSize: dynamicMainAxisSize(view),
             children: [
@@ -352,10 +315,7 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                 ),
                 const SizedBox(width: AppTokens.spaceMd),
               ],
-              HeroProgressRing(
-                completed: completedCount,
-                total: totalCount,
-              ),
+              HeroProgressRing(completed: completedCount, total: totalCount),
             ],
           ),
         ),
@@ -391,7 +351,8 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
           child: NotificationListener<ScrollNotification>(
             onNotification: (notification) {
               if (notification is ScrollUpdateNotification) {
-                if (notification.metrics.pixels < -60 && !_hasTriggeredSpotlight) {
+                if (notification.metrics.pixels < -60 &&
+                    !_hasTriggeredSpotlight) {
                   _hasTriggeredSpotlight = true;
                   HapticFeedback.mediumImpact();
                   context.push('/search');
@@ -416,158 +377,178 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                 parent: BouncingScrollPhysics(),
               ),
               slivers: [
-              // 逾期分组
-              if (overdueList.isNotEmpty) ...[
-                SliverToBoxAdapter(
-                  child: _buildGroupHeader(
-                    title: l10n.overdue,
-                    count: overdueList.length,
-                    countColor: AppTokens.colorOverdue,
-                  ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final v = overdueList[index];
-                      return TaskSwipeWrapper(
-                        key: ValueKey('overdue_${v.task.id}'),
-                        task: v.task,
-                        hasChildren: v.hasChildren,
-                        isDone: v.effectiveStatus == TaskStatus.done,
-                        child: SimpleTaskTile(
-                          task: v.task,
-                          hasChildren: v.hasChildren,
-                          isDone: v.effectiveStatus == TaskStatus.done,
-                          isOverdue: true,
-                          tags: v.tags,
-                          projectName: v.projectName,
-                          projectColor: v.projectColor,
-                          progressValue: v.progressValue,
-                          subtaskProgressText: v.subtaskProgressText,
-                          isSelected: ref.watch(desktopSelectedTaskIdProvider) == v.task.id,
-                          onTap: () {
-                            if (AppBreakpoints.isDualPane(context)) {
-                              if (ref.read(taskFormProvider.notifier).hasChanges) {
-                                ref.read(taskFormProvider.notifier).save();
-                              }
-                              ref.read(desktopSelectedTaskIdProvider.notifier).select(v.task.id);
-                            } else {
-                              openTaskEdit(context, taskId: v.task.id);
-                            }
-                          },
-                          onToggleDone: (done) async {
-                            final newStatus = (done ?? false)
-                                ? TaskStatus.done
-                                : TaskStatus.todo;
-                            try {
-                              await repo.updateTask(
-                                v.task.id,
-                                status: newStatus,
-                              );
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(l10n.taskUpdateFailed),
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                        ),
-                      );
-                    }, childCount: overdueList.length),
-                  ),
-                ),
-              ],
-
-              // 今天分组
-              if (todayList.isNotEmpty) ...[
-                SliverToBoxAdapter(
-                  child: _buildGroupHeader(
-                    title: l10n.today,
-                    count: todayList.length,
-                  ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final v = todayList[index];
-                      return TaskSwipeWrapper(
-                        key: ValueKey('today_${v.task.id}'),
-                        task: v.task,
-                        hasChildren: v.hasChildren,
-                        isDone: v.effectiveStatus == TaskStatus.done,
-                        child: SimpleTaskTile(
-                          task: v.task,
-                          hasChildren: v.hasChildren,
-                          isDone: v.effectiveStatus == TaskStatus.done,
-                          isOverdue: false,
-                          tags: v.tags,
-                          projectName: v.projectName,
-                          projectColor: v.projectColor,
-                          progressValue: v.progressValue,
-                          subtaskProgressText: v.subtaskProgressText,
-                          isSelected: ref.watch(desktopSelectedTaskIdProvider) == v.task.id,
-                          onTap: () {
-                            if (AppBreakpoints.isDualPane(context)) {
-                              if (ref.read(taskFormProvider.notifier).hasChanges) {
-                                ref.read(taskFormProvider.notifier).save();
-                              }
-                              ref.read(desktopSelectedTaskIdProvider.notifier).select(v.task.id);
-                            } else {
-                              openTaskEdit(context, taskId: v.task.id);
-                            }
-                          },
-                          onToggleDone: (done) async {
-                            final newStatus = (done ?? false)
-                                ? TaskStatus.done
-                                : TaskStatus.todo;
-                            try {
-                              await repo.updateTask(
-                                v.task.id,
-                                status: newStatus,
-                              );
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(l10n.taskUpdateFailed),
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                        ),
-                      );
-                    }, childCount: todayList.length),
-                  ),
-                ),
-              ],
-
-              // 空态提示
-              if (overdueList.isEmpty && todayList.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: EmptyState(
-                      icon: Icons.done_all_rounded,
-                      message: _searchQuery.isNotEmpty
-                          ? l10n.searchNoResults
-                          : (_filterMode == TaskFilterChipMode.done
-                                ? l10n.noCompletedTasks
-                                : l10n.emptyToday),
+                // 逾期分组
+                if (overdueList.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: _buildGroupHeader(
+                      title: l10n.overdue,
+                      count: overdueList.length,
+                      countColor: AppTokens.colorOverdue,
                     ),
                   ),
-                ),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final v = overdueList[index];
+                        return TaskSwipeWrapper(
+                          key: ValueKey('overdue_${v.task.id}'),
+                          task: v.task,
+                          hasChildren: v.hasChildren,
+                          isDone: v.effectiveStatus == TaskStatus.done,
+                          child: SimpleTaskTile(
+                            task: v.task,
+                            hasChildren: v.hasChildren,
+                            isDone: v.effectiveStatus == TaskStatus.done,
+                            isOverdue: true,
+                            tags: v.tags,
+                            projectName: v.projectName,
+                            projectColor: v.projectColor,
+                            progressValue: v.progressValue,
+                            subtaskProgressText: v.subtaskProgressText,
+                            isSelected:
+                                ref.watch(desktopSelectedTaskIdProvider) ==
+                                v.task.id,
+                            onTap: () {
+                              if (AppBreakpoints.isDualPane(context)) {
+                                if (ref
+                                    .read(taskFormProvider.notifier)
+                                    .hasChanges) {
+                                  ref.read(taskFormProvider.notifier).save();
+                                }
+                                ref
+                                    .read(
+                                      desktopSelectedTaskIdProvider.notifier,
+                                    )
+                                    .select(v.task.id);
+                              } else {
+                                openTaskEdit(context, taskId: v.task.id);
+                              }
+                            },
+                            onToggleDone: (done) async {
+                              final newStatus = (done ?? false)
+                                  ? TaskStatus.done
+                                  : TaskStatus.todo;
+                              try {
+                                await repo.updateTask(
+                                  v.task.id,
+                                  status: newStatus,
+                                );
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(l10n.taskUpdateFailed),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                          ),
+                        );
+                      }, childCount: overdueList.length),
+                    ),
+                  ),
+                ],
 
-              SliverToBoxAdapter(child: SizedBox(height: widget.isNarrow ? 130 : AppTokens.spaceXl)),
-            ],
+                // 今天分组
+                if (todayList.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: _buildGroupHeader(
+                      title: l10n.today,
+                      count: todayList.length,
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final v = todayList[index];
+                        return TaskSwipeWrapper(
+                          key: ValueKey('today_${v.task.id}'),
+                          task: v.task,
+                          hasChildren: v.hasChildren,
+                          isDone: v.effectiveStatus == TaskStatus.done,
+                          child: SimpleTaskTile(
+                            task: v.task,
+                            hasChildren: v.hasChildren,
+                            isDone: v.effectiveStatus == TaskStatus.done,
+                            isOverdue: false,
+                            tags: v.tags,
+                            projectName: v.projectName,
+                            projectColor: v.projectColor,
+                            progressValue: v.progressValue,
+                            subtaskProgressText: v.subtaskProgressText,
+                            isSelected:
+                                ref.watch(desktopSelectedTaskIdProvider) ==
+                                v.task.id,
+                            onTap: () {
+                              if (AppBreakpoints.isDualPane(context)) {
+                                if (ref
+                                    .read(taskFormProvider.notifier)
+                                    .hasChanges) {
+                                  ref.read(taskFormProvider.notifier).save();
+                                }
+                                ref
+                                    .read(
+                                      desktopSelectedTaskIdProvider.notifier,
+                                    )
+                                    .select(v.task.id);
+                              } else {
+                                openTaskEdit(context, taskId: v.task.id);
+                              }
+                            },
+                            onToggleDone: (done) async {
+                              final newStatus = (done ?? false)
+                                  ? TaskStatus.done
+                                  : TaskStatus.todo;
+                              try {
+                                await repo.updateTask(
+                                  v.task.id,
+                                  status: newStatus,
+                                );
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(l10n.taskUpdateFailed),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                          ),
+                        );
+                      }, childCount: todayList.length),
+                    ),
+                  ),
+                ],
+
+                // 空态提示
+                if (overdueList.isEmpty && todayList.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: EmptyState(
+                        icon: Icons.done_all_rounded,
+                        message: _searchQuery.isNotEmpty
+                            ? l10n.searchNoResults
+                            : (_filterMode == TaskFilterChipMode.done
+                                  ? l10n.noCompletedTasks
+                                  : l10n.emptyToday),
+                      ),
+                    ),
+                  ),
+
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: widget.isNarrow ? 130 : AppTokens.spaceXl,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
       ],
     );
   }
@@ -687,6 +668,7 @@ class _ProjectOrInboxBodyState extends ConsumerState<_ProjectOrInboxBody> {
           children: [
             PageHeroHeader(
               title: title,
+              showDropdownChevron: true,
               subtitleWidget: Text.rich(
                 TextSpan(
                   children: [
@@ -740,7 +722,7 @@ class _ProjectOrInboxBodyState extends ConsumerState<_ProjectOrInboxBody> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              onTitleTap: () => showScopeSwitcherSheet(context),
+              onTitleTap: () => showTaskScopeSheet(context),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -748,7 +730,9 @@ class _ProjectOrInboxBodyState extends ConsumerState<_ProjectOrInboxBody> {
                     FilledButton.icon(
                       onPressed: () => TaskCreateSheet.show(
                         context,
-                        projectId: widget.isInbox ? inboxProjectId : widget.projectId,
+                        projectId: widget.isInbox
+                            ? inboxProjectId
+                            : widget.projectId,
                       ),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
@@ -756,7 +740,9 @@ class _ProjectOrInboxBodyState extends ConsumerState<_ProjectOrInboxBody> {
                           vertical: 8,
                         ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                          borderRadius: BorderRadius.circular(
+                            AppTokens.radiusPill,
+                          ),
                         ),
                       ),
                       icon: const Icon(Icons.add_rounded, size: 18),
@@ -770,10 +756,7 @@ class _ProjectOrInboxBodyState extends ConsumerState<_ProjectOrInboxBody> {
                     ),
                     const SizedBox(width: AppTokens.spaceMd),
                   ],
-                  HeroProgressRing(
-                    completed: doneCount,
-                    total: totalCount,
-                  ),
+                  HeroProgressRing(completed: doneCount, total: totalCount),
                 ],
               ),
             ),

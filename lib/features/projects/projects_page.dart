@@ -95,7 +95,7 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
                 // 固定顶部 Hero 顶栏
                 PageHeroHeader(
                   title: l10n.overview,
-                  onTitleTap: () => showScopeSwitcherSheet(context),
+                  onTitleTap: () => showViewScopeSheet(context),
                   subtitle: l10n.projectsSummarySubtitle(
                     totalProjectsCount,
                     totalPendingTasks,
@@ -391,25 +391,7 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
           },
         ),
       ),
-      floatingActionButton: isNarrow
-          ? FloatingActionButton.extended(
-              onPressed: () => _showNewProjectDialog(context, ref),
-              tooltip: l10n.newProject,
-              backgroundColor: theme.colorScheme.primary,
-              foregroundColor: theme.colorScheme.onPrimary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-              ),
-              icon: const Icon(Icons.add_rounded, size: 20),
-              label: Text(
-                l10n.newProject,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: AppTokens.textSecondarySize,
-                ),
-              ),
-            )
-          : null,
+      floatingActionButton: null,
     );
   }
 

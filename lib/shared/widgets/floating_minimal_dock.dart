@@ -7,16 +7,24 @@ import 'package:go_router/go_router.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../features/ai_copilot/views/ai_copilot_sheet.dart';
+import '../../features/custom_views/providers/custom_view_providers.dart';
+import '../../features/projects/project_providers.dart';
+import '../../features/settings/settings_providers.dart';
 import '../../features/tasks/widgets/quick_capture_bar.dart';
+import 'default_route_selector_sheet.dart';
 
-/// 移动端底部悬浮极简胶囊坞（Floating Minimal Dock）。
+/// 移动端悬浮双岛操作栏（Floating Dual-Island Dock）。
 ///
-/// 遵循乔布斯极端极简与单手拇指热区哲学：
-/// 1. 悬浮居中圆角胶囊（48dp 高度，圆角 24dp，磨砂毛玻璃 16，细微微光描边）；
-/// 2. 拇指黄金扇形区：
-///    - 左侧：今日 (Today)、日历 (Calendar)
-///    - 中央：灵感捕捉加号 (Quick Capture +)，短按极速录入，长按呼唤 AI 智能助手
-///    - 右侧：象限 (Matrix)、清单 (Projects)、全局搜索 (Search)
+/// 遵循乔布斯极简设计哲学与 Linear 设计语言：
+/// 1. 左岛（Navigation Island）：负责功能区域切换
+///    - 1.1 任务清单按钮：短按直达默认任务页（默认今日），长按呼出默认选择器
+///    - 1.2 特殊视图按钮：短按直达默认特殊视图（默认四象限），长按呼出默认选择器
+///    - 1.3 设置按钮：直达设置页
+///    - 1.4 搜索按钮：直达搜索页
+/// 2. 右岛（Action Island）：AI 功能与快速新建一体式胶囊
+///    - 左侧 AI 星芒按钮：呼出 AI Copilot
+///    - 微光超细分割线
+///    - 右侧一体化新建按钮：极速录入待办（长按呼唤 AI）
 class FloatingMinimalDock extends ConsumerWidget {
   const FloatingMinimalDock({super.key, this.currentRoute});
 
@@ -28,6 +36,7 @@ class FloatingMinimalDock extends ConsumerWidget {
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context);
+    final isZh = l10n.localeName.startsWith('zh');
 
     // 解析当前路由路径
     String path = currentRoute ?? '';
@@ -39,10 +48,26 @@ class FloatingMinimalDock extends ConsumerWidget {
       }
     }
 
-    final isToday = path == '/today' || path == '/';
-    final isCalendar = path.startsWith('/calendar');
-    final isMatrix = path.startsWith('/matrix');
-    final isProjects = path.startsWith('/projects');
+    // 激活状态判断
+    // 1. 任务清单组：今日、收件箱、具体项目清单 (/projects/:id 但非 /projects)
+    final isTasksActive =
+        path == '/today' ||
+        path == '/' ||
+        path == '/inbox' ||
+        (path.startsWith('/projects/') && path != '/projects');
+
+    // 2. 特殊视图组：四象限、日历、项目概览 (/projects)、自定义视图 (/custom_view/:id)
+    final isViewsActive =
+        path.startsWith('/matrix') ||
+        path.startsWith('/calendar') ||
+        path == '/projects' ||
+        path.startsWith('/custom_view/');
+
+    // 3. 设置
+    final isSettingsActive = path.startsWith('/settings');
+
+    // 4. 搜索
+    final isSearchActive = path.startsWith('/search');
 
     final dockBg = isDark
         ? AppTokens.surfaceCardDark.withValues(
@@ -57,8 +82,178 @@ class FloatingMinimalDock extends ConsumerWidget {
         : AppTokens.borderSubtleLight;
 
     return Container(
+      constraints: const BoxConstraints(maxWidth: 460),
+      padding: const EdgeInsets.symmetric(horizontal: AppTokens.spaceMd),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // 左岛：功能区域切换
+          _buildIslandContainer(
+            dockBg: dockBg,
+            borderColor: borderColor,
+            isDark: isDark,
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 1.1 任务清单按钮 (带长按修改默认目标)
+                _buildNavItem(
+                  icon: isTasksActive
+                      ? Icons.check_circle_rounded
+                      : Icons.check_circle_outline_rounded,
+                  color: isTasksActive
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                  tooltip: isZh ? '任务清单' : 'Tasks',
+                  onTap: () => _handleTasksTap(context, ref),
+                  onLongPress: () {
+                    HapticFeedback.heavyImpact();
+                    showDefaultTasksRouteSelectorSheet(context);
+                  },
+                ),
+
+                const SizedBox(width: 4),
+
+                // 1.2 特殊视图按钮 (带长按修改默认目标)
+                _buildNavItem(
+                  icon: isViewsActive
+                      ? Icons.grid_view_rounded
+                      : Icons.grid_view_outlined,
+                  color: isViewsActive
+                      ? AppTokens.colorNavQuadrant
+                      : colorScheme.onSurfaceVariant,
+                  tooltip: isZh ? '特殊视图' : 'Special Views',
+                  onTap: () => _handleViewsTap(context, ref),
+                  onLongPress: () {
+                    HapticFeedback.heavyImpact();
+                    showDefaultSpecialViewsRouteSelectorSheet(context);
+                  },
+                ),
+
+                const SizedBox(width: 4),
+
+                // 1.3 设置按钮
+                _buildNavItem(
+                  icon: isSettingsActive
+                      ? Icons.settings_rounded
+                      : Icons.settings_outlined,
+                  color: isSettingsActive
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                  tooltip: l10n.settings,
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    context.push('/settings');
+                  },
+                ),
+
+                const SizedBox(width: 4),
+
+                // 1.4 搜索按钮
+                _buildNavItem(
+                  icon: isSearchActive
+                      ? Icons.search_rounded
+                      : Icons.search_outlined,
+                  color: isSearchActive
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                  tooltip: l10n.search,
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    context.push('/search');
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(width: AppTokens.spaceSm),
+
+          // 右岛：AI 功能与快速新建一体式胶囊
+          _buildIslandContainer(
+            dockBg: dockBg,
+            borderColor: borderColor,
+            isDark: isDark,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // AI 星芒按钮
+                Tooltip(
+                  message: l10n.aiCopilot,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(AppTokens.radiusButton),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      AiCopilotSheet.show(context);
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTokens.spaceSm,
+                        vertical: AppTokens.spaceXs,
+                      ),
+                      child: ShaderMask(
+                        shaderCallback: (bounds) => const LinearGradient(
+                          colors: [AppTokens.colorInbox, Colors.cyanAccent],
+                        ).createShader(bounds),
+                        child: const Icon(
+                          Icons.auto_awesome,
+                          size: 18,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 胶囊中段微光细分割线
+                Container(
+                  width: 1.0,
+                  height: 18.0,
+                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
+                      : Colors.black.withValues(
+                          alpha: AppTokens.alphaTintFaint,
+                        ),
+                ),
+
+                // 快速新建按钮 (一体化 FloatingActionButton)
+                FloatingActionButton.small(
+                  heroTag: 'dock_quick_add_fab_hero',
+                  tooltip: l10n.newTask,
+                  elevation: 0,
+                  focusElevation: 0,
+                  hoverElevation: 0,
+                  highlightElevation: 0,
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                  ),
+                  onPressed: () {
+                    HapticFeedback.mediumImpact();
+                    QuickCaptureBar.show(context);
+                  },
+                  child: const Icon(Icons.add_rounded, size: 20),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIslandContainer({
+    required Color dockBg,
+    required Color borderColor,
+    required bool isDark,
+    required EdgeInsetsGeometry padding,
+    required Widget child,
+  }) {
+    return Container(
       height: 48,
-      margin: const EdgeInsets.symmetric(horizontal: AppTokens.spaceMd),
       decoration: BoxDecoration(
         color: dockBg,
         borderRadius: BorderRadius.circular(AppTokens.radiusPill),
@@ -79,101 +274,9 @@ class FloatingMinimalDock extends ConsumerWidget {
         borderRadius: BorderRadius.circular(AppTokens.radiusPill),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppTokens.spaceSm),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 1. 今日
-                _buildNavItem(
-                  context: context,
-                  icon: isToday
-                      ? Icons.wb_sunny_rounded
-                      : Icons.wb_sunny_outlined,
-                  color: isToday
-                      ? AppTokens.colorNavToday
-                      : colorScheme.onSurfaceVariant,
-                  tooltip: l10n.navToday,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    context.go('/today');
-                  },
-                ),
-
-                const SizedBox(width: AppTokens.spaceXs),
-
-                // 2. 日历
-                _buildNavItem(
-                  context: context,
-                  icon: isCalendar
-                      ? Icons.calendar_today_rounded
-                      : Icons.calendar_today_outlined,
-                  color: isCalendar
-                      ? colorScheme.primary
-                      : colorScheme.onSurfaceVariant,
-                  tooltip: l10n.navCalendar,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    context.go('/calendar');
-                  },
-                ),
-
-                const SizedBox(width: AppTokens.spaceSm),
-
-                // 3. 中央快速新建灵感胶囊按键（+）
-                _buildQuickAddButton(context, l10n, colorScheme),
-
-                const SizedBox(width: AppTokens.spaceSm),
-
-                // 4. 四象限
-                _buildNavItem(
-                  context: context,
-                  icon: isMatrix
-                      ? Icons.grid_view_rounded
-                      : Icons.grid_view_outlined,
-                  color: isMatrix
-                      ? AppTokens.colorNavQuadrant
-                      : colorScheme.onSurfaceVariant,
-                  tooltip: l10n.navQuadrant,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    context.go('/matrix');
-                  },
-                ),
-
-                const SizedBox(width: AppTokens.spaceXs),
-
-                // 5. 清单 / 概览
-                _buildNavItem(
-                  context: context,
-                  icon: isProjects
-                      ? Icons.folder_rounded
-                      : Icons.folder_outlined,
-                  color: isProjects
-                      ? colorScheme.primary
-                      : colorScheme.onSurfaceVariant,
-                  tooltip: l10n.overview,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    context.go('/projects');
-                  },
-                ),
-
-                const SizedBox(width: AppTokens.spaceXs),
-
-                // 6. 全局搜索
-                _buildNavItem(
-                  context: context,
-                  icon: Icons.search_rounded,
-                  color: colorScheme.onSurfaceVariant,
-                  tooltip: l10n.search,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    context.push('/search');
-                  },
-                ),
-              ],
-            ),
+          child: Material(
+            color: Colors.transparent,
+            child: Padding(padding: padding, child: child),
           ),
         ),
       ),
@@ -181,62 +284,59 @@ class FloatingMinimalDock extends ConsumerWidget {
   }
 
   Widget _buildNavItem({
-    required BuildContext context,
     required IconData icon,
     required Color color,
     required String tooltip,
     required VoidCallback onTap,
+    VoidCallback? onLongPress,
   }) {
-    return IconButton(
-      icon: Icon(icon, color: color, size: 20),
-      tooltip: tooltip,
-      splashRadius: 18,
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-      onPressed: onTap,
-    );
-  }
-
-  Widget _buildQuickAddButton(
-    BuildContext context,
-    AppLocalizations l10n,
-    ColorScheme colorScheme,
-  ) {
     return Tooltip(
-      message: l10n.newTask,
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.lightImpact();
-          QuickCaptureBar.show(context);
-        },
-        onLongPress: () {
-          HapticFeedback.heavyImpact();
-          AiCopilotSheet.show(context);
-        },
+      message: tooltip,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppTokens.radiusButton),
+        onTap: onTap,
+        onLongPress: onLongPress,
         child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: colorScheme.primary,
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.primary.withValues(
-                  alpha: AppTokens.alphaBorderEmphasis,
-                ),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
+          width: 38,
+          height: 38,
           alignment: Alignment.center,
-          child: Icon(
-            Icons.add_rounded,
-            color: colorScheme.onPrimary,
-            size: 22,
-          ),
+          child: Icon(icon, color: color, size: 20),
         ),
       ),
     );
+  }
+
+  void _handleTasksTap(BuildContext context, WidgetRef ref) {
+    HapticFeedback.selectionClick();
+    final defaultRoute = ref.read(defaultTasksRouteProvider);
+
+    // 容错校验：若目标路由为清单，校验该清单是否仍然存在，否则回退到今日
+    if (defaultRoute.startsWith('/projects/')) {
+      final projectId = defaultRoute.replaceFirst('/projects/', '');
+      final projects = ref.read(projectsStreamProvider).value;
+      if (projects != null && !projects.any((p) => p.id == projectId)) {
+        context.go('/today');
+        return;
+      }
+    }
+
+    context.go(defaultRoute);
+  }
+
+  void _handleViewsTap(BuildContext context, WidgetRef ref) {
+    HapticFeedback.selectionClick();
+    final defaultRoute = ref.read(defaultSpecialViewsRouteProvider);
+
+    // 容错校验：若目标路由为自定义视图，校验该视图是否仍然存在，否则回退到四象限
+    if (defaultRoute.startsWith('/custom_view/')) {
+      final viewId = defaultRoute.replaceFirst('/custom_view/', '');
+      final views = ref.read(customViewsStreamProvider).value;
+      if (views != null && !views.any((v) => v.id == viewId)) {
+        context.go('/matrix');
+        return;
+      }
+    }
+
+    context.go(defaultRoute);
   }
 }

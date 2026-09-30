@@ -33,13 +33,24 @@ String resolveCurrentRoute(BuildContext context) {
   }
 }
 
-/// 统一导航树与作用域内容组件（桌面端常驻侧栏与移动端底抽屉共用）。
+/// 作用域导航展示模式过滤枚举。
+enum ScopeNavFilter {
+  /// 全部项（桌面端完整侧边栏使用）
+  all,
+  /// 仅任务清单组（今日、收件箱、各项目清单与文件夹）
+  tasksOnly,
+  /// 仅特殊视图组（四象限、日历、项目概览、自定义视图）
+  viewsOnly,
+}
+
+/// 统一导航树与作用域内容组件（桌面端常驻侧栏与移动端组内弹层共用）。
 class ScopeNavContent extends ConsumerStatefulWidget {
   const ScopeNavContent({
     super.key,
     this.currentRoute,
     this.isModal = false,
     this.showHeader = false,
+    this.filter = ScopeNavFilter.all,
   });
 
   /// 当前选中的路由路径。为 null 时自动通过 GoRouter 解析。
@@ -51,6 +62,9 @@ class ScopeNavContent extends ConsumerStatefulWidget {
 
   /// 是否在顶部展示应用品牌 Logo 与标题（适用于桌面端侧边栏）。
   final bool showHeader;
+
+  /// 导航内容分组过滤模式。
+  final ScopeNavFilter filter;
 
   @override
   ConsumerState<ScopeNavContent> createState() => _ScopeNavContentState();
@@ -97,207 +111,224 @@ class _ScopeNavContentState extends ConsumerState<ScopeNavContent> {
     final inboxSummary = ref.watch(projectSummaryProvider(inboxProjectIdVal));
     final inboxUncompleted = inboxSummary.uncompletedCount;
 
+    final showTasks =
+        widget.filter == ScopeNavFilter.all ||
+        widget.filter == ScopeNavFilter.tasksOnly;
+    final showViews =
+        widget.filter == ScopeNavFilter.all ||
+        widget.filter == ScopeNavFilter.viewsOnly;
+
     final navListView = ListView(
       padding: const EdgeInsets.fromLTRB(10, 2, 10, 12),
       children: [
-        // 1. 系统作用域
-        _buildSectionHeader(l10n.viewsSection),
-        _buildScopeTile(
-          icon: Icons.wb_sunny_outlined,
-          iconColor: AppTokens.colorNavToday,
-          title: l10n.navToday,
-          badgeCount: todayUncompleted > 0 ? todayUncompleted : null,
-          badgeColor: todayUncompleted > 0 ? AppTokens.colorNavToday : null,
-          isSelected: currentRoute == '/today' || currentRoute == '/',
-          onTap: () => _navigateTo('/today'),
-        ),
-        _buildScopeTile(
-          icon: Icons.inbox_outlined,
-          iconColor: AppTokens.colorNavInbox,
-          title: l10n.inbox,
-          badgeCount: inboxUncompleted > 0 ? inboxUncompleted : null,
-          badgeColor: inboxUncompleted > 0 ? AppTokens.colorNavInbox : null,
-          isSelected: currentRoute == '/inbox',
-          onTap: () => _navigateTo('/inbox'),
-        ),
-        _buildScopeTile(
-          icon: Icons.calendar_month_outlined,
-          iconColor: AppTokens.colorNavCalendar,
-          title: l10n.navCalendar,
-          isSelected: currentRoute == '/calendar',
-          onTap: () => _navigateTo('/calendar'),
-        ),
-        _buildScopeTile(
-          icon: Icons.pie_chart_outline_rounded,
-          iconColor: AppTokens.colorNavOverview,
-          title: l10n.overview,
-          isSelected: currentRoute == '/projects',
-          onTap: () => _navigateTo('/projects'),
-        ),
-        _buildScopeTile(
-          icon: Icons.grid_view_rounded,
-          iconColor: AppTokens.colorNavQuadrant,
-          title: l10n.navQuadrant,
-          isSelected: currentRoute == '/matrix',
-          onTap: () => _navigateTo('/matrix'),
-        ),
+        // 1. 任务清单组系统项（今日、收件箱）
+        if (showTasks) ...[
+          _buildSectionHeader(l10n.viewsSection),
+          _buildScopeTile(
+            icon: Icons.wb_sunny_outlined,
+            iconColor: AppTokens.colorNavToday,
+            title: l10n.navToday,
+            badgeCount: todayUncompleted > 0 ? todayUncompleted : null,
+            badgeColor: todayUncompleted > 0 ? AppTokens.colorNavToday : null,
+            isSelected: currentRoute == '/today' || currentRoute == '/',
+            onTap: () => _navigateTo('/today'),
+          ),
+          _buildScopeTile(
+            icon: Icons.inbox_outlined,
+            iconColor: AppTokens.colorNavInbox,
+            title: l10n.inbox,
+            badgeCount: inboxUncompleted > 0 ? inboxUncompleted : null,
+            badgeColor: inboxUncompleted > 0 ? AppTokens.colorNavInbox : null,
+            isSelected: currentRoute == '/inbox',
+            onTap: () => _navigateTo('/inbox'),
+          ),
+        ],
 
-        const SizedBox(height: 12),
+        // 2. 特殊视图组系统项（四象限、日历、概览）
+        if (showViews) ...[
+          if (widget.filter == ScopeNavFilter.viewsOnly)
+            _buildSectionHeader(l10n.viewsSection),
+          _buildScopeTile(
+            icon: Icons.grid_view_rounded,
+            iconColor: AppTokens.colorNavQuadrant,
+            title: l10n.navQuadrant,
+            isSelected: currentRoute == '/matrix',
+            onTap: () => _navigateTo('/matrix'),
+          ),
+          _buildScopeTile(
+            icon: Icons.calendar_month_outlined,
+            iconColor: AppTokens.colorNavCalendar,
+            title: l10n.navCalendar,
+            isSelected: currentRoute == '/calendar',
+            onTap: () => _navigateTo('/calendar'),
+          ),
+          _buildScopeTile(
+            icon: Icons.pie_chart_outline_rounded,
+            iconColor: AppTokens.colorNavOverview,
+            title: l10n.overview,
+            isSelected: currentRoute == '/projects',
+            onTap: () => _navigateTo('/projects'),
+          ),
+          const SizedBox(height: 12),
 
-        // 2. 自定义视图
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSectionHeaderWithAdd(
-              title: l10n.customViews,
-              tooltip: l10n.newCustomView,
-              onAdd: () {
-                if (AppBreakpoints.isWide(context)) {
-                  showCustomViewEditorSideSheet(context);
-                } else {
-                  _navigateTo('/custom_view/new', isPush: true);
-                }
-              },
-            ),
-            customViewsAsync.maybeWhen(
-              data: (views) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  for (final cv in views)
-                    _buildScopeTile(
-                      icon: getCustomViewIcon(cv.icon),
-                      iconColor: Color(cv.color),
-                      title: cv.name,
-                      isSelected: currentRoute == '/custom_view/${cv.id}',
-                      onTap: () => _navigateTo('/custom_view/${cv.id}'),
-                    ),
-                ],
+          // 2.2 自定义视图
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionHeaderWithAdd(
+                title: l10n.customViews,
+                tooltip: l10n.newCustomView,
+                onAdd: () {
+                  if (AppBreakpoints.isWide(context)) {
+                    showCustomViewEditorSideSheet(context);
+                  } else {
+                    _navigateTo('/custom_view/new', isPush: true);
+                  }
+                },
               ),
-              orElse: () => const SizedBox.shrink(),
-            ),
-            const SizedBox(height: 12),
-          ],
-        ),
+              customViewsAsync.maybeWhen(
+                data: (views) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final cv in views)
+                      _buildScopeTile(
+                        icon: getCustomViewIcon(cv.icon),
+                        iconColor: Color(cv.color),
+                        title: cv.name,
+                        isSelected: currentRoute == '/custom_view/${cv.id}',
+                        onTap: () => _navigateTo('/custom_view/${cv.id}'),
+                      ),
+                  ],
+                ),
+                orElse: () => const SizedBox.shrink(),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ],
 
         // 3. 项目与文件夹分组（清单）
-        _buildSectionHeaderWithAdd(
-          title: l10n.listsSection,
-          tooltip: l10n.newFolder,
-          onAdd: () async {
-            await showCreateListFolderSheet(
-              context: context,
-              initialType: CreateType.folder,
-            );
-          },
-        ),
-        groupingAsync.maybeWhen(
-          data: (grouping) {
-            final folders = grouping.folders;
-            final ungrouped = grouping.ungrouped;
-            final isDark = theme.brightness == Brightness.dark;
-            final borderColor = isDark
-                ? AppTokens.borderSubtleDark
-                : AppTokens.borderSubtleLight;
+        if (showTasks) ...[
+          const SizedBox(height: 6),
+          _buildSectionHeaderWithAdd(
+            title: l10n.listsSection,
+            tooltip: l10n.newFolder,
+            onAdd: () async {
+              await showCreateListFolderSheet(
+                context: context,
+                initialType: CreateType.folder,
+              );
+            },
+          ),
+          groupingAsync.maybeWhen(
+            data: (grouping) {
+              final folders = grouping.folders;
+              final ungrouped = grouping.ungrouped;
+              final isDark = theme.brightness == Brightness.dark;
+              final borderColor = isDark
+                  ? AppTokens.borderSubtleDark
+                  : AppTokens.borderSubtleLight;
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (final folder in folders) ...[
-                  () {
-                    final fProjects =
-                        grouping.folderProjects[folder.id] ?? const <Project>[];
-                    final fUncompleted = ref.watch(
-                      folderUncompletedCountProvider(folder.id),
-                    );
-                    return _buildFolderHeader(
-                      folder: folder,
-                      uncompletedCount: fUncompleted,
-                      isCollapsed: _collapsedFolders.contains(folder.id),
-                      projectCount: fProjects.length,
-                      onToggleCollapse: () {
-                        setState(() {
-                          if (_collapsedFolders.contains(folder.id)) {
-                            _collapsedFolders.remove(folder.id);
-                          } else {
-                            _collapsedFolders.add(folder.id);
-                          }
-                        });
-                      },
-                    );
-                  }(),
-                  if (!_collapsedFolders.contains(folder.id))
-                    Container(
-                      margin: const EdgeInsets.only(
-                        left: 20,
-                        top: 1,
-                        bottom: 4,
-                      ),
-                      padding: const EdgeInsets.only(left: 6),
-                      decoration: BoxDecoration(
-                        border: Border(
-                          left: BorderSide(color: borderColor, width: 1),
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final folder in folders) ...[
+                    () {
+                      final fProjects =
+                          grouping.folderProjects[folder.id] ?? const <Project>[];
+                      final fUncompleted = ref.watch(
+                        folderUncompletedCountProvider(folder.id),
+                      );
+                      return _buildFolderHeader(
+                        folder: folder,
+                        uncompletedCount: fUncompleted,
+                        isCollapsed: _collapsedFolders.contains(folder.id),
+                        projectCount: fProjects.length,
+                        onToggleCollapse: () {
+                          setState(() {
+                            if (_collapsedFolders.contains(folder.id)) {
+                              _collapsedFolders.remove(folder.id);
+                            } else {
+                              _collapsedFolders.add(folder.id);
+                            }
+                          });
+                        },
+                      );
+                    }(),
+                    if (!_collapsedFolders.contains(folder.id))
+                      Container(
+                        margin: const EdgeInsets.only(
+                          left: 20,
+                          top: 1,
+                          bottom: 4,
+                        ),
+                        padding: const EdgeInsets.only(left: 6),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            left: BorderSide(color: borderColor, width: 1),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (final p
+                                in grouping.folderProjects[folder.id] ??
+                                    const <Project>[])
+                              _buildProjectTile(
+                                project: p,
+                                isIndented: false,
+                                isSelected: currentRoute == '/projects/${p.id}',
+                                onTap: () => _navigateTo('/projects/${p.id}'),
+                              ),
+                          ],
                         ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          for (final p
-                              in grouping.folderProjects[folder.id] ??
-                                  const <Project>[])
-                            _buildProjectTile(
-                              project: p,
-                              isIndented: false,
-                              isSelected: currentRoute == '/projects/${p.id}',
-                              onTap: () => _navigateTo('/projects/${p.id}'),
-                            ),
-                        ],
+                  ],
+                  if (ungrouped.isNotEmpty) ...[
+                    if (folders.isNotEmpty)
+                      DragTarget<Project>(
+                        onWillAcceptWithDetails: (details) =>
+                            details.data.folderId != null,
+                        onAcceptWithDetails: (details) async {
+                          await ref
+                              .read(todoRepositoryProvider)
+                              .moveProjectToFolder(
+                                details.data.id,
+                                folderId: null,
+                                newIndex: ungrouped.length,
+                              );
+                        },
+                        builder: (context, candidateData, rejectedData) {
+                          final isHovered = candidateData.isNotEmpty;
+                          return Container(
+                            decoration: isHovered
+                                ? BoxDecoration(
+                                    color: colorScheme.primary.withValues(
+                                      alpha: AppTokens.alphaTintFaint,
+                                    ),
+                                    borderRadius: BorderRadius.circular(
+                                      AppTokens.radiusChip,
+                                    ),
+                                  )
+                                : null,
+                            child: _buildSubHeader(l10n.ungrouped),
+                          );
+                        },
                       ),
-                    ),
+                    for (final p in ungrouped)
+                      _buildProjectTile(
+                        project: p,
+                        isIndented: false,
+                        isSelected: currentRoute == '/projects/${p.id}',
+                        onTap: () => _navigateTo('/projects/${p.id}'),
+                      ),
+                  ],
                 ],
-                if (ungrouped.isNotEmpty) ...[
-                  if (folders.isNotEmpty)
-                    DragTarget<Project>(
-                      onWillAcceptWithDetails: (details) =>
-                          details.data.folderId != null,
-                      onAcceptWithDetails: (details) async {
-                        await ref
-                            .read(todoRepositoryProvider)
-                            .moveProjectToFolder(
-                              details.data.id,
-                              folderId: null,
-                              newIndex: ungrouped.length,
-                            );
-                      },
-                      builder: (context, candidateData, rejectedData) {
-                        final isHovered = candidateData.isNotEmpty;
-                        return Container(
-                          decoration: isHovered
-                              ? BoxDecoration(
-                                  color: colorScheme.primary.withValues(
-                                    alpha: AppTokens.alphaTintFaint,
-                                  ),
-                                  borderRadius: BorderRadius.circular(
-                                    AppTokens.radiusChip,
-                                  ),
-                                )
-                              : null,
-                          child: _buildSubHeader(l10n.ungrouped),
-                        );
-                      },
-                    ),
-                  for (final p in ungrouped)
-                    _buildProjectTile(
-                      project: p,
-                      isIndented: false,
-                      isSelected: currentRoute == '/projects/${p.id}',
-                      onTap: () => _navigateTo('/projects/${p.id}'),
-                    ),
-                ],
-              ],
-            );
-          },
-          orElse: () => const SizedBox.shrink(),
-        ),
+              );
+            },
+            orElse: () => const SizedBox.shrink(),
+          ),
+        ],
       ],
     );
 
@@ -335,72 +366,73 @@ class _ScopeNavContentState extends ConsumerState<ScopeNavContent> {
               ? Flexible(child: navListView)
               : Expanded(child: navListView),
 
-          const Divider(height: 1),
-
-          // 底部操作区 (新建项目 / 文件夹 / 设置 / 同步)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                _buildBottomActionButton(
-                  icon: Icons.add,
-                  label: l10n.create,
-                  onTap: () async {
-                    await showCreateListFolderSheet(
-                      context: context,
-                      initialType: CreateType.list,
-                    );
-                  },
-                ),
-                const Spacer(),
-                IconButton(
-                  tooltip: l10n.aiCopilot,
-                  icon: Icon(
-                    Icons.auto_awesome,
-                    size: 20,
-                    color: colorScheme.onSurfaceVariant,
+          // 仅桌面侧边栏模式（filter == all）展示底部操作区
+          if (widget.filter == ScopeNavFilter.all) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  _buildBottomActionButton(
+                    icon: Icons.add,
+                    label: l10n.create,
+                    onTap: () async {
+                      await showCreateListFolderSheet(
+                        context: context,
+                        initialType: CreateType.list,
+                      );
+                    },
                   ),
-                  onPressed: () {
-                    AiCopilotSheet.show(context);
-                  },
-                ),
-                IconButton(
-                  tooltip: l10n.settings,
-                  icon: Icon(
-                    Icons.settings_outlined,
-                    size: 20,
-                    color: colorScheme.onSurfaceVariant,
+                  const Spacer(),
+                  IconButton(
+                    tooltip: l10n.aiCopilot,
+                    icon: Icon(
+                      Icons.auto_awesome,
+                      size: 20,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    onPressed: () {
+                      AiCopilotSheet.show(context);
+                    },
                   ),
-                  onPressed: () {
-                    if (AppBreakpoints.isWide(context)) {
-                      showSettingsSideSheet(context);
-                    } else {
-                      _navigateTo('/settings', isPush: true);
-                    }
-                  },
-                ),
-                IconButton(
-                  tooltip: l10n.webdavSync,
-                  icon: Icon(
-                    syncState.status == SyncStateStatus.syncing
-                        ? Icons.sync
-                        : (syncState.status == SyncStateStatus.error
-                              ? Icons.sync_problem
-                              : Icons.cloud_done_outlined),
-                    size: 20,
-                    color: syncState.status == SyncStateStatus.error
-                        ? colorScheme.error
-                        : (syncState.status == SyncStateStatus.syncing
-                              ? colorScheme.primary
-                              : colorScheme.onSurfaceVariant),
+                  IconButton(
+                    tooltip: l10n.settings,
+                    icon: Icon(
+                      Icons.settings_outlined,
+                      size: 20,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    onPressed: () {
+                      if (AppBreakpoints.isWide(context)) {
+                        showSettingsSideSheet(context);
+                      } else {
+                        _navigateTo('/settings', isPush: true);
+                      }
+                    },
                   ),
-                  onPressed: () {
-                    ref.read(syncEngineProvider).run();
-                  },
-                ),
-              ],
+                  IconButton(
+                    tooltip: l10n.webdavSync,
+                    icon: Icon(
+                      syncState.status == SyncStateStatus.syncing
+                          ? Icons.sync
+                          : (syncState.status == SyncStateStatus.error
+                                ? Icons.sync_problem
+                                : Icons.cloud_done_outlined),
+                      size: 20,
+                      color: syncState.status == SyncStateStatus.error
+                          ? colorScheme.error
+                          : (syncState.status == SyncStateStatus.syncing
+                                ? colorScheme.primary
+                                : colorScheme.onSurfaceVariant),
+                    ),
+                    onPressed: () {
+                      ref.read(syncEngineProvider).run();
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

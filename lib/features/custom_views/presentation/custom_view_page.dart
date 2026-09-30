@@ -10,7 +10,6 @@ import '../../../core/utils/custom_view_models.dart';
 import '../../../shared/widgets/app_menu_item.dart';
 import '../../../shared/widgets/page_hero_header.dart';
 import '../../../shared/widgets/scope_switcher_sheet.dart';
-import '../../tasks/widgets/task_create_sheet.dart';
 import '../providers/custom_view_providers.dart';
 import '../widgets/panel_column.dart';
 import 'custom_view_action_handler.dart';
@@ -107,7 +106,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
 
         final header = PageHeroHeader(
           title: view.name,
-          onTitleTap: () => showScopeSwitcherSheet(context),
+          onTitleTap: () => showViewScopeSheet(context),
           trailing: _buildTrailingActions(context, l10n, view),
         );
 
@@ -234,37 +233,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
         if (panels.length == 1) {
           final panel = panels.first;
           return Scaffold(
-            floatingActionButton: FloatingActionButton.extended(
-              tooltip: l10n.newTask,
-              onPressed: () {
-                TaskCreateSheet.show(
-                  context,
-                  projectId: panel.filter.projectIds.length == 1
-                      ? panel.filter.projectIds.first
-                      : null,
-                  initialPriority: panel.filter.priorities.length == 1
-                      ? panel.filter.priorities.first
-                      : null,
-                  initialTagIds: panel.filter.tagIds.isNotEmpty
-                      ? panel.filter.tagIds
-                      : null,
-                );
-              },
-              backgroundColor: theme.colorScheme.primary,
-              foregroundColor: theme.colorScheme.onPrimary,
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-              ),
-              icon: const Icon(Icons.add, size: 20),
-              label: Text(
-                l10n.newTask,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: AppTokens.textSecondarySize,
-                ),
-              ),
-            ),
+            floatingActionButton: null,
             body: SafeArea(
               bottom: false,
               child: Column(
@@ -297,26 +266,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
         return DefaultTabController(
           length: panels.length,
           child: Scaffold(
-            floatingActionButton: FloatingActionButton.extended(
-              tooltip: l10n.newTask,
-              onPressed: () {
-                TaskCreateSheet.show(context);
-              },
-              backgroundColor: theme.colorScheme.primary,
-              foregroundColor: theme.colorScheme.onPrimary,
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-              ),
-              icon: const Icon(Icons.add, size: 20),
-              label: Text(
-                l10n.newTask,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: AppTokens.textSecondarySize,
-                ),
-              ),
-            ),
+            floatingActionButton: null,
             body: SafeArea(
               bottom: false,
               child: Column(

@@ -53,7 +53,7 @@ class CalendarPage extends ConsumerWidget {
           children: [
             PageHeroHeader(
               title: l10n.navCalendar,
-              onTitleTap: () => showScopeSwitcherSheet(context),
+              onTitleTap: () => showViewScopeSheet(context),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -110,21 +110,7 @@ class CalendarPage extends ConsumerWidget {
           ],
         ),
       ),
-      floatingActionButton: isNarrow
-          ? FloatingActionButton.extended(
-              tooltip: l10n.newTask,
-              onPressed: () => _createTaskOnDay(context, ref, state.selectedDate),
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
-              elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTokens.radiusPill)),
-              icon: const Icon(Icons.add, size: 20),
-              label: Text(
-                l10n.newTask,
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: AppTokens.textSecondarySize),
-              ),
-            )
-          : null,
+      floatingActionButton: null,
     );
   }
 

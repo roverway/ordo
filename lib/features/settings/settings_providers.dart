@@ -406,3 +406,67 @@ class LocalSnapshotsNotifier extends AsyncNotifier<List<LocalSnapshotInfo>> {
     });
   }
 }
+
+/// 移动端底部操作栏任务清单组默认路由持久化 key。
+const String defaultTasksRoutePrefKey = 'default_tasks_route';
+
+/// 移动端底部操作栏特殊视图组默认路由持久化 key。
+const String defaultSpecialViewsRoutePrefKey = 'default_special_views_route';
+
+/// 任务清单组默认路由 Notifier：默认 /today。
+final defaultTasksRouteProvider =
+    NotifierProvider<DefaultTasksRouteNotifier, String>(
+      DefaultTasksRouteNotifier.new,
+    );
+
+class DefaultTasksRouteNotifier extends Notifier<String> {
+  static const String fallbackRoute = '/today';
+
+  @override
+  String build() {
+    final value = ref
+        .watch(appSettingsCacheProvider)
+        .get(defaultTasksRoutePrefKey);
+    return (value != null && value.isNotEmpty) ? value : fallbackRoute;
+  }
+
+  /// 更改任务清单组默认跳转路由并持久化。
+  Future<void> setDefaultTasksRoute(String route) async {
+    final cache = ref.read(appSettingsCacheProvider);
+    state = route;
+    try {
+      await cache.set(defaultTasksRoutePrefKey, route);
+    } catch (e) {
+      debugPrint('setDefaultTasksRoute 持久化失败: ${e.runtimeType}');
+    }
+  }
+}
+
+/// 特殊视图组默认路由 Notifier：默认 /matrix。
+final defaultSpecialViewsRouteProvider =
+    NotifierProvider<DefaultSpecialViewsRouteNotifier, String>(
+      DefaultSpecialViewsRouteNotifier.new,
+    );
+
+class DefaultSpecialViewsRouteNotifier extends Notifier<String> {
+  static const String fallbackRoute = '/matrix';
+
+  @override
+  String build() {
+    final value = ref
+        .watch(appSettingsCacheProvider)
+        .get(defaultSpecialViewsRoutePrefKey);
+    return (value != null && value.isNotEmpty) ? value : fallbackRoute;
+  }
+
+  /// 更改特殊视图组默认跳转路由并持久化。
+  Future<void> setDefaultSpecialViewsRoute(String route) async {
+    final cache = ref.read(appSettingsCacheProvider);
+    state = route;
+    try {
+      await cache.set(defaultSpecialViewsRoutePrefKey, route);
+    } catch (e) {
+      debugPrint('setDefaultSpecialViewsRoute 持久化失败: ${e.runtimeType}');
+    }
+  }
+}
