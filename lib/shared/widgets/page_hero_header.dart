@@ -13,6 +13,7 @@ class PageHeroHeader extends StatelessWidget {
     this.subtitleWidget,
     this.trailing,
     this.onTitleTap,
+    this.onTitleTapWithContext,
     this.isExpanded = false,
     this.showDropdownChevron = true,
     this.leading,
@@ -34,6 +35,9 @@ class PageHeroHeader extends StatelessWidget {
   /// 点击标题触发的回调（在移动端唤起 Scope Switcher 底部弹层）。
   final VoidCallback? onTitleTap;
 
+  /// 带触发元素局部 BuildContext 的回调，用于精准获取标题底部像素级锚点。
+  final void Function(BuildContext context)? onTitleTapWithContext;
+
   /// 是否处于展开状态（驱动 ∨ 箭头旋转 180 度）。
   final bool isExpanded;
 
@@ -50,6 +54,7 @@ class PageHeroHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final hasTapAction = onTitleTap != null || onTitleTapWithContext != null;
 
     Widget titleRow = Row(
       mainAxisSize: MainAxisSize.min,
@@ -73,7 +78,7 @@ class PageHeroHeader extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        if (showDropdownChevron && onTitleTap != null) ...[
+        if (showDropdownChevron && hasTapAction) ...[
           const SizedBox(width: 6),
           AnimatedRotation(
             turns: isExpanded ? 0.5 : 0.0,
@@ -114,19 +119,28 @@ class PageHeroHeader extends StatelessWidget {
       ],
     );
 
-    if (onTitleTap != null) {
-      headerTextColumn = InkWell(
-        onTap: onTitleTap,
-        borderRadius: BorderRadius.circular(AppTokens.radiusButton),
-        splashColor: colorScheme.onSurface.withValues(
-          alpha: AppTokens.alphaTintFaint,
-        ),
-        highlightColor: colorScheme.onSurface.withValues(
-          alpha: AppTokens.alphaTintFaint,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          child: headerTextColumn,
+    if (hasTapAction) {
+      final innerContent = headerTextColumn;
+      headerTextColumn = Builder(
+        builder: (headerContext) => InkWell(
+          onTap: () {
+            if (onTitleTapWithContext != null) {
+              onTitleTapWithContext!(headerContext);
+            } else if (onTitleTap != null) {
+              onTitleTap!();
+            }
+          },
+          borderRadius: BorderRadius.circular(AppTokens.radiusButton),
+          splashColor: colorScheme.onSurface.withValues(
+            alpha: AppTokens.alphaTintFaint,
+          ),
+          highlightColor: colorScheme.onSurface.withValues(
+            alpha: AppTokens.alphaTintFaint,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: innerContent,
+          ),
         ),
       );
     }

@@ -53,7 +53,7 @@ class CalendarPage extends ConsumerWidget {
           children: [
             PageHeroHeader(
               title: l10n.navCalendar,
-              onTitleTap: () => showViewScopeSheet(context),
+              onTitleTapWithContext: (ctx) => showViewScopeSheet(ctx),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

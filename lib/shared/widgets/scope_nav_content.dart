@@ -51,6 +51,7 @@ class ScopeNavContent extends ConsumerStatefulWidget {
     this.isModal = false,
     this.showHeader = false,
     this.filter = ScopeNavFilter.all,
+    this.scrollController,
   });
 
   /// 当前选中的路由路径。为 null 时自动通过 GoRouter 解析。
@@ -65,6 +66,9 @@ class ScopeNavContent extends ConsumerStatefulWidget {
 
   /// 导航内容分组过滤模式。
   final ScopeNavFilter filter;
+
+  /// 外部传入的滚动控制器（用于 Popover 弹窗感知滚动触底状态及渐隐遮罩）。
+  final ScrollController? scrollController;
 
   @override
   ConsumerState<ScopeNavContent> createState() => _ScopeNavContentState();
@@ -119,6 +123,7 @@ class _ScopeNavContentState extends ConsumerState<ScopeNavContent> {
         widget.filter == ScopeNavFilter.viewsOnly;
 
     final navListView = ListView(
+      controller: widget.scrollController,
       padding: const EdgeInsets.fromLTRB(10, 2, 10, 12),
       children: [
         // 1. 任务清单组系统项（今日、收件箱）
@@ -363,7 +368,20 @@ class _ScopeNavContentState extends ConsumerState<ScopeNavContent> {
 
           // 主滚动列表
           widget.isModal
-              ? Flexible(child: navListView)
+              ? Flexible(
+                  child: widget.scrollController != null
+                      ? RawScrollbar(
+                          controller: widget.scrollController,
+                          thumbVisibility: false,
+                          thickness: 2.5,
+                          radius: const Radius.circular(AppTokens.radiusPill),
+                          thumbColor: colorScheme.onSurface.withValues(
+                            alpha: AppTokens.alphaTintStrong,
+                          ),
+                          child: navListView,
+                        )
+                      : navListView,
+                )
               : Expanded(child: navListView),
 
           // 仅桌面侧边栏模式（filter == all）展示底部操作区

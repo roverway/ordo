@@ -236,7 +236,7 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
         PageHeroHeader(
           title: dateStr,
           showDropdownChevron: true,
-          onTitleTap: () => showTaskScopeSheet(context),
+          onTitleTapWithContext: (ctx) => showTaskScopeSheet(ctx),
           subtitleWidget: Row(
             mainAxisSize: dynamicMainAxisSize(view),
             children: [
@@ -722,7 +722,7 @@ class _ProjectOrInboxBodyState extends ConsumerState<_ProjectOrInboxBody> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              onTitleTap: () => showTaskScopeSheet(context),
+              onTitleTapWithContext: (ctx) => showTaskScopeSheet(ctx),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

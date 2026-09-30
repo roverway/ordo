@@ -106,7 +106,7 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
 
         final header = PageHeroHeader(
           title: view.name,
-          onTitleTap: () => showViewScopeSheet(context),
+          onTitleTapWithContext: (ctx) => showViewScopeSheet(ctx),
           trailing: _buildTrailingActions(context, l10n, view),
         );
 

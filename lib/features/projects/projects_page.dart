@@ -95,7 +95,7 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
                 // 固定顶部 Hero 顶栏
                 PageHeroHeader(
                   title: l10n.overview,
-                  onTitleTap: () => showViewScopeSheet(context),
+                  onTitleTapWithContext: (ctx) => showViewScopeSheet(ctx),
                   subtitle: l10n.projectsSummarySubtitle(
                     totalProjectsCount,
                     totalPendingTasks,

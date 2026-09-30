@@ -7,6 +7,8 @@ import 'package:ordo/features/settings/widgets/settings_side_sheet.dart';
 import 'package:ordo/shared/widgets/default_route_selector_sheet.dart';
 import 'package:ordo/shared/widgets/floating_minimal_dock.dart';
 import 'package:ordo/shared/widgets/scope_nav_content.dart';
+import 'package:ordo/shared/widgets/page_hero_header.dart';
+import 'package:ordo/shared/widgets/scope_switcher_sheet.dart';
 
 void main() {
   group('Navigation Dual-Island Dock & Route Settings Tests', () {
@@ -202,5 +204,69 @@ void main() {
       expect(find.text('收件箱'), findsOneWidget);
       expect(find.text('默认兜底'), findsOneWidget);
     });
+
+    testWidgets('PageHeroHeader triggers onTitleTapWithContext correctly', (
+      tester,
+    ) async {
+      BuildContext? capturedContext;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: PageHeroHeader(
+              title: '8月31日',
+              subtitle: '星期日 · 逾期 0',
+              onTitleTapWithContext: (ctx) {
+                capturedContext = ctx;
+              },
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('8月31日'));
+      await tester.pumpAndSettle();
+
+      expect(capturedContext, isNotNull);
+      final renderBox = capturedContext!.findRenderObject() as RenderBox?;
+      expect(renderBox, isNotNull);
+      expect(renderBox!.hasSize, isTrue);
+      // 验证获取到的局部头部高度在合理标题区间（< 150dp），而非整屏
+      expect(renderBox.size.height, lessThan(150));
+    });
+
+    testWidgets('ScopeSwitcherSheet mounts with bottom fade affordance', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            locale: Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: Center(
+                child: SizedBox(
+                  width: 288,
+                  height: 300,
+                  child: ScopeSwitcherSheet(
+                    currentRoute: '/today',
+                    filter: ScopeNavFilter.tasksOnly,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // 验证 ScopeSwitcherSheet 渲染
+      expect(find.byType(ScopeSwitcherSheet), findsOneWidget);
+      expect(find.byType(ScopeNavContent), findsOneWidget);
+      expect(find.text('今日'), findsOneWidget);
+    });
   });
 }
+

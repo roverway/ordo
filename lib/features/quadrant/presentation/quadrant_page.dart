@@ -47,7 +47,7 @@ class QuadrantPage extends ConsumerWidget {
               title: l10n.navQuadrant,
               subtitle: l10n.quadrantSummarySubtitle(totalCount),
               showDropdownChevron: true,
-              onTitleTap: () => showViewScopeSheet(context),
+              onTitleTapWithContext: (ctx) => showViewScopeSheet(ctx),
               trailing: HeroProgressRing(
                 completed: completedCount,
                 total: totalAll,

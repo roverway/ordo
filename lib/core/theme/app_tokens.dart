@@ -104,8 +104,14 @@ abstract final class AppTokens {
   /// 模态遮罩（BottomSheet / Dialog 背景遮罩）。
   static const double alphaScrim = 0.70;
 
+  /// 完全透明（用于渐变起始端等场景）。
+  static const double alphaTransparent = 0.0;
+
   /// 磨砂 / 近实遮罩。
   static const double alphaOverlayHeavy = 0.88;
+
+  /// 近全不透明（用于边缘渐隐遮罩柔和过渡终止端）。
+  static const double alphaOverlayNearlyOpaque = 0.96;
 
   /// 磨砂玻璃卡片透明度（深色主题）。
   static const double alphaCardFrostedDark = 0.72;
