@@ -622,20 +622,22 @@ cbfbdd7  全面打磨移动端全流程界面与极致交互体验
 
 ### 7.8 待办与决策项（供后续处理）
 
-下表为按 7.6 建议汇总的可执行清单。**全部标记为"待批准"，在获得批准前不应直接执行。**
+> **状态更新（2026-09-30，复核于 `f5a22b8`）**：下表状态已按整改 commit `46bfe91` / `92a6b5c` / `f5a22b8` 更新。
+> **详细核查结论与整改效果评估见 `docs/97-remediation-verification-f5a22b8.md`。**
+> 综合评分 6.5 → **7.5**。
 
 | # | 动作 | 关联问题 | 优先级 | 成本 | 状态 |
 |---|---|---|---|---|---|
-| A | `beforeOpen` 加 `journal_mode=WAL` / `busy_timeout` / `synchronous=NORMAL`；`Tasks` + `TaskTags` 加 4 个索引（bump `schemaVersion` 8 + 迁移测试）| P0-1 / 标记二 | **P0** | 半天 | ☐ 待批准 |
-| B | `.github/workflows` 加 3 条闸门：架构倒置 / 文件体积 / `dart format` | 问题 9 / 13 / 标记三 | **P0** | 1–2 小时 | ☐ 待批准 |
-| C | 一次"回收日"：合并重复 sheet、删死样式、`docs/80-95` 归档至 `docs/archive/` | 标记一 | P1 | 1 天 | ☐ 待批准 |
-| D | 补文档漂移 3 处（`database.dart:11` `schemaVersion` 注释 / `00-project-brief.md` 补 AI 章节 / `AGENTS.md` 补 M6–M9）| 问题 12 | P1 | 30 分钟 | ☐ 待批准 |
-| E | `exportAll()` 的 N+1 改批量查询（`todo_repository.dart:1202-1205`）| P0-3 | P1 | 2 小时 | ☐ 待批准 |
-| F | `SyncEngine.run()` 加 `_pendingAgain` 标记（`sync_engine.dart:211`）| P1-8 | P1 | 5 行 | ☐ 待批准 |
-| G | 墓碑提升为独立表 `sync_tombstones(type, id, updatedAt)` | P0-4 | P2 | 1 天 | ☐ 待批准 |
-| H | 拆 `task_create_sheet.dart:207`（833 行）与 `task_row.dart:138`（371 行，hover 触发全树重建）的 `build()` | P1-5 | P2 | 2–3 天 | ☐ 待批准 |
-| I | 今日 / 日历 / 搜索的筛选下推 SQL（`task_dao.dart:76` / `:84`）| P0-2 | P2 | 1–2 天 | ☐ 待批准 |
-| J | `todoRepositoryProvider` 迁至 `lib/core/db/db_providers.dart`；`onDataChanged` 改接口注入 | P1-6 / P1-7 | P3 | 半天 | ☐ 待批准 |
+| A | `beforeOpen` 加 `journal_mode=WAL` / `busy_timeout` / `synchronous=NORMAL`；`Tasks` + `TaskTags` 加索引（bump `schemaVersion` 8 + 迁移测试）| P0-1 / 标记二 | ~~**P0**~~ | 半天 | ✅ **已完成**（`46bfe91`+`92a6b5c`；6 复合索引 + v8 迁移 + 174 行迁移测试，**超出预期**）|
+| B | `.github/workflows` 加 3 条闸门：架构倒置 / 文件体积 / `dart format` | 问题 9 / 13 / 标记三 | ~~**P0**~~ | 1–2 小时 | ✅ **已完成**（`46bfe91`；3 工具 + `verify.sh` + `ci.yml`，push/PR 双触发）**→ 需扩充规则，见 97 号报告第三节** |
+| C | 一次"回收日"：合并重复 sheet、删死样式、`docs/80-95` 归档至 `docs/archive/` | 标记一 | P1 | 1 天 | 🟡 **部分**：闸门已建，"回收日"本身**未做** |
+| D | 补文档漂移 3 处（`database.dart:11` 注释 / `00-project-brief.md` 补 AI 章节 / `AGENTS.md` 补 M6–M9）| 问题 12 | P1 | 30 分钟 | 🟡 **1/3**：schemaVersion 注释已修；brief 与 AGENTS.md **未做** |
+| E | `exportAll()` 的 N+1 改批量查询 | P0-3 | P1 | 2 小时 | ✅ **已完成**（`f5a22b8`；新增 `getAllTaskTags()`，另被 quadrant/today 复用）|
+| F | `SyncEngine.run()` 加 `_pendingAgain` 标记 | P1-8 | **P0** ⬆ | 5 行 | ❌ **未做**（`sync_engine.dart:211-226` 逐字未改）**→ 升级为 P0** |
+| G | 墓碑提升为独立表 `sync_tombstones(type, id, updatedAt)` | P0-4 | P2 | 1 天 | ✅ **已完成**（`92a6b5c`；含历史 JSON 迁移 + 向后兼容读取）**→ upsert 待改原子，见 97 号报告第四节** |
+| H | 拆 `task_create_sheet.dart`（833 行）与 `task_row.dart`（371 行）的 `build()` | P1-5 | P2 ⬇ | 2–3 天 | 🟡 **2/53**：`task_create_sheet` 833→356 ✅；`task_row` 已改 `ListenableBuilder` 实质修复但行数升至 424 → **降级 P2** |
+| I | 今日 / 日历 / 搜索的筛选下推 SQL | P0-2 | P2 | 1–2 天 | 🟡 **基础设施已建、零接线**：`watchActiveInRange()` SQL 正确但**全仓无调用方** → 接线或删除 |
+| J | `todoRepositoryProvider` 迁至 `lib/core/db/db_providers.dart`；`onDataChanged` 改接口注入 | P1-6 / P1-7 | P3 | 半天 | 🟡 **分层已修**（新增 `db_providers.dart`，架构守卫零容忍）；`onDataChanged` 仍是 `main.dart:38` 裸赋值 |
 
 **明确不在上表内**（避免被默认当作待办）：
 

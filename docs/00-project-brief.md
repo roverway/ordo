@@ -75,3 +75,9 @@ docs/50-ui-ux.md                设计系统与屏幕规格
 docs/60-sync-design.md          同步协议与实现
 docs/70-milestones.md           里程碑与 DoD
 ```
+## 7. AI Copilot 与扩展能力（AI Assistant & Extensions）
+
+项目在保持本地优先与离线可用原则的基础上，提供了端侧 AI Copilot 助手与模型上下文协议（MCP）扩展能力：
+1. **AI Copilot**：支持任务拆解、智能分类、属性建议与对话式任务规划（`lib/features/ai_copilot/`）。
+2. **MCP 服务端集成**：提供标准 MCP Tool Provider 与 Server 桥接，使外部 AI Agent 能安全、结构化地查询与操作待办事项（`lib/core/ai/`）。
+3. **架构解耦原则**：AI 核心服务置于 `lib/core/ai/`，纯单向依赖底层领域与存储，严格遵守分层约束。

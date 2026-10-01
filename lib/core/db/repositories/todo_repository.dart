@@ -1388,34 +1388,51 @@ class TodoRepository {
   Future<void> _appendTombstones(Iterable<TombstoneEntry> entries) =>
       _mergeTombstonesInner(entries);
 
-  /// 合并墓碑条目核心实现（在事务内逐条执行 upsert）。
+  /// 合并墓碑条目核心实现（基于原子 insertOnConflictUpdate 与 LWW 去重）。
   Future<void> _mergeTombstonesInner(Iterable<TombstoneEntry> entries) async {
     final list = entries.toList();
     if (list.isEmpty) return;
+
+    // 内存预先按 (entityType, entityId) 聚合，保留输入列表中的最大 updatedAt
+    final deduped = <String, TombstoneEntry>{};
     for (final e in list) {
       if (e.id.isEmpty) continue;
-      // 检查已存墓碑并按 LWW 保留更大 updatedAt
-      final existing =
-          await (database.select(database.syncTombstones)..where(
-                (t) => t.entityType.equals(e.type) & t.entityId.equals(e.id),
-              ))
-              .getSingleOrNull();
-      if (existing == null) {
-        await database
-            .into(database.syncTombstones)
-            .insert(
-              SyncTombstonesCompanion.insert(
-                entityType: e.type,
-                entityId: e.id,
-                updatedAt: e.updatedAt,
-              ),
-            );
-      } else if (e.updatedAt > existing.updatedAt) {
-        await (database.update(database.syncTombstones)..where(
-              (t) => t.entityType.equals(e.type) & t.entityId.equals(e.id),
-            ))
-            .write(SyncTombstonesCompanion(updatedAt: Value(e.updatedAt)));
+      final key = '${e.type}:${e.id}';
+      final existing = deduped[key];
+      if (existing == null || e.updatedAt > existing.updatedAt) {
+        deduped[key] = e;
       }
+    }
+    if (deduped.isEmpty) return;
+
+    // 批量读出当前已存在的所有相关墓碑进行 LWW 比较
+    final existingRows = await database.select(database.syncTombstones).get();
+    final existingMap = {
+      for (final r in existingRows)
+        '${r.entityType}:${r.entityId}': r.updatedAt,
+    };
+
+    final toUpsert = <SyncTombstonesCompanion>[];
+    for (final entry in deduped.values) {
+      final oldUpdatedAt = existingMap['${entry.type}:${entry.id}'];
+      if (oldUpdatedAt == null || entry.updatedAt > oldUpdatedAt) {
+        toUpsert.add(
+          SyncTombstonesCompanion.insert(
+            entityType: entry.type,
+            entityId: entry.id,
+            updatedAt: entry.updatedAt,
+          ),
+        );
+      }
+    }
+
+    if (toUpsert.isEmpty) return;
+
+    // 统一使用原子 insertOnConflictUpdate 写入
+    for (final companion in toUpsert) {
+      await database
+          .into(database.syncTombstones)
+          .insertOnConflictUpdate(companion);
     }
   }
 

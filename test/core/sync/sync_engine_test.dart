@@ -1277,6 +1277,62 @@ void main() {
       gate.complete();
       final firstResult = await first;
       expect(firstResult.ok, isTrue);
+      // 由于 second 触发了 _pendingAgain，第一轮同步结束后会自动追跑一轮
+      expect(
+        remote.lastModifiedCount,
+        greaterThanOrEqualTo(2),
+        reason: '自动追跑第二轮',
+      );
+    });
+
+    test('同步进行中触发 run() 会标记 _pendingAgain 并在当前轮结束后自动追赶最新数据', () async {
+      await enableSync(repo);
+      await repo.createProject(name: '初始项目', color: 0xFF123456);
+      seedRemote(remoteSnapshot(projects: [projectRec(id: 'p-remote')]));
+      final engine = await buildEngine();
+
+      final gate = Completer<void>();
+      var syncRound = 0;
+      remote.onBeforeLastModified = () async {
+        syncRound++;
+        if (syncRound == 1) {
+          await gate.future;
+        }
+      };
+
+      final first = engine.run();
+      // 等待进入第一轮同步并停在 gate
+      for (
+        var i = 0;
+        i < 100 &&
+            (engine.state.status != SyncStateStatus.syncing ||
+                remote.lastModifiedCount < 1);
+        i++
+      ) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+      expect(engine.state.status, SyncStateStatus.syncing);
+
+      // 在第一轮执行中新增一条本地数据
+      await repo.createProject(name: '并发新增项目', color: 0xFF654321);
+
+      // 重入触发 run()：立即返回 skippedRunning，但标记 _pendingAgain
+      final reentrant = await engine.run();
+      expect(reentrant.skipped, isTrue);
+      expect(reentrant.errorCode, SyncErrorCode.skippedRunning);
+
+      // 释放 gate 让第一轮完成，此时引擎应自动追跑第二轮同步
+      gate.complete();
+      final result = await first;
+      expect(result.ok, isTrue);
+      expect(syncRound, greaterThanOrEqualTo(2), reason: '应自动追跑第二轮同步');
+
+      // 验证远端快照已包含第一轮并发新增的项目
+      final remoteBytes = remote.remoteBytes;
+      expect(remoteBytes, isNotNull);
+      final remoteSnap = decodeSnapshot(remoteBytes!);
+      final projectNames = remoteSnap.projects.map((p) => p.name).toList();
+      expect(projectNames, contains('并发新增项目'));
     });
 
     test('子任务排在父任务前面时同步成功（外键依赖拓扑排序）', () async {

@@ -88,28 +88,6 @@ class TaskDao {
         .get();
   }
 
-  /// 按指定时间范围过滤未删除任务（下推到 SQL 物理层过滤）。
-  ///
-  /// 匹配规则：(startAt <= endMs AND (endAt IS NULL OR endAt >= startMs))
-  /// 或者 (endAt BETWEEN startMs AND endMs)
-  Stream<List<Task>> watchActiveInRange({
-    required int startMs,
-    required int endMs,
-  }) {
-    return (_db.select(_db.tasks)
-          ..where(
-            (t) =>
-                t.deleted.equals(0) &
-                ((t.startAt.isSmallerOrEqualValue(endMs) &
-                        (t.endAt.isNull() |
-                            t.endAt.isBiggerOrEqualValue(startMs))) |
-                    (t.endAt.isBiggerOrEqualValue(startMs) &
-                        t.endAt.isSmallerOrEqualValue(endMs))),
-          )
-          ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
-        .watch();
-  }
-
   /// 插入，返回行 id。
   Future<int> insert(TasksCompanion entry) {
     return _db.into(_db.tasks).insert(entry);

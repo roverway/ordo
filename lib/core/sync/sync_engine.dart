@@ -199,29 +199,37 @@ class SyncEngine {
   SyncState get state => _state;
 
   bool _running = false;
+  bool _pendingAgain = false;
 
   // ─────────────────────────── 触发入口 ───────────────────────────
 
   /// 手动/触发统一入口（§6 串行队列）。
   ///
-  /// **防重入选择（D3 决策）**：重入时**直接返回**（不等待、不排队）。
-  /// 理由：编辑防抖与指数退避已在触发层合并多次调用；等待/排队会引入
-  /// 无界延迟与状态叠加的复杂度，直接返回更简单可预期。被丢弃的编辑
-  /// 会在下一次触发（手动/编辑/启动）时自然补上。
+  /// **防重入选择与追赶机制（docs/96 P1-8 / docs/97 待办 F）**：
+  /// - 重入时**直接返回** skippedRunning（不阻塞当前调用者）；
+  /// - 同时标记 [_pendingAgain] = true。当前同步轮次结束时若存在未完成的追赶标记，
+  ///   将自动追跑一轮同步，彻底杜绝慢同步（WebDAV）期间发生的数据编辑被静默丢弃的问题。
   Future<SyncResult> run() async {
     if (_running) {
+      _pendingAgain = true;
       return const SyncResult(
         ok: false,
         skipped: true,
         errorCode: SyncErrorCode.skippedRunning,
-        message: '同步进行中，本次触发已跳过',
+        message: '同步进行中，本次触发已跳过（已标记稍后自动追赶）',
       );
     }
     _running = true;
     _setState(const SyncState(status: SyncStateStatus.syncing));
     try {
-      return await _run();
+      SyncResult lastResult = await _run();
+      while (_pendingAgain) {
+        _pendingAgain = false;
+        lastResult = await _run();
+      }
+      return lastResult;
     } finally {
+      _pendingAgain = false;
       _running = false;
     }
   }
