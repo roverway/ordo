@@ -5,7 +5,7 @@
 # 包含 5 道守卫：
 # 1. 架构分层守卫：禁止 core 层反向依赖 features 层，禁止 db 层反向依赖 sync 层
 # 2. 代码格式守卫：强制 dart format 校验
-# 3. 巨型文件守卫：棘轮硬阻断 > 800 行的 UI/逻辑单文件（当前基线 9 个，只减不增）
+# 3. 巨型文件守卫：棘轮硬阻断 > 800 行的 UI/逻辑单文件（当前基线 14 个，只减不增）
 # 4. 循环依赖守卫：棘轮硬阻断 features 间有向图环（当前基线 9 条，只减不增）
 # 5. 代码洁净与工作区守卫：全库 TODO/FIXME/HACK 零破窗；禁止跟踪 build/缓存
 # ==============================================================================
@@ -92,7 +92,7 @@ IGNORE_PATHS = {
     'lib/features/settings/user_manual_page.dart',
 }
 
-# 棘轮上限：当前基线 9 个，后续重构治理只许减少不许增加
+# 棘轮上限：当前基线 14 个，后续重构治理只许减少不许增加
 MAX_ALLOWED = 14
 
 large_files = []
@@ -179,7 +179,7 @@ def dfs(start, node, path, seen):
 for n in sorted(g):
     dfs(n, n, [n], set())
 
-MAX_CYCLES = 9  # 循环依赖棘轮基线（当前 14 条，随重构只减不增）
+MAX_CYCLES = 9  # 循环依赖棘轮基线（当前 9 条，随重构只减不增）
 print(f"ℹ️  Feature 间循环依赖: {len(cycles)} 条（棘轮基准上限: {MAX_CYCLES}）")
 for c in sorted(cycles, key=lambda x: (len(x), x)):
     print(f"   ({len(c)}) " + " -> ".join(c) + f" -> {c[0]}")
