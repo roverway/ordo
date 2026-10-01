@@ -2,10 +2,12 @@
 # ==============================================================================
 # 代码质量与架构边界自动化检查闸门 (tool/check_quality_gates.sh)
 # 
-# 包含 3 道守卫：
+# 包含 5 道守卫：
 # 1. 架构分层守卫：禁止 core 层反向依赖 features 层，禁止 db 层反向依赖 sync 层
 # 2. 代码格式守卫：强制 dart format 校验
-# 3. 巨型文件守卫：棘轮硬阻断 > 800 行的 UI/逻辑单文件（当前基线 15 个，只减不增）
+# 3. 巨型文件守卫：棘轮硬阻断 > 800 行的 UI/逻辑单文件（当前基线 14 个，只减不增）
+# 4. 循环依赖守卫：棘轮硬阻断 features 间有向图环（当前基线 14 条，只减不增）
+# 5. 代码洁净与工作区守卫：全库 TODO/FIXME/HACK 零破窗；禁止跟踪 build/缓存
 # ==============================================================================
 set -e
 
@@ -13,7 +15,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
 echo "=========================================="
-echo "🛡️  [Quality Gate 1/3] 架构分层完整性守卫..."
+echo "🛡️  [Quality Gate 1/5] 架构分层完整性守卫..."
 echo "=========================================="
 
 # 零容忍严格守卫：没有任何 core 文件允许反向依赖 features
@@ -64,7 +66,7 @@ EOF
 
 echo ""
 echo "=========================================="
-echo "🛡️  [Quality Gate 2/3] Dart 代码格式守卫..."
+echo "🛡️  [Quality Gate 2/5] Dart 代码格式守卫..."
 echo "=========================================="
 if ! dart format --output=none --set-exit-if-changed lib/ test/ tool/; then
   echo "❌ Dart 代码格式校验未通过！请在本地运行 dart format . 并提交："
@@ -75,7 +77,7 @@ echo "✅ Dart 格式规范检查通过！"
 
 echo ""
 echo "=========================================="
-echo "🛡️  [Quality Gate 3/3] 巨型文件健康度巡检（棘轮守卫）..."
+echo "🛡️  [Quality Gate 3/5] 巨型文件健康度巡检（棘轮守卫）..."
 echo "=========================================="
 python3 - << 'EOF'
 import os
@@ -90,7 +92,7 @@ IGNORE_PATHS = {
     'lib/features/settings/user_manual_page.dart',
 }
 
-# 棘轮上限：当前基线 15 个，后续重构治理只许减少不许增加
+# 棘轮上限：当前基线 14 个，后续重构治理只许减少不许增加
 MAX_ALLOWED = 14
 
 large_files = []
@@ -125,5 +127,114 @@ EOF
 
 echo ""
 echo "=========================================="
-echo "🎉 质量与架构闸门全部通过！"
+echo "🛡️  [Quality Gate 4/5] Feature 循环依赖棘轮守卫..."
+echo "=========================================="
+python3 - << 'EOF'
+import collections
+import os
+import re
+import sys
+
+def resolve(importer, rel):
+    t = os.path.normpath(os.path.join(os.path.dirname(importer), rel))
+    m = re.match(r'lib/features/([^/]+)/', t)
+    return m.group(1) if m else None
+
+g = collections.defaultdict(set)
+for root, _, files in os.walk('lib/features'):
+    for f in files:
+        if not f.endswith('.dart'):
+            continue
+        p = os.path.join(root, f)
+        m_src = re.match(r'lib/features/([^/]+)/', p)
+        if not m_src:
+            continue
+        src = m_src.group(1)
+        for line in open(p, encoding='utf-8'):
+            m = re.match(r"\s*import\s+'([^']+)'", line)
+            if not m:
+                continue
+            imp = m.group(1)
+            if imp.startswith('package:ordo/features/'):
+                dst = imp[len('package:ordo/features/'):].split('/')[0]
+            elif imp.startswith('package:'):
+                continue
+            else:
+                dst = resolve(p, imp)
+            if dst and dst != src:
+                g[src].add(dst)
+
+cycles = set()
+def dfs(start, node, path, seen):
+    for nxt in sorted(g.get(node, ())):
+        if nxt == start:
+            c = path[:]
+            if c[0] != min(c):
+                idx = c.index(min(c))
+                c = c[idx:] + c[:idx]
+            cycles.add(tuple(c))
+        elif nxt not in path and nxt not in seen and nxt >= start:
+            dfs(start, nxt, path + [nxt], seen | {nxt})
+
+for n in sorted(g):
+    dfs(n, n, [n], set())
+
+MAX_CYCLES = 14  # 循环依赖棘轮基线（当前 14 条，随重构只减不增）
+print(f"ℹ️  Feature 间循环依赖: {len(cycles)} 条（棘轮基准上限: {MAX_CYCLES}）")
+for c in sorted(cycles, key=lambda x: (len(x), x)):
+    print(f"   ({len(c)}) " + " -> ".join(c) + f" -> {c[0]}")
+
+if len(cycles) > MAX_CYCLES:
+    print(f"\n❌ [棘轮违规] Feature 循环依赖条数 ({len(cycles)}) 超过上限 ({MAX_CYCLES})！禁止新增循环引用。")
+    sys.exit(1)
+
+print(f"✅ 循环依赖棘轮守卫通过：当前 {len(cycles)}/{MAX_CYCLES}，未发生破窗增长。")
+EOF
+
+echo ""
+echo "=========================================="
+echo "🛡️  [Quality Gate 5/5] 代码洁净与工作区防污染守卫..."
+echo "=========================================="
+python3 - << 'EOF'
+import os
+import re
+import subprocess
+import sys
+
+# 1. 零 TODO/FIXME/HACK 破窗守卫
+pattern = re.compile(r'\b(TODO|FIXME|HACK)\b')
+violations = []
+for root, _, files in os.walk('lib'):
+    for f in files:
+        if f.endswith('.dart'):
+            p = os.path.join(root, f)
+            with open(p, 'r', encoding='utf-8') as fp:
+                for idx, line in enumerate(fp, 1):
+                    if pattern.search(line):
+                        violations.append(f"{p}:{idx}: {line.strip()}")
+
+if violations:
+    print(f"❌ [代码洁净守卫] 发现 {len(violations)} 处 TODO/FIXME/HACK 遗留：")
+    for v in violations[:10]:
+        print(f"   {v}")
+    sys.exit(1)
+print("✅ 代码洁净守卫通过：全库 0 处 TODO/FIXME/HACK 遗留。")
+
+# 2. 工作区构建产物防误跟踪守卫
+try:
+    tracked = subprocess.check_output(['git', 'ls-files'], text=True).splitlines()
+    dirty = [f for f in tracked if re.search(r'(^|/)(__pycache__/|\.pyc$|\.DS_Store$|build/)', f)]
+    if dirty:
+        print(f"❌ [工作区防污染守卫] 发现构建临时文件被 git 跟踪：")
+        for d in dirty:
+            print(f"   - {d}")
+        sys.exit(1)
+    print("✅ 工作区防污染守卫通过：零构建产物/临时缓存被跟踪。")
+except Exception as e:
+    print(f"⚠️  跳过 git 跟踪状态检查: {e}")
+EOF
+
+echo ""
+echo "=========================================="
+echo "🎉 5 道质量与架构闸门全部通过！"
 echo "=========================================="
