@@ -7,7 +7,7 @@ import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/priority_color.dart';
 import '../../../shared/widgets/swipe_actions.dart';
-import '../../projects/project_providers.dart';
+import '../../../core/db/db_providers.dart';
 import 'priority_picker.dart';
 import 'task_editor/tag_picker_sheet.dart';
 

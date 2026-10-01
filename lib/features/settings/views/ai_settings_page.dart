@@ -9,7 +9,7 @@ import '../../../core/ai/services/ai_client.dart';
 import '../../../core/ai/services/ai_config_service.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
-import '../widgets/settings_card.dart';
+import '../../../shared/widgets/settings_card.dart';
 import '../widgets/ai_mcp_server_card.dart';
 import '../widgets/ai_ping_result_card.dart';
 import '../widgets/ai_provider_picker_sheet.dart';

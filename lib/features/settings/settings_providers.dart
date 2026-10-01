@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/backup/backup_restore_service.dart';
 import '../../core/backup/snapshot_pool_service.dart';
 import '../../core/db/daos/settings_dao.dart';
 import '../../core/services/wallpaper_storage_service.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/theme/background_config.dart';
-import '../projects/project_providers.dart';
+import '../../core/backup/backup_providers.dart';
+export '../../core/backup/backup_providers.dart';
 
 /// 设备本地偏好缓存：settings 表在内存的同步镜像（docs/64-local-preferences.md §3.1）。
 ///
@@ -358,31 +358,6 @@ class BackupRetentionDaysNotifier extends Notifier<int> {
     }
   }
 }
-
-/// 数据导入导出与灾难恢复服务 Provider。
-final backupRestoreServiceProvider = Provider<BackupRestoreService>((ref) {
-  final repo = ref.watch(todoRepositoryProvider);
-  return BackupRestoreService(repo);
-});
-
-/// 本地安全快照池管理服务 Provider。
-final snapshotPoolServiceProvider = Provider<SnapshotPoolService>((ref) {
-  final backupService = ref.watch(backupRestoreServiceProvider);
-  final repo = ref.watch(todoRepositoryProvider);
-  AppSettingsCache? cache;
-  try {
-    cache = ref.watch(appSettingsCacheProvider);
-  } catch (_) {
-    // 允许在未显式 override appSettingsCacheProvider 的测试环境中健壮降级
-  }
-  return SnapshotPoolService(
-    backupService: backupService,
-    settings: repo.settings,
-    onRetentionDaysChanged: cache != null
-        ? (days) => cache!.set(backupRetentionDaysPrefKey, days.toString())
-        : null,
-  );
-});
 
 /// 本地快照列表 Notifier。
 final localSnapshotsProvider =

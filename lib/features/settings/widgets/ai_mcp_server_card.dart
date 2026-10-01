@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/ai/providers/mcp_server_provider.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
-import 'settings_card.dart';
+import '../../../shared/widgets/settings_card.dart';
 
 /// Settings card for MCP (Model Context Protocol) external integration.
 class AiMcpServerCard extends ConsumerWidget {

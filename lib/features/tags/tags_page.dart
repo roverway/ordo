@@ -12,7 +12,7 @@ import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/loading_view.dart';
 import '../../shared/widgets/staggered_fade_slide.dart';
-import '../projects/project_providers.dart';
+import '../../core/db/db_providers.dart';
 import 'tag_providers.dart';
 
 /// 标签列表页（FR-TAG-01 / FR-VIEW-04）。

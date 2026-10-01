@@ -10,7 +10,7 @@ import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../settings_providers.dart';
 import 'import_confirm_dialog.dart';
-import 'settings_card.dart';
+import '../../../shared/widgets/settings_card.dart';
 import 'snapshot_history_sheet.dart';
 
 /// 设置页：数据导入导出与本地安全快照分组组件。

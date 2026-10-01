@@ -22,7 +22,7 @@ import '../../core/utils/tree.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import '../../shared/widgets/modal_side_sheet.dart';
 import '../../shared/widgets/window_insets_boundary.dart';
-import '../projects/project_providers.dart';
+import '../../core/db/db_providers.dart';
 import 'task_providers.dart';
 import 'widgets/task_editor.dart';
 

@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/db/database.dart';
-import '../projects/project_providers.dart';
+import '../../core/db/db_providers.dart';
 
 /// 按名称**不区分大小写**排序（FR-VIEW-04：标签列表按名称排序）。
 ///

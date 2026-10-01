@@ -5,7 +5,7 @@ import '../../../../core/db/database.dart';
 import '../../../../core/db/repositories/todo_repository.dart';
 import '../../../../core/l10n/app_localizations.dart';
 import '../../../../core/theme/app_tokens.dart';
-import '../../../projects/project_providers.dart';
+import '../../../../core/db/db_providers.dart';
 import '../../../tags/tag_providers.dart';
 import '../../../tags/tags_page.dart' show showTagFormDialog;
 import '../../task_providers.dart';

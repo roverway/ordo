@@ -28,7 +28,7 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_breakpoints.dart';
 import '../../core/utils/dates.dart';
 import '../../shared/widgets/modern_segmented_control.dart';
-import '../settings/widgets/settings_card.dart';
+import '../../shared/widgets/settings_card.dart';
 import 'sync_setup_providers.dart';
 
 /// 宽屏表单最大宽度（50-ui-ux §5.7：约 560dp）。
