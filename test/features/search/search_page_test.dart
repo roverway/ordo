@@ -8,7 +8,11 @@
 // 5. 时间段「今天」筛选 → 今天区间任务出现、昨天任务不出现（仅 endAt 也命中）；
 // 6. 标签筛选 → 只显示带该标签的任务；
 // 7. 清除筛选 → 恢复全量；
-// 8. 结果按 updatedAt 降序。
+// 8. 结果按 updatedAt 降序；
+// 9. 命中描述/备注时优雅展示上下文片段与关键字高亮；
+// 10. 项目筛选联动；
+// 11. 优先级筛选联动；
+// 12. 树状层级模式切换与祖先链补全。
 //
 // 说明：widget 测试用 `Stream.value` 覆盖 allActiveTasksProvider / tagsStreamProvider
 // （避免 drift 流在 fake_async 下的残留 Timer，与 tags_page_test 的约定一致）；
@@ -36,16 +40,19 @@ import '../../helpers/db_test_setup.dart';
 Task _task(
   String id, {
   String title = '',
+  String projectId = 'p1',
+  String? parentId,
   String description = '',
   String notes = '',
   TaskStatus status = TaskStatus.todo,
+  TaskPriority priority = TaskPriority.none,
   int? startAt,
   int? endAt,
   int updatedAt = 0,
 }) => Task(
   id: id,
-  projectId: 'p1',
-  parentId: null,
+  projectId: projectId,
+  parentId: parentId,
   title: title,
   description: description,
   notes: notes,
@@ -53,7 +60,7 @@ Task _task(
   startAt: startAt,
   endAt: endAt,
   sortOrder: 0,
-  priority: TaskPriority.none,
+  priority: priority,
   createdAt: 0,
   updatedAt: updatedAt,
   deleted: 0,
@@ -81,6 +88,22 @@ Future<void> _seedProject(TodoRepository repo) async {
       );
 }
 
+/// 插入指定项目。
+Future<void> _insertProject(TodoRepository repo, Project p) async {
+  await repo.database
+      .into(repo.database.projects)
+      .insertOnConflictUpdate(
+        ProjectsCompanion.insert(
+          id: p.id,
+          name: p.name,
+          color: p.color,
+          sortOrder: p.sortOrder,
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
+        ),
+      );
+}
+
 /// 预插入任务（显式控制 updatedAt 等字段）。
 Future<void> _insertTask(TodoRepository repo, Task t) async {
   await repo.database
@@ -89,11 +112,13 @@ Future<void> _insertTask(TodoRepository repo, Task t) async {
         TasksCompanion.insert(
           id: t.id,
           projectId: t.projectId,
+          parentId: Value(t.parentId),
           title: t.title,
           description: Value(t.description),
           notes: Value(t.notes),
           status: t.status,
           sortOrder: t.sortOrder,
+          priority: Value(t.priority),
           createdAt: t.createdAt,
           updatedAt: t.updatedAt,
           startAt: Value(t.startAt),
@@ -485,5 +510,136 @@ void main() {
     await _typeQuery(tester, '任务');
 
     expect(_displayedTitles(tester), ['任务-新', '任务-中', '任务-旧']);
+  });
+
+  testWidgets('命中描述与备注时展示上下文片段', (tester) async {
+    final repo = await _openRepo();
+    await _seedProject(repo);
+    final task = _task(
+      't1',
+      title: '日常清单',
+      description: '购买 organic milk 超市新鲜牛奶',
+      updatedAt: 100,
+    );
+    await _insertTask(repo, task);
+
+    await _pumpSearch(tester, repo: repo, tasks: [task]);
+    await _typeQuery(tester, 'milk');
+
+    expect(find.text('日常清单'), findsOneWidget);
+    expect(find.text('描述: '), findsOneWidget);
+    expect(find.byIcon(Icons.notes_rounded), findsOneWidget);
+  });
+
+  testWidgets('项目筛选 → 只显示属于该项目的任务', (tester) async {
+    final repo = await _openRepo();
+    final pWork = Project(
+      id: 'pWork',
+      name: '工作项目',
+      color: 0xFF4A6CF7,
+      description: '',
+      sortOrder: 0,
+      createdAt: 0,
+      updatedAt: 0,
+      deleted: 0,
+    );
+    final pLife = Project(
+      id: 'pLife',
+      name: '个人生活',
+      color: 0xFF00C853,
+      description: '',
+      sortOrder: 1,
+      createdAt: 0,
+      updatedAt: 0,
+      deleted: 0,
+    );
+    await _insertProject(repo, pWork);
+    await _insertProject(repo, pLife);
+
+    final t1 = _task('t1', title: '撰写周报', projectId: 'pWork');
+    final t2 = _task('t2', title: '健身锻炼', projectId: 'pLife');
+    await _insertTask(repo, t1);
+    await _insertTask(repo, t2);
+
+    await _pumpSearch(
+      tester,
+      repo: repo,
+      tasks: [t1, t2],
+      projects: [pWork, pLife],
+    );
+
+    expect(find.text('撰写周报'), findsOneWidget);
+    expect(find.text('健身锻炼'), findsOneWidget);
+
+    // 下拉项目筛选 → 选中「工作项目」
+    await tester.tap(find.byType(PopupMenuButton<Project?>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('工作项目').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('撰写周报'), findsOneWidget);
+    expect(find.text('健身锻炼'), findsNothing);
+  });
+
+  testWidgets('优先级筛选 → 只显示该优先级的任务', (tester) async {
+    final repo = await _openRepo();
+    await _seedProject(repo);
+    final tHigh = _task(
+      'tHigh',
+      title: '紧急修复Bug',
+      priority: TaskPriority.high,
+      updatedAt: 200,
+    );
+    final tLow = _task(
+      'tLow',
+      title: '低优待办事项',
+      priority: TaskPriority.low,
+      updatedAt: 100,
+    );
+    await _insertTask(repo, tHigh);
+    await _insertTask(repo, tLow);
+
+    await _pumpSearch(tester, repo: repo, tasks: [tHigh, tLow]);
+
+    expect(find.text('紧急修复Bug'), findsOneWidget);
+    expect(find.text('低优待办事项'), findsOneWidget);
+
+    // 下拉优先级筛选 → 选中「高」
+    await tester.tap(find.byType(PopupMenuButton<TaskPriority?>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('高').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('紧急修复Bug'), findsOneWidget);
+    expect(find.text('低优待办事项'), findsNothing);
+  });
+
+  testWidgets('树状模式切换 → 匹配子任务时保留父任务上下文', (tester) async {
+    final repo = await _openRepo();
+    await _seedProject(repo);
+    final parent = _task('root1', title: '研发项目Alpha', description: '项目根节点');
+    final child = _task(
+      'child1',
+      parentId: 'root1',
+      title: '架构设计',
+      description: '关于GraphQL调优',
+    );
+    await _insertTask(repo, parent);
+    await _insertTask(repo, child);
+
+    await _pumpSearch(tester, repo: repo, tasks: [parent, child]);
+    await _typeQuery(tester, 'GraphQL');
+
+    // 默认扁平模式：仅直接匹配的子任务显示
+    expect(find.text('架构设计'), findsOneWidget);
+    expect(find.text('研发项目Alpha'), findsNothing);
+
+    // 点击切换为树状模式
+    await tester.tap(find.byIcon(Icons.format_list_bulleted_rounded));
+    await tester.pumpAndSettle();
+
+    // 树状模式下，父任务作为祖先链被保留展示！
+    expect(find.text('架构设计'), findsOneWidget);
+    expect(find.text('研发项目Alpha'), findsOneWidget);
   });
 }

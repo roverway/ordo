@@ -618,6 +618,11 @@ abstract final class AppTokens {
   /// 滚动溢出微指示图标尺寸（14dp）。
   static const double scrollFadeIconSize = 14;
 
+  /// 通用语义图标尺寸
+  static const double iconSizeMicro = 12;
+  static const double iconSizeSmall = 16;
+  static const double iconSizeNormal = 20;
+
   /// 悬浮菜单黄金比例最大高度约束系数（屏幕高度 54%）。
   static const double menuMaxHeightRatio = 0.54;
 

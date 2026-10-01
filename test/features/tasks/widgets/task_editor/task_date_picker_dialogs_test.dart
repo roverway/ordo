@@ -228,6 +228,57 @@ void main() {
       expect(state.startAt, isNull);
       expect(state.endAt, isNull);
     });
+
+    testWidgets('内联时间微调栏支持选择时间点', (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final now = DateTime.now();
+      final baseMs = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        9,
+        0,
+      ).toUtc().millisecondsSinceEpoch;
+      container.read(taskFormProvider.notifier).updateEndAt(baseMs);
+
+      await tester.pumpWidget(buildTestHarness(container));
+      await tester.pumpAndSettle();
+
+      // 滚动到 14:00 时间段芯片并点击
+      final chip14 = find.text('14:00');
+      expect(chip14, findsOneWidget);
+      await tester.ensureVisible(chip14);
+      await tester.pumpAndSettle();
+      await tester.tap(chip14);
+      await tester.pumpAndSettle();
+
+      final updatedState = container.read(taskFormProvider);
+      expect(updatedState.endAt, isNotNull);
+      final dt = DateTime.fromMillisecondsSinceEpoch(
+        updatedState.endAt!,
+        isUtc: true,
+      ).toLocal();
+      expect(dt.hour, 14);
+      expect(dt.minute, 0);
+
+      // 滚动到 全天 芯片并点击
+      final chipAllDay = find.text('全天');
+      expect(chipAllDay, findsOneWidget);
+      await tester.ensureVisible(chipAllDay);
+      await tester.pumpAndSettle();
+      await tester.tap(chipAllDay);
+      await tester.pumpAndSettle();
+
+      final resetState = container.read(taskFormProvider);
+      final resetDt = DateTime.fromMillisecondsSinceEpoch(
+        resetState.endAt!,
+        isUtc: true,
+      ).toLocal();
+      expect(resetDt.hour, 9);
+      expect(resetDt.minute, 0);
+    });
   });
 
   group('showTaskDatePicker 弹窗集成测试', () {

@@ -1,4 +1,16 @@
+import 'dart:async';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/db/database.dart';
+import '../../core/db/tables.dart';
 import '../../core/theme/app_tokens.dart';
+import '../../core/utils/custom_view_models.dart';
+import '../../core/utils/derived.dart';
+import '../../core/utils/task_query_engine.dart';
+import '../../core/utils/tree.dart';
+import '../projects/project_providers.dart';
+
 // 搜索与筛选状态管理（FR-VIEW-05 / FR-VIEW-06，M3）。
 //
 // - searchQueryProvider：防抖搜索（输入即搜，防抖 300ms，FR-VIEW-05 AC）；
@@ -10,18 +22,6 @@ import '../../core/theme/app_tokens.dart';
 //
 // 时间约定（view_rules.dart）：startAt/endAt 为 UTC 毫秒，时间段边界以本地
 // 时间计算（docs/40-data-model.md §4），此处基于 DateTime.now() 推导。
-
-import 'dart:async';
-
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../core/db/database.dart';
-import '../../core/db/tables.dart';
-import '../../core/utils/custom_view_models.dart';
-import '../../core/utils/derived.dart';
-import '../../core/utils/task_query_engine.dart';
-import '../../core/utils/tree.dart';
-import '../projects/project_providers.dart';
 
 /// 时间段筛选选项（FR-VIEW-06）。
 enum TimeRange { all, today, week, month }
@@ -158,6 +158,9 @@ class SearchFilterState {
     this.status,
     this.tagId,
     this.range = TimeRange.all,
+    this.projectId,
+    this.priority,
+    this.isTreeMode = false,
   });
 
   /// 状态筛选（null = 全部）。
@@ -169,9 +172,40 @@ class SearchFilterState {
   /// 时间段筛选（默认全部）。
   final TimeRange range;
 
-  /// 任一筛选条件激活。
+  /// 项目筛选（null = 全部项目）。
+  final String? projectId;
+
+  /// 优先级筛选（null = 全部优先级）。
+  final TaskPriority? priority;
+
+  /// 是否为树状层级视图（默认 false 为扁平列表）。
+  final bool isTreeMode;
+
+  /// 任意筛选条件激活。
   bool get isActive =>
-      status != null || tagId != null || range != TimeRange.all;
+      status != null ||
+      tagId != null ||
+      range != TimeRange.all ||
+      projectId != null ||
+      priority != null;
+
+  SearchFilterState copyWith({
+    TaskStatus? Function()? status,
+    String? Function()? tagId,
+    TimeRange? range,
+    String? Function()? projectId,
+    TaskPriority? Function()? priority,
+    bool? isTreeMode,
+  }) {
+    return SearchFilterState(
+      status: status != null ? status() : this.status,
+      tagId: tagId != null ? tagId() : this.tagId,
+      range: range ?? this.range,
+      projectId: projectId != null ? projectId() : this.projectId,
+      priority: priority != null ? priority() : this.priority,
+      isTreeMode: isTreeMode ?? this.isTreeMode,
+    );
+  }
 }
 
 /// 会话内筛选状态 Notifier（FR-VIEW-06 AC：视图内持久=会话内）。
@@ -180,30 +214,34 @@ class SearchFilterNotifier extends Notifier<SearchFilterState> {
   SearchFilterState build() => const SearchFilterState();
 
   void setStatus(TaskStatus? status) {
-    state = SearchFilterState(
-      status: status,
-      tagId: state.tagId,
-      range: state.range,
-    );
+    state = state.copyWith(status: () => status);
   }
 
   void setTagId(String? tagId) {
-    state = SearchFilterState(
-      status: state.status,
-      tagId: tagId,
-      range: state.range,
-    );
+    state = state.copyWith(tagId: () => tagId);
   }
 
   void setTimeRange(TimeRange range) {
-    state = SearchFilterState(
-      status: state.status,
-      tagId: state.tagId,
-      range: range,
-    );
+    state = state.copyWith(range: range);
   }
 
-  void clear() => state = const SearchFilterState();
+  void setProjectId(String? projectId) {
+    state = state.copyWith(projectId: () => projectId);
+  }
+
+  void setPriority(TaskPriority? priority) {
+    state = state.copyWith(priority: () => priority);
+  }
+
+  void setTreeMode(bool isTreeMode) {
+    state = state.copyWith(isTreeMode: isTreeMode);
+  }
+
+  void toggleTreeMode() {
+    state = state.copyWith(isTreeMode: !state.isTreeMode);
+  }
+
+  void clear() => state = SearchFilterState(isTreeMode: state.isTreeMode);
 }
 
 /// 会话内筛选状态 Provider（**勿改 autoDispose**，FR-VIEW-06）。
@@ -263,43 +301,68 @@ final searchResultsProvider = StreamProvider<List<Task>>((ref) async* {
   final criteria = FilterCriteria(
     statuses: filter.status != null ? [filter.status!] : const [],
     tagIds: filter.tagId != null ? [filter.tagId!] : const [],
+    projectIds: filter.projectId != null ? [filter.projectId!] : const [],
+    priorities: filter.priority != null ? [filter.priority!] : const [],
     dateScope: dateScope,
     customDateStart: customStart,
     customDateEnd: customEnd,
     searchQuery: query.trim().isEmpty ? null : query.trim(),
   );
 
-  var list = TaskQueryEngine.filterFlat(
-    tasks: all,
-    criteria: criteria,
-    projectsById: projectsMap,
-    taskTagIdsMap: taskTagIdsMap,
-    nowUtcMs: DateTime.now().toUtc().millisecondsSinceEpoch,
-  );
+  List<Task> list;
+  if (filter.isTreeMode) {
+    list = TaskQueryEngine.filterTree(
+      tasks: all,
+      criteria: criteria,
+      projectsById: projectsMap,
+      taskTagIdsMap: taskTagIdsMap,
+      nowUtcMs: DateTime.now().toUtc().millisecondsSinceEpoch,
+    );
+  } else {
+    list = TaskQueryEngine.filterFlat(
+      tasks: all,
+      criteria: criteria,
+      projectsById: projectsMap,
+      taskTagIdsMap: taskTagIdsMap,
+      nowUtcMs: DateTime.now().toUtc().millisecondsSinceEpoch,
+    );
+  }
 
   final sortedList = List<Task>.from(list);
-  switch (sort) {
-    case SearchSortPrinciple.dueDate:
-      sortedList.sort((a, b) {
-        final aTime = a.endAt ?? a.startAt;
-        final bTime = b.endAt ?? b.startAt;
-        if (aTime == null && bTime == null) return 0;
-        if (aTime == null) return 1;
-        if (bTime == null) return -1;
-        return aTime.compareTo(bTime);
-      });
-      break;
-    case SearchSortPrinciple.priority:
-      sortedList.sort((a, b) => b.priority.index.compareTo(a.priority.index));
-      break;
-    case SearchSortPrinciple.createdAt:
-      sortedList.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      break;
-    case SearchSortPrinciple.title:
-      sortedList.sort(
-        (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
-      );
-      break;
+  if (!filter.isTreeMode) {
+    switch (sort) {
+      case SearchSortPrinciple.dueDate:
+        sortedList.sort((a, b) {
+          final aTime = a.endAt ?? a.startAt;
+          final bTime = b.endAt ?? b.startAt;
+          if (aTime == null && bTime == null) {
+            return b.updatedAt.compareTo(a.updatedAt);
+          }
+          if (aTime == null) return 1;
+          if (bTime == null) return -1;
+          final cmp = aTime.compareTo(bTime);
+          return cmp != 0 ? cmp : b.updatedAt.compareTo(a.updatedAt);
+        });
+        break;
+      case SearchSortPrinciple.priority:
+        sortedList.sort((a, b) {
+          final cmp = b.priority.index.compareTo(a.priority.index);
+          return cmp != 0 ? cmp : b.updatedAt.compareTo(a.updatedAt);
+        });
+        break;
+      case SearchSortPrinciple.createdAt:
+        sortedList.sort((a, b) {
+          final cmp = b.createdAt.compareTo(a.createdAt);
+          return cmp != 0 ? cmp : b.updatedAt.compareTo(a.updatedAt);
+        });
+        break;
+      case SearchSortPrinciple.title:
+        sortedList.sort((a, b) {
+          final cmp = a.title.toLowerCase().compareTo(b.title.toLowerCase());
+          return cmp != 0 ? cmp : b.updatedAt.compareTo(a.updatedAt);
+        });
+        break;
+    }
   }
 
   yield sortedList;

@@ -1,8 +1,8 @@
-// 筛选条（FR-VIEW-06）：状态筛选 + 标签筛选 + 时间段筛选 + 清除按钮。
+// 筛选条（FR-VIEW-06）：状态筛选 + 标签筛选 + 时间段筛选 + 项目筛选 + 优先级筛选 + 清除按钮。
 //
 // 遵循 Linear 风格极致工业质感与乔布斯无冗余交互哲学：
 // - 精致紧凑的极简胶囊药丸（filterChipHeight = 28dp）；
-// - 未激活态微透边框卡片，激活态微光品牌色罩染与高亮描边；
+// - 未激活态微透边框卡片，激活态微光品牌色染与高亮描边；
 // - 下拉浮动菜单采用 Linear 紧凑卡片、圆角、极细微边框与打勾状态。
 
 import 'package:flutter/material.dart';
@@ -23,6 +23,11 @@ class TaskFilterBar extends StatelessWidget {
     required this.tagId,
     required this.range,
     required this.tags,
+    this.projectId,
+    this.projects = const [],
+    this.onProjectChanged,
+    this.priority,
+    this.onPriorityChanged,
     this.sortPrinciple,
     this.onSortChanged,
     required this.onStatusChanged,
@@ -42,6 +47,21 @@ class TaskFilterBar extends StatelessWidget {
 
   /// 全部标签（下拉选项，调用方解析）。
   final List<Tag> tags;
+
+  /// 当前项目筛选（null = 全部）。
+  final String? projectId;
+
+  /// 全部项目（下拉选项）。
+  final List<Project> projects;
+
+  /// 项目筛选回调。
+  final ValueChanged<String?>? onProjectChanged;
+
+  /// 当前优先级筛选（null = 全部）。
+  final TaskPriority? priority;
+
+  /// 优先级筛选回调。
+  final ValueChanged<TaskPriority?>? onPriorityChanged;
 
   /// 排序原则。
   final SearchSortPrinciple? sortPrinciple;
@@ -64,11 +84,21 @@ class TaskFilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final anyActive = status != null || tagId != null || range != TimeRange.all;
+    final anyActive =
+        status != null ||
+        tagId != null ||
+        range != TimeRange.all ||
+        projectId != null ||
+        priority != null;
 
     // 防御：tagId 指向已删除/不存在的标签时回退「全部」。
     final selectedTag = tags.where((t) => t.id == tagId).firstOrNull;
     final validTagId = selectedTag != null ? tagId : null;
+
+    // 防御：projectId 指向已删除/不存在的项目时回退「全部」。
+    final selectedProject = projects
+        .where((p) => p.id == projectId)
+        .firstOrNull;
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -91,6 +121,47 @@ class TaskFilterBar extends StatelessWidget {
             ],
             onChanged: onStatusChanged,
           ),
+
+          // 项目筛选
+          if (onProjectChanged != null && projects.isNotEmpty) ...[
+            const SizedBox(width: AppTokens.spaceXs),
+            _LinearFilterChip<Project?>(
+              label: l10n.filterByProject,
+              value: selectedProject,
+              isActive: selectedProject != null,
+              selectedText: selectedProject?.name,
+              entries: [
+                MapEntry(null, l10n.filterAll),
+                for (final p in projects) MapEntry(p, p.name),
+              ],
+              onChanged: (p) => onProjectChanged!(p?.id),
+            ),
+          ],
+
+          // 优先级筛选
+          if (onPriorityChanged != null) ...[
+            const SizedBox(width: AppTokens.spaceXs),
+            _LinearFilterChip<TaskPriority?>(
+              label: l10n.filterByPriority,
+              value: priority,
+              isActive: priority != null,
+              selectedText: priority != null
+                  ? _priorityLabel(l10n, priority!)
+                  : null,
+              entries: [
+                MapEntry(null, l10n.filterAll),
+                for (final pr in const [
+                  TaskPriority.high,
+                  TaskPriority.medium,
+                  TaskPriority.low,
+                  TaskPriority.none,
+                ])
+                  MapEntry(pr, _priorityLabel(l10n, pr)),
+              ],
+              onChanged: onPriorityChanged!,
+            ),
+          ],
+
           const SizedBox(width: AppTokens.spaceXs),
 
           // 标签筛选
@@ -168,6 +239,13 @@ class TaskFilterBar extends StatelessWidget {
     TaskStatus.inProgress => l10n.statusInProgress,
     TaskStatus.done => l10n.statusDone,
     TaskStatus.cancelled => l10n.statusCancelled,
+  };
+
+  String _priorityLabel(AppLocalizations l10n, TaskPriority p) => switch (p) {
+    TaskPriority.high => l10n.priorityHigh,
+    TaskPriority.medium => l10n.priorityMedium,
+    TaskPriority.low => l10n.priorityLow,
+    TaskPriority.none => l10n.priorityNone,
   };
 
   String _timeRangeLabel(AppLocalizations l10n, TimeRange r) => switch (r) {
@@ -308,7 +386,7 @@ class _LinearFilterChip<T> extends StatelessWidget {
                                         ),
                                         Icon(
                                           Icons.check_rounded,
-                                          size: 16,
+                                          size: AppTokens.iconSizeSmall,
                                           color: colorScheme.primary,
                                         ),
                                       ],
@@ -411,7 +489,11 @@ class _LinearFilterChip<T> extends StatelessWidget {
               ),
             ],
             const SizedBox(width: AppTokens.spaceXxs),
-            Icon(Icons.keyboard_arrow_down_rounded, size: 14, color: textColor),
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: AppTokens.scrollFadeIconSize,
+              color: textColor,
+            ),
           ],
         ),
       ),
@@ -464,7 +546,7 @@ class _ClearFilterChip extends StatelessWidget {
           children: [
             Icon(
               Icons.close_rounded,
-              size: 12,
+              size: AppTokens.iconSizeMicro,
               color: colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: AppTokens.spaceXxs),

@@ -1,9 +1,12 @@
 // 搜索页（FR-VIEW-05 / FR-VIEW-06，M3）。
 //
 // 遵循 Linear 风格极致工业质感与乔布斯无冗余交互哲学：
-// - 极简紧凑的微发光搜索输入条，左侧集成触觉反馈返回键，移除了冗余的取消按钮；
+// - 极简紧凑的微发光搜索输入条，左侧集成触觉反馈返回键；
+// - 右侧集成树状/扁平视图一键切换（充分发挥 TaskQueryEngine.filterTree 祖先补全能力）；
 // - 输入框与占位文本绝对垂直居中（零魔法值，纯净度量对齐）；
 // - 输入即搜：防抖 300ms（searchQueryProvider），按标题/描述/备注匹配；
+// - 关键词上下文智能高亮：当搜索命中任务描述或备注时，优雅呈现匹配片段与关键字高亮；
+// - 全维统一筛选条：联动状态、项目、优先级、标签、时间段与排序；
 // - 结果卡片采用 Linear 纯净无杂质列表，支持微交互滑动与状态标记；
 // - 空搜索态优雅陈列「最近搜索」历史胶囊，支持轻触快速重填与一键清空。
 
@@ -85,6 +88,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final allAsync = ref.watch(allActiveTasksProvider);
     final filter = ref.watch(searchFilterProvider);
     final tagsAsync = ref.watch(tagsStreamProvider);
+    final projectsAsync = ref.watch(projectsStreamProvider);
     final history = ref.watch(searchHistoryProvider);
     final sortPrinciple = ref.watch(searchSortProvider);
 
@@ -105,7 +109,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Linear 风格沉浸式搜索顶栏（左侧返回 + 居中搜索框，去除了冗余取消按钮）
+            // Linear 风格沉浸式搜索顶栏（左侧返回 + 居中搜索框 + 右侧树状/列表模式切换）
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppTokens.spaceMd,
@@ -114,15 +118,18 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                    icon: const Icon(
+                      Icons.arrow_back_rounded,
+                      size: AppTokens.iconSizeNormal,
+                    ),
                     tooltip: MaterialLocalizations.of(
                       context,
                     ).backButtonTooltip,
                     visualDensity: VisualDensity.compact,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(
-                      minWidth: 36,
-                      minHeight: 36,
+                      minWidth: AppTokens.spaceLg,
+                      minHeight: AppTokens.spaceLg,
                     ),
                     onPressed: () {
                       HapticFeedback.selectionClick();
@@ -160,7 +167,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                         children: [
                           Icon(
                             Icons.search,
-                            size: 18,
+                            size: AppTokens.iconSizeSmall,
                             color: _isFocused
                                 ? colorScheme.primary
                                 : colorScheme.onSurfaceVariant,
@@ -203,7 +210,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           ),
                           if (_queryController.text.isNotEmpty)
                             IconButton(
-                              icon: const Icon(Icons.close_rounded, size: 16),
+                              icon: const Icon(
+                                Icons.close_rounded,
+                                size: AppTokens.iconSizeSmall,
+                              ),
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(
                                 minWidth: 28,
@@ -221,19 +231,55 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       ),
                     ),
                   ),
+                  const SizedBox(width: AppTokens.spaceXs),
+                  // 树状层级 / 扁平列表 视图模式切换
+                  IconButton(
+                    icon: Icon(
+                      filter.isTreeMode
+                          ? Icons.account_tree_rounded
+                          : Icons.format_list_bulleted_rounded,
+                      size: AppTokens.iconSizeNormal,
+                      color: filter.isTreeMode
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                    tooltip: filter.isTreeMode
+                        ? (l10n.localeName == 'zh' ? '扁平列表' : 'Flat List')
+                        : (l10n.localeName == 'zh' ? '树状层级' : 'Tree View'),
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: AppTokens.spaceLg,
+                      minHeight: AppTokens.spaceLg,
+                    ),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      ref.read(searchFilterProvider.notifier).toggleTreeMode();
+                    },
+                  ),
                 ],
               ),
             ),
 
-            // 属性筛选条与排序
+            // 属性筛选条与排序（全量联动同一搜索后端）
             TaskFilterBar(
               status: filter.status,
+              projectId: filter.projectId,
+              projects: projectsAsync.value ?? const [],
+              onProjectChanged: (pId) =>
+                  ref.read(searchFilterProvider.notifier).setProjectId(pId),
+              priority: filter.priority,
+              onPriorityChanged: (pr) =>
+                  ref.read(searchFilterProvider.notifier).setPriority(pr),
               tagId: filter.tagId,
               range: filter.range,
               tags: tagsAsync.value ?? const [],
-              sortPrinciple: sortPrinciple,
-              onSortChanged: (sort) =>
-                  ref.read(searchSortProvider.notifier).setPrinciple(sort),
+              sortPrinciple: filter.isTreeMode ? null : sortPrinciple,
+              onSortChanged: filter.isTreeMode
+                  ? null
+                  : (sort) => ref
+                        .read(searchSortProvider.notifier)
+                        .setPrinciple(sort),
               onStatusChanged: (status) =>
                   ref.read(searchFilterProvider.notifier).setStatus(status),
               onTagChanged: (tagId) =>
@@ -292,7 +338,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         : AppTokens.borderSubtleLight;
 
     return Container(
-      height: 34,
+      height: AppTokens.filterChipHeight,
       padding: const EdgeInsets.symmetric(horizontal: AppTokens.spaceMd),
       margin: const EdgeInsets.only(bottom: AppTokens.spaceXs),
       child: ListView.separated(
@@ -336,7 +382,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppTokens.spaceSm,
-                  vertical: 4,
+                  vertical: AppTokens.spaceXxs,
                 ),
                 decoration: BoxDecoration(
                   color: chipBg,
@@ -348,12 +394,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   children: [
                     Icon(
                       Icons.history_rounded,
-                      size: 12,
+                      size: AppTokens.iconSizeMicro,
                       color: colorScheme.onSurfaceVariant.withValues(
                         alpha: AppTokens.alphaContentMuted,
                       ),
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: AppTokens.spaceXxs),
                     Text(
                       keyword,
                       style: TextStyle(
@@ -371,6 +417,18 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     );
   }
 
+  int _computeDepth(Task task, Map<String, Task> tasksById) {
+    int depth = 0;
+    var current = task;
+    while (current.parentId != null &&
+        tasksById.containsKey(current.parentId)) {
+      depth++;
+      current = tasksById[current.parentId]!;
+      if (depth > 8) break;
+    }
+    return depth;
+  }
+
   Widget _buildResults(
     BuildContext context,
     AppLocalizations l10n,
@@ -384,6 +442,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final projects =
         ref.watch(projectsStreamProvider).value ?? const <Project>[];
     final projectsMap = {for (final p in projects) p.id: p};
+    final allTasksMap = {for (final t in allTasks) t.id: t};
+    final query = ref.watch(searchQueryProvider);
+    final filter = ref.watch(searchFilterProvider);
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(
@@ -396,10 +457,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       itemBuilder: (context, index) {
         final task = results[index];
         final project = projectsMap[task.projectId];
+        final depth = filter.isTreeMode ? _computeDepth(task, allTasksMap) : 0;
         return _SearchResultRow(
           key: ValueKey('search_row_${task.id}'),
           task: task,
           project: project,
+          query: query,
+          depth: depth,
         );
       },
     );
@@ -411,23 +475,35 @@ class _SearchResultRow extends ConsumerWidget {
     super.key,
     required this.task,
     required this.project,
+    required this.query,
+    this.depth = 0,
   });
 
   final Task task;
   final Project? project;
+  final String query;
+  final int depth;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final isDone = task.status == TaskStatus.done;
     final filter = ref.watch(searchFilterProvider);
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppTokens.spaceXs),
-      child: TaskSwipeWrapper(
-        task: task,
-        hasChildren: false,
-        isDone: isDone,
-        child: SimpleTaskTile(
+    final cleanQuery = query.trim();
+    final hasDescMatch =
+        cleanQuery.isNotEmpty &&
+        task.description.toLowerCase().contains(cleanQuery.toLowerCase());
+    final hasNotesMatch =
+        cleanQuery.isNotEmpty &&
+        task.notes.toLowerCase().contains(cleanQuery.toLowerCase());
+
+    final tileContent = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SimpleTaskTile(
           task: task,
           hasChildren: false,
           isDone: isDone,
@@ -444,6 +520,180 @@ class _SearchResultRow extends ConsumerWidget {
                   status: (done ?? false) ? TaskStatus.done : TaskStatus.todo,
                 );
           },
+        ),
+        if (hasDescMatch && task.description.isNotEmpty)
+          _buildSnippet(
+            context: context,
+            icon: Icons.notes_rounded,
+            label: '描述',
+            fullText: task.description,
+            query: cleanQuery,
+            onTap: () => openTaskEdit(context, taskId: task.id),
+          ),
+        if (hasNotesMatch && task.notes.isNotEmpty)
+          _buildSnippet(
+            context: context,
+            icon: Icons.sticky_note_2_outlined,
+            label: '备注',
+            fullText: task.notes,
+            query: cleanQuery,
+            onTap: () => openTaskEdit(context, taskId: task.id),
+          ),
+      ],
+    );
+
+    Widget row = Padding(
+      padding: const EdgeInsets.only(bottom: AppTokens.spaceXs),
+      child: TaskSwipeWrapper(
+        task: task,
+        hasChildren: false,
+        isDone: isDone,
+        child: tileContent,
+      ),
+    );
+
+    if (depth > 0) {
+      row = Padding(
+        padding: EdgeInsets.only(
+          left: (depth * AppTokens.spaceSm).clamp(0.0, AppTokens.spaceXl * 2),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(
+                top: AppTokens.spaceSm,
+                right: AppTokens.spaceXxs,
+              ),
+              child: Icon(
+                Icons.subdirectory_arrow_right_rounded,
+                size: AppTokens.iconSizeSmall,
+                color: colorScheme.onSurfaceVariant.withValues(
+                  alpha: AppTokens.alphaContentMuted,
+                ),
+              ),
+            ),
+            Expanded(child: row),
+          ],
+        ),
+      );
+    }
+
+    return row;
+  }
+
+  Widget _buildSnippet({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required String fullText,
+    required String query,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    final q = query.toLowerCase();
+    final lower = fullText.toLowerCase();
+    final matchIndex = lower.indexOf(q);
+    if (matchIndex == -1) return const SizedBox.shrink();
+
+    // 截取匹配点前后上下文
+    const windowSize = 25;
+    final start = (matchIndex - windowSize).clamp(0, fullText.length);
+    final end = (matchIndex + query.length + windowSize).clamp(
+      0,
+      fullText.length,
+    );
+    final prefix = start > 0 ? '…' : '';
+    final suffix = end < fullText.length ? '…' : '';
+    final snippet = '$prefix${fullText.substring(start, end)}$suffix';
+
+    final snippetLower = snippet.toLowerCase();
+    final spans = <InlineSpan>[];
+    int current = 0;
+
+    while (current < snippet.length) {
+      final next = snippetLower.indexOf(q, current);
+      if (next == -1) {
+        spans.add(TextSpan(text: snippet.substring(current)));
+        break;
+      }
+      if (next > current) {
+        spans.add(TextSpan(text: snippet.substring(current, next)));
+      }
+      spans.add(
+        TextSpan(
+          text: snippet.substring(next, next + query.length),
+          style: TextStyle(
+            color: colorScheme.primary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      );
+      current = next + query.length;
+    }
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppTokens.radiusXs),
+      child: Container(
+        margin: const EdgeInsets.only(
+          left: AppTokens.spaceMd,
+          right: AppTokens.spaceXs,
+          bottom: AppTokens.spaceXxs,
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTokens.spaceSm,
+          vertical: AppTokens.spaceXxs,
+        ),
+        decoration: BoxDecoration(
+          color: isDark
+              ? AppTokens.surfaceCardDark.withValues(
+                  alpha: AppTokens.alphaCardFrostedDark,
+                )
+              : AppTokens.surfaceCardLight.withValues(
+                  alpha: AppTokens.alphaCardFrostedLight,
+                ),
+          borderRadius: BorderRadius.circular(AppTokens.radiusXs),
+          border: Border.all(
+            color: isDark
+                ? AppTokens.borderSubtleDark
+                : AppTokens.borderSubtleLight,
+            width: 0.8,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: AppTokens.iconSizeMicro,
+              color: colorScheme.primary,
+            ),
+            const SizedBox(width: AppTokens.spaceXxs),
+            Text(
+              '$label: ',
+              style: TextStyle(
+                fontSize: AppTokens.textMicroSize,
+                fontWeight: FontWeight.w600,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            Expanded(
+              child: RichText(
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                text: TextSpan(
+                  style: TextStyle(
+                    fontSize: AppTokens.textMicroSize,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  children: spans,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
