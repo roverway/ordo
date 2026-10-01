@@ -19,6 +19,7 @@ import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/db/db_providers.dart';
 import '../../core/security/secure_store.dart';
 import '../../core/sync/remote_store_factory.dart';
 import '../../core/sync/sync_config.dart';
@@ -89,12 +90,21 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
 
 /// 同步触发调度（手动/启动/编辑/失败指数退避；§10.2）。
 final syncTriggersProvider = Provider<SyncTriggers>((ref) {
-  return SyncTriggers(
-    engine: ref.watch(syncEngineProvider),
+  final engine = ref.watch(syncEngineProvider);
+  final repo = ref.watch(todoRepositoryProvider);
+  final triggers = SyncTriggers(
+    engine: engine,
     // 桌面恒 true（§10.2 桌面恒真）；Android 经 connectivity_plus 真实检测
     // （M5 接入，2026-08；20-tech-stack.md §4）。
     isWifiAllowed: _isWifiAllowed,
   );
+  repo.dataChangeObserver = triggers;
+  ref.onDispose(() {
+    if (repo.dataChangeObserver == triggers) {
+      repo.dataChangeObserver = null;
+    }
+  });
+  return triggers;
 });
 
 /// WiFi 可用性判定（供 syncTriggersProvider 注入，docs/60-sync-design.md §10.3）。

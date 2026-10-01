@@ -1,16 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'data_change_observer.dart';
 import 'repositories/todo_repository.dart';
 
+export 'data_change_observer.dart' show DataChangeObserver;
 export 'repositories/todo_repository.dart' show TodoRepository, inboxProjectId;
 
 /// 全局 Repository Provider（位于 core 数据层，供全工程注入复用）。
 ///
-/// 编辑自动同步接线（FR-SYNC-02）：Repository.onDataChanged 在 **main.dart**
-/// 中手工注入 `syncTriggers.onEdit`（容器创建后赋值）。这里不能在 Provider
-/// 构造时 watch syncTriggersProvider——会形成 syncTriggers → syncEngine →
-/// todoRepository 的循环依赖。测试直接 `overrideWithValue` 传入自建仓库时
-/// 回调保持 null（无自动同步），符合预期。
+/// 编辑自动同步接线（FR-SYNC-02）：
+/// 通过 [DataChangeObserver] 接口依赖倒置，在上层 [syncTriggersProvider]
+/// 创建时自动绑定到 Repository 的 dataChangeObserver，保证单向依赖且生命周期安全。
 final todoRepositoryProvider = Provider<TodoRepository>((ref) {
   return TodoRepository();
 });

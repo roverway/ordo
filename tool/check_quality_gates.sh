@@ -66,7 +66,11 @@ echo ""
 echo "=========================================="
 echo "🛡️  [Quality Gate 2/3] Dart 代码格式守卫..."
 echo "=========================================="
-dart format --output=none --set-exit-if-changed lib/ test/ tool/
+if ! dart format --output=none --set-exit-if-changed lib/ test/ tool/; then
+  echo "❌ Dart 代码格式校验未通过！请在本地运行 dart format . 并提交："
+  dart format --output=summary lib/ test/ tool/
+  exit 1
+fi
 echo "✅ Dart 格式规范检查通过！"
 
 echo ""

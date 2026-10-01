@@ -202,7 +202,7 @@ class BackupRestoreService {
       await _executeMergeImport(snapshot);
     }
 
-    await _repository.onDataChanged?.call();
+    await _repository.notifyDataChanged();
   }
 
   /// 执行覆盖恢复。

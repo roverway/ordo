@@ -14,6 +14,7 @@
 import 'dart:async';
 
 import 'sync_config.dart';
+import '../db/data_change_observer.dart';
 import 'sync_engine.dart';
 
 /// 失败重试最大次数（§12：指数退避，最多 5 次）。
@@ -24,7 +25,7 @@ const int _kMaxRetries = 5;
 const Duration _kEditDebounce = Duration(seconds: 2);
 
 /// 同步触发调度（UI 无关，供应用启动/编辑写操作/设置页调用）。
-class SyncTriggers {
+class SyncTriggers implements DataChangeObserver {
   SyncTriggers({
     required SyncEngine engine,
     required Future<bool> Function() isWifiAllowed,
@@ -72,6 +73,9 @@ class SyncTriggers {
   ///
   /// 受 wifiOnly 约束（§10.3）。这是编辑自动同步的唯一防抖入口（SyncEngine
   /// 不再提供 runAfterEdit）；由装配层注入 Repository.onDataChanged。
+  @override
+  Future<void> onDataChanged() => onEdit();
+
   Future<void> onEdit() async {
     final config = await _engine.loadSettingsConfig();
     if (!config.enabled || !config.autoOnEdit) return;
