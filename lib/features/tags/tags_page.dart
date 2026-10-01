@@ -35,7 +35,9 @@ class TagsPage extends ConsumerWidget {
     final tagsAsync = ref.watch(tagsStreamProvider);
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? AppTokens.surfaceDark
+          : AppTokens.surfaceLight,
       body: SafeArea(
         bottom: false,
         child: tagsAsync.when(
@@ -111,7 +113,11 @@ class TagsPage extends ConsumerWidget {
           },
         ),
       ),
-      floatingActionButton: null,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showNewTagDialog(context, ref),
+        tooltip: l10n.newTag,
+        child: const Icon(Icons.add),
+      ),
     );
   }
 

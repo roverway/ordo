@@ -46,6 +46,7 @@ class SimpleTaskTile extends StatefulWidget {
     this.progressValue,
     this.subtaskProgressText,
     this.isSelected = false,
+    this.collapseOnDone = false,
     this.onTap,
     this.onToggleDone,
   });
@@ -65,6 +66,7 @@ class SimpleTaskTile extends StatefulWidget {
   /// 子任务进度文案（如 "2/5"）；无子任务传 null。
   final String? subtaskProgressText;
 
+  final bool collapseOnDone;
   final VoidCallback? onTap;
   final ValueChanged<bool?>? onToggleDone;
 
@@ -121,16 +123,20 @@ class _SimpleTaskTileState extends State<SimpleTaskTile>
     if (targetDone) {
       HapticFeedback.lightImpact();
       setState(() => _isLocallyDone = true);
-      _graceTimer?.cancel();
-      _graceTimer = Timer(AppTokens.motionDoneGracePeriod, () {
-        if (mounted) {
-          _collapseController.forward().then((_) {
-            if (mounted) {
-              widget.onToggleDone?.call(true);
-            }
-          });
-        }
-      });
+      if (widget.collapseOnDone) {
+        _graceTimer?.cancel();
+        _graceTimer = Timer(AppTokens.motionDoneGracePeriod, () {
+          if (mounted) {
+            _collapseController.forward().then((_) {
+              if (mounted) {
+                widget.onToggleDone?.call(true);
+              }
+            });
+          }
+        });
+      } else {
+        widget.onToggleDone?.call(true);
+      }
     } else {
       _graceTimer?.cancel();
       _graceTimer = null;
@@ -315,15 +321,32 @@ class _SimpleTaskTileState extends State<SimpleTaskTile>
                                                     AppTokens.radiusMicro,
                                                   ),
                                             ),
-                                            child: Text(
-                                              '#${tag.name}',
-                                              style: TextStyle(
-                                                color: Color(tag.color),
-                                                fontWeight: FontWeight.w500,
-                                                fontSize:
-                                                    AppTokens.textMicroSize,
-                                                height: 1.25,
-                                              ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  '#',
+                                                  style: TextStyle(
+                                                    color: Color(tag.color)
+                                                        .withValues(
+                                                          alpha: AppTokens
+                                                              .alphaHashPrefix,
+                                                        ),
+                                                    fontWeight: FontWeight.w400,
+                                                    fontSize:
+                                                        AppTokens.textMicroSize,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  tag.name,
+                                                  style: TextStyle(
+                                                    color: Color(tag.color),
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize:
+                                                        AppTokens.textMicroSize,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
 

@@ -1,3 +1,4 @@
+import '../../shared/widgets/app_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -394,7 +395,13 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
           },
         ),
       ),
-      floatingActionButton: null,
+      floatingActionButton: (isNarrow && !AppShellScope.hasDockOf(context))
+          ? FloatingActionButton(
+              onPressed: () => _showNewProjectDialog(context, ref),
+              tooltip: l10n.newProject,
+              child: const Icon(Icons.add_rounded),
+            )
+          : null,
     );
   }
 

@@ -446,6 +446,7 @@ bool matchesFilter(
   required Set<String> taskTagIds,
   required int nowUtcMs,
   Map<String?, List<Task>>? childrenIndex,
+  bool useSelfStatus = false,
 }) {
   // 1. 文件夹筛选
   if (filter.folderIds.isNotEmpty) {
@@ -484,12 +485,10 @@ bool matchesFilter(
   final effectiveChildrenIndex =
       childrenIndex ?? indexChildrenByParent(byId.values.toList());
 
-  // 5. 状态筛选（派生状态口径，递归子树）
-  final effectiveStatus = derivedStatus(
-    task,
-    directChildren,
-    effectiveChildrenIndex,
-  );
+  // 5. 状态筛选（支持派生状态或扁平任务自身状态）
+  final effectiveStatus = useSelfStatus
+      ? task.status
+      : derivedStatus(task, directChildren, effectiveChildrenIndex);
   if (filter.statuses.isNotEmpty) {
     if (!filter.statuses.contains(effectiveStatus)) return false;
   }

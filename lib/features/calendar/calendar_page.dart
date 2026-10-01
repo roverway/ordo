@@ -121,7 +121,14 @@ class CalendarPage extends ConsumerWidget {
           ],
         ),
       ),
-      floatingActionButton: null,
+      floatingActionButton: isNarrow
+          ? FloatingActionButton(
+              onPressed: () =>
+                  _createTaskOnDay(context, ref, state.selectedDate),
+              tooltip: l10n.newTask,
+              child: const Icon(Icons.add_rounded),
+            )
+          : null,
     );
   }
 
@@ -442,7 +449,7 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
                 // - 当展开为月视图时（向下手势）：入场月网格自上方 (-0.12) 向下滑入展开，退场周网格向下 (+0.08) 滑出；
                 // 配合外层 AnimatedSize 的 350ms easeInOutCubic 曲线，与用户的上下滑动手势完美同向契合。
                 if (dir == 0) {
-                  return child;
+                  return FadeTransition(opacity: animation, child: child);
                 }
                 final begin = isIncoming
                     ? Offset(0.18 * dir, 0)
@@ -737,20 +744,20 @@ class _DayCell extends StatelessWidget {
     final hasSubText = decoration.subText != null;
 
     Color subTextColor;
-    if (isSelected && isToday) {
-      subTextColor = colorScheme.onPrimary.withValues(
-        alpha: AppTokens.alphaOverlayHeavy,
-      );
+    if (decoration.isSpecialSubText) {
+      // 节日/节气（如国庆、中秋、初一等）：浅色下为醒目节日红，深色下为明亮红粉，绝非白色
+      subTextColor = isDark
+          ? AppTokens.colorHolidayDark
+          : AppTokens.colorHoliday;
+    } else if (isSelected && isToday) {
+      // 今日高亮选中：使用主题主色强调，确保在纯色背景或白底上清晰可读
+      subTextColor = colorScheme.primary;
     } else if (isSelected) {
-      subTextColor = colorScheme.onPrimaryContainer.withValues(
-        alpha: AppTokens.alphaOverlayHeavy,
-      );
+      subTextColor = colorScheme.primary;
     } else if (!inMonth) {
       subTextColor = colorScheme.onSurfaceVariant.withValues(
         alpha: AppTokens.alphaBorderEmphasis,
       );
-    } else if (decoration.isSpecialSubText) {
-      subTextColor = colorScheme.primary;
     } else {
       subTextColor = colorScheme.onSurfaceVariant.withValues(
         alpha: AppTokens.alphaScrim,

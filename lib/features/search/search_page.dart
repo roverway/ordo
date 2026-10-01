@@ -395,36 +395,57 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       itemCount: results.length,
       itemBuilder: (context, index) {
         final task = results[index];
-        final isDone = task.status == TaskStatus.done;
         final project = projectsMap[task.projectId];
-
-        return Padding(
-          padding: const EdgeInsets.only(bottom: AppTokens.spaceXs),
-          child: TaskSwipeWrapper(
-            task: task,
-            hasChildren: false,
-            isDone: isDone,
-            child: SimpleTaskTile(
-              task: task,
-              hasChildren: false,
-              isDone: isDone,
-              projectName: project?.name,
-              projectColor: project?.color,
-              onTap: () => openTaskEdit(context, taskId: task.id),
-              onToggleDone: (done) {
-                ref
-                    .read(todoRepositoryProvider)
-                    .updateTask(
-                      task.id,
-                      status: (done ?? false)
-                          ? TaskStatus.done
-                          : TaskStatus.todo,
-                    );
-              },
-            ),
-          ),
+        return _SearchResultRow(
+          key: ValueKey('search_row_${task.id}'),
+          task: task,
+          project: project,
         );
       },
+    );
+  }
+}
+
+class _SearchResultRow extends ConsumerWidget {
+  const _SearchResultRow({
+    super.key,
+    required this.task,
+    required this.project,
+  });
+
+  final Task task;
+  final Project? project;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDone = task.status == TaskStatus.done;
+    final filter = ref.watch(searchFilterProvider);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppTokens.spaceXs),
+      child: TaskSwipeWrapper(
+        task: task,
+        hasChildren: false,
+        isDone: isDone,
+        child: SimpleTaskTile(
+          task: task,
+          hasChildren: false,
+          isDone: isDone,
+          tags: const <Tag>[],
+          projectName: project?.name,
+          projectColor: project?.color,
+          collapseOnDone: filter.status == TaskStatus.todo,
+          onTap: () => openTaskEdit(context, taskId: task.id),
+          onToggleDone: (done) {
+            ref
+                .read(todoRepositoryProvider)
+                .updateTask(
+                  task.id,
+                  status: (done ?? false) ? TaskStatus.done : TaskStatus.todo,
+                );
+          },
+        ),
+      ),
     );
   }
 }

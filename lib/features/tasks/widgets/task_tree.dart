@@ -152,7 +152,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
         return NotificationListener<ScrollNotification>(
           onNotification: (notification) {
             if (notification is ScrollUpdateNotification) {
-              if (notification.metrics.pixels < -60 &&
+              if (notification.metrics.pixels <
+                      -AppTokens.spotlightTriggerThreshold &&
                   !_hasTriggeredSpotlight) {
                 _hasTriggeredSpotlight = true;
                 HapticFeedback.mediumImpact();
@@ -161,7 +162,9 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
             } else if (notification is OverscrollNotification) {
               if (notification.overscroll < 0) {
                 _spotlightOverscroll -= notification.overscroll;
-                if (_spotlightOverscroll > 60 && !_hasTriggeredSpotlight) {
+                if (_spotlightOverscroll >
+                        AppTokens.spotlightTriggerThreshold &&
+                    !_hasTriggeredSpotlight) {
                   _hasTriggeredSpotlight = true;
                   HapticFeedback.mediumImpact();
                   context.push('/search');
@@ -836,6 +839,7 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
             isExpanded: node.isExpanded,
             childCount: directChildren.length,
             incompleteChildCount: incompleteChildren,
+            collapseOnDone: widget.filterMode == TaskFilterChipMode.open,
             onToggleExpand: () {
               ref
                   .read(treeExpandProvider(widget.projectId).notifier)

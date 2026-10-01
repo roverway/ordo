@@ -13,6 +13,7 @@ import '../../core/db/tables.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../features/search/search_providers.dart';
+import 'app_frosted_container.dart';
 
 /// Linear 风格精致筛选条（FR-VIEW-06）。
 class TaskFilterBar extends StatelessWidget {
@@ -107,20 +108,19 @@ class TaskFilterBar extends StatelessWidget {
           const SizedBox(width: AppTokens.spaceXs),
 
           // 时间段筛选
-          _LinearFilterChip<TimeRange>(
+          _LinearFilterChip<TimeRange?>(
             label: l10n.filterTimeRange,
-            value: range,
+            value: range == TimeRange.all ? null : range,
             isActive: range != TimeRange.all,
             selectedText: range != TimeRange.all
                 ? _timeRangeLabel(l10n, range)
                 : null,
             entries: [
-              for (final r in TimeRange.values)
+              MapEntry(null, l10n.filterAll),
+              for (final r in TimeRange.values.where((e) => e != TimeRange.all))
                 MapEntry(r, _timeRangeLabel(l10n, r)),
             ],
-            onChanged: (value) {
-              if (value != null) onTimeRangeChanged(value);
-            },
+            onChanged: (val) => onTimeRangeChanged(val ?? TimeRange.all),
           ),
           if (sortPrinciple != null && onSortChanged != null) ...[
             const SizedBox(width: AppTokens.spaceXs),
@@ -207,6 +207,143 @@ class _LinearFilterChip<T> extends StatelessWidget {
   final List<MapEntry<T?, String>> entries;
   final ValueChanged<T?> onChanged;
 
+  void _showMenu(BuildContext context) {
+    HapticFeedback.selectionClick();
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null || !renderBox.hasSize) return;
+
+    final position = renderBox.localToGlobal(Offset.zero);
+    final size = renderBox.size;
+    final mediaQuery = MediaQuery.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final topOffset = position.dy + size.height + 6.0;
+    const menuWidth = 170.0;
+    final leftOffset = position.dx.clamp(
+      AppTokens.spaceMd,
+      mediaQuery.size.width - menuWidth - AppTokens.spaceMd,
+    );
+
+    showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      barrierColor: Colors.black.withValues(
+        alpha: isDark ? AppTokens.alphaScrimDark : AppTokens.alphaScrimLight,
+      ),
+      transitionDuration: AppTokens.motionFast,
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        final theme = Theme.of(dialogContext);
+        final colorScheme = theme.colorScheme;
+
+        return Stack(
+          children: [
+            Positioned(
+              top: topOffset,
+              left: leftOffset,
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minWidth: menuWidth,
+                    maxWidth: 240,
+                    maxHeight: 320,
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: AppFrostedContainer(
+                      borderRadius: BorderRadius.circular(
+                        AppTokens.radiusSheet,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppTokens.spaceXs,
+                      ),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (final entry in entries)
+                              InkWell(
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  Navigator.of(dialogContext).pop();
+                                  onChanged(entry.key);
+                                },
+                                borderRadius: BorderRadius.circular(
+                                  AppTokens.radiusButton,
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppTokens.spaceMd,
+                                    vertical: AppTokens.spaceSm,
+                                  ),
+                                  color: entry.key == value
+                                      ? colorScheme.primary.withValues(
+                                          alpha: AppTokens.alphaTintFaint,
+                                        )
+                                      : Colors.transparent,
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          entry.value,
+                                          style: TextStyle(
+                                            fontSize:
+                                                AppTokens.textSecondarySize,
+                                            fontWeight: entry.key == value
+                                                ? FontWeight.w600
+                                                : FontWeight.w400,
+                                            color: entry.key == value
+                                                ? colorScheme.primary
+                                                : colorScheme.onSurface,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      if (entry.key == value) ...[
+                                        const SizedBox(
+                                          width: AppTokens.spaceXs,
+                                        ),
+                                        Icon(
+                                          Icons.check_rounded,
+                                          size: 16,
+                                          color: colorScheme.primary,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.94, end: 1.0).animate(curved),
+            alignment: Alignment.topLeft,
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -231,119 +368,59 @@ class _LinearFilterChip<T> extends StatelessWidget {
         ? colorScheme.primary
         : colorScheme.onSurfaceVariant;
 
-    return Theme(
-      data: theme.copyWith(
-        popupMenuTheme: PopupMenuThemeData(
-          color: isDark
-              ? AppTokens.surfaceCardDark
-              : AppTokens.surfaceCardLight,
-          surfaceTintColor: Colors.transparent,
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-            side: BorderSide(
-              color: isDark
-                  ? AppTokens.borderSubtleDark
-                  : AppTokens.borderSubtleLight,
-              width: 1,
-            ),
-          ),
+    final chip = InkWell(
+      borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+      onTap: () => _showMenu(context),
+      child: AnimatedContainer(
+        duration: AppTokens.motionFast,
+        height: AppTokens.filterChipHeight,
+        padding: const EdgeInsets.symmetric(horizontal: AppTokens.spaceSm),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+          border: Border.all(color: borderColor, width: 1),
         ),
-      ),
-      child: PopupMenuButton<T?>(
-        position: PopupMenuPosition.under,
-        offset: const Offset(0, 4),
-        onSelected: (val) {
-          HapticFeedback.selectionClick();
-          onChanged(val);
-        },
-        itemBuilder: (context) => [
-          for (final entry in entries)
-            PopupMenuItem<T?>(
-              value: entry.key,
-              height: AppTokens.filterMenuItemHeight,
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTokens.spaceSm,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      entry.value,
-                      style: TextStyle(
-                        fontSize: AppTokens.textSecondarySize,
-                        fontWeight: entry.key == value
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                        color: entry.key == value
-                            ? colorScheme.primary
-                            : colorScheme.onSurface,
-                      ),
-                    ),
-                  ),
-                  if (entry.key == value) ...[
-                    const SizedBox(width: AppTokens.spaceXs),
-                    Icon(
-                      Icons.check_rounded,
-                      size: 14,
-                      color: colorScheme.primary,
-                    ),
-                  ],
-                ],
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: AppTokens.textCaptionSize,
+                fontWeight: FontWeight.w500,
+                color: textColor,
               ),
             ),
-        ],
-        child: AnimatedContainer(
-          duration: AppTokens.motionFast,
-          height: AppTokens.filterChipHeight,
-          padding: const EdgeInsets.symmetric(horizontal: AppTokens.spaceSm),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-            border: Border.all(color: borderColor, width: 1),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
+            if (selectedText != null) ...[
               Text(
-                label,
+                ': ',
                 style: TextStyle(
                   fontSize: AppTokens.textCaptionSize,
                   fontWeight: FontWeight.w500,
                   color: textColor,
                 ),
               ),
-              if (selectedText != null) ...[
-                Text(
-                  ': ',
-                  style: TextStyle(
-                    fontSize: AppTokens.textCaptionSize,
-                    fontWeight: FontWeight.w500,
-                    color: textColor,
-                  ),
+              Text(
+                selectedText!,
+                style: TextStyle(
+                  fontSize: AppTokens.textCaptionSize,
+                  fontWeight: FontWeight.w600,
+                  color: isActive ? colorScheme.primary : colorScheme.onSurface,
                 ),
-                Text(
-                  selectedText!,
-                  style: TextStyle(
-                    fontSize: AppTokens.textCaptionSize,
-                    fontWeight: FontWeight.w600,
-                    color: isActive
-                        ? colorScheme.primary
-                        : colorScheme.onSurface,
-                  ),
-                ),
-              ],
-              const SizedBox(width: AppTokens.spaceXxs),
-              Icon(
-                Icons.keyboard_arrow_down_rounded,
-                size: 14,
-                color: textColor,
               ),
             ],
-          ),
+            const SizedBox(width: AppTokens.spaceXxs),
+            Icon(Icons.keyboard_arrow_down_rounded, size: 14, color: textColor),
+          ],
         ),
       ),
+    );
+
+    return PopupMenuButton<T>(
+      enabled: false,
+      itemBuilder: (_) => const [],
+      child: chip,
     );
   }
 }

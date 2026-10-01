@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'theme_palette.dart';
 export 'theme_palette.dart';
 
 /// Design Tokens — the single source of truth for all visual values.
@@ -24,6 +25,8 @@ abstract final class AppTokens {
 
   /// Overdue — elegant rose red (gentle, not harsh).
   static const Color colorOverdue = Color(0xFFE11D48);
+  static const Color colorHoliday = Color(0xFFDC2626);
+  static const Color colorHolidayDark = Color(0xFFFF8A80);
 
   /// Inbox project accent — warm violet.
   /// 与 todo_repository.dart 的 inboxProjectColor 保持一致（DB 实际写入值）。
@@ -105,6 +108,7 @@ abstract final class AppTokens {
 
   /// 模态遮罩（BottomSheet / Dialog 背景遮罩）。
   static const double alphaScrim = 0.70;
+  static const double alphaHashPrefix = 0.70;
 
   /// 呼吸式非侵入遮罩透明度（浅色模式，保持上下文连续感，对齐 ScopeSwitcherSheet）。
   static const double alphaScrimLight = 0.18;
@@ -738,54 +742,9 @@ abstract final class AppTokens {
   // ── Theme Palettes (App Theme Presets) ──
 
   /// 8 款经过明度与对比度校准的精选现代调色盘预设（全应用统一主题色体系）。
-  static const List<ThemePalettePreset> themePalettes = [
-    ThemePalettePreset(
-      id: 'black',
-      color: Color(0xFF111827),
-      nameZh: '曜石黑',
-      nameEn: 'Obsidian Black',
-    ),
-    ThemePalettePreset(
-      id: 'blue',
-      color: Color(0xFF2563EB),
-      nameZh: '克莱因蓝',
-      nameEn: 'Klein Blue',
-    ),
-    ThemePalettePreset(
-      id: 'emerald',
-      color: Color(0xFF059669),
-      nameZh: '翡翠绿',
-      nameEn: 'Emerald Green',
-    ),
-    ThemePalettePreset(
-      id: 'amber',
-      color: Color(0xFFD97706),
-      nameZh: '琥珀橙',
-      nameEn: 'Amber Orange',
-    ),
-    ThemePalettePreset(
-      id: 'purple',
-      color: Color(0xFF7C3AED),
-      nameZh: '罗兰紫',
-      nameEn: 'Violet Purple',
-    ),
-    ThemePalettePreset(
-      id: 'rose',
-      color: Color(0xFFE11D48),
-      nameZh: '玫瑰红',
-      nameEn: 'Rose Red',
-    ),
-    ThemePalettePreset(
-      id: 'teal',
-      color: Color(0xFF0891B2),
-      nameZh: '松石青',
-      nameEn: 'Turquoise Teal',
-    ),
-    ThemePalettePreset(
-      id: 'slate',
-      color: Color(0xFF64748B),
-      nameZh: '烟雨灰',
-      nameEn: 'Misty Slate',
-    ),
-  ];
+  /// 8 款经过明度与对比度校准的精选现代调色盘预设（全应用统一主题色体系）。
+  static const List<ThemePalettePreset> themePalettes = defaultThemePalettes;
+
+  /// 下拉唤起全局搜索（Spotlight）的阻尼触发阈值（120dp，杜绝轻微上滑误触）。
+  static const double spotlightTriggerThreshold = 120.0;
 }

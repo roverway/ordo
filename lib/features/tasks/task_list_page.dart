@@ -1,3 +1,4 @@
+import '../../shared/widgets/app_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -63,6 +64,7 @@ class TaskListPage extends ConsumerWidget {
     final isDualPane = AppBreakpoints.isDualPane(context);
     final selectedTaskId = ref.watch(desktopSelectedTaskIdProvider);
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return AppBackgroundWrapper(
       projectId: projectId,
@@ -104,7 +106,20 @@ class TaskListPage extends ConsumerWidget {
                         ),
                       )),
         ),
-        floatingActionButton: null,
+        floatingActionButton: (isNarrow && !AppShellScope.hasDockOf(context))
+            ? FloatingActionButton(
+                onPressed: () {
+                  final targetProjectId = switch (scope) {
+                    TodayTaskScope() => null,
+                    InboxTaskScope() => inboxProjectId,
+                    ProjectTaskScope(:final projectId) => projectId,
+                  };
+                  TaskCreateSheet.show(context, projectId: targetProjectId);
+                },
+                tooltip: l10n.newTask,
+                child: const Icon(Icons.add_rounded),
+              )
+            : null,
       ),
     );
   }
