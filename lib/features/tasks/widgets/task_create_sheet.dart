@@ -6,8 +6,7 @@
 // 3. 选项胶囊栏（项目选择器 + 开始时间设置 + 结束时间/截止时间设置）
 // 4. 优先级分段选择（无/低/中/高 带彩色圆点）
 // 5. 标签选择行 + 内联新建标签输入
-// 6. 子任务列表（带复选框、删除按钮；多行输入与编辑页一致，回车=行内换行，
-//    新增行经底部「添加子任务」按钮）
+// 6. 子任务列表（带复选框、删除按钮；多行输入与编辑页一致，回车=行内换行，新增行经底部「添加子任务」按钮）
 // 7. 底部信息栏（关闭时自动保存开关 + 当前配置摘要）
 
 import 'dart:math' as math;
@@ -19,15 +18,11 @@ import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/platform/keyboard_inset_bridge.dart';
 import '../../../core/theme/app_tokens.dart';
-import '../../../core/theme/priority_color.dart';
-import '../../../core/utils/dates.dart';
 import '../../../core/utils/motion.dart';
 import '../../projects/project_providers.dart';
-import '../../tags/tag_providers.dart';
 import '../task_providers.dart';
-import 'task_editor/project_picker_sheet.dart';
-import 'task_editor/tag_picker_sheet.dart';
-import 'task_editor/task_date_picker_dialogs.dart';
+import 'task_create_sheet_options.dart';
+import 'task_create_subtasks_section.dart';
 
 /// 新建任务底部弹窗。
 class TaskCreateSheet extends ConsumerStatefulWidget {
@@ -106,21 +101,13 @@ class TaskCreateSheet extends ConsumerStatefulWidget {
   ConsumerState<TaskCreateSheet> createState() => _TaskCreateSheetState();
 }
 
-class _SubtaskItem {
-  _SubtaskItem({required this.controller, required this.focusNode});
-
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  bool isDone = false;
-}
-
 class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
     with SingleTickerProviderStateMixin {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _titleFocusNode = FocusNode();
   final _descriptionFocusNode = FocusNode();
-  final List<_SubtaskItem> _subtaskRows = [];
+  final List<SubtaskDraftRow> _subtaskRows = [];
 
   bool _isSaving = false;
   bool _allowPop = false;
@@ -162,7 +149,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
     setState(() {
       final ctrl = TextEditingController();
       final focusNode = FocusNode()..addListener(_onFocusChange);
-      _subtaskRows.add(_SubtaskItem(controller: ctrl, focusNode: focusNode));
+      _subtaskRows.add(SubtaskDraftRow(controller: ctrl, focusNode: focusNode));
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) focusNode.requestFocus();
       });
@@ -212,15 +199,10 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
 
     final startAt = ref.watch(taskFormProvider.select((s) => s.startAt));
     final endAt = ref.watch(taskFormProvider.select((s) => s.endAt));
-    final priority = ref.watch(taskFormProvider.select((s) => s.priority));
-    final selectedTagIds = ref.watch(
-      taskFormProvider.select((s) => s.selectedTagIds),
-    );
     final projectId = ref.watch(taskFormProvider.select((s) => s.projectId));
     final projects =
         ref.watch(projectsStreamProvider).value ?? const <Project>[];
     final currentProject = projects.where((p) => p.id == projectId).firstOrNull;
-    final tags = ref.watch(tagsStreamProvider).value ?? const <Tag>[];
 
     final borderColor = isDark
         ? AppTokens.borderSubtleDark
@@ -232,12 +214,6 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
         _subtaskRows.any((r) => r.focusNode.hasFocus);
 
     final screenHeight = MediaQuery.sizeOf(context).height;
-    // maxHeight 一律允许全高，不随 [isFocused] 在 85%↔100% 间翻转。
-    //
-    // 原实现下每次重新聚焦（典型：键盘收起后点「添加子任务行」）都会以
-    // 200ms 动画把整层重新展开，观感等同弹层重新弹出（任务编辑页是整页
-    // 布局故无此问题）。弹层实际高度仍由内容撑起（Column mainAxisSize.min），
-    // 各状态视觉不变，仅失去「未聚焦压到 85%」的行为。
     final targetMaxHeight = screenHeight;
 
     final rawTopInset = MediaQuery.viewPaddingOf(context).top;
@@ -345,7 +321,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // 1. 标题输入框（无背景，仅保留浅色下边距横线）
+                      // 1. 标题输入框
                       Container(
                         padding: const EdgeInsets.only(bottom: 6),
                         decoration: BoxDecoration(
@@ -436,7 +412,7 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                           ),
                         ),
 
-                      // 2. 备注/描述输入框（无边框无背景）
+                      // 2. 备注/描述输入框
                       const SizedBox(height: 8),
                       TextField(
                         controller: _descriptionController,
@@ -477,566 +453,43 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                       const SizedBox(height: 16),
 
                       // 3. 胶囊选项栏（项目 + 开始时间 + 结束时间）
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            // 项目 Pill
-                            _buildPillButton(
-                              onTap: () => showTaskProjectPicker(context, ref),
-                              leading: Container(
-                                width: 7,
-                                height: 7,
-                                decoration: BoxDecoration(
-                                  color: currentProject != null
-                                      ? Color(currentProject.color)
-                                      : AppTokens.colorCancelled,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              label: currentProject?.name ?? l10n.inbox,
-                              hasValue: currentProject != null,
-                            ),
-
-                            const SizedBox(width: 8),
-
-                            // 开始时间 Pill (带有 Calendar 图标)
-                            _buildTimePillWithMenu(
-                              isStart: true,
-                              currentValue: startAt,
-                              label: startAt != null
-                                  ? l10n.startPrefix(
-                                      formatTaskTimeDisplay(
-                                        startAt,
-                                        null,
-                                        l10n,
-                                      ),
-                                    )
-                                  : l10n.startTime,
-                              icon: Icons.calendar_today_outlined,
-                            ),
-
-                            const SizedBox(width: 8),
-
-                            // 结束时间 / 截止时间 Pill（补齐设计稿遗漏的结束时间按钮）
-                            _buildTimePillWithMenu(
-                              isStart: false,
-                              currentValue: endAt,
-                              label: endAt != null
-                                  ? l10n.duePrefix(
-                                      formatTaskTimeDisplay(null, endAt, l10n),
-                                    )
-                                  : l10n.endTime,
-                              icon: Icons.flag_outlined,
-                            ),
-                          ],
-                        ),
-                      ),
+                      const TaskCreatePillRow(),
 
                       const SizedBox(height: 14),
 
                       Divider(height: 1, color: borderColor),
 
-                      // 4. 优先级选择行（与任务编辑页完全一致）
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 8,
-                          horizontal: 4.0,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.flag_outlined,
-                              size: 20,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              l10n.priority,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                                fontSize: AppTokens.textFootnoteSize,
-                              ),
-                            ),
-                            const Spacer(),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? colorScheme.surfaceContainerHighest
-                                          .withValues(
-                                            alpha: AppTokens.alphaContentMuted,
-                                          )
-                                    : colorScheme.onSurface.withValues(
-                                        alpha: 0.05,
-                                      ),
-                                borderRadius: BorderRadius.circular(
-                                  AppTokens.radiusList,
-                                ),
-                              ),
-                              padding: const EdgeInsets.all(2),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  for (final p in [
-                                    TaskPriority.none,
-                                    TaskPriority.low,
-                                    TaskPriority.medium,
-                                    TaskPriority.high,
-                                  ])
-                                    InkWell(
-                                      onTap: () => ref
-                                          .read(taskFormProvider.notifier)
-                                          .updatePriority(p),
-                                      borderRadius: BorderRadius.circular(
-                                        AppTokens.radiusChip,
-                                      ),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: priority == p
-                                              ? (p == TaskPriority.none
-                                                    ? colorScheme.surface
-                                                    : priorityColor(
-                                                        p,
-                                                      ).withValues(
-                                                        alpha: AppTokens
-                                                            .alphaTintStrong,
-                                                      ))
-                                              : Colors.transparent,
-                                          borderRadius: BorderRadius.circular(
-                                            6,
-                                          ),
-                                          border:
-                                              priority == p &&
-                                                  p != TaskPriority.none
-                                              ? Border.all(
-                                                  color: priorityColor(p)
-                                                      .withValues(
-                                                        alpha: AppTokens
-                                                            .alphaContentDisabled,
-                                                      ),
-                                                  width: 1,
-                                                )
-                                              : null,
-                                        ),
-                                        child: Text(
-                                          _getPriorityLabel(l10n, p),
-                                          style: TextStyle(
-                                            fontSize: AppTokens.textCaptionSize,
-                                            fontWeight: priority == p
-                                                ? FontWeight.w600
-                                                : FontWeight.normal,
-                                            color: priority == p
-                                                ? (p == TaskPriority.none
-                                                      ? colorScheme.onSurface
-                                                      : priorityColor(p))
-                                                : colorScheme.onSurfaceVariant,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      // 4. 优先级选择行
+                      const TaskCreatePriorityRow(),
+
                       Divider(height: 1, color: borderColor),
 
-                      // 5. 标签行（与任务编辑页完全一致）
-                      InkWell(
-                        onTap: () => showTaskTagPicker(context, ref),
-                        borderRadius: BorderRadius.circular(
-                          AppTokens.radiusList,
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 10,
-                            horizontal: 4.0,
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.label_outline,
-                                size: 20,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                l10n.taskTags,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                  fontSize: AppTokens.textFootnoteSize,
-                                ),
-                              ),
-                              const Spacer(),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (selectedTagIds.isEmpty)
-                                    Text(
-                                      l10n.notAdded,
-                                      style: theme.textTheme.bodyMedium
-                                          ?.copyWith(
-                                            color: colorScheme.onSurfaceVariant
-                                                .withValues(
-                                                  alpha: AppTokens
-                                                      .alphaContentMuted,
-                                                ),
-                                            fontSize:
-                                                AppTokens.textFootnoteSize,
-                                          ),
-                                    )
-                                  else
-                                    Wrap(
-                                      spacing: 6,
-                                      children: [
-                                        for (final id in selectedTagIds)
-                                          if (tags.any((t) => t.id == id))
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 2,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: colorScheme.surface,
-                                                borderRadius:
-                                                    BorderRadius.circular(
-                                                      AppTokens.radiusPill,
-                                                    ),
-                                                border: Border.all(
-                                                  color: borderColor,
-                                                  width: 1,
-                                                ),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Container(
-                                                    width: 5,
-                                                    height: 5,
-                                                    decoration: BoxDecoration(
-                                                      color: Color(
-                                                        tags
-                                                            .firstWhere(
-                                                              (t) => t.id == id,
-                                                            )
-                                                            .color,
-                                                      ),
-                                                      shape: BoxShape.circle,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    tags
-                                                        .firstWhere(
-                                                          (t) => t.id == id,
-                                                        )
-                                                        .name,
-                                                    style: theme
-                                                        .textTheme
-                                                        .bodySmall
-                                                        ?.copyWith(
-                                                          color: colorScheme
-                                                              .onSurfaceVariant,
-                                                          fontSize: AppTokens
-                                                              .textMicroSize,
-                                                        ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                      ],
-                                    ),
-                                  const SizedBox(width: 6),
-                                  Container(
-                                    width: 22,
-                                    height: 22,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: borderColor,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Icon(
-                                      Icons.add,
-                                      size: 13,
-                                      color: colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                      // 5. 标签行
+                      TaskCreateTagRow(borderColor: borderColor),
+
                       Divider(height: 1, color: borderColor),
 
-                      // 6. 子任务区（精确复刻 create.html）
+                      // 6. 子任务区
                       if (widget.parentId == null) ...[
-                        Container(
-                          margin: const EdgeInsets.only(top: 14, bottom: 4),
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
-                            children: [
-                              Text(
-                                l10n.subtasks,
-                                style: TextStyle(
-                                  fontSize: AppTokens.textMicroSize,
-                                  letterSpacing: 1.4,
-                                  fontWeight: FontWeight.w600,
-                                  color: colorScheme.onSurfaceVariant
-                                      .withValues(alpha: AppTokens.alphaScrim),
-                                ),
-                              ),
-                              if (_subtaskRows.isNotEmpty)
-                                Text(
-                                  l10n.itemCount(_subtaskRows.length),
-                                  style: TextStyle(
-                                    fontSize: AppTokens.textMicroSize,
-                                    fontFeatures: AppTokens.fontTabular,
-                                    color: colorScheme.onSurfaceVariant
-                                        .withValues(
-                                          alpha: AppTokens.alphaScrim,
-                                        ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-
-                        // 已添加的子任务列表
-                        for (var i = 0; i < _subtaskRows.length; i++)
-                          Container(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(
-                                  color: borderColor,
-                                  width: 1.0,
-                                ),
-                              ),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                GestureDetector(
-                                  onTap: () => setState(() {
-                                    _subtaskRows[i].isDone =
-                                        !_subtaskRows[i].isDone;
-                                  }),
-                                  child: Container(
-                                    width: 20,
-                                    height: 20,
-                                    margin: const EdgeInsets.only(top: 1),
-                                    decoration: BoxDecoration(
-                                      color: _subtaskRows[i].isDone
-                                          ? colorScheme.onSurface
-                                          : colorScheme.surface,
-                                      borderRadius: BorderRadius.circular(
-                                        AppTokens.radiusChip,
-                                      ),
-                                      border: Border.all(
-                                        color: _subtaskRows[i].isDone
-                                            ? colorScheme.onSurface
-                                            : colorScheme.onSurface.withValues(
-                                                alpha: 0.34,
-                                              ),
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    child: _subtaskRows[i].isDone
-                                        ? Icon(
-                                            Icons.check,
-                                            size: 11,
-                                            color: colorScheme.surface,
-                                          )
-                                        : null,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child:
-                                      _subtaskRows[i]
-                                              .controller
-                                              .text
-                                              .isNotEmpty &&
-                                          !_subtaskRows[i].focusNode.hasFocus
-                                      ? GestureDetector(
-                                          behavior: HitTestBehavior.opaque,
-                                          onTap: () {
-                                            _subtaskRows[i].focusNode
-                                                .requestFocus();
-                                          },
-                                          child: Text(
-                                            _subtaskRows[i].controller.text,
-                                            style: TextStyle(
-                                              fontSize:
-                                                  AppTokens.textSecondarySize,
-                                              fontWeight: FontWeight.w500,
-                                              height: 1.4,
-                                              decoration: _subtaskRows[i].isDone
-                                                  ? TextDecoration.lineThrough
-                                                  : null,
-                                              color: _subtaskRows[i].isDone
-                                                  ? colorScheme.onSurfaceVariant
-                                                        .withValues(
-                                                          alpha: AppTokens
-                                                              .alphaContentMuted,
-                                                        )
-                                                  : colorScheme.onSurface,
-                                            ),
-                                          ),
-                                        )
-                                      : TextField(
-                                          controller:
-                                              _subtaskRows[i].controller,
-                                          focusNode: _subtaskRows[i].focusNode,
-                                          // 多行输入，与任务编辑页 SubtaskRowTile
-                                          // 一致：软键盘回车 = 行内换行，
-                                          // 不触发提交/跳行（bug 修复：单行
-                                          // 提交会收起软键盘 + 跳焦点，引发
-                                          // 整层 maxHeight 翻转重新展开）。
-                                          maxLines: null,
-                                          style: TextStyle(
-                                            fontSize:
-                                                AppTokens.textSecondarySize,
-                                            fontWeight: FontWeight.w500,
-                                            height: 1.4,
-                                            decoration: _subtaskRows[i].isDone
-                                                ? TextDecoration.lineThrough
-                                                : null,
-                                            color: _subtaskRows[i].isDone
-                                                ? colorScheme.onSurfaceVariant
-                                                      .withValues(
-                                                        alpha: AppTokens
-                                                            .alphaContentMuted,
-                                                      )
-                                                : colorScheme.onSurface,
-                                          ),
-                                          decoration: InputDecoration(
-                                            hintText: l10n.subtasks,
-                                            hintStyle: TextStyle(
-                                              color: colorScheme
-                                                  .onSurfaceVariant
-                                                  .withValues(
-                                                    alpha: AppTokens
-                                                        .alphaContentDisabled,
-                                                  ),
-                                              fontSize:
-                                                  AppTokens.textSecondarySize,
-                                            ),
-                                            border: InputBorder.none,
-                                            enabledBorder: InputBorder.none,
-                                            focusedBorder: InputBorder.none,
-                                            disabledBorder: InputBorder.none,
-                                            errorBorder: InputBorder.none,
-                                            focusedErrorBorder:
-                                                InputBorder.none,
-                                            filled: false,
-                                            fillColor: Colors.transparent,
-                                            isDense: true,
-                                            contentPadding: EdgeInsets.zero,
-                                          ),
-                                        ),
-                                ),
-                                InkWell(
-                                  borderRadius: BorderRadius.circular(
-                                    AppTokens.radiusChip,
-                                  ),
-                                  onTap: () => setState(() {
-                                    _subtaskRows[i].focusNode.removeListener(
-                                      _onFocusChange,
-                                    );
-                                    _subtaskRows[i].controller.dispose();
-                                    _subtaskRows[i].focusNode.dispose();
-                                    _subtaskRows.removeAt(i);
-                                  }),
-                                  child: Container(
-                                    width: 24,
-                                    height: 24,
-                                    alignment: Alignment.center,
-                                    child: Icon(
-                                      Icons.close,
-                                      size: 14,
-                                      color: colorScheme.onSurfaceVariant
-                                          .withValues(
-                                            alpha:
-                                                AppTokens.alphaContentDisabled,
-                                          ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                        // 添加子任务按钮 / 行（精确复刻 create.html 的 .sub-add）
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(
-                              AppTokens.radiusList,
-                            ),
-                            onTap: _addSubtaskAndFocus,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 12,
-                                horizontal: 0,
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 20,
-                                    height: 20,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(
-                                        AppTokens.radiusChip,
-                                      ),
-                                      border: Border.all(
-                                        color: colorScheme.onSurfaceVariant
-                                            .withValues(
-                                              alpha:
-                                                  AppTokens.alphaBorderEmphasis,
-                                            ),
-                                        width: 1.2,
-                                      ),
-                                    ),
-                                    child: Icon(
-                                      Icons.add,
-                                      size: 12,
-                                      color: colorScheme.onSurfaceVariant
-                                          .withValues(
-                                            alpha: AppTokens.alphaContentMuted,
-                                          ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      l10n.addSubtask,
-                                      style: TextStyle(
-                                        fontSize: AppTokens.textSecondarySize,
-                                        color: colorScheme.onSurfaceVariant
-                                            .withValues(
-                                              alpha: AppTokens
-                                                  .alphaContentDisabled,
-                                            ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                        TaskCreateSubtasksSection(
+                          subtaskRows: _subtaskRows,
+                          borderColor: borderColor,
+                          onToggleDone: (i) {
+                            setState(() {
+                              _subtaskRows[i].isDone = !_subtaskRows[i].isDone;
+                            });
+                          },
+                          onRemove: (i) {
+                            setState(() {
+                              _subtaskRows[i].focusNode.removeListener(
+                                _onFocusChange,
+                              );
+                              _subtaskRows[i].controller.dispose();
+                              _subtaskRows[i].focusNode.dispose();
+                              _subtaskRows.removeAt(i);
+                            });
+                          },
+                          onAddSubtask: _addSubtaskAndFocus,
                         ),
                       ],
                     ],
@@ -1128,122 +581,6 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
     if (parts.isEmpty) return l10n.noTimeSet;
     return parts.join(' · ');
   }
-
-  Widget _buildPillButton({
-    required VoidCallback onTap,
-    required Widget leading,
-    required String label,
-    required bool hasValue,
-  }) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-    final borderColor = isDark
-        ? AppTokens.borderSubtleDark
-        : AppTokens.borderSubtleLight;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 32,
-        padding: const EdgeInsets.symmetric(horizontal: 11),
-        decoration: BoxDecoration(
-          color: isDark
-              ? colorScheme.surfaceContainerHighest.withValues(
-                  alpha: AppTokens.alphaBorderEmphasis,
-                )
-              : AppTokens.surfaceSubtleLight,
-          borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-          border: Border.all(color: borderColor, width: 1),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            leading,
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: AppTokens.textCaptionSize,
-                fontWeight: FontWeight.w500,
-                color: colorScheme.onSurface,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTimePillWithMenu({
-    required bool isStart,
-    required int? currentValue,
-    required String label,
-    required IconData icon,
-  }) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-    final hasValue = currentValue != null;
-    final borderColor = isDark
-        ? AppTokens.borderSubtleDark
-        : AppTokens.borderSubtleLight;
-
-    return GestureDetector(
-      onTap: () => showTaskDatePicker(context, ref),
-      child: Container(
-        height: 32,
-        padding: const EdgeInsets.symmetric(horizontal: 11),
-        decoration: BoxDecoration(
-          color: hasValue
-              ? colorScheme.primary.withValues(alpha: AppTokens.alphaTintSoft)
-              : (isDark
-                    ? colorScheme.surfaceContainerHighest.withValues(
-                        alpha: 0.25,
-                      )
-                    : AppTokens.surfaceSubtleLight),
-          borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-          border: Border.all(
-            color: hasValue
-                ? colorScheme.primary.withValues(
-                    alpha: AppTokens.alphaBorderEmphasis,
-                  )
-                : borderColor,
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 14,
-              color: hasValue
-                  ? colorScheme.primary
-                  : colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: AppTokens.textCaptionSize,
-                fontWeight: hasValue ? FontWeight.w600 : FontWeight.w500,
-                color: hasValue ? colorScheme.primary : colorScheme.onSurface,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _getPriorityLabel(AppLocalizations l10n, TaskPriority p) =>
-      switch (p) {
-        TaskPriority.high => l10n.priorityHigh,
-        TaskPriority.medium => l10n.priorityMedium,
-        TaskPriority.low => l10n.priorityLow,
-        TaskPriority.none => l10n.priorityNone,
-      };
 
   Future<void> _saveAndCloseExplicit() => _performSave(isExplicit: true);
 

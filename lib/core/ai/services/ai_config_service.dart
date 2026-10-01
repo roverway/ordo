@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../features/projects/project_providers.dart';
+import '../../db/db_providers.dart';
 import '../../db/daos/settings_dao.dart';
 import '../../security/secure_store.dart';
 import '../models/ai_config.dart';

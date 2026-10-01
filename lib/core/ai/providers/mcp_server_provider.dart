@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../features/projects/project_providers.dart';
+import '../../db/db_providers.dart';
 import '../mcp/mcp_server.dart';
 import '../services/ai_config_service.dart';
 import '../tools/ai_tool.dart';

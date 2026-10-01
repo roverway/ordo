@@ -4,6 +4,9 @@ import '../../../core/db/database.dart';
 import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../core/models/quadrant_type.dart';
+
+export '../../../core/models/quadrant_type.dart';
 
 /// 象限视图模式：2x2 田字矩阵 / 聚焦列表 / 滑动聚焦卡
 enum QuadrantViewMode {
@@ -17,20 +20,8 @@ enum QuadrantViewMode {
   cards,
 }
 
-/// 四象限类型枚举（艾森豪威尔矩阵）。
-enum QuadrantType {
-  /// 第一象限：重要且紧急（Q1）
-  urgentImportant,
-
-  /// 第二象限：重要不紧急（Q2）
-  notUrgentImportant,
-
-  /// 第三象限：不重要但紧急（Q3）
-  urgentUnimportant,
-
-  /// 第四象限：不重要且不紧急（Q4）
-  notUrgentUnimportant;
-
+/// 象限视觉主题颜色扩展。
+extension QuadrantTypeThemeX on QuadrantType {
   /// 语义强调主色。
   Color get accentColor {
     switch (this) {
@@ -44,15 +35,6 @@ enum QuadrantType {
         return AppTokens.colorQuadrantQ4;
     }
   }
-
-  /// 象限标识短标签（Q1 ~ Q4）。
-  String get tag => 'Q${index + 1}';
-
-  /// 罗马数字标号（I ~ IV）。
-  String get romanNumeral => ['I', 'II', 'III', 'IV'][index];
-
-  /// 象限纯数字（1 ~ 4）。
-  int get number => index + 1;
 }
 
 /// 象限多语言与视图交互派生扩展。
@@ -257,36 +239,6 @@ class QuadrantFilterState {
           : (selectedProjectIds ?? this.selectedProjectIds),
       showCompleted: showCompleted ?? this.showCompleted,
     );
-  }
-}
-
-/// 纯函数：根据当前时间基准与任务自身属性判定其所属象限。
-QuadrantType classifyTask(Task task, DateTime now) {
-  final endOfToday = DateTime(
-    now.year,
-    now.month,
-    now.day,
-    23,
-    59,
-    59,
-    999,
-  ).millisecondsSinceEpoch;
-
-  final isImportant =
-      task.priority == TaskPriority.high ||
-      task.priority == TaskPriority.medium;
-
-  // 逾期（< now）或今天截止（<= endOfToday）均视为紧急
-  final isUrgent = task.endAt != null && task.endAt! <= endOfToday;
-
-  if (isImportant && isUrgent) {
-    return QuadrantType.urgentImportant;
-  } else if (isImportant && !isUrgent) {
-    return QuadrantType.notUrgentImportant;
-  } else if (!isImportant && isUrgent) {
-    return QuadrantType.urgentUnimportant;
-  } else {
-    return QuadrantType.notUrgentUnimportant;
   }
 }
 

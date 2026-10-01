@@ -1,7 +1,7 @@
 import 'package:ordo/core/ai/models/efficiency_stats.dart';
 import 'package:ordo/core/db/repositories/todo_repository.dart';
 import 'package:ordo/core/db/tables.dart';
-import 'package:ordo/features/quadrant/models/quadrant_models.dart';
+import 'package:ordo/core/models/quadrant_type.dart';
 
 /// Service responsible for extracting aggregated efficiency statistics from local Drift DB.
 class EfficiencyStatsService {

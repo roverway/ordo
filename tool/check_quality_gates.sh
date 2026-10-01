@@ -16,29 +16,15 @@ echo "=========================================="
 echo "🛡️  [Quality Gate 1/3] 架构分层完整性守卫..."
 echo "=========================================="
 
-# 允许 Phase 3 待解耦的 4 个过渡文件（在 Phase 3 完成后将清空）
-ALLOWED_CORE_REVERSE_IMPORTS=(
-  "lib/core/ai/providers/ai_tool_providers.dart"
-  "lib/core/ai/providers/mcp_server_provider.dart"
-  "lib/core/ai/services/ai_config_service.dart"
-  "lib/core/ai/services/efficiency_stats_service.dart"
-)
-
+# 零容忍严格守卫：没有任何 core 文件允许反向依赖 features
 python3 - << 'EOF'
 import os
 import sys
 
 repo_root = '.'
-allowed_files = {
-  "lib/core/ai/providers/ai_tool_providers.dart",
-  "lib/core/ai/providers/mcp_server_provider.dart",
-  "lib/core/ai/services/ai_config_service.dart",
-  "lib/core/ai/services/efficiency_stats_service.dart",
-}
-
 violations = []
 
-# 1. 检查 core -> features 反向依赖
+# 1. 检查 core -> features 反向依赖（严格零容忍）
 core_dir = os.path.join(repo_root, 'lib', 'core')
 for root, _, files in os.walk(core_dir):
     for f in files:
@@ -52,8 +38,7 @@ for root, _, files in os.walk(core_dir):
                 for idx, line in enumerate(fp, 1):
                     line_s = line.strip()
                     if line_s.startswith('import ') and ('package:ordo/features/' in line_s or 'features/' in line_s):
-                        if rel_path not in allowed_files:
-                            violations.append((rel_path, idx, line_s, 'core -> features 反向导入违规'))
+                        violations.append((rel_path, idx, line_s, 'core -> features 反向导入违规'))
 
 # 2. 检查 db -> sync 反向依赖
 db_dir = os.path.join(repo_root, 'lib', 'core', 'db')
@@ -74,7 +59,7 @@ if violations:
         print(f"   {file}:{line} [{reason}]: {content}")
     sys.exit(1)
 else:
-    print("✅ 架构分层守卫通过：未发现新增反向依赖违规（4 个过渡待解耦文件已受控标记）。")
+    print("✅ 架构分层守卫通过：lib/core 与 lib/core/db 实现 100% 绝对纯净单向依赖，零过渡白名单！")
 EOF
 
 echo ""
