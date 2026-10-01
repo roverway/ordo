@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# Git pre-commit hook (Version-controlled in .githooks/)
+# 快速秒级门禁：架构分层守卫 + 格式检查 + 巨型文件棘轮 + 令牌纪律棘轮
+# （耗时约 3.5s。深度静态分析 dart analyze 与全量测试交给 CI 与 tool/verify.sh）
+# ==============================================================================
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+echo "🛡️  [Pre-Commit] 运行秒级快速质量门禁..."
+bash tool/check_quality_gates.sh
+python3 tool/check_token_discipline.py
+dart run tool/check_tokens.dart --strict
+
+echo "✅ [Pre-Commit] 本地秒级门禁全部通过！"

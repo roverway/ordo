@@ -3,22 +3,26 @@
 // 令牌纪律守卫（Token discipline guard）
 // 依据：docs/90-ux-visual-refactor-proposal.md §5「防再漂移机制」
 //
-// 背景：docs/66-ui-visual-polish-proposal.md 的 DoD 早已要求「私有 fontSize 清零、
-// 裸 hex 清零」，但从未达成——因为它是**人工清单而非门禁**。本脚本把它变成可执行断言。
+// 背景：用于对已达成清零目标的 6 类令牌禁忌进行零容忍断言：
+//   - bare-font-size: 禁止裸 fontSize: 数值字面量
+//   - bare-color: 禁止 Color(0x...) 裸色值
+//   - bare-alpha: 禁止 withValues(alpha: ...) 裸透明度
+//   - bare-radius: 禁止 Radius.circular(...) 裸圆角
+//   - monospace-font: 禁止硬编码 fontFamily: 'monospace'
+//   - bare-duration: 禁止 Duration(milliseconds: ...) 裸动效时长
+//
+// 当前状态：该 6 项违规在全库已彻底清零，当前以 --strict（零容忍）模式常驻运行，
+// 任何新增直接阻断提交与流水线。
 //
 // 用法：
 //   dart run tool/check_tokens.dart                 报告当前违规分布（退出码 0）
 //   dart run tool/check_tokens.dart --list          额外列出每条规则的前 5 个样本
-//   dart run tool/check_tokens.dart --max 646       棘轮模式：总数超过 646 则失败（退出码 1）
-//   dart run tool/check_tokens.dart --strict        零容忍模式：任何违规即失败（退出码 1）
+//   dart run tool/check_tokens.dart --max N         棘轮模式：总数超过 N 则失败（退出码 1）
+//   dart run tool/check_tokens.dart --strict        零容忍模式：任何违规即失败（默认流水线启用，退出码 1）
 //
-// 推荐落地方式（渐进式打磨）：先接入 CI 用 --max <当前总数>，之后每完成一批
-// 迁移就把 --max 下调，**保证数字只降不升**。清理到 0 后改用 --strict。
-//
-// 计数口径（与 docs/90 附录 B 完全一致）：
+// 计数口径：
 //   - 排除 lib/core/theme/（令牌定义本身）与 lib/core/utils/motion.dart（动效入口）
-//   - 按**出现次数**计：同一行出现两次算两处（这是与「按行去重」的唯一差别，
-//     仅影响 bare-color：出现次数 102 / 行数 91）
+//   - 按出现次数计：同一行出现两次算两处
 //
 // 本脚本零外部依赖，只用 dart:io。
 
@@ -81,7 +85,7 @@ final List<_Rule> _rules = <_Rule>[
   _Rule(
     'monospace-font',
     "硬编码 fontFamily: 'monospace'",
-    RegExp(r"""fontFamily:\s*['"]monospace['"]"""),
+    RegExp(r""""fontFamily:\s*['"]monospace['"]"""),
     '改用正文字体 + AppTokens.fontTabular，或 AppTokens.fontMonoFamily 栈（docs/90 §3.6）',
   ),
   _Rule(
