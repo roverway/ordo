@@ -90,13 +90,6 @@ class CalendarPage extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: AppTokens.spaceMd),
-                  ] else ...[
-                    IconButton(
-                      tooltip: l10n.newTask,
-                      icon: const Icon(Icons.add_rounded),
-                      onPressed: () =>
-                          _createTaskOnDay(context, ref, state.selectedDate),
-                    ),
                   ],
                   IconButton(
                     tooltip: l10n.goToToday,
@@ -449,24 +442,7 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
                 // - 当展开为月视图时（向下手势）：入场月网格自上方 (-0.12) 向下滑入展开，退场周网格向下 (+0.08) 滑出；
                 // 配合外层 AnimatedSize 的 350ms easeInOutCubic 曲线，与用户的上下滑动手势完美同向契合。
                 if (dir == 0) {
-                  if (isReducedMotion(context)) {
-                    return FadeTransition(opacity: animation, child: child);
-                  }
-                  final isToWeek = widget.state.mode == CalendarMode.week;
-                  final beginOffset = isToWeek
-                      ? (isIncoming
-                            ? const Offset(0, 0.08)
-                            : const Offset(0, -0.12))
-                      : (isIncoming
-                            ? const Offset(0, -0.12)
-                            : const Offset(0, 0.08));
-                  return SlideTransition(
-                    position: Tween<Offset>(
-                      begin: beginOffset,
-                      end: Offset.zero,
-                    ).animate(animation),
-                    child: FadeTransition(opacity: animation, child: child),
-                  );
+                  return child;
                 }
                 final begin = isIncoming
                     ? Offset(0.18 * dir, 0)
@@ -955,7 +931,6 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
   final ScrollController _scrollController = ScrollController();
   double _overscrollTop = 0;
   bool _isDragging = false;
-  double _monthDragDelta = 0;
 
   @override
   void dispose() {
@@ -1044,36 +1019,40 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
             selected.year == now.year && selected.month == now.month;
     }
     final isDark = theme.brightness == Brightness.dark;
-    final isNarrow = AppBreakpoints.isNarrow(context);
-    final isMonthMode = isNarrow && widget.state.mode == CalendarMode.month;
 
     final Widget listContent = NotificationListener<ScrollNotification>(
       onNotification: (notification) {
-        if (isMonthMode) return false;
         if (notification is ScrollStartNotification) {
           if (notification.dragDetails != null) {
             _isDragging = true;
             _overscrollTop = 0;
           }
         } else if (notification is OverscrollNotification) {
-          if (notification.dragDetails != null) {
-            if (notification.overscroll < 0) {
-              _overscrollTop += -notification.overscroll;
-            }
+          if (notification.dragDetails != null && notification.overscroll < 0) {
+            _overscrollTop += -notification.overscroll;
           }
         } else if (notification is ScrollUpdateNotification) {
-          if (notification.dragDetails != null) {
+          final delta = notification.scrollDelta ?? 0;
+          if (_isDragging &&
+              delta > 4 &&
+              widget.state.mode == CalendarMode.month) {
+            ref.read(calendarStateProvider.notifier).setMode(CalendarMode.week);
+          } else if (notification.dragDetails != null) {
             if (notification.metrics.pixels <
                 notification.metrics.minScrollExtent) {
               _overscrollTop =
                   notification.metrics.minScrollExtent -
                   notification.metrics.pixels;
             }
-          } else if (_isDragging) {
+          } else if (_isDragging && widget.state.mode == CalendarMode.week) {
             _checkAndTriggerExpandMonth();
           }
         } else if (notification is UserScrollNotification) {
-          if (notification.direction == ScrollDirection.idle && _isDragging) {
+          if (notification.direction == ScrollDirection.reverse &&
+              widget.state.mode == CalendarMode.month) {
+            ref.read(calendarStateProvider.notifier).setMode(CalendarMode.week);
+          } else if (notification.direction == ScrollDirection.idle &&
+              _isDragging) {
             _checkAndTriggerExpandMonth();
           }
         } else if (notification is ScrollEndNotification) {
@@ -1086,11 +1065,9 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
       },
       child: CustomScrollView(
         controller: _scrollController,
-        physics: isMonthMode
-            ? const NeverScrollableScrollPhysics()
-            : const AlwaysScrollableScrollPhysics(
-                parent: ClampingScrollPhysics(),
-              ),
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
         slivers: [
           // 概览 Sticky / Header 栏
           SliverToBoxAdapter(
@@ -1272,27 +1249,6 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
         ],
       ),
     );
-
-    if (isMonthMode) {
-      return GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onVerticalDragStart: (_) {
-          _monthDragDelta = 0;
-        },
-        onVerticalDragUpdate: (details) {
-          _monthDragDelta += details.primaryDelta ?? 0;
-        },
-        onVerticalDragEnd: (details) {
-          final velocity = details.primaryVelocity ?? 0;
-          if (velocity < -_kFlingVelocityThreshold ||
-              _monthDragDelta < -_kMinTriggerOverscroll) {
-            ref.read(calendarStateProvider.notifier).setMode(CalendarMode.week);
-          }
-          _monthDragDelta = 0;
-        },
-        child: listContent,
-      );
-    }
 
     return listContent;
   }

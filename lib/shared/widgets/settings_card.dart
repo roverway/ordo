@@ -39,7 +39,7 @@ class SettingsCard extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
     final hasWallpaper = ref.watch(appBackgroundConfigProvider).isEffective;
     final effectiveRadius =
-        borderRadius ?? BorderRadius.circular(AppTokens.radiusDialog);
+        borderRadius ?? BorderRadius.circular(AppTokens.radiusCard);
 
     final baseCardColor = isDark
         ? AppTokens.surfaceCardDark
@@ -52,17 +52,11 @@ class SettingsCard extends ConsumerWidget {
           )
         : baseCardColor;
 
-    final borderColor = isDark
-        ? Colors.white.withValues(
-            alpha: hasWallpaper
-                ? AppTokens.alphaTintStrong
-                : AppTokens.alphaTintFaint,
-          )
-        : Colors.black.withValues(
-            alpha: hasWallpaper
-                ? AppTokens.alphaTintSoft
-                : AppTokens.alphaTintFaint,
-          );
+    final borderColor = hasWallpaper
+        ? (isDark
+              ? Colors.white.withValues(alpha: AppTokens.alphaTintStrong)
+              : Colors.black.withValues(alpha: AppTokens.alphaTintSoft))
+        : (isDark ? AppTokens.borderSubtleDark : AppTokens.borderSubtleLight);
 
     final content =
         child ??

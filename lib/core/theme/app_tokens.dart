@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+export 'theme_palette.dart';
 
 /// Design Tokens — the single source of truth for all visual values.
 ///
@@ -214,6 +215,15 @@ abstract final class AppTokens {
   /// Checkbox border radius (ModernCheckbox & theme).
   static const double checkboxRadius = 6.0;
 
+  /// Checkbox 边框圆角（别名）。
+  static const double radiusCheckbox = 6.0;
+
+  /// Checkbox 默认尺寸（20dp）。
+  static const double checkboxSize = 20.0;
+
+  /// 项目色彩微圆点直径（7dp）。
+  static const double projectDotSize = 7.0;
+
   /// Checkbox shape — rounded rectangle (ModernCheckbox style).
   static const OutlinedBorder checkboxShape = RoundedRectangleBorder(
     borderRadius: BorderRadius.all(Radius.circular(checkboxRadius)),
@@ -384,6 +394,15 @@ abstract final class AppTokens {
 
   /// Spring curve for list items, cards.
   static const Curve motionSpring = Curves.easeOutCubic;
+
+  /// 物理阻尼弹性回弹曲线（乔布斯直觉阻尼）。
+  static const Curve motionSpringOvershoot = Cubic(0.34, 1.35, 0.64, 1.0);
+
+  /// 对勾弹性绘制时长（600ms）。
+  static const Duration motionSpringCheckmark = Duration(milliseconds: 600);
+
+  /// 任务高度折叠归档时长（200ms）。
+  static const Duration motionCollapse = Duration(milliseconds: 200);
 
   /// Micro-interactions.
   static const Duration motionFast = Duration(milliseconds: 150);
@@ -769,24 +788,4 @@ abstract final class AppTokens {
       nameEn: 'Misty Slate',
     ),
   ];
-}
-
-/// 主题调色盘预设模型。
-class ThemePalettePreset {
-  const ThemePalettePreset({
-    required this.id,
-    required this.color,
-    required this.nameZh,
-    required this.nameEn,
-  });
-
-  final String id;
-  final Color color;
-  final String nameZh;
-  final String nameEn;
-
-  String localizedName(BuildContext context) {
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
-    return isZh ? nameZh : nameEn;
-  }
 }

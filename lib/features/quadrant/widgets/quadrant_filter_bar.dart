@@ -14,7 +14,7 @@ import 'quadrant_scope_filter_sheet.dart';
 ///
 /// 包含两项核心能力：
 /// 1. 左侧：[ 全部项目 (N) ⌵ ] 胶囊，展示当前筛选作用域及任务数，点击呼出清单选择抽屉；
-/// 2. 右侧：[ 2x2 矩阵 | 聚焦列表 | 滑卡 ] 胶囊分段切换器，带平滑滑动动画切换多视图模式。
+/// 2. 右侧：[ 2x2 矩阵 | 聚焦列表 ] 胶囊分段切换器，带平滑滑动动画切换多视图模式。
 class QuadrantFilterBar extends ConsumerWidget {
   const QuadrantFilterBar({super.key, required this.totalTasksCount});
 
@@ -118,7 +118,7 @@ class QuadrantFilterBar extends ConsumerWidget {
             ),
           ),
 
-          // 右侧：[ 2x2 矩阵 | 聚焦列表 | 滑卡 ] 滑动分段控制器
+          // 右侧：[ 2x2 矩阵 | 聚焦列表 ] 滑动分段控制器
           ModernSegmentedControl<QuadrantViewMode>(
             isExpanded: false,
             height: 20,
@@ -144,10 +144,6 @@ class QuadrantFilterBar extends ConsumerWidget {
               ModernSegmentItem(
                 value: QuadrantViewMode.list,
                 label: l10n.quadrantViewList,
-              ),
-              ModernSegmentItem(
-                value: QuadrantViewMode.cards,
-                label: l10n.localeName == 'zh' ? '滑卡' : 'Cards',
               ),
             ],
           ),

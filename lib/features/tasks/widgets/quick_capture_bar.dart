@@ -400,11 +400,6 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
     final colorScheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context);
 
-    final hasParsedChips =
-        _parsedDate != null ||
-        _parsedTagName != null ||
-        _parsedPriority != null;
-
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day, 9);
     final tomorrow = today.add(const Duration(days: 1));
@@ -468,42 +463,6 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
               ),
             ),
 
-            // 实时解析出的语法 Chip 预览行
-            if (hasParsedChips)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 4,
-                ),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: [
-                    if (_parsedDate != null)
-                      _buildChip(
-                        icon: Icons.calendar_today_rounded,
-                        label: _formatParsedDate(_parsedDate!),
-                        color: AppTokens.colorNavToday,
-                        colorScheme: colorScheme,
-                      ),
-                    if (_parsedTagName != null)
-                      _buildChip(
-                        icon: Icons.tag_rounded,
-                        label: _parsedTagName!,
-                        color: AppTokens.colorNavTags,
-                        colorScheme: colorScheme,
-                      ),
-                    if (_parsedPriority != null)
-                      _buildChip(
-                        icon: Icons.flag_rounded,
-                        label: _priorityLabel(_parsedPriority!, l10n),
-                        color: priorityColor(_parsedPriority!),
-                        colorScheme: colorScheme,
-                      ),
-                  ],
-                ),
-              ),
-
             // 4个单手快捷常驻胶囊（今天、明天、优先级、所属清单）
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -516,7 +475,7 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
                         !_isSameDay(_parsedDate, tomorrow)) ...[
                       _buildQuickCapsule(
                         icon: Icons.event_available_outlined,
-                        label: _formatParsedDate(_parsedDate!),
+                        label: _formatParsedDate(_parsedDate!, l10n),
                         isActive: true,
                         activeColor: AppTokens.colorNavToday,
                         colorScheme: colorScheme,
@@ -599,6 +558,22 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
                       colorScheme: colorScheme,
                       onTap: () => _pickProject(context, projects, l10n),
                     ),
+                    if (_parsedTagName != null) ...[
+                      const SizedBox(width: 8),
+                      _buildQuickCapsule(
+                        icon: Icons.tag_rounded,
+                        label: '#$_parsedTagName',
+                        isActive: true,
+                        activeColor: AppTokens.colorNavTags,
+                        colorScheme: colorScheme,
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          setState(() {
+                            _parsedTagName = null;
+                          });
+                        },
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -670,61 +645,19 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
     );
   }
 
-  Widget _buildChip({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required ColorScheme colorScheme,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: AppTokens.alphaBorderSubtle),
-        borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-        border: Border.all(
-          color: color.withValues(alpha: AppTokens.alphaBorderEmphasis),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: AppTokens.textMicroSize,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatParsedDate(DateTime dt) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final target = DateTime(dt.year, dt.month, dt.day);
-    final diff = target.difference(today).inDays;
-    if (diff == 0) return '今天';
-    if (diff == 1) return '明天';
-    if (diff == 2) return '后天';
-    return '${dt.month}月${dt.day}日';
-  }
-
-  String _priorityLabel(TaskPriority p, AppLocalizations l10n) {
-    switch (p) {
-      case TaskPriority.high:
-        return l10n.priorityHigh;
-      case TaskPriority.medium:
-        return l10n.priorityMedium;
-      case TaskPriority.low:
-        return l10n.priorityLow;
-      case TaskPriority.none:
-        return l10n.priorityNone;
+  String _formatParsedDate(DateTime date, AppLocalizations l10n) {
+    if (l10n.localeName == 'zh') {
+      return '${date.month}月${date.day}日';
     }
+    return '${date.month}/${date.day}';
+  }
+
+  String _priorityLabel(TaskPriority priority, AppLocalizations l10n) {
+    return switch (priority) {
+      TaskPriority.high => l10n.priorityHigh,
+      TaskPriority.medium => l10n.priorityMedium,
+      TaskPriority.low => l10n.priorityLow,
+      TaskPriority.none => l10n.priorityNone,
+    };
   }
 }

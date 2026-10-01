@@ -29,7 +29,6 @@ import 'package:ordo/features/search/search_page.dart';
 import 'package:ordo/features/search/search_providers.dart';
 import 'package:ordo/features/settings/settings_providers.dart';
 import 'package:ordo/features/tags/tag_providers.dart';
-import 'package:ordo/shared/widgets/empty_state.dart';
 import 'package:ordo/shared/widgets/simple_task_tile.dart';
 import '../../helpers/db_test_setup.dart';
 
@@ -170,6 +169,7 @@ Future<void> _pumpSearch(
   );
   // 初始流数据到达 + 首帧。
   await tester.pump();
+  await tester.pump(const Duration(milliseconds: 50));
   await tester.pump();
 }
 
@@ -200,20 +200,18 @@ void main() {
 
     await _pumpSearch(tester, repo: repo, tasks: [t1]);
 
-    // 空查询：提示空态。
-    expect(find.byType(EmptyState), findsOneWidget);
-    expect(find.byIcon(Icons.search), findsWidgets);
-    expect(find.text('买牛奶'), findsNothing);
+    // 默认展示全部活跃任务（Request 6 新增规范）。
+    expect(find.text('买牛奶'), findsOneWidget);
 
-    // 输入后 <300ms：防抖未触发，结果不出现。
-    await tester.enterText(find.byType(TextField), '牛奶');
+    // 输入不匹配文本后 <300ms：防抖未触发，原列表仍保留。
+    await tester.enterText(find.byType(TextField), '香蕉');
     await tester.pump(const Duration(milliseconds: 200));
-    expect(find.text('买牛奶'), findsNothing);
+    expect(find.text('买牛奶'), findsOneWidget);
 
-    // 累计 ≥300ms：防抖触发，结果出现。
+    // 累计 ≥300ms：防抖触发，结果更新为未找到。
     await tester.pump(const Duration(milliseconds: 150));
     await tester.pump();
-    expect(find.text('买牛奶'), findsOneWidget);
+    expect(find.text('买牛奶'), findsNothing);
   });
 
   testWidgets('标题/描述/备注命中 + 大小写不敏感', (tester) async {

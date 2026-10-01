@@ -311,13 +311,6 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                   ),
                 ),
                 const SizedBox(width: AppTokens.spaceMd),
-              ] else ...[
-                IconButton(
-                  tooltip: l10n.newTask,
-                  icon: const Icon(Icons.add_rounded),
-                  onPressed: () => TaskCreateSheet.show(context),
-                ),
-                const SizedBox(width: AppTokens.spaceXs),
               ],
               HeroProgressRing(completed: completedCount, total: totalCount),
             ],
@@ -759,18 +752,6 @@ class _ProjectOrInboxBodyState extends ConsumerState<_ProjectOrInboxBody> {
                       ),
                     ),
                     const SizedBox(width: AppTokens.spaceMd),
-                  ] else ...[
-                    IconButton(
-                      tooltip: l10n.newTask,
-                      icon: const Icon(Icons.add_rounded),
-                      onPressed: () => TaskCreateSheet.show(
-                        context,
-                        projectId: widget.isInbox
-                            ? inboxProjectId
-                            : widget.projectId,
-                      ),
-                    ),
-                    const SizedBox(width: AppTokens.spaceXs),
                   ],
                   HeroProgressRing(completed: doneCount, total: totalCount),
                 ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/theme/app_tokens.dart';
 
@@ -137,6 +138,7 @@ class _ModernSegmentedControlState<T> extends State<ModernSegmentedControl<T>> {
 
   void _onItemTapped(T value) {
     if (value == _activeValue) return;
+    HapticFeedback.selectionClick();
 
     if (widget.isExpanded) {
       setState(() {
@@ -297,7 +299,7 @@ class _ModernSegmentedControlState<T> extends State<ModernSegmentedControl<T>> {
               if (activeRect != null)
                 AnimatedPositioned(
                   duration: _animate ? AppTokens.motionNormal : Duration.zero,
-                  curve: AppTokens.motionSpring,
+                  curve: AppTokens.motionSpringOvershoot,
                   left: activeRect.left,
                   top: 0.0,
                   width: activeRect.width,

@@ -20,7 +20,7 @@ class QuadrantViewModeNotifier extends Notifier<QuadrantViewMode> {
     final raw = cache.get(quadrantViewModePrefKey);
     return switch (raw) {
       'list' => QuadrantViewMode.list,
-      'cards' => QuadrantViewMode.cards,
+      'cards' => QuadrantViewMode.matrix,
       _ => QuadrantViewMode.matrix,
     };
   }

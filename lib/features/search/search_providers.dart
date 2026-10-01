@@ -26,6 +26,23 @@ import '../projects/project_providers.dart';
 /// 时间段筛选选项（FR-VIEW-06）。
 enum TimeRange { all, today, week, month }
 
+/// 搜索排序原则
+enum SearchSortPrinciple { dueDate, priority, createdAt, title }
+
+class SearchSortNotifier extends Notifier<SearchSortPrinciple> {
+  @override
+  SearchSortPrinciple build() => SearchSortPrinciple.dueDate;
+
+  void setPrinciple(SearchSortPrinciple principle) {
+    state = principle;
+  }
+}
+
+final searchSortProvider =
+    NotifierProvider<SearchSortNotifier, SearchSortPrinciple>(
+      SearchSortNotifier.new,
+    );
+
 /// 由 [TimeRange] 计算本地时间段边界（闭区间，供 inTimeRange 毫秒比较）。
 ///
 /// - all：不启用时间段筛选（返回 null）；
@@ -214,11 +231,7 @@ final searchResultsProvider = StreamProvider<List<Task>>((ref) async* {
   final allAsync = ref.watch(allActiveTasksProvider);
   final query = ref.watch(searchQueryProvider);
   final filter = ref.watch(searchFilterProvider);
-
-  if (query.trim().isEmpty) {
-    yield const [];
-    return;
-  }
+  final sort = ref.watch(searchSortProvider);
 
   final all = allAsync.value ?? const <Task>[];
   final projects = ref.watch(projectsStreamProvider).value ?? const <Project>[];
@@ -253,14 +266,41 @@ final searchResultsProvider = StreamProvider<List<Task>>((ref) async* {
     dateScope: dateScope,
     customDateStart: customStart,
     customDateEnd: customEnd,
-    searchQuery: query,
+    searchQuery: query.trim().isEmpty ? null : query.trim(),
   );
 
-  yield TaskQueryEngine.filterFlat(
+  var list = TaskQueryEngine.filterFlat(
     tasks: all,
     criteria: criteria,
     projectsById: projectsMap,
     taskTagIdsMap: taskTagIdsMap,
     nowUtcMs: DateTime.now().toUtc().millisecondsSinceEpoch,
   );
+
+  final sortedList = List<Task>.from(list);
+  switch (sort) {
+    case SearchSortPrinciple.dueDate:
+      sortedList.sort((a, b) {
+        final aTime = a.endAt ?? a.startAt;
+        final bTime = b.endAt ?? b.startAt;
+        if (aTime == null && bTime == null) return 0;
+        if (aTime == null) return 1;
+        if (bTime == null) return -1;
+        return aTime.compareTo(bTime);
+      });
+      break;
+    case SearchSortPrinciple.priority:
+      sortedList.sort((a, b) => b.priority.index.compareTo(a.priority.index));
+      break;
+    case SearchSortPrinciple.createdAt:
+      sortedList.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      break;
+    case SearchSortPrinciple.title:
+      sortedList.sort(
+        (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+      );
+      break;
+  }
+
+  yield sortedList;
 });

@@ -128,13 +128,6 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
                           ),
                         ),
                         const SizedBox(width: AppTokens.spaceMd),
-                      ] else ...[
-                        IconButton(
-                          tooltip: l10n.newProject,
-                          icon: const Icon(Icons.add_rounded),
-                          onPressed: () => _showNewProjectDialog(context, ref),
-                        ),
-                        const SizedBox(width: AppTokens.spaceXs),
                       ],
                       HeroProgressRing(
                         completed: totalCompleted,
@@ -441,10 +434,29 @@ class _FolderSectionHeader extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            Text(
+              title.toUpperCase(),
+              style: TextStyle(
+                fontSize: AppTokens.textSectionLabelSize,
+                fontWeight: FontWeight.w700,
+                letterSpacing: AppTokens.textSectionLabelLetterSpacing,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                Text(
+                  '$count',
+                  style: TextStyle(
+                    fontFeatures: AppTokens.fontTabular,
+                    fontSize: AppTokens.textSectionLabelSize,
+                    fontWeight: AppTokens.textSectionLabelWeight,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
                 if (onToggle != null) ...[
+                  const SizedBox(width: AppTokens.spaceXxs),
                   AnimatedRotation(
                     turns: isExpanded ? 0.25 : 0.0,
                     duration: AppTokens.motionFast,
@@ -455,27 +467,8 @@ class _FolderSectionHeader extends StatelessWidget {
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(width: AppTokens.spaceXs),
                 ],
-                Text(
-                  title.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: AppTokens.textSectionLabelSize,
-                    fontWeight: AppTokens.textSectionLabelWeight,
-                    letterSpacing: AppTokens.textSectionLabelLetterSpacing,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
               ],
-            ),
-            Text(
-              '$count',
-              style: TextStyle(
-                fontFeatures: AppTokens.fontTabular,
-                fontSize: AppTokens.textSectionLabelSize,
-                fontWeight: AppTokens.textSectionLabelWeight,
-                color: colorScheme.onSurfaceVariant,
-              ),
             ),
           ],
         ),

@@ -86,7 +86,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final filter = ref.watch(searchFilterProvider);
     final tagsAsync = ref.watch(tagsStreamProvider);
     final history = ref.watch(searchHistoryProvider);
-    final query = ref.watch(searchQueryProvider);
+    final sortPrinciple = ref.watch(searchSortProvider);
 
     final inputBg = isDark
         ? AppTokens.surfaceCardDark.withValues(
@@ -225,12 +225,15 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               ),
             ),
 
-            // 属性筛选条
+            // 属性筛选条与排序
             TaskFilterBar(
               status: filter.status,
               tagId: filter.tagId,
               range: filter.range,
               tags: tagsAsync.value ?? const [],
+              sortPrinciple: sortPrinciple,
+              onSortChanged: (sort) =>
+                  ref.read(searchSortProvider.notifier).setPrinciple(sort),
               onStatusChanged: (status) =>
                   ref.read(searchFilterProvider.notifier).setStatus(status),
               onTagChanged: (tagId) =>
@@ -240,25 +243,25 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               onClear: () => ref.read(searchFilterProvider.notifier).clear(),
             ),
 
-            // 搜索结果列表或空态历史记录
+            if (history.isNotEmpty) _buildHistoryStrip(context, l10n, history),
+
+            // 搜索结果列表（默认展示全部活跃任务，输入即精准过滤）
             Expanded(
-              child: query.trim().isEmpty
-                  ? _buildEmptyOrHistory(context, l10n, history)
-                  : resultsAsync.when(
-                      data: (results) => _buildResults(
-                        context,
-                        l10n,
-                        results,
-                        allAsync.value ?? const <Task>[],
-                      ),
-                      loading: () => const LoadingView(),
-                      error: (e, st) {
-                        logAsyncError(e, st);
-                        return ErrorView(
-                          onRetry: () => ref.invalidate(searchResultsProvider),
-                        );
-                      },
-                    ),
+              child: resultsAsync.when(
+                data: (results) => _buildResults(
+                  context,
+                  l10n,
+                  results,
+                  allAsync.value ?? const <Task>[],
+                ),
+                loading: () => const LoadingView(),
+                error: (e, st) {
+                  logAsyncError(e, st);
+                  return ErrorView(
+                    onRetry: () => ref.invalidate(searchResultsProvider),
+                  );
+                },
+              ),
             ),
           ],
         ),
@@ -266,8 +269,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     );
   }
 
-  /// 空搜索态：展示「最近搜索」历史标签与一键清除
-  Widget _buildEmptyOrHistory(
+  /// 紧凑横向滑动搜索历史胶囊带
+  Widget _buildHistoryStrip(
     BuildContext context,
     AppLocalizations l10n,
     List<String> history,
@@ -275,14 +278,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
-
-    if (history.isEmpty) {
-      return EmptyState(
-        icon: Icons.search,
-        accentColor: colorScheme.primary,
-        message: l10n.searchHint,
-      );
-    }
 
     final chipBg = isDark
         ? AppTokens.surfaceCardDark.withValues(
@@ -296,27 +291,21 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         ? AppTokens.borderSubtleDark
         : AppTokens.borderSubtleLight;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTokens.spaceMd,
-        vertical: AppTokens.spaceSm,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                l10n.localeName == 'zh' ? '最近搜索' : 'Recent Searches',
-                style: TextStyle(
-                  fontSize: AppTokens.textSectionLabelSize,
-                  fontWeight: AppTokens.textSectionLabelWeight,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              InkWell(
-                borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
+    return Container(
+      height: 34,
+      padding: const EdgeInsets.symmetric(horizontal: AppTokens.spaceMd),
+      margin: const EdgeInsets.only(bottom: AppTokens.spaceXs),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: history.length + 1,
+        separatorBuilder: (context, index) =>
+            const SizedBox(width: AppTokens.spaceXs),
+        itemBuilder: (context, index) {
+          if (index == history.length) {
+            return Center(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(AppTokens.radiusPill),
                 onTap: () {
                   HapticFeedback.selectionClick();
                   ref.read(searchHistoryProvider.notifier).clear();
@@ -324,7 +313,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppTokens.spaceXs,
-                    vertical: AppTokens.spaceMicro,
+                    vertical: AppTokens.spaceXxs,
                   ),
                   child: Text(
                     l10n.localeName == 'zh' ? '清空' : 'Clear',
@@ -337,52 +326,47 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: AppTokens.spaceSm),
-          Wrap(
-            spacing: AppTokens.spaceXs,
-            runSpacing: AppTokens.spaceXs,
-            children: [
-              for (final keyword in history)
-                InkWell(
-                  borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-                  onTap: () => _selectHistory(keyword),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppTokens.spaceSm,
-                      vertical: AppTokens.spaceXxs,
-                    ),
-                    decoration: BoxDecoration(
-                      color: chipBg,
-                      borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-                      border: Border.all(color: chipBorder, width: 1),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.history_rounded,
-                          size: 13,
-                          color: colorScheme.onSurfaceVariant.withValues(
-                            alpha: AppTokens.alphaContentMuted,
-                          ),
-                        ),
-                        const SizedBox(width: AppTokens.spaceXxs),
-                        Text(
-                          keyword,
-                          style: TextStyle(
-                            fontSize: AppTokens.textFootnoteSize,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+            );
+          }
+          final keyword = history[index];
+          return Center(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+              onTap: () => _selectHistory(keyword),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTokens.spaceSm,
+                  vertical: 4,
                 ),
-            ],
-          ),
-        ],
+                decoration: BoxDecoration(
+                  color: chipBg,
+                  borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                  border: Border.all(color: chipBorder, width: 1),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.history_rounded,
+                      size: 12,
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: AppTokens.alphaContentMuted,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      keyword,
+                      style: TextStyle(
+                        fontSize: AppTokens.textFootnoteSize,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

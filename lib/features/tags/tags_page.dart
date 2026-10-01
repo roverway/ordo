@@ -7,13 +7,14 @@ import '../../core/db/db_providers.dart';
 import '../../core/db/repositories/todo_repository.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
-import '../../shared/widgets/adaptive_leading_navigation.dart';
 import '../../shared/widgets/app_adaptive_dialog.dart';
 import '../../shared/widgets/app_modal_sheet.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/loading_view.dart';
+import '../../shared/widgets/page_hero_header.dart';
+import '../../shared/widgets/scope_switcher_sheet.dart';
 import '../../shared/widgets/staggered_fade_slide.dart';
 import 'tag_providers.dart';
 
@@ -34,72 +35,83 @@ class TagsPage extends ConsumerWidget {
     final tagsAsync = ref.watch(tagsStreamProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        leading: AdaptiveLeadingNavigation(onBack: onBack),
-        automaticallyImplyLeading: false,
-        title: Text(l10n.navTags),
-        actions: [
-          IconButton(
-            tooltip: l10n.search,
-            icon: const Icon(Icons.search, size: 22),
-            onPressed: () => context.push('/search'),
-          ),
-        ],
-      ),
-      body: tagsAsync.when(
-        data: (tags) {
-          if (tags.isEmpty) {
-            return EmptyState(
-              icon: Icons.label_outline,
-              accentColor: AppTokens.colorNavTags,
-              message: l10n.emptyTags,
-              action: FilledButton.icon(
-                onPressed: () => _showNewTagDialog(context, ref),
-                icon: const Icon(Icons.add),
-                label: Text(l10n.newTag),
-              ),
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        bottom: false,
+        child: tagsAsync.when(
+          data: (tags) {
+            final tagCount = tags.length;
+            final isZh = l10n.localeName.startsWith('zh');
+            final subtitleStr = isZh ? '$tagCount 个标签' : '$tagCount tags';
+
+            return Column(
+              children: [
+                PageHeroHeader(
+                  title: l10n.navTags,
+                  showDropdownChevron: true,
+                  onTitleTapWithContext: (ctx) => showViewScopeSheet(ctx),
+                  subtitle: subtitleStr,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: l10n.search,
+                        icon: const Icon(Icons.search, size: 20),
+                        onPressed: () => context.push('/search'),
+                      ),
+                      IconButton(
+                        tooltip: l10n.newTag,
+                        icon: const Icon(Icons.add_rounded, size: 22),
+                        onPressed: () => _showNewTagDialog(context, ref),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: tags.isEmpty
+                      ? EmptyState(
+                          icon: Icons.label_outline,
+                          accentColor: AppTokens.colorNavTags,
+                          message: l10n.emptyTags,
+                          action: FilledButton.icon(
+                            onPressed: () => _showNewTagDialog(context, ref),
+                            icon: const Icon(Icons.add),
+                            label: Text(l10n.newTag),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppTokens.spaceMd,
+                            vertical: AppTokens.spaceSm,
+                          ),
+                          itemCount: tags.length,
+                          itemBuilder: (context, index) {
+                            final tag = tags[index];
+                            return StaggeredFadeSlide(
+                              index: index,
+                              child: _TagListTile(
+                                tag: tag,
+                                onTap: () => context.push('/tags/${tag.id}'),
+                                onMenuEdit: () =>
+                                    _showEditTagDialog(context, ref, tag),
+                                onMenuDelete: () =>
+                                    _showDeleteTagDialog(context, ref, tag),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
             );
-          }
-          return Stack(
-            children: [
-              ListView.builder(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTokens.spaceMd,
-                  vertical: AppTokens.spaceSm,
-                ),
-                itemCount: tags.length,
-                itemBuilder: (context, index) {
-                  final tag = tags[index];
-                  return StaggeredFadeSlide(
-                    index: index,
-                    child: _TagListTile(
-                      tag: tag,
-                      onTap: () => context.push('/tags/${tag.id}'),
-                      onMenuEdit: () => _showEditTagDialog(context, ref, tag),
-                      onMenuDelete: () =>
-                          _showDeleteTagDialog(context, ref, tag),
-                    ),
-                  );
-                },
-              ),
-              Positioned(
-                right: AppTokens.spaceMd,
-                bottom: AppTokens.spaceMd,
-                child: FloatingActionButton(
-                  onPressed: () => _showNewTagDialog(context, ref),
-                  tooltip: l10n.newTag,
-                  child: const Icon(Icons.add),
-                ),
-              ),
-            ],
-          );
-        },
-        loading: () => const LoadingView(),
-        error: (e, st) {
-          logAsyncError(e, st);
-          return ErrorView(onRetry: () => ref.invalidate(tagsStreamProvider));
-        },
+          },
+          loading: () => const LoadingView(),
+          error: (e, st) {
+            logAsyncError(e, st);
+            return ErrorView(onRetry: () => ref.invalidate(tagsStreamProvider));
+          },
+        ),
       ),
+      floatingActionButton: null,
     );
   }
 

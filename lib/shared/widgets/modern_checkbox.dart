@@ -45,10 +45,10 @@ class _ModernCheckboxState extends State<ModernCheckbox>
     super.initState();
     _checkAnim = AnimationController(
       vsync: this,
-      duration: AppTokens.motionFast,
+      duration: AppTokens.motionSpringCheckmark,
       value: widget.checked ? 1.0 : 0.0,
     );
-    _progress = CurvedAnimation(parent: _checkAnim, curve: Curves.easeInOut);
+    _progress = CurvedAnimation(parent: _checkAnim, curve: Curves.easeOutCubic);
   }
 
   @override

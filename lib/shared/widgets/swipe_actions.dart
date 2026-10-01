@@ -125,9 +125,15 @@ class _SwipeActionsState extends State<SwipeActions>
           _endArmed = false;
           return;
         }
+        // 橡皮筋阻尼：超过 swipeCompleteThreshold 后位移乘以 0.35 阻尼
+        if (_dragOffset >= AppTokens.swipeCompleteThreshold && delta > 0) {
+          next = _dragOffset + delta * 0.35;
+        }
         if (next > _maxEndDrag) next = _maxEndDrag;
         final armed = next >= AppTokens.swipeCompleteThreshold;
-        if (armed && !_endArmed) HapticFeedback.mediumImpact();
+        if (armed && !_endArmed) {
+          HapticFeedback.selectionClick();
+        }
         _endArmed = armed;
       } else {
         _endArmed = false;
@@ -151,7 +157,10 @@ class _SwipeActionsState extends State<SwipeActions>
 
   void _animateTo(double target) {
     _animation = Tween<double>(begin: _dragOffset, end: target).animate(
-      CurvedAnimation(parent: _controller, curve: AppTokens.motionSpring),
+      CurvedAnimation(
+        parent: _controller,
+        curve: AppTokens.motionSpringOvershoot,
+      ),
     );
     _controller
       ..reset()
@@ -198,7 +207,7 @@ class _SwipeActionsState extends State<SwipeActions>
                 child: Opacity(
                   opacity: (endProgress * 1.5).clamp(0.0, 1.0),
                   child: Transform.scale(
-                    scale: 0.7 + 0.3 * endProgress,
+                    scale: _endArmed ? 1.15 : (0.7 + 0.3 * endProgress),
                     child: Icon(
                       widget.endSwipeIcon,
                       size: 20 + 4 * endProgress,

@@ -8,16 +8,13 @@ import '../../../core/models/quadrant_type.dart';
 
 export '../../../core/models/quadrant_type.dart';
 
-/// 象限视图模式：2x2 田字矩阵 / 聚焦列表 / 滑动聚焦卡
+/// 象限视图模式：2x2 田字矩阵 / 聚焦列表
 enum QuadrantViewMode {
   /// 经典 2x2 矩阵模式
   matrix,
 
   /// 单列分栏纵向聚焦列表模式
   list,
-
-  /// 移动端专属：水平滑卡模式
-  cards,
 }
 
 /// 象限视觉主题颜色扩展。

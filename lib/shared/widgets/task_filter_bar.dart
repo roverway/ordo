@@ -22,6 +22,8 @@ class TaskFilterBar extends StatelessWidget {
     required this.tagId,
     required this.range,
     required this.tags,
+    this.sortPrinciple,
+    this.onSortChanged,
     required this.onStatusChanged,
     required this.onTagChanged,
     required this.onTimeRangeChanged,
@@ -39,6 +41,12 @@ class TaskFilterBar extends StatelessWidget {
 
   /// 全部标签（下拉选项，调用方解析）。
   final List<Tag> tags;
+
+  /// 排序原则。
+  final SearchSortPrinciple? sortPrinciple;
+
+  /// 排序原则变更回调。
+  final ValueChanged<SearchSortPrinciple>? onSortChanged;
 
   /// 状态筛选回调（null 表示「全部」）。
   final ValueChanged<TaskStatus?> onStatusChanged;
@@ -114,6 +122,36 @@ class TaskFilterBar extends StatelessWidget {
               if (value != null) onTimeRangeChanged(value);
             },
           ),
+          if (sortPrinciple != null && onSortChanged != null) ...[
+            const SizedBox(width: AppTokens.spaceXs),
+            _LinearFilterChip<SearchSortPrinciple>(
+              label: l10n.localeName == 'zh' ? '排序' : 'Sort',
+              value: sortPrinciple,
+              isActive: sortPrinciple != SearchSortPrinciple.dueDate,
+              selectedText: _sortLabel(l10n, sortPrinciple!),
+              entries: [
+                MapEntry(
+                  SearchSortPrinciple.dueDate,
+                  l10n.localeName == 'zh' ? '按截止时间' : 'Due Date',
+                ),
+                MapEntry(
+                  SearchSortPrinciple.priority,
+                  l10n.localeName == 'zh' ? '按优先级' : 'Priority',
+                ),
+                MapEntry(
+                  SearchSortPrinciple.createdAt,
+                  l10n.localeName == 'zh' ? '按创建时间' : 'Created Date',
+                ),
+                MapEntry(
+                  SearchSortPrinciple.title,
+                  l10n.localeName == 'zh' ? '按标题' : 'Title',
+                ),
+              ],
+              onChanged: (val) {
+                if (val != null) onSortChanged!(val);
+              },
+            ),
+          ],
 
           // 清除全部激活筛选的小药丸
           if (anyActive) ...[
@@ -138,6 +176,17 @@ class TaskFilterBar extends StatelessWidget {
     TimeRange.week => l10n.timeRangeThisWeek,
     TimeRange.month => l10n.timeRangeThisMonth,
   };
+
+  String _sortLabel(AppLocalizations l10n, SearchSortPrinciple s) =>
+      switch (s) {
+        SearchSortPrinciple.dueDate =>
+          l10n.localeName == 'zh' ? '按截止时间' : 'Due Date',
+        SearchSortPrinciple.priority =>
+          l10n.localeName == 'zh' ? '按优先级' : 'Priority',
+        SearchSortPrinciple.createdAt =>
+          l10n.localeName == 'zh' ? '按创建时间' : 'Created Date',
+        SearchSortPrinciple.title => l10n.localeName == 'zh' ? '按标题' : 'Title',
+      };
 }
 
 /// Linear 风格紧凑筛选药丸。
