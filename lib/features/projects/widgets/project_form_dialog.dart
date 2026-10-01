@@ -30,7 +30,7 @@ Future<ProjectFormData?> showProjectFormDialog({
   int? initialColor,
   String? initialDescription,
 }) {
-  return showDialog<ProjectFormData>(
+  return showAppAdaptiveDialog<ProjectFormData>(
     context: context,
     builder: (dialogContext) => _ProjectFormDialog(
       initialName: initialName,
@@ -129,18 +129,6 @@ class _ProjectFormState extends State<_ProjectForm> {
     super.dispose();
   }
 
-  void _save() {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-    Navigator.of(context).pop(
-      ProjectFormData(
-        name: _nameController.text.trim(),
-        color: _selectedColor.toARGB32(),
-        description: _descriptionController.text.trim(),
-      ),
-    );
-  }
-
-  /// 颜色选项行 → 底部颜色选择器。
   Future<void> _pickColor() async {
     final picked = await showProjectColorPicker(
       context: context,
@@ -148,6 +136,18 @@ class _ProjectFormState extends State<_ProjectForm> {
     );
     if (picked != null && mounted) {
       setState(() => _selectedColor = picked);
+    }
+  }
+
+  void _save() {
+    if (_formKey.currentState?.validate() ?? false) {
+      Navigator.of(context).pop(
+        ProjectFormData(
+          name: _nameController.text.trim(),
+          color: _selectedColor.toARGB32(),
+          description: _descriptionController.text.trim(),
+        ),
+      );
     }
   }
 
@@ -162,189 +162,143 @@ class _ProjectFormState extends State<_ProjectForm> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildHeader(l10n, theme),
+          // 标题
+          Text(
+            _isEditing ? l10n.editProject : l10n.newProject,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: AppTokens.textTitleWeight,
+            ),
+          ),
+          const SizedBox(height: AppTokens.spaceMd),
+
+          // 项目名称（必填）
+          TextFormField(
+            controller: _nameController,
+            autofocus: true,
+            decoration: InputDecoration(labelText: l10n.projectName),
+            textInputAction: TextInputAction.next,
+            validator: (v) {
+              final val = v?.trim() ?? '';
+              if (val.isEmpty) {
+                return l10n.titleRequired;
+              }
+              if (val.length > 100) {
+                return l10n.nameTooLong(100);
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: AppTokens.spaceMd),
+
+          // 颜色选项行（整行可点 → 打开底部颜色选择器）
+          _ColorRow(color: _selectedColor, onTap: _pickColor),
+          const SizedBox(height: AppTokens.spaceMd),
+
+          // 项目描述（可选，多行）
+          TextFormField(
+            controller: _descriptionController,
+            decoration: InputDecoration(
+              labelText: l10n.projectDescription,
+
+              alignLabelWithHint: true,
+            ),
+            maxLines: 3,
+            minLines: 2,
+            textInputAction: TextInputAction.newline,
+          ),
           const SizedBox(height: AppTokens.spaceLg),
-          _buildFields(l10n, theme),
-          const SizedBox(height: AppTokens.spaceLg),
-          _buildActions(l10n),
+
+          // 显式 取消/保存 按钮
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(l10n.cancel),
+              ),
+              const SizedBox(width: AppTokens.spaceSm),
+              FilledButton(onPressed: _save, child: Text(l10n.save)),
+            ],
+          ),
         ],
       ),
     );
   }
+}
 
-  /// 顶栏：标题（新建/编辑）。
-  Widget _buildHeader(AppLocalizations l10n, ThemeData theme) {
-    final title = _isEditing ? l10n.editProject : l10n.newProject;
-    return Text(
-      title,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: theme.textTheme.titleLarge,
-    );
-  }
+/// 「颜色」选项行。
+class _ColorRow extends StatelessWidget {
+  const _ColorRow({required this.color, required this.onTap});
 
-  /// 字段区（选项行结构，行高 48–56dp）。
-  Widget _buildFields(AppLocalizations l10n, ThemeData theme) {
-    final colorScheme = theme.colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // ── 名称（必填）：无背景，仅保留浅色下边距横线 ──
-        Container(
-          padding: const EdgeInsets.only(bottom: 6),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? AppTokens.surfaceSubtleDark
-                    : AppTokens.borderSubtleNeutralLight,
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Semantics(
+      button: true,
+      label: l10n.projectColor,
+      child: Material(
+        color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
+        borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+          child: Container(
+            height: AppTokens.touchTarget,
+            padding: const EdgeInsets.symmetric(horizontal: AppTokens.spaceMd),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+              border: Border.all(
+                color: isDark
+                    ? AppTokens.borderSubtleDark
+                    : AppTokens.borderSubtleLight,
                 width: 1.0,
               ),
             ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.edit_outlined,
-                size: _optionIconSize,
-                color: colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: AppTokens.spaceSm),
-              Expanded(
-                child: TextFormField(
-                  controller: _nameController,
-                  autofocus: true,
-                  maxLength: _nameMaxLength,
-                  // 紧凑行内不展示字符计数器（评审 #2）。
-                  buildCounter: _hideCounter,
-                  style: theme.textTheme.bodyLarge,
-                  decoration: InputDecoration(
-                    hintText: l10n.projectName,
-                    border: InputBorder.none,
-                    filled: false,
-                    fillColor: Colors.transparent,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  validator: (value) {
-                    final v = value?.trim() ?? '';
-                    if (v.isEmpty) return l10n.titleRequired;
-                    // 防御：maxLength 已拦截输入，但预填/程序赋值仍可能超长，
-                    // 避免落库时抛未捕获 RepositoryException（tables.dart max 100）。
-                    if (v.length > _nameMaxLength) {
-                      return l10n.nameTooLong(_nameMaxLength);
-                    }
-                    return null;
-                  },
-                  textInputAction: TextInputAction.next,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const Divider(height: 1),
-        // ── 颜色：整行可点 → 底部颜色选择器（D3）──
-        InkWell(
-          onTap: _pickColor,
-          borderRadius: BorderRadius.circular(AppTokens.radiusList),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppTokens.spaceSm),
             child: Row(
               children: [
-                // 行首色点即当前颜色（作为该行的「图标」）。
-                Container(
-                  width: _optionIconSize,
-                  height: _optionIconSize,
-                  decoration: BoxDecoration(
-                    color: _selectedColor,
-                    shape: BoxShape.circle,
-                  ),
+                // 左侧灰色调色盘图标
+                Icon(
+                  Icons.palette_outlined,
+                  size: 20,
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(width: AppTokens.spaceSm),
+                // 字段名
                 Expanded(
                   child: Text(
                     l10n.projectColor,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface,
                     ),
                   ),
                 ),
-                Icon(Icons.chevron_right, size: 18, color: colorScheme.outline),
+                // 右侧当前颜色圆点
+                Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: AppTokens.spaceXs),
+                // 右侧指示箭头
+                Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ],
             ),
           ),
         ),
-        const Divider(height: 1),
-        // ── 描述（可选，多行 2–3 行）：[图标] 行内无边框输入 ──
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppTokens.spaceSm),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: AppTokens.spaceXs),
-                child: Icon(
-                  Icons.notes_outlined,
-                  size: _optionIconSize,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(width: AppTokens.spaceSm),
-              Expanded(
-                child: TextField(
-                  controller: _descriptionController,
-                  minLines: 2,
-                  maxLines: 3,
-                  maxLength: _descriptionMaxLength,
-                  // 紧凑行内不展示字符计数器（评审 #2）。
-                  buildCounter: _hideCounter,
-                  style: theme.textTheme.bodyLarge,
-                  decoration: InputDecoration(
-                    hintText: l10n.projectDescription,
-                    border: InputBorder.none,
-                    filled: false,
-                    fillColor: Colors.transparent,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+      ),
     );
   }
-
-  /// 底部操作区：取消 + 保存（D4 显式保存）。
-  Widget _buildActions(AppLocalizations l10n) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.cancel),
-        ),
-        const SizedBox(width: AppTokens.spaceXs),
-        FilledButton(onPressed: _save, child: Text(l10n.save)),
-      ],
-    );
-  }
-
-  /// 隐藏字段右下角字符计数器（紧凑表单内嵌计数器会挤占空间，评审 #2）。
-  static Widget? _hideCounter(
-    BuildContext context, {
-    required int currentLength,
-    required bool isFocused,
-    required int? maxLength,
-  }) => null;
 }
-
-/// 项目名称长度上限（与 tables.dart name 列 `withLength(min: 1, max: 100)` 对齐）。
-const int _nameMaxLength = 100;
-
-/// 描述长度上限（DB 无约束，纯 UI 层防护）。
-const int _descriptionMaxLength = 500;
-
-/// 选项行图标尺寸（分析报告 §3：灰色线性 ~24px，配合 56dp 行高取 22）。
-const double _optionIconSize = 22;

@@ -12,6 +12,9 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../shared/widgets/settings_card.dart';
 import '../widgets/ai_mcp_server_card.dart';
 import '../widgets/ai_ping_result_card.dart';
+import '../../../shared/widgets/app_frosted_container.dart';
+import '../../../shared/widgets/app_modal_sheet.dart';
+import '../../../shared/widgets/app_scroll_fade_wrapper.dart';
 import '../widgets/ai_provider_picker_sheet.dart';
 
 /// Maximum width for wide screens (Linear desktop style).
@@ -294,19 +297,16 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
       if (_modelController.text.trim().isNotEmpty) _modelController.text.trim(),
     }.toList();
 
-    showModalBottomSheet<void>(
+    showAppModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (sheetContext) {
         var query = '';
+        final scrollController = ScrollController();
         return StatefulBuilder(
           builder: (context, setSheetState) {
             final theme = Theme.of(sheetContext);
             final isDark = theme.brightness == Brightness.dark;
-            final sheetBg = isDark
-                ? AppTokens.surfaceCardDark
-                : AppTokens.surfaceCard;
             final borderColor = isDark
                 ? AppTokens.borderSubtleDark
                 : AppTokens.borderSubtleLight;
@@ -316,153 +316,169 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
               return m.toLowerCase().contains(query.toLowerCase());
             }).toList();
 
-            return Container(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(sheetContext).size.height * 0.75,
+            return AppFrostedContainer(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(AppTokens.radiusSheet),
               ),
-              decoration: BoxDecoration(
-                color: sheetBg,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(AppTokens.radiusCard),
-                ),
-                border: Border.all(color: borderColor, width: 0.5),
-              ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTokens.spaceMd,
-                vertical: AppTokens.spaceSm,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? AppTokens.borderSubtleDark
-                            : AppTokens.borderSubtleLight,
-                        borderRadius: BorderRadius.circular(
-                          AppTokens.radiusPill,
-                        ),
-                      ),
+              child: SafeArea(
+                top: false,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(sheetContext).size.height * 0.75,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTokens.spaceMd,
+                      vertical: AppTokens.spaceSm,
                     ),
-                  ),
-                  const SizedBox(height: AppTokens.spaceSm),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          l10n.aiSelectModelTitle(
-                            _provider.localizedName(languageCode),
-                          ),
-                          style: TextStyle(
-                            fontSize: AppTokens.textTitleSize,
-                            fontWeight: FontWeight.w600,
-                            color: theme.colorScheme.onSurface,
-                          ),
-                        ),
-                      ),
-                      TextButton.icon(
-                        onPressed: () {
-                          Navigator.pop(sheetContext);
-                          _probeModels();
-                        },
-                        icon: const Icon(Icons.refresh, size: 14),
-                        label: Text(
-                          l10n.aiProbeRefresh,
-                          style: TextStyle(
-                            fontSize: AppTokens.textFootnoteSize,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppTokens.spaceXs),
-                  TextField(
-                    decoration: InputDecoration(
-                      hintText: l10n.aiModelSearchHint,
-                      isDense: true,
-                      prefixIcon: const Icon(Icons.search, size: 18),
-                      contentPadding: const EdgeInsets.symmetric(
-                        vertical: AppTokens.spaceSm,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(
-                          AppTokens.radiusCard,
-                        ),
-                      ),
-                    ),
-                    onChanged: (val) {
-                      setSheetState(() {
-                        query = val.trim();
-                      });
-                    },
-                  ),
-                  const SizedBox(height: AppTokens.spaceSm),
-                  Expanded(
-                    child: filtered.isEmpty
-                        ? Center(
-                            child: Text(
-                              l10n.aiNoMatchingModels,
-                              style: TextStyle(
-                                fontSize: AppTokens.textFootnoteSize,
-                                color: theme.colorScheme.onSurfaceVariant,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Center(
+                          child: Container(
+                            margin: const EdgeInsets.only(
+                              top: AppTokens.sheetGrabberMiniMarginTop,
+                              bottom: AppTokens.sheetGrabberMiniMarginBottom,
+                            ),
+                            width: AppTokens.sheetGrabberMiniWidth,
+                            height: AppTokens.sheetGrabberMiniHeight,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: AppTokens.alphaTintStrong,
+                              ),
+                              borderRadius: BorderRadius.circular(
+                                AppTokens.radiusPill,
                               ),
                             ),
-                          )
-                        : ListView.separated(
-                            itemCount: filtered.length,
-                            separatorBuilder: (context, index) =>
-                                Divider(height: 1, color: borderColor),
-                            itemBuilder: (context, index) {
-                              final modelName = filtered[index];
-                              final isSelected =
-                                  modelName == _modelController.text.trim();
+                          ),
+                        ),
+                        const SizedBox(height: AppTokens.spaceSm),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                l10n.aiSelectModelTitle(
+                                  _provider.localizedName(languageCode),
+                                ),
+                                style: TextStyle(
+                                  fontSize: AppTokens.textTitleSize,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: () {
+                                Navigator.pop(sheetContext);
+                                _probeModels();
+                              },
+                              icon: const Icon(Icons.refresh, size: 14),
+                              label: Text(
+                                l10n.aiProbeRefresh,
+                                style: const TextStyle(
+                                  fontSize: AppTokens.textFootnoteSize,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppTokens.spaceXs),
+                        TextField(
+                          decoration: InputDecoration(
+                            hintText: l10n.aiModelSearchHint,
+                            isDense: true,
+                            prefixIcon: const Icon(Icons.search, size: 18),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: AppTokens.spaceSm,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                AppTokens.radiusCard,
+                              ),
+                            ),
+                          ),
+                          onChanged: (val) {
+                            setSheetState(() {
+                              query = val.trim();
+                            });
+                          },
+                        ),
+                        const SizedBox(height: AppTokens.spaceSm),
+                        Expanded(
+                          child: filtered.isEmpty
+                              ? Center(
+                                  child: Text(
+                                    l10n.aiNoMatchingModels,
+                                    style: TextStyle(
+                                      fontSize: AppTokens.textFootnoteSize,
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                )
+                              : AppScrollFadeWrapper(
+                                  scrollController: scrollController,
+                                  child: ListView.separated(
+                                    controller: scrollController,
+                                    itemCount: filtered.length,
+                                    separatorBuilder: (context, index) =>
+                                        Divider(height: 1, color: borderColor),
+                                    itemBuilder: (context, index) {
+                                      final modelName = filtered[index];
+                                      final isSelected =
+                                          modelName ==
+                                          _modelController.text.trim();
 
-                              return ListTile(
-                                dense: true,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: AppTokens.spaceXs,
-                                ),
-                                leading: Icon(
-                                  Icons.auto_awesome_outlined,
-                                  size: 16,
-                                  color: isSelected
-                                      ? theme.colorScheme.primary
-                                      : theme.colorScheme.onSurfaceVariant,
-                                ),
-                                title: Text(
-                                  modelName,
-                                  style: TextStyle(
-                                    fontSize: AppTokens.textBodySize,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w600
-                                        : FontWeight.normal,
-                                    color: isSelected
-                                        ? theme.colorScheme.primary
-                                        : theme.colorScheme.onSurface,
+                                      return ListTile(
+                                        dense: true,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: AppTokens.spaceXs,
+                                            ),
+                                        leading: Icon(
+                                          Icons.auto_awesome_outlined,
+                                          size: 16,
+                                          color: isSelected
+                                              ? theme.colorScheme.primary
+                                              : theme
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                        ),
+                                        title: Text(
+                                          modelName,
+                                          style: TextStyle(
+                                            fontSize: AppTokens.textBodySize,
+                                            fontWeight: isSelected
+                                                ? FontWeight.w600
+                                                : FontWeight.normal,
+                                            color: isSelected
+                                                ? theme.colorScheme.primary
+                                                : theme.colorScheme.onSurface,
+                                          ),
+                                        ),
+                                        trailing: isSelected
+                                            ? Icon(
+                                                Icons.check,
+                                                color:
+                                                    theme.colorScheme.primary,
+                                                size: 18,
+                                              )
+                                            : null,
+                                        onTap: () {
+                                          Navigator.pop(sheetContext);
+                                          setState(() {
+                                            _modelController.text = modelName;
+                                          });
+                                        },
+                                      );
+                                    },
                                   ),
                                 ),
-                                trailing: isSelected
-                                    ? Icon(
-                                        Icons.check,
-                                        color: theme.colorScheme.primary,
-                                        size: 18,
-                                      )
-                                    : null,
-                                onTap: () {
-                                  Navigator.pop(sheetContext);
-                                  setState(() {
-                                    _modelController.text = modelName;
-                                  });
-                                },
-                              );
-                            },
-                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ],
+                ),
               ),
             );
           },

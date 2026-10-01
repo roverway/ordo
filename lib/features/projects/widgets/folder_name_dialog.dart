@@ -18,7 +18,7 @@ Future<String?> showFolderNameDialog({
   required BuildContext context,
   String? initialName,
 }) {
-  return showDialog<String>(
+  return showAppAdaptiveDialog<String>(
     context: context,
     builder: (dialogContext) => AppAdaptiveDialog(
       maxWidth: AppTokens.dialogMaxWidth,
@@ -58,116 +58,60 @@ class _FolderNameDialogState extends State<_FolderNameDialog> {
   }
 
   void _save() {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-    Navigator.of(context).pop(_nameController.text.trim());
+    if (_formKey.currentState?.validate() ?? false) {
+      final name = _nameController.text.trim();
+      Navigator.of(context).pop(name);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
 
-    return Padding(
-      // 底部弹窗形态底部留出操作区边距；对话框形态由 Dialog 自带 padding。
-      padding: const EdgeInsets.fromLTRB(
-        AppTokens.spaceMd,
-        AppTokens.spaceLg,
-        AppTokens.spaceMd,
-        AppTokens.spaceSm,
-      ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              _isEditing ? l10n.renameFolder : l10n.newFolder,
-              style: theme.textTheme.titleLarge,
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            _isEditing ? l10n.renameFolder : l10n.newFolder,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: AppTokens.textTitleWeight,
             ),
-            const SizedBox(height: AppTokens.spaceLg),
-            // 名称输入：无背景，仅保留浅色下边距横线
-            Container(
-              padding: const EdgeInsets.only(bottom: 6),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? AppTokens.surfaceSubtleDark
-                        : AppTokens.borderSubtleNeutralLight,
-                    width: 1.0,
-                  ),
-                ),
+          ),
+          const SizedBox(height: AppTokens.spaceMd),
+          TextFormField(
+            controller: _nameController,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: l10n.folderName,
+              hintText: l10n.folderNameHint,
+            ),
+            textInputAction: TextInputAction.done,
+            onFieldSubmitted: (_) => _save(),
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) {
+                return l10n.titleRequired;
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: AppTokens.spaceLg),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(l10n.cancel),
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.edit_outlined,
-                    size: 22,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: AppTokens.spaceSm),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _nameController,
-                      autofocus: true,
-                      maxLength: _nameMaxLength,
-                      // 紧凑行内不展示字符计数器（评审 #2 同款取舍）。
-                      buildCounter: _hideCounter,
-                      style: theme.textTheme.bodyLarge,
-                      decoration: InputDecoration(
-                        hintText: l10n.folderName,
-                        border: InputBorder.none,
-                        filled: false,
-                        fillColor: Colors.transparent,
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                      validator: (value) {
-                        final v = value?.trim() ?? '';
-                        if (v.isEmpty) return l10n.titleRequired;
-                        // 防御：maxLength 已拦截输入，但预填/程序赋值仍可能超长，
-                        // 避免落库时抛未捕获 RepositoryException（name 上限 50）。
-                        if (v.length > _nameMaxLength) {
-                          return l10n.nameTooLong(_nameMaxLength);
-                        }
-                        return null;
-                      },
-                      textInputAction: TextInputAction.done,
-                      onFieldSubmitted: (_) => _save(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppTokens.spaceMd),
-            // 操作区：取消 + 保存（D4 显式保存风格）。
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(l10n.cancel),
-                ),
-                const SizedBox(width: AppTokens.spaceXs),
-                FilledButton(onPressed: _save, child: Text(l10n.save)),
-              ],
-            ),
-          ],
-        ),
+              const SizedBox(width: AppTokens.spaceSm),
+              FilledButton(onPressed: _save, child: Text(l10n.save)),
+            ],
+          ),
+        ],
       ),
     );
   }
-
-  /// 隐藏字段右下角字符计数器（与项目表单同款，评审 #2）。
-  static Widget? _hideCounter(
-    BuildContext context, {
-    required int currentLength,
-    required bool isFocused,
-    required int? maxLength,
-  }) => null;
 }
-
-/// 文件夹名称长度上限（与 tables.dart Folders.name `withLength(min: 1, max: 50)` 对齐）。
-const int _nameMaxLength = 50;

@@ -4,6 +4,7 @@ import '../../../core/db/tables.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/priority_color.dart';
+import '../../../shared/widgets/app_modal_sheet.dart';
 
 /// 优先级本地化名称。
 String priorityLabel(AppLocalizations l10n, TaskPriority priority) =>
@@ -22,28 +23,14 @@ Future<TaskPriority?> showPriorityPicker(
   required TaskPriority current,
 }) {
   final l10n = AppLocalizations.of(context);
-  return showModalBottomSheet<TaskPriority>(
+  return showAppModalBottomSheet<TaskPriority>(
     context: context,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(AppTokens.radiusDialog),
-      ),
-    ),
-    builder: (sheetContext) => SafeArea(
+    builder: (sheetContext) => AppModalSheet(
+      title: l10n.priority,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: AppTokens.spaceXs),
-          ListTile(
-            title: Text(
-              l10n.priority,
-              style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
-                fontWeight: AppTokens.textTitleWeight,
-              ),
-            ),
-          ),
-          const Divider(),
+          const Divider(height: 1),
           for (final p in TaskPriority.values)
             ListTile(
               leading: Icon(

@@ -6,6 +6,8 @@ import '../../../core/db/database.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/custom_view_models.dart';
+import '../../../shared/widgets/app_adaptive_dialog.dart';
+import '../../../shared/widgets/confirm_dialog.dart';
 import '../../projects/project_providers.dart';
 import '../providers/custom_view_providers.dart';
 
@@ -89,79 +91,92 @@ class CustomViewActionHandler {
     final l10n = AppLocalizations.of(context);
     final repo = ref.read(todoRepositoryProvider);
 
-    showDialog(
+    showAppAdaptiveDialog<void>(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
+      builder: (dialogCtx) => AppAdaptiveDialog(
+        maxWidth: AppTokens.dialogConfirmMaxWidth,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              l10n.confirm,
+              style: const TextStyle(
+                fontSize: AppTokens.textSubtitleSize,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: AppTokens.spaceMd),
+            Text(
+              l10n.customViewMoveConfirmMessage(targetPanel.title),
+              style: const TextStyle(fontSize: AppTokens.textBodySize),
+            ),
+            const SizedBox(height: AppTokens.spaceLg),
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: AppTokens.spaceSm,
+              runSpacing: AppTokens.spaceXs,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogCtx).pop(),
+                  child: Text(l10n.cancel),
+                ),
+                if (result.targetStatus != null)
+                  FilledButton.tonal(
+                    onPressed: () async {
+                      await repo.updateTask(
+                        task.id,
+                        status: result.targetStatus!,
+                      );
+                      if (dialogCtx.mounted) Navigator.of(dialogCtx).pop();
+                    },
+                    child: Text(
+                      l10n.customViewModifyStatusTo(result.targetStatus!.name),
+                    ),
+                  ),
+                if (result.targetPriority != null)
+                  FilledButton.tonal(
+                    onPressed: () async {
+                      await repo.updateTask(
+                        task.id,
+                        priority: result.targetPriority!,
+                      );
+                      if (dialogCtx.mounted) Navigator.of(dialogCtx).pop();
+                    },
+                    child: Text(
+                      l10n.customViewModifyPriorityTo(
+                        result.targetPriority!.name,
+                      ),
+                    ),
+                  ),
+                if (result.targetProjectId != null)
+                  FilledButton.tonal(
+                    onPressed: () async {
+                      await repo.moveTaskToProject(
+                        task.id,
+                        result.targetProjectId!,
+                      );
+                      if (dialogCtx.mounted) Navigator.of(dialogCtx).pop();
+                    },
+                    child: Text(l10n.customViewModifyProject),
+                  ),
+              ],
+            ),
+          ],
         ),
-        title: Text(l10n.confirm),
-        content: Text(l10n.customViewMoveConfirmMessage(targetPanel.title)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: Text(l10n.cancel),
-          ),
-          if (result.targetStatus != null)
-            FilledButton.tonal(
-              onPressed: () async {
-                await repo.updateTask(task.id, status: result.targetStatus!);
-                if (dialogCtx.mounted) Navigator.of(dialogCtx).pop();
-              },
-              child: Text(
-                l10n.customViewModifyStatusTo(result.targetStatus!.name),
-              ),
-            ),
-          if (result.targetPriority != null)
-            FilledButton.tonal(
-              onPressed: () async {
-                await repo.updateTask(
-                  task.id,
-                  priority: result.targetPriority!,
-                );
-                if (dialogCtx.mounted) Navigator.of(dialogCtx).pop();
-              },
-              child: Text(
-                l10n.customViewModifyPriorityTo(result.targetPriority!.name),
-              ),
-            ),
-          if (result.targetProjectId != null)
-            FilledButton.tonal(
-              onPressed: () async {
-                await repo.moveTaskToProject(task.id, result.targetProjectId!);
-                if (dialogCtx.mounted) Navigator.of(dialogCtx).pop();
-              },
-              child: Text(l10n.customViewModifyProject),
-            ),
-        ],
       ),
     );
   }
 
   Future<void> confirmDeleteView(BuildContext context, CustomView view) async {
     final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showConfirmDialog(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-        ),
-        title: Text(l10n.deleteCustomView),
-        content: Text(l10n.deleteCustomViewConfirm(view.name)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-            onPressed: () => Navigator.of(dialogCtx).pop(true),
-            child: Text(l10n.delete),
-          ),
-        ],
-      ),
+      title: l10n.deleteCustomView,
+      message: l10n.deleteCustomViewConfirm(view.name),
+      confirmLabel: l10n.delete,
+      cancelLabel: l10n.cancel,
+      isDestructive: true,
     );
 
     if (confirmed == true && context.mounted) {

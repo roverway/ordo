@@ -8,6 +8,7 @@ import 'proposal_action_bar.dart';
 import 'proposal_date_picker_sheets.dart';
 import 'proposal_metadata_badges.dart';
 import 'proposal_substeps_section.dart';
+import '../../../shared/widgets/app_adaptive_dialog.dart';
 
 /// Linear-style task proposal card rendered inside AI Copilot chat list.
 ///
@@ -197,31 +198,52 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
     final l10n = AppLocalizations.of(context);
     final tagInputController = TextEditingController();
 
-    final newTag = await showDialog<String>(
+    final newTag = await showAppAdaptiveDialog<String>(
       context: context,
       builder: (dialogCtx) {
-        return AlertDialog(
-          title: Text(l10n.aiAddTagTitle),
-          content: TextField(
-            controller: tagInputController,
-            autofocus: true,
-            decoration: InputDecoration(
-              hintText: l10n.aiAddTagHint,
-              isDense: true,
-            ),
-            onSubmitted: (val) => Navigator.pop(dialogCtx, val.trim()),
+        return AppAdaptiveDialog(
+          maxWidth: AppTokens.dialogConfirmMaxWidth,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l10n.aiAddTagTitle,
+                style: const TextStyle(
+                  fontSize: AppTokens.textSubtitleSize,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: AppTokens.spaceMd),
+              TextField(
+                controller: tagInputController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: l10n.aiAddTagHint,
+                  isDense: true,
+                ),
+                onSubmitted: (val) => Navigator.pop(dialogCtx, val.trim()),
+              ),
+              const SizedBox(height: AppTokens.spaceLg),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogCtx),
+                    child: Text(l10n.cancel),
+                  ),
+                  const SizedBox(width: AppTokens.spaceSm),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(
+                      dialogCtx,
+                      tagInputController.text.trim(),
+                    ),
+                    child: Text(l10n.confirm),
+                  ),
+                ],
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: Text(l10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () =>
-                  Navigator.pop(dialogCtx, tagInputController.text.trim()),
-              child: Text(l10n.confirm),
-            ),
-          ],
         );
       },
     );

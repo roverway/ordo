@@ -5,19 +5,15 @@ import '../../../../core/db/tables.dart';
 import '../../../../core/l10n/app_localizations.dart';
 import '../../../../core/theme/app_tokens.dart';
 import '../../../../core/utils/dates.dart';
+import '../../../../shared/widgets/app_frosted_container.dart';
+import '../../../../shared/widgets/app_modal_sheet.dart';
 import '../../task_providers.dart';
 import '../priority_picker.dart';
 
 /// 日期弹层（Linear + Things 3 风格）：顶部快捷预设胶囊 + 开始/截止时间交互卡片。
 Future<void> showTaskDatePicker(BuildContext context, WidgetRef ref) async {
-  await showModalBottomSheet<void>(
+  await showAppModalBottomSheet<void>(
     context: context,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(AppTokens.radiusDialog),
-      ),
-    ),
     builder: (sheetContext) => const TaskDateRangePickerSheet(),
   );
 }
@@ -32,131 +28,157 @@ class TaskDateRangePickerSheet extends ConsumerWidget {
     final formState = ref.watch(taskFormProvider);
     final notifier = ref.read(taskFormProvider.notifier);
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppTokens.spaceMd,
-          vertical: AppTokens.spaceSm,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ── 顶部栏：标题 + 完成 ──
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  l10n.dateAndReminder,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: AppTokens.textTitleWeight,
+    return AppFrostedContainer(
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(AppTokens.radiusSheet),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTokens.spaceMd,
+            vertical: AppTokens.spaceSm,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 顶部微光细短装饰手柄
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(
+                    top: AppTokens.sheetGrabberMiniMarginTop,
+                    bottom: AppTokens.sheetGrabberMiniMarginBottom,
                   ),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(l10n.done),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppTokens.spaceSm),
-
-            // ── 快捷预设胶囊行（Things 3 / Linear 式）──
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  DatePresetChip(
-                    label: l10n.today,
-                    icon: Icons.today,
-                    onTap: () {
-                      final ms = dateOnlyMs(DateTime.now());
-                      notifier.updateEndAt(ms);
-                    },
-                  ),
-                  const SizedBox(width: AppTokens.spaceXs),
-                  DatePresetChip(
-                    label: l10n.tomorrow,
-                    icon: Icons.wb_sunny_outlined,
-                    onTap: () {
-                      final ms = dateOnlyMs(
-                        DateTime.now().add(const Duration(days: 1)),
-                      );
-                      notifier.updateEndAt(ms);
-                    },
-                  ),
-                  const SizedBox(width: AppTokens.spaceXs),
-                  DatePresetChip(
-                    label: l10n.thisWeekend,
-                    icon: Icons.weekend_outlined,
-                    onTap: () {
-                      final ms = dateOnlyMs(thisWeekend(DateTime.now()));
-                      notifier.updateEndAt(ms);
-                    },
-                  ),
-                  const SizedBox(width: AppTokens.spaceXs),
-                  DatePresetChip(
-                    label: l10n.nextWeek,
-                    icon: Icons.calendar_view_week_outlined,
-                    onTap: () {
-                      final ms = dateOnlyMs(nextMonday(DateTime.now()));
-                      notifier.updateEndAt(ms);
-                    },
-                  ),
-                  const SizedBox(width: AppTokens.spaceXs),
-                  DatePresetChip(
-                    label: l10n.custom,
-                    icon: Icons.edit_calendar_outlined,
-                    onTap: () =>
-                        pickCustomDateTime(context, notifier, isStart: false),
-                  ),
-                  if (formState.startAt != null || formState.endAt != null) ...[
-                    const SizedBox(width: AppTokens.spaceXs),
-                    DatePresetChip(
-                      label: l10n.clear,
-                      icon: Icons.clear,
-                      isDestructive: true,
-                      onTap: () {
-                        notifier.updateStartAt(null);
-                        notifier.updateEndAt(null);
-                      },
+                  width: AppTokens.sheetGrabberMiniWidth,
+                  height: AppTokens.sheetGrabberMiniHeight,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.onSurface.withValues(
+                      alpha: AppTokens.alphaTintStrong,
                     ),
-                  ],
+                    borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                  ),
+                ),
+              ),
+
+              // ── 顶部栏：标题 + 完成 ──
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    l10n.dateAndReminder,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: AppTokens.textTitleWeight,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(l10n.done),
+                  ),
                 ],
               ),
-            ),
-            const SizedBox(height: AppTokens.spaceMd),
+              const SizedBox(height: AppTokens.spaceSm),
 
-            // ── 开始时间卡片 ──
-            DateSettingCard(
-              title: l10n.taskStartTime,
-              icon: Icons.play_circle_outline,
-              valueText: formState.startAt != null
-                  ? formatDueDate(formState.startAt!, l10n)
-                  : l10n.noStartTime,
-              hasValue: formState.startAt != null,
-              onTap: () => pickCustomDateTime(context, notifier, isStart: true),
-              onClear: formState.startAt != null
-                  ? () => notifier.updateStartAt(null)
-                  : null,
-            ),
-            const SizedBox(height: AppTokens.spaceSm),
+              // ── 快捷预设胶囊行（Things 3 / Linear 式）──
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    DatePresetChip(
+                      label: l10n.today,
+                      icon: Icons.today,
+                      onTap: () {
+                        final ms = dateOnlyMs(DateTime.now());
+                        notifier.updateEndAt(ms);
+                      },
+                    ),
+                    const SizedBox(width: AppTokens.spaceXs),
+                    DatePresetChip(
+                      label: l10n.tomorrow,
+                      icon: Icons.wb_sunny_outlined,
+                      onTap: () {
+                        final ms = dateOnlyMs(
+                          DateTime.now().add(const Duration(days: 1)),
+                        );
+                        notifier.updateEndAt(ms);
+                      },
+                    ),
+                    const SizedBox(width: AppTokens.spaceXs),
+                    DatePresetChip(
+                      label: l10n.thisWeekend,
+                      icon: Icons.weekend_outlined,
+                      onTap: () {
+                        final ms = dateOnlyMs(thisWeekend(DateTime.now()));
+                        notifier.updateEndAt(ms);
+                      },
+                    ),
+                    const SizedBox(width: AppTokens.spaceXs),
+                    DatePresetChip(
+                      label: l10n.nextWeek,
+                      icon: Icons.calendar_view_week_outlined,
+                      onTap: () {
+                        final ms = dateOnlyMs(nextMonday(DateTime.now()));
+                        notifier.updateEndAt(ms);
+                      },
+                    ),
+                    const SizedBox(width: AppTokens.spaceXs),
+                    DatePresetChip(
+                      label: l10n.custom,
+                      icon: Icons.edit_calendar_outlined,
+                      onTap: () =>
+                          pickCustomDateTime(context, notifier, isStart: false),
+                    ),
+                    if (formState.startAt != null ||
+                        formState.endAt != null) ...[
+                      const SizedBox(width: AppTokens.spaceXs),
+                      DatePresetChip(
+                        label: l10n.clear,
+                        icon: Icons.clear,
+                        isDestructive: true,
+                        onTap: () {
+                          notifier.updateStartAt(null);
+                          notifier.updateEndAt(null);
+                        },
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppTokens.spaceMd),
 
-            // ── 截止时间卡片 ──
-            DateSettingCard(
-              title: l10n.taskEndTime,
-              icon: Icons.flag_outlined,
-              valueText: formState.endAt != null
-                  ? formatDueDate(formState.endAt!, l10n)
-                  : l10n.noDueDate,
-              hasValue: formState.endAt != null,
-              onTap: () =>
-                  pickCustomDateTime(context, notifier, isStart: false),
-              onClear: formState.endAt != null
-                  ? () => notifier.updateEndAt(null)
-                  : null,
-            ),
-            const SizedBox(height: AppTokens.spaceSm),
-          ],
+              // ── 开始时间卡片 ──
+              DateSettingCard(
+                title: l10n.taskStartTime,
+                icon: Icons.play_circle_outline,
+                valueText: formState.startAt != null
+                    ? formatDueDate(formState.startAt!, l10n)
+                    : l10n.noStartTime,
+                hasValue: formState.startAt != null,
+                onTap: () =>
+                    pickCustomDateTime(context, notifier, isStart: true),
+                onClear: formState.startAt != null
+                    ? () => notifier.updateStartAt(null)
+                    : null,
+              ),
+              const SizedBox(height: AppTokens.spaceSm),
+
+              // ── 截止时间卡片 ──
+              DateSettingCard(
+                title: l10n.taskEndTime,
+                icon: Icons.flag_outlined,
+                valueText: formState.endAt != null
+                    ? formatDueDate(formState.endAt!, l10n)
+                    : l10n.noDueDate,
+                hasValue: formState.endAt != null,
+                onTap: () =>
+                    pickCustomDateTime(context, notifier, isStart: false),
+                onClear: formState.endAt != null
+                    ? () => notifier.updateEndAt(null)
+                    : null,
+              ),
+              const SizedBox(height: AppTokens.spaceSm),
+            ],
+          ),
         ),
       ),
     );
@@ -322,10 +344,9 @@ Future<void> pickCustomDateTime(
   required bool isStart,
 }) async {
   final now = DateTime.now();
-  await showModalBottomSheet<void>(
+  await showAppModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: Colors.transparent,
     builder: (ctx) => _CompactDateTimePickerSheet(
       isStart: isStart,
       initialDate: now,
@@ -385,15 +406,11 @@ class _CompactDateTimePickerSheetState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppTokens.radiusSheet),
-        ),
+    return AppFrostedContainer(
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(AppTokens.radiusSheet),
       ),
       child: SafeArea(
         top: false,
@@ -407,6 +424,24 @@ class _CompactDateTimePickerSheetState
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // 顶部微光细短装饰手柄
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(
+                      top: AppTokens.sheetGrabberMiniMarginTop,
+                      bottom: AppTokens.sheetGrabberMiniMarginBottom,
+                    ),
+                    width: AppTokens.sheetGrabberMiniWidth,
+                    height: AppTokens.sheetGrabberMiniHeight,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.onSurface.withValues(
+                        alpha: AppTokens.alphaTintStrong,
+                      ),
+                      borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                    ),
+                  ),
+                ),
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -501,30 +536,15 @@ String statusLabel(AppLocalizations l10n, TaskStatus status) =>
 /// 状态弹层：4 状态（todo/inProgress/done/cancelled），当前项蓝色对勾。
 Future<void> showTaskStatusPicker(BuildContext context, WidgetRef ref) async {
   final l10n = AppLocalizations.of(context);
-  final theme = Theme.of(context);
   final current = ref.read(taskFormProvider).status;
-  final picked = await showModalBottomSheet<TaskStatus>(
+  final picked = await showAppModalBottomSheet<TaskStatus>(
     context: context,
-    backgroundColor: theme.colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(AppTokens.radiusDialog),
-      ),
-    ),
-    builder: (sheetContext) => SafeArea(
+    builder: (sheetContext) => AppModalSheet(
+      title: l10n.taskStatus,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: AppTokens.spaceXs),
-          ListTile(
-            title: Text(
-              l10n.taskStatus,
-              style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
-                fontWeight: AppTokens.textTitleWeight,
-              ),
-            ),
-          ),
-          const Divider(),
+          const Divider(height: 1),
           for (final s in TaskStatus.values)
             ListTile(
               leading: Icon(statusIcon(s), size: 20, color: statusColor(s)),

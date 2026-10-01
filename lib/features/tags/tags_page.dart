@@ -3,16 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/db/database.dart';
+import '../../core/db/db_providers.dart';
 import '../../core/db/repositories/todo_repository.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../shared/widgets/adaptive_leading_navigation.dart';
+import '../../shared/widgets/app_adaptive_dialog.dart';
+import '../../shared/widgets/app_modal_sheet.dart';
 import '../../shared/widgets/confirm_dialog.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_view.dart';
 import '../../shared/widgets/loading_view.dart';
 import '../../shared/widgets/staggered_fade_slide.dart';
-import '../../core/db/db_providers.dart';
 import 'tag_providers.dart';
 
 /// 标签列表页（FR-TAG-01 / FR-VIEW-04）。
@@ -187,7 +189,7 @@ Future<TagFormData?> showTagFormDialog({
   String? initialName,
   int? initialColor,
 }) {
-  return showDialog<TagFormData>(
+  return showAppAdaptiveDialog<TagFormData>(
     context: context,
     builder: (context) =>
         _TagFormDialog(initialName: initialName, initialColor: initialColor),
@@ -241,17 +243,21 @@ class _TagFormDialogState extends ConsumerState<_TagFormDialog> {
     final isEditing = widget.initialName != null;
     final theme = Theme.of(context);
 
-    return AlertDialog(
-      title: Text(
-        isEditing ? l10n.editTag : l10n.newTag,
-        style: theme.textTheme.titleLarge,
-      ),
-      content: Form(
+    return AppAdaptiveDialog(
+      maxWidth: 380,
+      child: Form(
         key: _formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Text(
+              isEditing ? l10n.editTag : l10n.newTag,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: AppTokens.spaceMd),
             TextFormField(
               controller: _nameController,
               autofocus: true,
@@ -296,16 +302,21 @@ class _TagFormDialogState extends ConsumerState<_TagFormDialog> {
                 );
               }).toList(),
             ),
+            const SizedBox(height: AppTokens.spaceLg),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(l10n.cancel),
+                ),
+                const SizedBox(width: AppTokens.spaceSm),
+                FilledButton(onPressed: _save, child: Text(l10n.save)),
+              ],
+            ),
           ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.cancel),
-        ),
-        FilledButton(onPressed: _save, child: Text(l10n.save)),
-      ],
     );
   }
 }
@@ -455,18 +466,12 @@ class _TagListTile extends ConsumerWidget {
   void _showRowMenu(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
-    showModalBottomSheet<void>(
+    showAppModalBottomSheet<void>(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppTokens.radiusDialog),
-        ),
-      ),
-      builder: (context) => SafeArea(
+      builder: (context) => AppModalSheet(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: AppTokens.spaceXs),
             ListTile(
               leading: const Icon(Icons.edit, size: 20),
               title: Text(l10n.edit),
@@ -491,7 +496,6 @@ class _TagListTile extends ConsumerWidget {
                 onMenuDelete();
               },
             ),
-            const SizedBox(height: AppTokens.spaceXs),
           ],
         ),
       ),

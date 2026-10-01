@@ -5,6 +5,10 @@ import '../../../core/db/database.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/app_breakpoints.dart';
+import '../../../shared/widgets/app_adaptive_dialog.dart';
+import '../../../shared/widgets/app_frosted_container.dart';
+import '../../../shared/widgets/app_modal_sheet.dart';
+import '../../../shared/widgets/app_scroll_fade_wrapper.dart';
 import '../../../shared/widgets/settings_card.dart';
 import '../../../shared/widgets/unified_hierarchical_folder_selector.dart';
 import '../../projects/project_providers.dart';
@@ -19,43 +23,47 @@ import '../providers/quadrant_providers.dart';
 /// 3. 四象限与自定义视图完全统一的单圆角矩形层级容器 UnifiedHierarchicalFolderContainer；
 /// 4. 底部设置风格圆角卡片承载「显示已完成任务」开关；
 /// 5. 完全对齐当前设置页面的 SettingsCard 圆角矩形风格与 AppTokens 设计系统。
-class QuadrantScopeFilterSheet extends ConsumerWidget {
+class QuadrantScopeFilterSheet extends ConsumerStatefulWidget {
   const QuadrantScopeFilterSheet({super.key, this.isDialog = false});
 
   final bool isDialog;
 
   static Future<void> show(BuildContext context) {
     if (AppBreakpoints.isWide(context)) {
-      return showDialog<void>(
+      return showAppAdaptiveDialog<void>(
         context: context,
-        builder: (dialogCtx) => Dialog(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: AppTokens.spaceLg,
-            vertical: AppTokens.spaceMd,
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480, maxHeight: 680),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-              child: const QuadrantScopeFilterSheet(isDialog: true),
-            ),
-          ),
+        builder: (dialogCtx) => const AppAdaptiveDialog(
+          maxWidth: 480,
+          padding: EdgeInsets.zero,
+          child: QuadrantScopeFilterSheet(isDialog: true),
         ),
       );
     }
 
-    return showModalBottomSheet<void>(
+    return showAppModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (_) => const QuadrantScopeFilterSheet(),
     );
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<QuadrantScopeFilterSheet> createState() =>
+      _QuadrantScopeFilterSheetState();
+}
+
+class _QuadrantScopeFilterSheetState
+    extends ConsumerState<QuadrantScopeFilterSheet> {
+  final _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
@@ -65,7 +73,7 @@ class QuadrantScopeFilterSheet extends ConsumerWidget {
     final filterNotifier = ref.read(quadrantFilterProvider.notifier);
 
     final groupingAsync = ref.watch(projectsByFolderProvider);
-    final isEffectiveDialog = isDialog || AppBreakpoints.isWide(context);
+    final isEffectiveDialog = widget.isDialog || AppBreakpoints.isWide(context);
     final inboxProjectAsync = ref.watch(inboxProjectProvider);
 
     final dividerColor = isDark
@@ -111,166 +119,151 @@ class QuadrantScopeFilterSheet extends ConsumerWidget {
         // 顶层未分组项目集合（包含收件箱与独立项目）
         final unassignedProjects = <Project>[?inbox, ...grouping.ungrouped];
 
-        return Container(
+        final bodyWidget = Container(
           constraints: BoxConstraints(
             maxHeight: isEffectiveDialog
                 ? 680.0
                 : MediaQuery.sizeOf(context).height * 0.88,
           ),
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: isEffectiveDialog
-                ? BorderRadius.circular(AppTokens.radiusDialog)
-                : AppTokens.sheetTopBorderRadius,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(
-                  alpha: AppTokens.alphaTintStrong,
-                ),
-                blurRadius: isEffectiveDialog ? 24 : 36,
-                offset: isEffectiveDialog
-                    ? const Offset(0, 4)
-                    : const Offset(0, -10),
-              ),
-            ],
-          ),
-          child: SafeArea(
-            top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 顶部拖拽手柄 (Grabber) - 仅在移动端底部抽屉展示
-                if (!isEffectiveDialog)
-                  Center(
-                    child: Container(
-                      width: AppTokens.sheetGrabberWidth,
-                      height: AppTokens.sheetGrabberHeight,
-                      margin: const EdgeInsets.only(
-                        top: AppTokens.spaceSm,
-                        bottom: AppTokens.spaceXxs,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isDark ? AppTokens.slate600 : AppTokens.slate300,
-                        borderRadius: BorderRadius.circular(
-                          AppTokens.sheetGrabberRadius,
-                        ),
-                      ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 顶部拖拽手柄 (Grabber) - 仅在移动端底部抽屉展示
+              if (!isEffectiveDialog)
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(
+                      top: AppTokens.sheetGrabberMiniMarginTop,
+                      bottom: AppTokens.sheetGrabberMiniMarginBottom,
                     ),
-                  )
-                else
-                  const SizedBox(height: AppTokens.spaceSm),
+                    width: AppTokens.sheetGrabberMiniWidth,
+                    height: AppTokens.sheetGrabberMiniHeight,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.onSurface.withValues(
+                        alpha: AppTokens.alphaTintStrong,
+                      ),
+                      borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                    ),
+                  ),
+                )
+              else
+                const SizedBox(height: AppTokens.spaceSm),
 
-                // 1. 顶部 Header 栏：标题 + 动态计数徽标 + 右侧「重置」与「完成」主按钮
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppTokens.spaceLg,
-                    vertical: 10,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            l10n.quadrantScopeFilter,
-                            style: TextStyle(
-                              fontSize: AppTokens.textTitleSize,
-                              fontWeight: FontWeight.w700,
-                              color: isDark
-                                  ? AppTokens.textPrimaryDark
-                                  : AppTokens.slate900,
-                            ),
-                          ),
-                          if (filter.isCustomScoped && selectedCount > 0) ...[
-                            const SizedBox(width: AppTokens.spaceXs),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 7,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: colorScheme.primary.withValues(
-                                  alpha: AppTokens.alphaTintSoft,
-                                ),
-                                borderRadius: BorderRadius.circular(
-                                  AppTokens.radiusItem,
-                                ),
-                              ),
-                              child: Text(
-                                '已选 $selectedCount 项',
-                                style: TextStyle(
-                                  fontSize: AppTokens.textMicroSize,
-                                  fontWeight: FontWeight.w700,
-                                  color: colorScheme.primary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (filter.isCustomScoped)
-                            TextButton(
-                              onPressed: () => filterNotifier.resetAll(),
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: Text(
-                                l10n.quadrantReset,
-                                style: TextStyle(
-                                  fontSize: AppTokens.textFootnoteSize,
-                                  fontWeight: FontWeight.w500,
-                                  color: colorScheme.primary,
-                                ),
-                              ),
-                            ),
-                          const SizedBox(width: 8),
-                          // 主操作胶囊「完成」按钮 (32dp 高度，16dp 圆角)
-                          SizedBox(
-                            height: 32,
-                            child: ElevatedButton(
-                              onPressed: () => Navigator.of(context).maybePop(),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: colorScheme.primary,
-                                foregroundColor: colorScheme.onPrimary,
-                                elevation: 1.5,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    AppTokens.radiusDialog,
-                                  ),
-                                ),
-                              ),
-                              child: Text(
-                                l10n.quadrantDone,
-                                style: const TextStyle(
-                                  fontSize: AppTokens.textCaptionSize,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+              // 1. 顶部 Header 栏：标题 + 动态计数徽标 + 右侧「重置」与「完成」主按钮
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTokens.spaceLg,
+                  vertical: 10,
                 ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          l10n.quadrantScopeFilter,
+                          style: TextStyle(
+                            fontSize: AppTokens.textTitleSize,
+                            fontWeight: FontWeight.w700,
+                            color: isDark
+                                ? AppTokens.textPrimaryDark
+                                : AppTokens.slate900,
+                          ),
+                        ),
+                        if (filter.isCustomScoped && selectedCount > 0) ...[
+                          const SizedBox(width: AppTokens.spaceXs),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colorScheme.primary.withValues(
+                                alpha: AppTokens.alphaTintSoft,
+                              ),
+                              borderRadius: BorderRadius.circular(
+                                AppTokens.radiusItem,
+                              ),
+                            ),
+                            child: Text(
+                              '已选 $selectedCount 项',
+                              style: TextStyle(
+                                fontSize: AppTokens.textMicroSize,
+                                fontWeight: FontWeight.w700,
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (filter.isCustomScoped)
+                          TextButton(
+                            onPressed: () => filterNotifier.resetAll(),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: Text(
+                              l10n.quadrantReset,
+                              style: TextStyle(
+                                fontSize: AppTokens.textFootnoteSize,
+                                fontWeight: FontWeight.w500,
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                        const SizedBox(width: 8),
+                        // 主操作胶囊「完成」按钮 (32dp 高度，16dp 圆角)
+                        SizedBox(
+                          height: 32,
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.of(context).maybePop(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: colorScheme.primary,
+                              foregroundColor: colorScheme.onPrimary,
+                              elevation: 1.5,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppTokens.radiusDialog,
+                                ),
+                              ),
+                            ),
+                            child: Text(
+                              l10n.quadrantDone,
+                              style: const TextStyle(
+                                fontSize: AppTokens.textCaptionSize,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
 
-                Divider(height: 1, thickness: 0.8, color: dividerColor),
+              Divider(height: 1, thickness: 0.8, color: dividerColor),
 
-                // 2. 可滚动的主体内容
-                Flexible(
+              // 2. 可滚动的主体内容
+              Flexible(
+                child: AppScrollFadeWrapper(
+                  scrollController: _scrollController,
+                  bottomRadius: isEffectiveDialog ? AppTokens.radiusDialog : 0,
                   child: ListView(
+                    controller: _scrollController,
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppTokens.spaceLg,
                       vertical: AppTokens.spaceMd,
@@ -476,9 +469,20 @@ class QuadrantScopeFilterSheet extends ConsumerWidget {
                     ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+        );
+
+        if (isEffectiveDialog) {
+          return bodyWidget;
+        }
+
+        return AppFrostedContainer(
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppTokens.radiusSheet),
+          ),
+          child: SafeArea(top: false, child: bodyWidget),
         );
       },
     );

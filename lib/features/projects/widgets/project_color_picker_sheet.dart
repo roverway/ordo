@@ -1,7 +1,7 @@
 // 底部颜色选择器（58-project-form-redesign.md §4 D3）。
 //
 // - 触发：项目表单「颜色」选项行整行点击。
-// - 形态：showModalBottomSheet，顶部圆角 radiusDialog，标题复用 projectColor 文案。
+// - 形态：showAppModalBottomSheet，顶部圆角 radiusSheet，标题复用 projectColor 文案。
 // - 交互：kProjectColors 圆点网格，选中态 = 边框 + 对勾（沿用旧表单样式）；
 //   点击圆点立即返回所选颜色（Navigator.pop(context, color)）。
 
@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../shared/widgets/app_frosted_container.dart';
+import '../../../shared/widgets/app_modal_sheet.dart';
 
 /// Preset color palette for projects（AppTokens.presetColors 的项目用别名）。
 ///
@@ -23,14 +25,8 @@ Future<Color?> showProjectColorPicker({
   required BuildContext context,
   required Color current,
 }) {
-  return showModalBottomSheet<Color>(
+  return showAppModalBottomSheet<Color>(
     context: context,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(AppTokens.radiusDialog),
-      ),
-    ),
     builder: (sheetContext) => _ProjectColorPickerSheet(current: current),
   );
 }
@@ -46,57 +42,81 @@ class _ProjectColorPickerSheet extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppTokens.spaceMd,
-          AppTokens.spaceXs,
-          AppTokens.spaceMd,
-          AppTokens.spaceLg,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 顶栏：关闭 + 标题（对齐 TaskCreateSheet 内嵌选择器顶栏样式）。
-            Row(
-              children: [
-                IconButton(
-                  tooltip: l10n.cancel,
-                  icon: const Icon(Icons.close, size: 20),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-                Expanded(
-                  child: Text(
-                    l10n.projectColor,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: AppTokens.textTitleWeight,
+    return AppFrostedContainer(
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(AppTokens.radiusSheet),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppTokens.spaceMd,
+            AppTokens.spaceXs,
+            AppTokens.spaceMd,
+            AppTokens.spaceLg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 顶部微光细短装饰手柄
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(
+                    top: AppTokens.sheetGrabberMiniMarginTop,
+                    bottom: AppTokens.sheetGrabberMiniMarginBottom,
+                  ),
+                  width: AppTokens.sheetGrabberMiniWidth,
+                  height: AppTokens.sheetGrabberMiniHeight,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.onSurface.withValues(
+                      alpha: AppTokens.alphaTintStrong,
                     ),
+                    borderRadius: BorderRadius.circular(AppTokens.radiusPill),
                   ),
                 ),
-                const SizedBox(width: AppTokens.spaceMd),
-              ],
-            ),
-            const SizedBox(height: AppTokens.spaceXs),
-            // 色点网格：48dp 触控目标包 40dp 色点，整点可点。
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTokens.spaceXxs,
               ),
-              child: Wrap(
-                spacing: AppTokens.spaceLg,
-                runSpacing: AppTokens.spaceLg,
+
+              // 顶栏：关闭 + 标题（对齐 TaskCreateSheet 内嵌选择器顶栏样式）。
+              Row(
                 children: [
-                  for (final color in kProjectColors)
-                    _ColorDot(
-                      color: color,
-                      selected: color.toARGB32() == current.toARGB32(),
-                      onTap: () => Navigator.of(context).pop(color),
+                  IconButton(
+                    tooltip: l10n.cancel,
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  Expanded(
+                    child: Text(
+                      l10n.projectColor,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: AppTokens.textTitleWeight,
+                      ),
                     ),
+                  ),
+                  const SizedBox(width: AppTokens.spaceMd),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: AppTokens.spaceXs),
+              // 色点网格：48dp 触控目标包 40dp 色点，整点可点。
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTokens.spaceXxs,
+                ),
+                child: Wrap(
+                  spacing: AppTokens.spaceLg,
+                  runSpacing: AppTokens.spaceLg,
+                  children: [
+                    for (final color in kProjectColors)
+                      _ColorDot(
+                        color: color,
+                        selected: color.toARGB32() == current.toARGB32(),
+                        onTap: () => Navigator.of(context).pop(color),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

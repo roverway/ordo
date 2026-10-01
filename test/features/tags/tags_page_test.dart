@@ -1,3 +1,4 @@
+import 'package:ordo/shared/widgets/app_adaptive_dialog.dart';
 // M3 标签视图测试（FR-TAG-01 / FR-VIEW-04）。
 //
 // 覆盖：
@@ -192,13 +193,13 @@ void main() {
 
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
-      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.byType(AppAdaptiveDialog), findsOneWidget);
 
       await tester.enterText(find.byType(TextFormField), '重要');
       await tester.tap(find.text('保存'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.byType(AppAdaptiveDialog), findsNothing);
 
       // 推送更新后的列表。
       controller.add(await _sortedTags(repo));
@@ -228,7 +229,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('标题不能为空'), findsOneWidget);
-      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.byType(AppAdaptiveDialog), findsOneWidget);
     });
 
     testWidgets('重名标签被拒并提示', (tester) async {
@@ -282,7 +283,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // 确认对话框：删除标签确认 + 警告。
-      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.byType(AppAdaptiveDialog), findsOneWidget);
       expect(find.textContaining('确定要删除标签'), findsOneWidget);
       expect(find.textContaining('任务本身不会被删除'), findsOneWidget);
 
@@ -317,7 +318,7 @@ void main() {
       await tester.tap(find.text('编辑'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.byType(AppAdaptiveDialog), findsOneWidget);
       expect(find.text('编辑标签'), findsOneWidget);
       // 名称预填。
       expect(

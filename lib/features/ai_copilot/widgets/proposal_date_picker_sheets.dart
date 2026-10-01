@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ordo/core/l10n/app_localizations.dart';
 import 'package:ordo/core/theme/app_tokens.dart';
+import 'package:ordo/shared/widgets/app_modal_sheet.dart';
 
 /// 唤起 AI 任务建议的截止时间设置底部面板。
 Future<void> showProposalDueDatePicker({
@@ -13,55 +14,16 @@ Future<void> showProposalDueDatePicker({
   final l10n = AppLocalizations.of(context);
   final now = DateTime.now();
 
-  await showModalBottomSheet<void>(
+  await showAppModalBottomSheet<void>(
     context: context,
-    backgroundColor: Colors.transparent,
     builder: (bottomSheetContext) {
-      final theme = Theme.of(bottomSheetContext);
-      final isDark = theme.brightness == Brightness.dark;
-      final sheetBg = isDark
-          ? AppTokens.surfaceCardDark
-          : AppTokens.surfaceCard;
-      final borderColor = isDark
-          ? AppTokens.borderSubtleDark
-          : AppTokens.borderSubtleLight;
-
-      return Container(
-        decoration: BoxDecoration(
-          color: sheetBg,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppTokens.radiusCard),
-          ),
-          border: Border.all(color: borderColor, width: 0.5),
-        ),
-        padding: const EdgeInsets.all(AppTokens.spaceMd),
+      return AppModalSheet(
+        title: l10n.aiSetDueDate,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? AppTokens.borderSubtleDark
-                        : AppTokens.borderSubtleLight,
-                    borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppTokens.spaceSm),
-              Text(
-                l10n.aiSetDueDate,
-                style: TextStyle(
-                  fontSize: AppTokens.textBodySize,
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: AppTokens.spaceSm),
               Wrap(
                 spacing: AppTokens.spaceXs,
                 runSpacing: AppTokens.spaceXs,
@@ -194,55 +156,16 @@ Future<void> showProposalStartDatePicker({
   final l10n = AppLocalizations.of(context);
   final now = DateTime.now();
 
-  await showModalBottomSheet<void>(
+  await showAppModalBottomSheet<void>(
     context: context,
-    backgroundColor: Colors.transparent,
     builder: (bottomSheetContext) {
-      final theme = Theme.of(bottomSheetContext);
-      final isDark = theme.brightness == Brightness.dark;
-      final sheetBg = isDark
-          ? AppTokens.surfaceCardDark
-          : AppTokens.surfaceCard;
-      final borderColor = isDark
-          ? AppTokens.borderSubtleDark
-          : AppTokens.borderSubtleLight;
-
-      return Container(
-        decoration: BoxDecoration(
-          color: sheetBg,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppTokens.radiusCard),
-          ),
-          border: Border.all(color: borderColor, width: 0.5),
-        ),
-        padding: const EdgeInsets.all(AppTokens.spaceMd),
+      return AppModalSheet(
+        title: l10n.aiSetStartDate,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? AppTokens.borderSubtleDark
-                        : AppTokens.borderSubtleLight,
-                    borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppTokens.spaceSm),
-              Text(
-                l10n.aiSetStartDate,
-                style: TextStyle(
-                  fontSize: AppTokens.textBodySize,
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: AppTokens.spaceSm),
               Wrap(
                 spacing: AppTokens.spaceXs,
                 runSpacing: AppTokens.spaceXs,

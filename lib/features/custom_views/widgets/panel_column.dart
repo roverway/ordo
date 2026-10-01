@@ -7,6 +7,7 @@ import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/custom_view_models.dart';
 import '../../../shared/widgets/animated_strikethrough.dart';
+import '../../../shared/widgets/app_adaptive_dialog.dart';
 import '../../../shared/widgets/app_menu_item.dart';
 import '../../../shared/widgets/simple_task_tile.dart';
 import '../../projects/project_providers.dart';
@@ -599,34 +600,50 @@ class PanelColumn extends ConsumerWidget {
 
   void _showEditTitleDialog(BuildContext context, AppLocalizations l10n) {
     final controller = TextEditingController(text: panel.title);
-    showDialog<String>(
+    showAppAdaptiveDialog<String>(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-        ),
-        title: Text(l10n.editPanel),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(
-            labelText: l10n.panelTitle,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+      builder: (dialogCtx) => AppAdaptiveDialog(
+        maxWidth: AppTokens.dialogConfirmMaxWidth,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              l10n.editPanel,
+              style: const TextStyle(
+                fontSize: AppTokens.textSubtitleSize,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          onSubmitted: (val) => Navigator.of(dialogCtx).pop(val),
+            const SizedBox(height: AppTokens.spaceMd),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: l10n.panelTitle,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                ),
+              ),
+              onSubmitted: (val) => Navigator.of(dialogCtx).pop(val),
+            ),
+            const SizedBox(height: AppTokens.spaceLg),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogCtx).pop(),
+                  child: Text(l10n.cancel),
+                ),
+                const SizedBox(width: AppTokens.spaceSm),
+                FilledButton(
+                  onPressed: () => Navigator.of(dialogCtx).pop(controller.text),
+                  child: Text(l10n.confirm),
+                ),
+              ],
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(controller.text),
-            child: Text(l10n.confirm),
-          ),
-        ],
       ),
     ).then((result) {
       controller.dispose();

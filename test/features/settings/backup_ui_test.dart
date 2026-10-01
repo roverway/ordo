@@ -285,7 +285,7 @@ void main() {
         // 点击还原并在 runAsync 中等待异步读盘与弹窗打开
         await tester.runAsync(() async {
           await tester.tap(find.byTooltip('还原'));
-          await Future<void>.delayed(const Duration(milliseconds: 300));
+          await Future<void>.delayed(const Duration(seconds: 1));
         });
         await tester.pumpAndSettle();
 

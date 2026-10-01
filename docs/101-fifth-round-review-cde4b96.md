@@ -192,7 +192,7 @@ Future<void> showProposalStartDatePicker({ ... })    // :188
 
 | # | 项 | 数据 | 建议不动的理由 |
 |---:|---|---|---|
-| 1 | 残余 2 条 2 环 | `projects ↔ tasks`、`tags ↔ tasks` | **合理双向业务依赖**（项目列表需任务数 ↔ 任务需归属项目；标签详情需打开任务编辑 ↔ 任务编辑器需调起标签表单）。Dart 允许循环 import；棘轮基线 9 已防新增 |
+| 1 | 残余循环依赖 **9 条**（其中长度 2 的**仅 2 条**）| 详见第六节 A | **9 条中 7 条由那 2 条基础边组合衍生**；Dart 允许循环 import；棘轮基线 9 已防新增。口径说明见第六节 A |
 | 2 | `todo_repository.dart` | 1,536 行 / 23 文件引用 | **未到临界点**。`docs/96-` §7.5 定的触发条件：同步实体 8–10 个 / 引用 35+ 文件 / 行数 1,800+。当前 5 / 23 / 1,536 |
 | 3 | `sync_engine.dart` | 1,062 行 | **全项目质量最高的部分**（LWW + 确定性 tie-break + 纯函数 merge + 时钟偏移双检 + 结构化错误码）。拆它风险大于收益 |
 | 4 | 其余 53 个无测试文件 | — | 多数为纯展示组件（badge / tile / chip），逻辑简单，优先级低于结构性问题 |
@@ -216,6 +216,171 @@ Future<void> showProposalStartDatePicker({ ... })    // :188
 
 - `todo_repository.dart`（1,536）—— 见P3-2
 - `sync_engine.dart`（1,062）—— 见 P3-3
+
+---
+
+## A. 循环依赖口径说明（追加于 2026-09-30）
+
+**这一节是为了消除一处表述歧义。** 我此前在多份报告中写"残余 2 条 2 环"，可被误读为"只剩 2 条环"。**实际是 9 条。**
+
+### 两种数字都对，但数的是不同的东西
+
+| 口径 | 数量 | 含义 |
+|---|---:|---|
+| **环的总数**（按环路径去重） | **9** | ← 闸门 `MAX_CYCLES = 9` 数的就是这个 |
+| 其中长度 2（直接互指） | **2** | 我此前重点讨论的"2 环" |
+| 其中长度 ≥3（多跳衍生） | **7** | 从那 2 条基础边组合而来 |
+
+### 分布与清单
+
+**按环长**：2 环 × 2 条 ｜ 3 环 × 4 条 ｜ 4 环 × 2 条 ｜ 5 环 × 1 条 = **9 条**
+
+两条长度 2 的环（直接互指）：
+
+```
+projects ↔ tasks
+tags↔ tasks
+```
+
+七条长度 ≥3 的环（全部由上述 2 条基础边组合衍生）：
+
+```
+(3) projects → settings → tags → projects
+(3) projects → tasks → tags → projects
+(3) projects → tasks → today → projects
+(3) settings → tags → tasks → settings
+(4) projects → settings → tags → tasks → projects
+(4) projects → tasks → settings → tags → projects
+(5) projects → settings → tags → tasks → today → projects
+```
+
+**我用了两种独立方法交叉验证**（DFS 枚举 + 手工枚举闭合路径），结果均为 9 条，环长分布完全一致。
+
+### 我的表述问题
+
+原文写"**2 条 2 环**"，这个措辞有歧义：
+
+- 读法 A：总共 2 条环 ← **错误理解**
+- 读法 B：2 条长度为 2 的环 ← **正确**
+
+**责任在我**：同一份文档里两个数字都提过（"环总数 9 条，其中 2 环 2 条"），但重点放在那 2 条上，导致整体读起来像"只剩 2 条"。**数据本身没有矛盾，是表述不清。**
+
+### 更贴切的衡量口径：参与环的 feature 数
+
+```
+feature 总数     11
+参与环的5 个projects / settings / sync_setup / tags / tasks / today
+完全无环的 6 个   ai_copilot / calendar / custom_views / home / quadrant / search
+```
+
+**若要用单一数字衡量耦合度，"参与环的节点数（5）"比"环数（9）"更有意义** —— 环数会随边数增长而膨胀（加一条边可能长出多条环），而参与节点数更接近真实耦合面。
+
+---
+
+## B. 这 9 条环可以保留吗？—— 可以，且我建议保留
+
+**结论：可以保留。** 但理由不是"消除成本太高"（虽然也是），而是下面三点。
+
+### 依据一：9 条环只由 **4 条边**生成
+
+实测 feature 间的有向边（26 条）中，**只有 4 条参与成环**：
+
+| 边 | 次数 | 来源 | 性质 |
+|---|---:|---|---|
+| `tasks → projects` | 9 | 8 个文件导入 `project_providers.dart` | 见下方讨论 |
+| `tasks → tags` | 6 | 5 个文件导入 `tag_providers.dart` / `tags_page.dart` | 业务必需 |
+| `tags → tasks` | 2 | `tags_detail_page.dart` 导入 `TaskSwipeWrapper` | 业务必需 |
+| `today → projects` | 1 | — | 业务必需 |
+
+**其余 22 条边完全不参与成环**（如 `calendar → tasks` 5 次、`quadrant → tasks` 6 次，它们都是单向叶子）。
+
+### 依据二：那2 条 2 环是**真实双向业务需求**
+
+我逐条核对了实际用到的符号：
+
+**环 1：`projects ↔ tasks`**
+
+```dart
+// projects → tasks：项目列表要显示任务数
+lib/features/projects/projects_page.dart:16   import '../tasks/task_providers.dart';
+lib/features/projects/widgets/project_card.dart:9 import '../../tasks/task_providers.dart';
+
+// tasks → projects：任务需要归属项目 + 取 repository
+```
+
+**我实测了 `tasks → projects` 侧 8 个文件的符号需求**：
+
+| 文件 | 用 repo 符号 | 用 projects 符号 |
+|---|---:|---:|
+| `task_providers.dart` | 6 | 2 |
+| `widgets/task_tree.dart` | 11 | 1 |
+| `widgets/quick_capture_bar.dart` | 6 | 1 |
+| `task_list_page.dart` | 5 | 3 |
+| `widgets/task_editor/project_picker_sheet.dart` | 7 | 4 |
+| `widgets/task_create_sheet.dart` | 2 | 1 |
+| `widgets/task_create_sheet_options.dart` | 0 | 1 |
+| `widgets/task_editor.dart` | 0 | 3 |
+
+**8 个文件全部真正使用 `projects` 侧的符号**（无一是纯为拿 repo 而导入）。**这与 `9bf80a7` 之前的情况不同** —— 当时有 3 个文件 `projects=0`，可以零成本改 import，那 3 个已在上一轮修掉。
+
+**结论**：这条边现在是**真实的双向业务依赖**（项目视图要任务 ←→ 任务视图要项目）。消除它必须把"任务列表视图"或"项目视图"提到 `shared/`，属于架构重塑，收益不抵成本。
+
+**环 2：`tags ↔ tasks`**
+
+```dart
+// tags → tasks：标签详情页要打开任务编辑器
+lib/features/tags/tags_detail_page.dart:21   import '../tasks/task_edit_page.dart';
+lib/features/tags/tags_detail_page.dart:22   import '../tasks/widgets/task_swipe_wrapper.dart';
+// 实测该文件实际使用的符号：TaskSwipeWrapper（+ TaskEditPage 的路由构造）
+
+// tasks → tags：任务编辑器的标签选择器要调起标签表单
+lib/features/tasks/widgets/task_editor/tag_picker_sheet.dart:10 import '../../../tags/tags_page.dart' show showTagFormDialog;
+```
+
+**双向需求完全对称**：标签维度的任务列表要能编辑任务 ↔ 任务编辑要能管理标签。**这是产品功能本身决定的，不是设计失误。**
+
+### 依据三：另外 7 条长环是**派生产物**，不该单独计账
+
+7 条长环全部由那 2 条基础边组合生成。例如 `projects ↔ tasks` 加上 `tasks → tags`，就同时长出 3 环和 4 环：
+
+```
+projects → tasks → tags → projects            (3)
+projects → settings → tags → tasks → projects (4)
+```
+
+**它们不是 7 个独立的架构问题，而是 2 个问题的组合投影。** 如果强行按"9 条"逐个消除，会做大量重复劳动，且可能为了消一条长环而改动合理依赖。
+
+### 保留的代价：可接受
+
+- **Dart 允许循环 import**，不产生运行时错误
+- **编译期初始化顺序**：Dart 对循环 import 有惰性求值处理，本项目 915 测试全绿，未观察到问题
+- **棘轮基线 9 会阻断新增** —— 真正需要防的是"变多"，而非"消除存量"
+
+### 唯一值得考虑的微优化（可选，10 分钟）
+
+`lib/features/settings/widgets/settings_side_sheet.dart:8` 导入 `tags_page.dart`：
+
+```dart
+import '../../tags/tags_page.dart';
+```
+
+**实测该文件并未使用 `tags_page.dart` 的任何公开符号**（`TagsPage` / `TagFormData` / `showTagFormDialog` 均未出现）。这可能是一个**冗余 import** —— 删除它不改变任何行为，还能减少一条 `settings → tags` 边。
+
+**但**：我建议**先验证再删**（`flutter analyze` 不会报 unused import，需人工确认；Dart 有 `unused_import` lint 但当前未开启）。若确实冗余，删掉可顺带让 `settings → tags` 消失，`MAX_CYCLES` 可从 9 降到 8。
+
+**优先级：低。** 属于清理而非修复。
+
+---
+
+## C. 修正后的剩余工作优先级
+
+| 优先级 | 项 | 成本 | 说明 |
+|---|---|---|---|
+| **可选** | 清理 `settings_side_sheet.dart:8` 冗余 import | 10 分钟 | 若确为冗余，可降1 条边 |
+| P3 | 残余 9 条环 | — | **建议保留**（本文档 B 节论证）|
+| P3 | `todo_repository.dart` 1,536 行 | — | 未到临界点（5 实体 / 23 引用 / 需 1,800+）|
+| P3 | `sync_engine.dart` 1,062 行 | — | 全项目质量最高，拆它风险大于收益 |
+| P3 | 其余 54 个无测试文件 | — | 多数为纯展示组件 |
 
 ---
 

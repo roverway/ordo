@@ -27,6 +27,7 @@ import '../../core/sync/sync_engine.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_breakpoints.dart';
 import '../../core/utils/dates.dart';
+import '../../shared/widgets/confirm_dialog.dart';
 import '../../shared/widgets/modern_segmented_control.dart';
 import '../../shared/widgets/settings_card.dart';
 import 'sync_setup_providers.dart';
@@ -107,24 +108,13 @@ class _SyncSetupBodyState extends ConsumerState<SyncSetupBody> {
   Future<bool> _confirmClockSkew() async {
     if (!mounted) return false;
     final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
+    return await showConfirmDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.syncClockSkewTitle),
-        content: Text(l10n.syncClockSkewBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(l10n.confirm),
-          ),
-        ],
-      ),
+      title: l10n.syncClockSkewTitle,
+      message: l10n.syncClockSkewBody,
+      confirmLabel: l10n.confirm,
+      cancelLabel: l10n.cancel,
     );
-    return confirmed ?? false;
   }
 
   /// 用当前配置预填表单（仅填入当前类型适用字段，另一类型字段清空）。

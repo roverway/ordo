@@ -9,6 +9,8 @@ import '../../../core/platform/keyboard_inset_bridge.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/priority_color.dart';
 import '../../../core/utils/motion.dart';
+import '../../../shared/widgets/app_frosted_container.dart';
+import '../../../shared/widgets/app_modal_sheet.dart';
 import '../../projects/project_providers.dart';
 import '../../tags/tag_providers.dart';
 import 'task_create_sheet.dart';
@@ -30,10 +32,9 @@ class QuickCaptureBar extends ConsumerStatefulWidget {
     String? initialProjectId,
     DateTime? initialDate,
   }) {
-    return showModalBottomSheet<void>(
+    return showAppModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (ctx) => KeyboardInsetBuilder(
         builder: (context, keyboardHeight, bottomInset, child) => Padding(
           padding: EdgeInsets.only(bottom: keyboardHeight),
@@ -285,51 +286,43 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
     AppLocalizations l10n,
   ) async {
     HapticFeedback.selectionClick();
-    final chosen = await showModalBottomSheet<String>(
+    final chosen = await showAppModalBottomSheet<String>(
       context: context,
-      backgroundColor: Colors.transparent,
       builder: (ctx) {
         final theme = Theme.of(ctx);
         final cs = theme.colorScheme;
-        return Container(
-          decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(AppTokens.radiusSheet),
-            ),
-          ),
-          child: SafeArea(
-            child: ListView(
-              shrinkWrap: true,
-              children: [
+        return AppModalSheet(
+          title: l10n.selectProject,
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.inbox_outlined),
+                title: Text(l10n.inbox),
+                trailing:
+                    (_targetProjectId == null ||
+                        _targetProjectId == inboxProjectId)
+                    ? Icon(Icons.check, color: cs.primary)
+                    : null,
+                onTap: () => Navigator.of(ctx).pop(inboxProjectId),
+              ),
+              for (final p in projects)
                 ListTile(
-                  leading: const Icon(Icons.inbox_outlined),
-                  title: Text(l10n.inbox),
-                  trailing:
-                      (_targetProjectId == null ||
-                          _targetProjectId == inboxProjectId)
+                  leading: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: Color(p.color),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  title: Text(p.name),
+                  trailing: _targetProjectId == p.id
                       ? Icon(Icons.check, color: cs.primary)
                       : null,
-                  onTap: () => Navigator.of(ctx).pop(inboxProjectId),
+                  onTap: () => Navigator.of(ctx).pop(p.id),
                 ),
-                for (final p in projects)
-                  ListTile(
-                    leading: Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: Color(p.color),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    title: Text(p.name),
-                    trailing: _targetProjectId == p.id
-                        ? Icon(Icons.check, color: cs.primary)
-                        : null,
-                    onTap: () => Navigator.of(ctx).pop(p.id),
-                  ),
-              ],
-            ),
+            ],
           ),
         );
       },
@@ -405,7 +398,6 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context);
 
     final hasParsedChips =
@@ -428,33 +420,13 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
         .firstOrNull;
     final selectedProjectName = selectedProject?.name ?? l10n.inbox;
 
-    final bg = isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCardLight;
-    final borderColor = isDark
-        ? AppTokens.borderSubtleDark
-        : AppTokens.borderSubtleNeutralLight;
-
     final hint = l10n.localeName == 'zh'
         ? '添加任务，输入「明天」「#清单」「!高」试试...'
         : 'Add task, try "tomorrow", "#list", "!high"...';
 
-    return Container(
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppTokens.radiusSheet),
-        ),
-        border: Border(top: BorderSide(color: borderColor, width: 1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(
-              alpha: isDark
-                  ? AppTokens.alphaBorderEmphasis
-                  : AppTokens.alphaBorderSubtle,
-            ),
-            blurRadius: 24,
-            offset: const Offset(0, -6),
-          ),
-        ],
+    return AppFrostedContainer(
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(AppTokens.radiusSheet),
       ),
       child: SafeArea(
         top: false,
@@ -468,15 +440,13 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
               child: Row(
                 children: [
                   Container(
-                    width: AppTokens.sheetGrabberWidth,
-                    height: AppTokens.sheetGrabberHeight,
+                    width: AppTokens.sheetGrabberMiniWidth,
+                    height: AppTokens.sheetGrabberMiniHeight,
                     decoration: BoxDecoration(
                       color: colorScheme.onSurface.withValues(
                         alpha: AppTokens.alphaTintStrong,
                       ),
-                      borderRadius: BorderRadius.circular(
-                        AppTokens.sheetGrabberRadius,
-                      ),
+                      borderRadius: BorderRadius.circular(AppTokens.radiusPill),
                     ),
                   ),
                   const Spacer(),

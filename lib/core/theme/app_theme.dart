@@ -144,6 +144,7 @@ abstract final class AppTheme {
 
       // ── Dialog ──
       dialogTheme: DialogThemeData(
+        elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
           side: BorderSide(
@@ -151,6 +152,29 @@ abstract final class AppTheme {
                 ? AppTokens.borderSubtleDark
                 : AppTokens.borderSubtleLight,
             width: 1,
+          ),
+        ),
+        backgroundColor: isDark
+            ? AppTokens.surfaceCardDark.withValues(
+                alpha: AppTokens.alphaCardFrostedDark,
+              )
+            : AppTokens.surfaceCardLight.withValues(
+                alpha: AppTokens.alphaCardFrostedLight,
+              ),
+        surfaceTintColor: Colors.transparent,
+      ),
+
+      // ── BottomSheet ──
+      bottomSheetTheme: BottomSheetThemeData(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        modalBarrierColor: Colors.black.withValues(
+          alpha: isDark ? AppTokens.alphaScrimDark : AppTokens.alphaScrimLight,
+        ),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppTokens.radiusSheet),
           ),
         ),
       ),
@@ -279,9 +303,10 @@ abstract final class AppTheme {
 
       // ── PopupMenu ──
       popupMenuTheme: PopupMenuThemeData(
-        elevation: 3,
+        elevation: 0,
+        shadowColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+          borderRadius: BorderRadius.circular(AppTokens.radiusMenu),
           side: BorderSide(
             color: isDark
                 ? AppTokens.borderSubtleDark
@@ -289,12 +314,18 @@ abstract final class AppTheme {
             width: 1,
           ),
         ),
-        color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
-        // 去 M3 表面染色：菜单底色精确等于卡片色，与主体卡片层次一致。
+        color: isDark
+            ? AppTokens.surfaceCardDark.withValues(
+                alpha: AppTokens.alphaCardFrostedDark,
+              )
+            : AppTokens.surfaceCardLight.withValues(
+                alpha: AppTokens.alphaCardFrostedLight,
+              ),
+        // 去 M3 表面染色：菜单底色精确等于磨砂卡片色，与主体卡片层次一致。
         surfaceTintColor: Colors.transparent,
         // 菜单项文本用 bodyMedium（M3 默认 bodyLarge 16 偏大，与紧凑行不协调）。
         labelTextStyle: WidgetStatePropertyAll(base.textTheme.bodyMedium),
-        // 紧凑化：容器上下内边距 4（M3 默认 8），配合 menuItemHeight 40。
+        // 紧凑化：容器上下内边距 4，配合 menuItemHeight 40。
         menuPadding: const EdgeInsets.symmetric(vertical: AppTokens.spaceXxs),
       ),
 

@@ -8,6 +8,7 @@ import '../../../core/theme/priority_color.dart';
 import '../../../core/utils/dates.dart';
 import '../../../core/utils/motion.dart';
 import '../../../shared/widgets/animated_strikethrough.dart';
+import '../../../shared/widgets/app_modal_sheet.dart';
 import '../../../shared/widgets/modern_checkbox.dart';
 import '../../../shared/widgets/tag_chip.dart';
 
@@ -15,7 +16,7 @@ import '../../../shared/widgets/tag_chip.dart';
 ///
 /// - [TaskRowStyle.cardHeader]：一级任务大卡片的头部——无自身卡片底/阴影
 ///   （由外层大卡片提供），拖拽目标高亮态保留；
-/// - [TaskRowStyle.compact]：卡片内紧凑子任务行——无卡片底、无分隔线，
+/// - [TaskRowStyle.compact]：卡片内紧凑子任务行——无卡片底、无分割线，
 ///   紧凑间距 + 缩进（借鉴 TaskCreateSheet 行距节奏）。
 enum TaskRowStyle { cardHeader, compact }
 
@@ -124,7 +125,7 @@ class _TaskRowState extends State<TaskRow> {
       return colorScheme.primary.withValues(alpha: AppTokens.alphaTintSoft);
     }
     if (hovered) {
-      // 扁平行：悬停给轻微底色反馈（替代卡片阴影抬升）。
+      // 扁平行：悬停给轻微底色反馈（替代卡片阴影提升）。
       return colorScheme.surfaceContainerHighest.withValues(
         alpha: AppTokens.alphaContentDisabled,
       );
@@ -574,18 +575,12 @@ class _TaskRowState extends State<TaskRow> {
   void _showMenu(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
-    showModalBottomSheet<void>(
+    showAppModalBottomSheet<void>(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppTokens.radiusDialog),
-        ),
-      ),
-      builder: (context) => SafeArea(
+      builder: (context) => AppModalSheet(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: AppTokens.spaceXs),
             ListTile(
               leading: const Icon(Icons.edit, size: 20),
               title: Text(l10n.edit),
@@ -653,7 +648,6 @@ class _TaskRowState extends State<TaskRow> {
                 widget.onMenuAction('delete');
               },
             ),
-            const SizedBox(height: AppTokens.spaceXs),
           ],
         ),
       ),

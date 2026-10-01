@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../shared/widgets/app_adaptive_dialog.dart';
 
 /// 可供选择的预设图标列表（name -> IconData）。
 const Map<String, IconData> kCustomViewIcons = {
@@ -45,81 +46,89 @@ Future<String?> showCustomViewIconPicker(
   final theme = Theme.of(context);
   final isDark = theme.brightness == Brightness.dark;
 
-  return showDialog<String>(
+  return showAppAdaptiveDialog<String>(
     context: context,
     builder: (dialogContext) {
-      return AlertDialog(
-        title: Text(
-          l10n.viewIcon,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: AppTokens.textHeadingWeight,
-          ),
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-        ),
-        content: SizedBox(
-          width: 320,
-          child: Wrap(
-            spacing: AppTokens.spaceSm,
-            runSpacing: AppTokens.spaceSm,
-            alignment: WrapAlignment.center,
-            children: kCustomViewIcons.entries.map((entry) {
-              final isSelected = entry.key == currentIcon;
-              return InkWell(
-                onTap: () => Navigator.of(dialogContext).pop(entry.key),
-                borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-                child: AnimatedContainer(
-                  duration: AppTokens.motionFast,
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? Color(
-                            color,
-                          ).withValues(alpha: AppTokens.alphaTintStrong)
-                        : (isDark
-                              ? theme.colorScheme.surfaceContainerHigh
-                              : theme.colorScheme.surfaceContainerLowest),
+      return AppAdaptiveDialog(
+        maxWidth: 360,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              l10n.viewIcon,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: AppTokens.textHeadingWeight,
+              ),
+            ),
+            const SizedBox(height: AppTokens.spaceMd),
+            Center(
+              child: Wrap(
+                spacing: AppTokens.spaceSm,
+                runSpacing: AppTokens.spaceSm,
+                alignment: WrapAlignment.center,
+                children: kCustomViewIcons.entries.map((entry) {
+                  final isSelected = entry.key == currentIcon;
+                  return InkWell(
+                    onTap: () => Navigator.of(dialogContext).pop(entry.key),
                     borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-                    border: Border.all(
-                      color: isSelected
-                          ? Color(color)
-                          : theme.colorScheme.outlineVariant.withValues(
-                              alpha: 0.3,
-                            ),
-                      width: isSelected ? 2 : 0.8,
+                    child: AnimatedContainer(
+                      duration: AppTokens.motionFast,
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? Color(
+                                color,
+                              ).withValues(alpha: AppTokens.alphaTintStrong)
+                            : (isDark
+                                  ? theme.colorScheme.surfaceContainerHigh
+                                  : theme.colorScheme.surfaceContainerLowest),
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusCard,
+                        ),
+                        border: Border.all(
+                          color: isSelected
+                              ? Color(color)
+                              : (isDark
+                                    ? AppTokens.borderSubtleDark
+                                    : AppTokens.borderSubtleLight),
+                          width: isSelected ? 2 : 0.8,
+                        ),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: Color(color).withValues(
+                                    alpha: AppTokens.alphaBorderEmphasis,
+                                  ),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Icon(
+                        entry.value,
+                        color: isSelected
+                            ? Color(color)
+                            : theme.colorScheme.onSurfaceVariant,
+                        size: 22,
+                      ),
                     ),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: Color(color).withValues(
-                                alpha: AppTokens.alphaBorderEmphasis,
-                              ),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Icon(
-                    entry.value,
-                    color: isSelected
-                        ? Color(color)
-                        : theme.colorScheme.onSurfaceVariant,
-                    size: 22,
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: AppTokens.spaceLg),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(l10n.cancel),
+              ),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(l10n.cancel),
-          ),
-        ],
       );
     },
   );

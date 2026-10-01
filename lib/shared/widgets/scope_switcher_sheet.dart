@@ -1,9 +1,10 @@
 import 'dart:math' as math;
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_tokens.dart';
+import 'app_frosted_container.dart';
+import 'app_scroll_fade_wrapper.dart';
 import 'scope_nav_content.dart';
 
 /// 呼出任务清单组上下文切换浮动菜单（今日、收件箱、各项目清单与文件夹）。
@@ -76,13 +77,18 @@ Future<void> showScopeSwitcherSheet(
   } catch (_) {}
 
   // 黄金比例动态高度，最高 400dp，透出呼吸透光空间
-  final menuMaxHeight = math.min(mediaQuery.size.height * 0.54, 400.0);
+  final menuMaxHeight = math.min(
+    mediaQuery.size.height * AppTokens.menuMaxHeightRatio,
+    AppTokens.menuMaxHeightAbsolute,
+  );
 
   return showGeneralDialog<void>(
     context: context,
     barrierDismissible: true,
     barrierLabel: 'Dismiss',
-    barrierColor: Colors.black.withValues(alpha: isDark ? 0.35 : 0.18),
+    barrierColor: Colors.black.withValues(
+      alpha: isDark ? AppTokens.alphaScrimDark : AppTokens.alphaScrimLight,
+    ),
     transitionDuration: AppTokens.motionFast,
     pageBuilder: (dialogContext, animation, secondaryAnimation) {
       return Stack(
@@ -139,14 +145,6 @@ class ScopeSwitcherSheet extends ConsumerStatefulWidget {
 
 class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
   final ScrollController _scrollController = ScrollController();
-  bool _canScrollDown = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(_checkScroll);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkScroll());
-  }
 
   @override
   void dispose() {
@@ -154,144 +152,54 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
     super.dispose();
   }
 
-  void _checkScroll() {
-    if (!_scrollController.hasClients) return;
-    final pos = _scrollController.position;
-    final canScroll =
-        pos.maxScrollExtent > 4 && pos.pixels < pos.maxScrollExtent - 4;
-    if (canScroll != _canScrollDown) {
-      setState(() => _canScrollDown = canScroll);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final sheetBg = isDark
-        ? AppTokens.surfaceCardDark.withValues(
-            alpha: AppTokens.alphaCardFrostedDark,
-          )
-        : AppTokens.surfaceCardLight.withValues(
-            alpha: AppTokens.alphaCardFrostedLight,
-          );
-
-    final borderColor = isDark
-        ? AppTokens.borderSubtleDark
-        : AppTokens.borderSubtleLight;
 
     return Material(
       color: Colors.transparent,
-      child: ClipRRect(
+      child: AppFrostedContainer(
         borderRadius: BorderRadius.circular(AppTokens.radiusSheet),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            decoration: BoxDecoration(
-              color: sheetBg,
-              borderRadius: BorderRadius.circular(AppTokens.radiusSheet),
-              border: Border.all(color: borderColor, width: 1),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(
-                    alpha: isDark
-                        ? AppTokens.alphaBorderEmphasis
-                        : AppTokens.alphaBorderSubtle,
+        child: SafeArea(
+          top: false,
+          bottom: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 顶部微光细短装饰把手
+              Center(
+                child: Container(
+                  width: AppTokens.sheetGrabberMiniWidth,
+                  height: AppTokens.sheetGrabberMiniHeight,
+                  margin: const EdgeInsets.only(
+                    top: AppTokens.sheetGrabberMiniMarginTop,
+                    bottom: AppTokens.sheetGrabberMiniMarginBottom,
                   ),
-                  blurRadius: 28,
-                  offset: const Offset(0, 8),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.onSurface.withValues(
+                      alpha: AppTokens.alphaTintStrong,
+                    ),
+                    borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                  ),
                 ),
-              ],
-            ),
-            child: SafeArea(
-              top: false,
-              bottom: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // 顶部微光细短装饰把手
-                  Center(
-                    child: Container(
-                      width: 28,
-                      height: 3,
-                      margin: const EdgeInsets.only(top: 8, bottom: 4),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: AppTokens.alphaTintStrong,
-                        ),
-                        borderRadius: BorderRadius.circular(
-                          AppTokens.radiusPill,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // 核心导航树与清单列表（紧凑滚动 + 底部渐隐指示）
-                  Flexible(
-                    child: Stack(
-                      children: [
-                        ScopeNavContent(
-                          currentRoute: widget.currentRoute,
-                          isModal: true,
-                          showHeader: false,
-                          filter: widget.filter,
-                          scrollController: _scrollController,
-                        ),
-
-                        // 底部渐隐遮罩 + 细微呼吸指示，直觉化引导滚动，到底部时平滑消失
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          height: 24,
-                          child: IgnorePointer(
-                            child: AnimatedOpacity(
-                              opacity: _canScrollDown ? 1.0 : 0.0,
-                              duration: AppTokens.motionFast,
-                              curve: Curves.easeOutCubic,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: const BorderRadius.vertical(
-                                    bottom: Radius.circular(
-                                      AppTokens.radiusSheet,
-                                    ),
-                                  ),
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      sheetBg.withValues(
-                                        alpha: AppTokens.alphaTransparent,
-                                      ),
-                                      sheetBg.withValues(
-                                        alpha:
-                                            AppTokens.alphaOverlayNearlyOpaque,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                alignment: Alignment.bottomCenter,
-                                padding: const EdgeInsets.only(bottom: 2),
-                                child: Icon(
-                                  Icons.keyboard_arrow_down_rounded,
-                                  size: 14,
-                                  color: theme.colorScheme.onSurfaceVariant
-                                      .withValues(
-                                        alpha: AppTokens.alphaBorderEmphasis,
-                                      ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
               ),
-            ),
+
+              // 核心导航树与清单列表（紧凑滚动 + 底部渐隐指示）
+              Flexible(
+                child: AppScrollFadeWrapper(
+                  scrollController: _scrollController,
+                  bottomRadius: AppTokens.radiusSheet,
+                  child: ScopeNavContent(
+                    currentRoute: widget.currentRoute,
+                    isModal: true,
+                    showHeader: false,
+                    filter: widget.filter,
+                    scrollController: _scrollController,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

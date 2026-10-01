@@ -11,6 +11,7 @@ import '../../../shared/widgets/modal_side_sheet.dart';
 import '../../../shared/widgets/modern_segmented_control.dart';
 import '../providers/custom_view_providers.dart';
 import '../widgets/filter_criteria_sheet.dart';
+import '../../../shared/widgets/app_adaptive_dialog.dart';
 import '../widgets/icon_picker_dialog.dart';
 
 /// 宽屏（≥600dp）下以右侧浮动抽屉（Side Sheet）形式打开自定义视图编辑器。
@@ -880,48 +881,64 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
     final l10n = AppLocalizations.of(context);
     final controller = TextEditingController();
 
-    showDialog(
+    showAppAdaptiveDialog(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-        ),
-        title: Text(l10n.addPanel),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(
-            labelText: l10n.panelTitle,
-            hintText: l10n.panelTitleHint,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+      builder: (dialogCtx) => AppAdaptiveDialog(
+        maxWidth: AppTokens.dialogConfirmMaxWidth,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              l10n.addPanel,
+              style: const TextStyle(
+                fontSize: AppTokens.textSubtitleSize,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
+            const SizedBox(height: AppTokens.spaceMd),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: l10n.panelTitle,
+                hintText: l10n.panelTitleHint,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppTokens.spaceLg),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogCtx).pop(),
+                  child: Text(l10n.cancel),
+                ),
+                const SizedBox(width: AppTokens.spaceSm),
+                FilledButton(
+                  onPressed: () {
+                    final title = controller.text.trim();
+                    if (title.isNotEmpty) {
+                      setState(() {
+                        _panels.add(
+                          CustomViewPanelConfig(
+                            id: newUuid(),
+                            title: title,
+                            filter: const FilterCriteria(),
+                          ),
+                        );
+                      });
+                    }
+                    Navigator.of(dialogCtx).pop();
+                  },
+                  child: Text(l10n.confirm),
+                ),
+              ],
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () {
-              final title = controller.text.trim();
-              if (title.isNotEmpty) {
-                setState(() {
-                  _panels.add(
-                    CustomViewPanelConfig(
-                      id: newUuid(),
-                      title: title,
-                      filter: const FilterCriteria(),
-                    ),
-                  );
-                });
-              }
-              Navigator.of(dialogCtx).pop();
-            },
-            child: Text(l10n.confirm),
-          ),
-        ],
       ),
     );
   }
@@ -931,41 +948,57 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
     final panel = _panels[index];
     final controller = TextEditingController(text: panel.title);
 
-    showDialog(
+    showAppAdaptiveDialog(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-        ),
-        title: Text(l10n.editPanel),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(
-            labelText: l10n.panelTitle,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+      builder: (dialogCtx) => AppAdaptiveDialog(
+        maxWidth: AppTokens.dialogConfirmMaxWidth,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              l10n.editPanel,
+              style: const TextStyle(
+                fontSize: AppTokens.textSubtitleSize,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
+            const SizedBox(height: AppTokens.spaceMd),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: l10n.panelTitle,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppTokens.spaceLg),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogCtx).pop(),
+                  child: Text(l10n.cancel),
+                ),
+                const SizedBox(width: AppTokens.spaceSm),
+                FilledButton(
+                  onPressed: () {
+                    final title = controller.text.trim();
+                    if (title.isNotEmpty) {
+                      setState(() {
+                        _panels[index] = panel.copyWith(title: title);
+                      });
+                    }
+                    Navigator.of(dialogCtx).pop();
+                  },
+                  child: Text(l10n.confirm),
+                ),
+              ],
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () {
-              final title = controller.text.trim();
-              if (title.isNotEmpty) {
-                setState(() {
-                  _panels[index] = panel.copyWith(title: title);
-                });
-              }
-              Navigator.of(dialogCtx).pop();
-            },
-            child: Text(l10n.confirm),
-          ),
-        ],
       ),
     );
   }

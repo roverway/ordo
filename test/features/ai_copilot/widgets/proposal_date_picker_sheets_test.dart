@@ -371,7 +371,10 @@ void main() {
       final containerFinder = find.byWidgetPredicate((w) {
         if (w is Container && w.decoration is BoxDecoration) {
           final box = w.decoration as BoxDecoration;
-          return box.color == AppTokens.surfaceCardDark;
+          return box.color ==
+              AppTokens.surfaceCardDark.withValues(
+                alpha: AppTokens.alphaCardFrostedDark,
+              );
         }
         return false;
       });

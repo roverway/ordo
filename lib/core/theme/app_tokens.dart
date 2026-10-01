@@ -105,6 +105,12 @@ abstract final class AppTokens {
   /// 模态遮罩（BottomSheet / Dialog 背景遮罩）。
   static const double alphaScrim = 0.70;
 
+  /// 呼吸式非侵入遮罩透明度（浅色模式，保持上下文连续感，对齐 ScopeSwitcherSheet）。
+  static const double alphaScrimLight = 0.18;
+
+  /// 呼吸式非侵入遮罩透明度（深色模式，保持上下文连续感，对齐 ScopeSwitcherSheet）。
+  static const double alphaScrimDark = 0.35;
+
   /// 完全透明（用于渐变起始端等场景）。
   static const double alphaTransparent = 0.0;
 
@@ -122,6 +128,9 @@ abstract final class AppTokens {
 
   /// 磨砂玻璃模糊半径（sigma）。
   static const double blurFrostedGlass = 16.0;
+
+  /// 浮层菜单与弹窗毛玻璃模糊半径（sigma 20，对齐 ScopeSwitcherSheet）。
+  static const double blurFrostedOverlay = 20.0;
 
   /// 壁纸背景下的复选框未勾选底色透明度（深色主题）。
   static const double alphaCheckboxFrostedSurfaceDark = 0.30;
@@ -190,11 +199,14 @@ abstract final class AppTokens {
   /// Button radius (12dp).
   static const double radiusButton = 12;
 
-  /// Dialog radius (16dp).
-  static const double radiusDialog = 16;
+  /// Dialog radius (20dp，对齐现代 squircle 视窗比例).
+  static const double radiusDialog = 20;
 
   /// Bottom sheet top corner radius (22dp).
   static const double radiusSheet = 22;
+
+  /// Floating menu / popover radius (22dp).
+  static const double radiusMenu = 22;
 
   /// Pill / capsule radius (search button, filter pill, tag capsule).
   static const double radiusPill = 999;
@@ -231,6 +243,7 @@ abstract final class AppTokens {
   static const Color colorSuccessText = Color(0xFF059669);
   static const Color colorDanger = Color(0xFFEF4444);
   static const Color colorDangerText = Color(0xFFDC2626);
+  static const Color warningColor = Color(0xFFF59E0B);
   static const Color colorWarning = Color(0xFFF59E0B);
   static const Color colorInfo = Color(0xFF3B82F6);
 
@@ -285,7 +298,7 @@ abstract final class AppTokens {
   static const double spaceXxl = 32;
   static const double spaceXxxl = 48;
 
-  /// 移动端底部悬浮胶囊坞防遮挡安全留白。
+  /// 移动端底部悬浮胶囊垫防遮挡安全留白。
   static const double bottomNavClearance = 120;
 
   // ── Typography ──
@@ -328,7 +341,7 @@ abstract final class AppTokens {
   static const double textCaptionSize = 12;
   static const FontWeight textCaptionWeight = FontWeight.w400;
 
-  /// Micro: 11 / w500（徽章/计数等非关键元信息专用；正文类文案仍须 ≥ caption，
+  /// Micro: 11 / w500（徽章/计数等非关键元信息专用；正文类文案仍须 >= caption，
   /// 保 NFR-06 对比度底线）。
   static const double textMicroSize = 11;
   static const FontWeight textMicroWeight = FontWeight.w500;
@@ -445,6 +458,24 @@ abstract final class AppTokens {
     BoxShadow(color: Color(0x4D000000), blurRadius: 24, offset: Offset(0, 8)),
   ];
 
+  /// Diffused ambient shadow for frosted glass overlays (light mode).
+  static const List<BoxShadow> overlayShadowLight = [
+    BoxShadow(
+      color: Color(0x1F000000), // ~12% black
+      blurRadius: 28,
+      offset: Offset(0, 8),
+    ),
+  ];
+
+  /// Diffused ambient shadow for frosted glass overlays (dark mode).
+  static const List<BoxShadow> overlayShadowDark = [
+    BoxShadow(
+      color: Color(0x57000000), // ~34% black
+      blurRadius: 28,
+      offset: Offset(0, 8),
+    ),
+  ];
+
   /// FAB elevation.
   static const double elevationFab = 4;
 
@@ -479,7 +510,7 @@ abstract final class AppTokens {
   /// Wide-screen persistent sidebar width (TickTick/Todoist desktop standard: 260dp).
   static const double sidebarWidth = 260;
 
-  /// 宽屏日历页左栏（沉浸式视口）宽度（0ede52e 定稿 400）。
+  /// 宽屏日历页左栏（沉浸式窗口）宽度（0ede52e 定稿 400）。
   static const double calendarPaneWidth = 400;
 
   /// Wide-screen NavigationRail width（80 → 96，55-ui-redesign-proposal.md §3.2）。
@@ -489,6 +520,9 @@ abstract final class AppTokens {
 
   /// Standard form dialog maximum width (440dp).
   static const double dialogMaxWidth = 440;
+
+  /// Standard confirmation dialog maximum width (360dp).
+  static const double dialogConfirmMaxWidth = 360;
 
   /// Standard modal side sheet width (settings, etc.: 480dp).
   static const double sideSheetWidth = 480;
@@ -548,6 +582,24 @@ abstract final class AppTokens {
 
   /// 弹出菜单容器最小宽度（默认 minWidth 112 略收紧；各调用点不再局部覆盖）。
   static const double menuMinWidth = 120;
+
+  /// 弹层与抽屉极简精致抓手尺寸（对齐 ScopeSwitcherSheet 28x3）。
+  static const double sheetGrabberMiniWidth = 28;
+  static const double sheetGrabberMiniHeight = 3;
+  static const double sheetGrabberMiniMarginTop = 8;
+  static const double sheetGrabberMiniMarginBottom = 4;
+
+  /// 滚动溢出渐隐遮罩高度（24dp）。
+  static const double scrollFadeHeight = 24;
+
+  /// 滚动溢出微指示图标尺寸（14dp）。
+  static const double scrollFadeIconSize = 14;
+
+  /// 悬浮菜单黄金比例最大高度约束系数（屏幕高度 54%）。
+  static const double menuMaxHeightRatio = 0.54;
+
+  /// 悬浮菜单绝对最大高度保底（400dp）。
+  static const double menuMaxHeightAbsolute = 400;
 
   // ── 任务列表扁平行（61-task-list-redesign.md §4/§7）──
 

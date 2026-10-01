@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/backup/backup_restore_service.dart';
 import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../shared/widgets/app_adaptive_dialog.dart';
 
 /// 导入前二次确认与模式选择对话框。
 class ImportConfirmDialog extends StatefulWidget {
@@ -23,7 +24,7 @@ class ImportConfirmDialog extends StatefulWidget {
     String? sourceTitle,
     required Future<void> Function(ImportMode mode) onConfirm,
   }) {
-    return showDialog<bool>(
+    return showAppAdaptiveDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => ImportConfirmDialog(
@@ -83,173 +84,185 @@ class _ImportConfirmDialogState extends State<ImportConfirmDialog> {
 
     return PopScope(
       canPop: !_isLoading,
-      child: AlertDialog(
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(
-            Radius.circular(AppTokens.radiusDialog),
-          ),
-        ),
-        backgroundColor: isDark
-            ? AppTokens.surfaceCardDark
-            : AppTokens.surfaceCardLight,
-        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-        actionsPadding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
-        title: Row(
+      child: AppAdaptiveDialog(
+        maxWidth: 440,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: colorScheme.primary.withValues(
-                  alpha: AppTokens.alphaBorderSubtle,
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withValues(
+                      alpha: AppTokens.alphaBorderSubtle,
+                    ),
+                    borderRadius: BorderRadius.circular(AppTokens.radiusItem),
+                  ),
+                  child: Icon(
+                    Icons.restore_page_outlined,
+                    size: 20,
+                    color: colorScheme.primary,
+                  ),
                 ),
-                borderRadius: BorderRadius.circular(AppTokens.radiusItem),
-              ),
-              child: Icon(
-                Icons.restore_page_outlined,
-                size: 20,
-                color: colorScheme.primary,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    l10n.backupImportDialogTitle,
+                    style: const TextStyle(
+                      fontSize: AppTokens.textTitleSize,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppTokens.spaceMd),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (widget.sourceTitle != null) ...[
+                      Text(
+                        widget.sourceTitle!,
+                        style: TextStyle(
+                          fontSize: AppTokens.textCaptionSize,
+                          color: colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+
+                    // 摘要卡片（使用标准本地化模板字符串）
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary.withValues(
+                          alpha: AppTokens.alphaTintFaint,
+                        ),
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusCard,
+                        ),
+                        border: Border.all(
+                          color: colorScheme.primary.withValues(
+                            alpha: AppTokens.alphaTintStrong,
+                          ),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        l10n.backupImportDialogSummary(
+                          _formatDateTime(widget.summary.exportedAt),
+                          widget.summary.projectCount,
+                          widget.summary.taskCount,
+                          widget.summary.tagCount,
+                          widget.summary.folderCount,
+                          widget.summary.customViewCount,
+                        ),
+                        style: TextStyle(
+                          fontSize: AppTokens.textCaptionSize,
+                          color: isDark
+                              ? AppTokens.checkboxDisabledBorderLight
+                              : AppTokens.checkboxDisabledBorderDark,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // 导入模式单选
+                    _ModeSelectCard(
+                      title: l10n.backupImportModeMerge,
+                      subtitle: l10n.backupImportModeMergeDesc,
+                      isSelected: _selectedMode == ImportMode.merge,
+                      accentColor: colorScheme.primary,
+                      onTap: () =>
+                          setState(() => _selectedMode = ImportMode.merge),
+                    ),
+                    const SizedBox(height: 10),
+
+                    _ModeSelectCard(
+                      title: l10n.backupImportModeReplace,
+                      subtitle: l10n.backupImportModeReplaceDesc,
+                      isSelected: _selectedMode == ImportMode.replace,
+                      accentColor: AppTokens.colorDanger,
+                      onTap: () =>
+                          setState(() => _selectedMode = ImportMode.replace),
+                    ),
+
+                    if (_errorMessage != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(
+                            alpha: AppTokens.alphaTintSoft,
+                          ),
+                          borderRadius: BorderRadius.circular(
+                            AppTokens.radiusList,
+                          ),
+                        ),
+                        child: Text(
+                          l10n.backupOperationFailed(_errorMessage!),
+                          style: const TextStyle(
+                            fontSize: AppTokens.textCaptionSize,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                l10n.backupImportDialogTitle,
-                style: const TextStyle(
-                  fontSize: AppTokens.textTitleSize,
-                  fontWeight: FontWeight.w700,
+            const SizedBox(height: AppTokens.spaceLg),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: _isLoading
+                      ? null
+                      : () => Navigator.of(context).pop(false),
+                  child: Text(
+                    l10n.cancel,
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
+                  ),
                 ),
-              ),
+                const SizedBox(width: AppTokens.spaceSm),
+                FilledButton(
+                  onPressed: _isLoading ? null : _handleConfirm,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _selectedMode == ImportMode.replace
+                        ? AppTokens.colorDangerText
+                        : colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        AppTokens.radiusButton,
+                      ),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(l10n.backupImportAction),
+                ),
+              ],
             ),
           ],
         ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (widget.sourceTitle != null) ...[
-                Text(
-                  widget.sourceTitle!,
-                  style: TextStyle(
-                    fontSize: AppTokens.textCaptionSize,
-                    color: colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
-
-              // 摘要卡片（使用标准本地化模板字符串）
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(
-                    alpha: AppTokens.alphaTintFaint,
-                  ),
-                  borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-                  border: Border.all(
-                    color: colorScheme.primary.withValues(
-                      alpha: AppTokens.alphaTintStrong,
-                    ),
-                    width: 1,
-                  ),
-                ),
-                child: Text(
-                  l10n.backupImportDialogSummary(
-                    _formatDateTime(widget.summary.exportedAt),
-                    widget.summary.projectCount,
-                    widget.summary.taskCount,
-                    widget.summary.tagCount,
-                    widget.summary.folderCount,
-                    widget.summary.customViewCount,
-                  ),
-                  style: TextStyle(
-                    fontSize: AppTokens.textCaptionSize,
-                    color: isDark
-                        ? AppTokens.checkboxDisabledBorderLight
-                        : AppTokens.checkboxDisabledBorderDark,
-                    height: 1.4,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // 导入模式单选
-              _ModeSelectCard(
-                title: l10n.backupImportModeMerge,
-                subtitle: l10n.backupImportModeMergeDesc,
-                isSelected: _selectedMode == ImportMode.merge,
-                accentColor: colorScheme.primary,
-                onTap: () => setState(() => _selectedMode = ImportMode.merge),
-              ),
-              const SizedBox(height: 10),
-
-              _ModeSelectCard(
-                title: l10n.backupImportModeReplace,
-                subtitle: l10n.backupImportModeReplaceDesc,
-                isSelected: _selectedMode == ImportMode.replace,
-                accentColor: AppTokens.colorDanger,
-                onTap: () => setState(() => _selectedMode = ImportMode.replace),
-              ),
-
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(
-                      alpha: AppTokens.alphaTintSoft,
-                    ),
-                    borderRadius: BorderRadius.circular(AppTokens.radiusList),
-                  ),
-                  child: Text(
-                    l10n.backupOperationFailed(_errorMessage!),
-                    style: const TextStyle(
-                      fontSize: AppTokens.textCaptionSize,
-                      color: Colors.red,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: _isLoading
-                ? null
-                : () => Navigator.of(context).pop(false),
-            child: Text(
-              l10n.cancel,
-              style: TextStyle(color: colorScheme.onSurfaceVariant),
-            ),
-          ),
-          FilledButton(
-            onPressed: _isLoading ? null : _handleConfirm,
-            style: FilledButton.styleFrom(
-              backgroundColor: _selectedMode == ImportMode.replace
-                  ? AppTokens.colorDangerText
-                  : colorScheme.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppTokens.radiusButton),
-              ),
-            ),
-            child: _isLoading
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : Text(l10n.backupImportAction),
-          ),
-        ],
       ),
     );
   }

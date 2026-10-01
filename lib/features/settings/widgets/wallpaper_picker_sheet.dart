@@ -5,7 +5,11 @@ import '../../../core/l10n/app_localizations.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/background_config.dart';
 import '../../../core/utils/app_breakpoints.dart';
+import '../../../shared/widgets/app_adaptive_dialog.dart';
 import '../../../shared/widgets/app_background_wrapper.dart';
+import '../../../shared/widgets/app_frosted_container.dart';
+import '../../../shared/widgets/app_modal_sheet.dart';
+import '../../../shared/widgets/app_scroll_fade_wrapper.dart';
 import '../settings_providers.dart';
 
 /// 呼出通用壁纸选择与调节弹层
@@ -16,35 +20,24 @@ Future<BackgroundConfig?> showWallpaperPickerSheet({
   String? title,
 }) {
   if (AppBreakpoints.isWide(context)) {
-    return showDialog<BackgroundConfig>(
+    return showAppAdaptiveDialog<BackgroundConfig>(
       context: context,
-      builder: (dialogCtx) => Dialog(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        insetPadding: const EdgeInsets.symmetric(
-          horizontal: AppTokens.spaceLg,
-          vertical: AppTokens.spaceMd,
-        ),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480, maxHeight: 720),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-            child: WallpaperPickerSheet(
-              initialConfig: initialConfig,
-              isGlobal: isGlobal,
-              title: title,
-              isDialog: true,
-            ),
-          ),
+      builder: (dialogCtx) => AppAdaptiveDialog(
+        maxWidth: 480,
+        padding: EdgeInsets.zero,
+        child: WallpaperPickerSheet(
+          initialConfig: initialConfig,
+          isGlobal: isGlobal,
+          title: title,
+          isDialog: true,
         ),
       ),
     );
   }
 
-  return showModalBottomSheet<BackgroundConfig>(
+  return showAppModalBottomSheet<BackgroundConfig>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: Colors.transparent,
     builder: (context) => WallpaperPickerSheet(
       initialConfig: initialConfig,
       isGlobal: isGlobal,
@@ -76,11 +69,18 @@ class WallpaperPickerSheet extends ConsumerStatefulWidget {
 class _WallpaperPickerSheetState extends ConsumerState<WallpaperPickerSheet> {
   late BackgroundConfig _currentConfig;
   bool _isCustomLoading = false;
+  final _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _currentConfig = widget.initialConfig;
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   void _updateConfig(BackgroundConfig newConfig) {
@@ -122,33 +122,22 @@ class _WallpaperPickerSheetState extends ConsumerState<WallpaperPickerSheet> {
         (widget.isGlobal ? l10n.wallpaperTitleApp : l10n.wallpaperTitleProject);
 
     final isEffectiveDialog = widget.isDialog || AppBreakpoints.isWide(context);
-    return Container(
-      constraints: const BoxConstraints(maxHeight: 720),
-      decoration: BoxDecoration(
-        color: isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCard,
-        borderRadius: isEffectiveDialog
-            ? BorderRadius.circular(AppTokens.radiusDialog)
-            : AppTokens.sheetTopBorderRadius,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: AppTokens.alphaTintStrong),
-            blurRadius: 20,
-            offset: isEffectiveDialog
-                ? const Offset(0, 4)
-                : const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // ── 顶部拖动手柄与标题栏 ──
-            _buildHeader(sheetTitle, colorScheme, l10n),
-            const Divider(height: 1),
 
-            Flexible(
+    final bodyWidget = Container(
+      constraints: const BoxConstraints(maxHeight: 720),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── 顶部拖动手柄与标题栏 ──
+          _buildHeader(sheetTitle, colorScheme, l10n, theme),
+          const Divider(height: 1),
+
+          Flexible(
+            child: AppScrollFadeWrapper(
+              scrollController: _scrollController,
+              bottomRadius: isEffectiveDialog ? AppTokens.radiusDialog : 0,
               child: ListView(
+                controller: _scrollController,
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppTokens.spaceLg,
                   vertical: AppTokens.spaceMd,
@@ -171,12 +160,23 @@ class _WallpaperPickerSheetState extends ConsumerState<WallpaperPickerSheet> {
                 ],
               ),
             ),
+          ),
 
-            // ── 底部保存按钮 ──
-            _buildBottomBar(l10n, colorScheme),
-          ],
-        ),
+          // ── 底部保存按钮 ──
+          _buildBottomBar(l10n, colorScheme),
+        ],
       ),
+    );
+
+    if (isEffectiveDialog) {
+      return bodyWidget;
+    }
+
+    return AppFrostedContainer(
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(AppTokens.radiusSheet),
+      ),
+      child: SafeArea(top: false, child: bodyWidget),
     );
   }
 
@@ -184,21 +184,29 @@ class _WallpaperPickerSheetState extends ConsumerState<WallpaperPickerSheet> {
     String title,
     ColorScheme colorScheme,
     AppLocalizations l10n,
+    ThemeData theme,
   ) {
     final isEffectiveDialog = widget.isDialog || AppBreakpoints.isWide(context);
     return Column(
       children: [
-        if (!isEffectiveDialog) ...[
-          const SizedBox(height: 8),
-          Container(
-            width: AppTokens.sheetGrabberWidth,
-            height: AppTokens.sheetGrabberHeight,
-            decoration: BoxDecoration(
-              color: colorScheme.outlineVariant,
-              borderRadius: BorderRadius.circular(AppTokens.sheetGrabberRadius),
+        if (!isEffectiveDialog)
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(
+                top: AppTokens.sheetGrabberMiniMarginTop,
+                bottom: AppTokens.sheetGrabberMiniMarginBottom,
+              ),
+              width: AppTokens.sheetGrabberMiniWidth,
+              height: AppTokens.sheetGrabberMiniHeight,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurface.withValues(
+                  alpha: AppTokens.alphaTintStrong,
+                ),
+                borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+              ),
             ),
-          ),
-        ] else
+          )
+        else
           const SizedBox(height: 4),
         Padding(
           padding: const EdgeInsets.symmetric(

@@ -5,6 +5,9 @@ import '../../../../core/db/database.dart';
 import '../../../../core/l10n/app_localizations.dart';
 import '../../../../core/platform/keyboard_inset_bridge.dart';
 import '../../../../core/theme/app_tokens.dart';
+import '../../../../shared/widgets/app_frosted_container.dart';
+import '../../../../shared/widgets/app_modal_sheet.dart';
+import '../../../../shared/widgets/app_scroll_fade_wrapper.dart';
 import '../../../projects/project_providers.dart';
 import '../../../projects/widgets/create_list_folder_sheet.dart';
 import '../../task_providers.dart';
@@ -89,16 +92,9 @@ class TaskProjectSwitcher extends ConsumerWidget {
 /// 「移动到」清单选择：搜索 + 文件夹层级/收件箱/未分组列表（当前项对勾）+ 添加项目。
 Future<void> showTaskProjectPicker(BuildContext context, WidgetRef ref) async {
   final projectId = ref.read(taskFormProvider.select((s) => s.projectId));
-  final result = await showModalBottomSheet<String>(
+  final result = await showAppModalBottomSheet<String>(
     context: context,
     isScrollControlled: true,
-    useSafeArea: true,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(AppTokens.radiusDialog),
-      ),
-    ),
     builder: (sheetContext) => KeyboardInsetBuilder(
       child: RepaintBoundary(
         child: ProjectPickerSheet(currentProjectId: projectId ?? ''),
@@ -127,12 +123,14 @@ class ProjectPickerSheet extends ConsumerStatefulWidget {
 
 class _ProjectPickerSheetState extends ConsumerState<ProjectPickerSheet> {
   final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
   final Set<String> _collapsedFolders = <String>{};
   String _query = '';
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -160,95 +158,123 @@ class _ProjectPickerSheetState extends ConsumerState<ProjectPickerSheet> {
 
     final groupingAsync = ref.watch(projectsByFolderProvider);
 
-    return SafeArea(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.75,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 顶部导航：关闭与标题
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.close, size: 20),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-                Expanded(
-                  child: Text(
-                    l10n.moveTo,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: AppTokens.textTitleWeight,
+    return AppFrostedContainer(
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(AppTokens.radiusSheet),
+      ),
+      child: SafeArea(
+        top: false,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.75,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 顶部微光细短装饰手柄
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(
+                    top: AppTokens.sheetGrabberMiniMarginTop,
+                    bottom: AppTokens.sheetGrabberMiniMarginBottom,
+                  ),
+                  width: AppTokens.sheetGrabberMiniWidth,
+                  height: AppTokens.sheetGrabberMiniHeight,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.onSurface.withValues(
+                      alpha: AppTokens.alphaTintStrong,
                     ),
+                    borderRadius: BorderRadius.circular(AppTokens.radiusPill),
                   ),
                 ),
-                const SizedBox(width: AppTokens.spaceMd),
-              ],
-            ),
-            const SizedBox(height: AppTokens.spaceXs),
-            // 搜索框
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTokens.spaceSm,
               ),
-              child: TextField(
-                controller: _searchController,
-                autofocus: false,
-                decoration: InputDecoration(
-                  hintText: l10n.searchProjects,
-                  prefixIcon: const Icon(Icons.search, size: 20),
-                  isDense: true,
-                ),
-                onChanged: (v) => setState(() => _query = v.trim()),
-              ),
-            ),
-            const SizedBox(height: AppTokens.spaceXs),
-            const Divider(height: 1),
 
-            // 主列表区：加载态 vs 搜索模式 vs 文件夹层级模式
-            Flexible(
-              child: groupingAsync.isLoading
-                  ? const Center(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          vertical: AppTokens.spaceLg,
-                        ),
-                        child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
+              // 顶部导航：关闭与标题
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  Expanded(
+                    child: Text(
+                      l10n.moveTo,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: AppTokens.textTitleWeight,
                       ),
-                    )
-                  : (_query.isNotEmpty
-                        ? _buildSearchResults(
-                            context: context,
-                            l10n: l10n,
-                            theme: theme,
-                            allProjects: allProjects,
-                            grouping: groupingAsync.value,
-                          )
-                        : _buildHierarchicalList(
-                            context: context,
-                            l10n: l10n,
-                            theme: theme,
-                            borderColor: borderColor,
-                            grouping: groupingAsync.value,
-                          )),
-            ),
+                    ),
+                  ),
+                  const SizedBox(width: AppTokens.spaceMd),
+                ],
+              ),
+              const SizedBox(height: AppTokens.spaceXs),
+              // 搜索框
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTokens.spaceSm,
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  autofocus: false,
+                  decoration: InputDecoration(
+                    hintText: l10n.searchProjects,
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    isDense: true,
+                  ),
+                  onChanged: (v) => setState(() => _query = v.trim()),
+                ),
+              ),
+              const SizedBox(height: AppTokens.spaceXs),
+              const Divider(height: 1),
 
-            const Divider(height: 1),
-            // 底部操作：+ 添加项目
-            ListTile(
-              dense: true,
-              leading: const Icon(Icons.add, size: 20),
-              title: Text(l10n.addProject),
-              onTap: _createProject,
-            ),
-            const SizedBox(height: AppTokens.spaceXs),
-          ],
+              // 主列表区：加载态 vs 搜索模式 vs 文件夹层级模式（带滚动渐隐）
+              Flexible(
+                child: AppScrollFadeWrapper(
+                  scrollController: _scrollController,
+                  bottomRadius: 0,
+                  child: groupingAsync.isLoading
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                              vertical: AppTokens.spaceLg,
+                            ),
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        )
+                      : (_query.isNotEmpty
+                            ? _buildSearchResults(
+                                context: context,
+                                l10n: l10n,
+                                theme: theme,
+                                allProjects: allProjects,
+                                grouping: groupingAsync.value,
+                              )
+                            : _buildHierarchicalList(
+                                context: context,
+                                l10n: l10n,
+                                theme: theme,
+                                borderColor: borderColor,
+                                grouping: groupingAsync.value,
+                              )),
+                ),
+              ),
+
+              const Divider(height: 1),
+              // 底部操作：+ 添加项目
+              ListTile(
+                dense: true,
+                leading: const Icon(Icons.add, size: 20),
+                title: Text(l10n.addProject),
+                onTap: _createProject,
+              ),
+              const SizedBox(height: AppTokens.spaceXs),
+            ],
+          ),
         ),
       ),
     );
@@ -264,6 +290,7 @@ class _ProjectPickerSheetState extends ConsumerState<ProjectPickerSheet> {
     final isInboxSelected = widget.currentProjectId == inboxProjectId;
 
     return ListView(
+      controller: _scrollController,
       shrinkWrap: true,
       children: [
         // 1. 系统收件箱
@@ -320,27 +347,23 @@ class _ProjectPickerSheetState extends ConsumerState<ProjectPickerSheet> {
                             size: 18,
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: AppTokens.spaceXs),
                           Icon(
                             Icons.folder_outlined,
                             size: 18,
-                            color: theme.colorScheme.primary,
+                            color: folder.color != null
+                                ? Color(folder.color!)
+                                : theme.colorScheme.onSurfaceVariant,
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: AppTokens.spaceXs),
                           Expanded(
                             child: Text(
                               folder.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: AppTokens.textTitleWeight,
                               ),
-                            ),
-                          ),
-                          Text(
-                            '${fProjects.length}',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -348,50 +371,14 @@ class _ProjectPickerSheetState extends ConsumerState<ProjectPickerSheet> {
                     ),
                   ),
 
-                  // 展开时的清单列表
-                  if (!isCollapsed) ...[
-                    if (fProjects.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          left: 48,
-                          top: 4,
-                          bottom: 8,
-                        ),
-                        child: Text(
-                          l10n.emptyProjects,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.outline,
-                          ),
-                        ),
-                      )
-                    else
-                      Container(
-                        margin: const EdgeInsets.only(
-                          left: 24,
-                          top: 1,
-                          bottom: 4,
-                        ),
-                        padding: const EdgeInsets.only(left: 6),
-                        decoration: BoxDecoration(
-                          border: Border(
-                            left: BorderSide(color: borderColor, width: 1),
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            for (final project in fProjects)
-                              _buildProjectTile(
-                                context: context,
-                                project: project,
-                                isSelected:
-                                    project.id == widget.currentProjectId,
-                              ),
-                          ],
-                        ),
+                  // 组内清单列表（折叠时不显示）
+                  if (!isCollapsed)
+                    for (final project in fProjects)
+                      _buildProjectTile(
+                        context: context,
+                        project: project,
+                        isSelected: project.id == widget.currentProjectId,
                       ),
-                  ],
                 ],
               );
             }(),
@@ -483,6 +470,7 @@ class _ProjectPickerSheetState extends ConsumerState<ProjectPickerSheet> {
     }
 
     return ListView.builder(
+      controller: _scrollController,
       shrinkWrap: true,
       itemCount: matched.length,
       itemBuilder: (context, index) {

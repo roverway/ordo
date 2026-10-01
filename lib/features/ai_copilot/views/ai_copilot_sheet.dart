@@ -8,9 +8,11 @@ import 'package:ordo/features/ai_copilot/providers/ai_copilot_controller.dart';
 import 'package:ordo/features/ai_copilot/widgets/ai_chat_input_box.dart';
 import 'package:ordo/features/ai_copilot/widgets/ai_efficiency_report_view.dart';
 import 'package:ordo/features/ai_copilot/widgets/ai_prompt_capsule.dart';
-import 'package:ordo/features/ai_copilot/widgets/ai_task_proposal_card.dart';
 import 'package:ordo/features/ai_copilot/widgets/ai_shimmer_glow.dart';
+import 'package:ordo/features/ai_copilot/widgets/ai_task_proposal_card.dart';
 import 'package:ordo/features/settings/views/ai_settings_page.dart';
+import 'package:ordo/shared/widgets/app_frosted_container.dart';
+import 'package:ordo/shared/widgets/app_modal_sheet.dart';
 import 'package:ordo/shared/widgets/markdown_content_view.dart';
 
 /// Modal bottom sheet (narrow screens) or right side sheet (wide screens)
@@ -38,11 +40,14 @@ class AiCopilotSheet extends ConsumerStatefulWidget {
     final isWide = AppBreakpoints.isWide(context);
 
     if (isWide) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
       return showGeneralDialog<T>(
         context: context,
         barrierDismissible: true,
         barrierLabel: 'AI Copilot',
-        barrierColor: Colors.black54,
+        barrierColor: Colors.black.withValues(
+          alpha: isDark ? AppTokens.alphaScrimDark : AppTokens.alphaScrimLight,
+        ),
         transitionDuration: AppTokens.motionNormal,
         pageBuilder: (context, anim1, anim2) {
           return Align(
@@ -61,11 +66,10 @@ class AiCopilotSheet extends ConsumerStatefulWidget {
     }
 
     final mediaQuery = MediaQuery.of(context);
-    return showModalBottomSheet<T>(
+    return showAppModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => Padding(
         padding: EdgeInsets.only(bottom: mediaQuery.viewInsets.bottom),
         child: SizedBox(
@@ -138,15 +142,12 @@ class _AiCopilotSheetState extends ConsumerState<AiCopilotSheet> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final backgroundColor = isDark
-        ? AppTokens.surfacePageDark
-        : AppTokens.surfacePageLight;
     final borderColor = isDark
         ? AppTokens.borderSubtleDark
         : AppTokens.borderSubtleLight;
 
     final content = Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         top: widget.isSideSheet,
         bottom: false,
@@ -187,33 +188,19 @@ class _AiCopilotSheetState extends ConsumerState<AiCopilotSheet> {
     );
 
     if (widget.isSideSheet) {
-      return Container(
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          border: Border(left: BorderSide(color: borderColor)),
+      return AppFrostedContainer(
+        borderRadius: const BorderRadius.horizontal(
+          left: Radius.circular(AppTokens.radiusSheet),
         ),
         child: content,
       );
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppTokens.radiusSheet),
-        ),
-        border: Border(
-          top: BorderSide(color: borderColor),
-          left: BorderSide(color: borderColor),
-          right: BorderSide(color: borderColor),
-        ),
+    return AppFrostedContainer(
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(AppTokens.radiusSheet),
       ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppTokens.radiusSheet),
-        ),
-        child: content,
-      ),
+      child: content,
     );
   }
 
@@ -223,17 +210,17 @@ class _AiCopilotSheetState extends ConsumerState<AiCopilotSheet> {
       key: AiCopilotSheet.grabberKey,
       alignment: Alignment.center,
       padding: const EdgeInsets.only(
-        top: AppTokens.spaceMd,
-        bottom: AppTokens.spaceSm,
+        top: AppTokens.sheetGrabberMiniMarginTop,
+        bottom: AppTokens.sheetGrabberMiniMarginBottom,
       ),
       child: Container(
-        width: AppTokens.sheetGrabberWidth,
-        height: AppTokens.sheetGrabberHeight,
+        width: AppTokens.sheetGrabberMiniWidth,
+        height: AppTokens.sheetGrabberMiniHeight,
         decoration: BoxDecoration(
           color: theme.colorScheme.onSurface.withValues(
             alpha: AppTokens.alphaTintStrong,
           ),
-          borderRadius: BorderRadius.circular(AppTokens.sheetGrabberRadius),
+          borderRadius: BorderRadius.circular(AppTokens.radiusPill),
         ),
       ),
     );

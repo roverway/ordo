@@ -9,7 +9,11 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../core/theme/background_config.dart';
 import '../../../core/theme/preset_icons.dart';
 import '../../../core/utils/app_breakpoints.dart';
+import '../../../shared/widgets/app_adaptive_dialog.dart';
 import '../../../shared/widgets/app_background_wrapper.dart';
+import '../../../shared/widgets/app_frosted_container.dart';
+import '../../../shared/widgets/app_modal_sheet.dart';
+import '../../../shared/widgets/app_scroll_fade_wrapper.dart';
 import '../../../shared/widgets/modern_segmented_control.dart';
 import '../../settings/settings_providers.dart';
 import '../../settings/widgets/wallpaper_picker_sheet.dart';
@@ -28,38 +32,27 @@ Future<T?> showCreateListFolderSheet<T>({
   bool useRootNavigator = true,
 }) {
   if (AppBreakpoints.isWide(context)) {
-    return showDialog<T>(
+    return showAppAdaptiveDialog<T>(
       context: context,
       useRootNavigator: useRootNavigator,
-      builder: (dialogCtx) => Dialog(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        insetPadding: const EdgeInsets.symmetric(
-          horizontal: AppTokens.spaceLg,
-          vertical: AppTokens.spaceMd,
-        ),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480, maxHeight: 720),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppTokens.radiusDialog),
-            child: CreateListFolderSheet(
-              initialType: initialType,
-              initialFolderId: initialFolderId,
-              editingProject: editingProject,
-              editingFolder: editingFolder,
-              isDialog: true,
-            ),
-          ),
+      builder: (dialogCtx) => AppAdaptiveDialog(
+        maxWidth: 480,
+        padding: EdgeInsets.zero,
+        child: CreateListFolderSheet(
+          initialType: initialType,
+          initialFolderId: initialFolderId,
+          editingProject: editingProject,
+          editingFolder: editingFolder,
+          isDialog: true,
         ),
       ),
     );
   }
 
-  return showModalBottomSheet<T>(
+  return showAppModalBottomSheet<T>(
     context: context,
     useRootNavigator: useRootNavigator,
     isScrollControlled: true,
-    backgroundColor: Colors.transparent,
     builder: (ctx) => KeyboardInsetBuilder(
       builder: (context, keyboardHeight, bottomInset, child) => Padding(
         padding: EdgeInsets.only(bottom: keyboardHeight),
@@ -120,6 +113,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
   late CreateType _createType;
   late final TextEditingController _nameController;
   late final FocusNode _nameFocusNode;
+  final _scrollController = ScrollController();
 
   late PresetModalColor _selectedColor;
   late PresetIconCategory _selectedCategory;
@@ -207,6 +201,7 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
   void dispose() {
     _nameController.dispose();
     _nameFocusNode.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -389,27 +384,12 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
         ? 0.0
         : (isFocused ? (effectiveStatusBarHeight + 10.0) : 0.0);
 
-    return AnimatedContainer(
+    final bodyWidget = AnimatedContainer(
       duration: AppTokens.motionFast,
       curve: Curves.easeOutCubic,
       constraints: BoxConstraints(
         // 聚焦后全屏，非聚焦时对齐导航弹窗（0.85）
         maxHeight: targetMaxHeight,
-      ),
-      decoration: BoxDecoration(
-        color: isDark ? AppTokens.surfacePageDark : AppTokens.surfacePageLight,
-        borderRadius: isEffectiveDialog
-            ? BorderRadius.circular(AppTokens.radiusDialog)
-            : BorderRadius.vertical(
-                top: Radius.circular(isFocused ? 0 : AppTokens.radiusDialog),
-              ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
-          ),
-        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -417,6 +397,25 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
         children: [
           // 聚焦全屏时添加真实物理状态栏避让高度
           if (topClearance > 0) SizedBox(height: topClearance),
+
+          // 非弹窗模式且非聚焦状态下展示顶部微光细短手柄
+          if (!isEffectiveDialog && !isFocused)
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(
+                  top: AppTokens.sheetGrabberMiniMarginTop,
+                  bottom: AppTokens.sheetGrabberMiniMarginBottom,
+                ),
+                width: AppTokens.sheetGrabberMiniWidth,
+                height: AppTokens.sheetGrabberMiniHeight,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurface.withValues(
+                    alpha: AppTokens.alphaTintStrong,
+                  ),
+                  borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                ),
+              ),
+            ),
 
           // ── 顶部操作栏 ──
           Padding(
@@ -473,23 +472,16 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
                   style: TextButton.styleFrom(
                     foregroundColor: activeAccent,
                     disabledForegroundColor: isDark
-                        ? AppTokens.checkboxDisabledBorderDark
-                        : AppTokens.checkboxDisabledBorderLight,
+                        ? AppTokens.checkboxDisabledFgDark
+                        : AppTokens.checkboxDisabledFgLight,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
+                      horizontal: 12,
                       vertical: 6,
                     ),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    backgroundColor: isNameValid
-                        ? activeAccent.withValues(
-                            alpha: AppTokens.alphaBorderSubtle,
-                          )
-                        : Colors.transparent,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        AppTokens.radiusDialog,
-                      ),
+                      borderRadius: BorderRadius.circular(AppTokens.radiusList),
                     ),
                   ),
                   child: _isSubmitting
@@ -519,49 +511,68 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
 
           // ── 可滚动表单区域 ──
           Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // 1. 名称与图标前缀输入卡片
-                  _buildNameInputCard(l10n, isDark, activeAccent, isList),
+            child: AppScrollFadeWrapper(
+              scrollController: _scrollController,
+              bottomRadius: isEffectiveDialog ? AppTokens.radiusDialog : 0,
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // 1. 名称与图标前缀输入卡片
+                    _buildNameInputCard(l10n, isDark, activeAccent, isList),
 
-                  const SizedBox(height: 24),
-
-                  // 2. 主题颜色选择
-                  _buildColorPalette(l10n, isDark),
-
-                  const SizedBox(height: 24),
-
-                  // 3. 图标库选择
-                  _buildIconPicker(l10n, isDark, activeAccent),
-
-                  // 4. 所属文件夹（仅在清单模式展示）
-                  if (isList) ...[
                     const SizedBox(height: 24),
-                    _buildFolderSelector(
-                      l10n,
-                      isDark,
-                      activeAccent,
-                      groupingAsync,
-                    ),
-                  ],
 
-                  // 5. 背景壁纸（仅在清单模式展示）
-                  if (isList) ...[
+                    // 2. 主题颜色选择
+                    _buildColorPalette(l10n, isDark),
+
                     const SizedBox(height: 24),
-                    _buildWallpaperSelector(l10n, isDark, activeAccent),
-                  ],
 
-                  const SizedBox(height: 24),
-                ],
+                    // 3. 图标库选择
+                    _buildIconPicker(l10n, isDark, activeAccent),
+
+                    // 4. 所属文件夹（仅在清单模式展示）
+                    if (isList) ...[
+                      const SizedBox(height: 24),
+                      _buildFolderSelector(
+                        l10n,
+                        isDark,
+                        activeAccent,
+                        groupingAsync,
+                      ),
+                    ],
+
+                    // 5. 背景壁纸（仅在清单模式展示）
+                    if (isList) ...[
+                      const SizedBox(height: 24),
+                      _buildWallpaperSelector(l10n, isDark, activeAccent),
+                    ],
+
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
           ),
         ],
       ),
+    );
+
+    if (isEffectiveDialog) {
+      return bodyWidget;
+    }
+
+    return AppFrostedContainer(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(isFocused ? 0 : AppTokens.radiusSheet),
+      ),
+      child: SafeArea(top: false, child: bodyWidget),
     );
   }
 
@@ -1303,36 +1314,38 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
     required Color activeAccent,
     required AppLocalizations l10n,
   }) {
-    final iconColor =
-        folderColor ??
-        (isDark ? AppTokens.textMutedDark : AppTokens.textMutedLight);
     return InkWell(
       onTap: () {
         setState(() {
           _selectedFolderId = id;
         });
       },
-      child: Container(
+      child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        color: isSelected
-            ? activeAccent.withValues(alpha: AppTokens.alphaTintFaint)
-            : Colors.transparent,
         child: Row(
           children: [
-            Icon(icon, size: 18, color: iconColor),
-            const SizedBox(width: 10),
+            Icon(
+              icon,
+              size: 20,
+              color:
+                  folderColor ??
+                  (isSelected
+                      ? activeAccent
+                      : (isDark
+                            ? AppTokens.textMutedDark
+                            : AppTokens.textMutedLight)),
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 name,
                 style: TextStyle(
                   fontSize: AppTokens.textSecondarySize,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                   color: isDark
                       ? AppTokens.textPrimaryDark
                       : AppTokens.textPrimaryLight,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
             ),
             if (count != null) ...[
@@ -1348,11 +1361,8 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
               ),
               const SizedBox(width: 8),
             ],
-            AnimatedOpacity(
-              duration: AppTokens.motionFast,
-              opacity: isSelected ? 1.0 : 0.0,
-              child: Icon(Icons.check_rounded, size: 18, color: activeAccent),
-            ),
+            if (isSelected)
+              Icon(Icons.check_rounded, size: 20, color: activeAccent),
           ],
         ),
       ),

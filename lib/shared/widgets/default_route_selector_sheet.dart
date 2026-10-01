@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +10,8 @@ import '../../features/custom_views/providers/custom_view_providers.dart';
 import '../../features/custom_views/widgets/icon_picker_dialog.dart';
 import '../../features/projects/project_providers.dart';
 import '../../features/settings/settings_providers.dart';
+import 'app_frosted_container.dart';
+import 'app_scroll_fade_wrapper.dart';
 
 /// 呼出设置任务清单按钮默认跳转目标的 Linear 风格浮动弹层。
 Future<void> showDefaultTasksRouteSelectorSheet(BuildContext context) {
@@ -34,7 +35,9 @@ Future<void> _showDefaultRouteSelectorDialog(
     context: context,
     barrierDismissible: true,
     barrierLabel: 'Dismiss',
-    barrierColor: Colors.black.withValues(alpha: isDark ? 0.45 : 0.25),
+    barrierColor: Colors.black.withValues(
+      alpha: isDark ? AppTokens.alphaScrimDark : AppTokens.alphaScrimLight,
+    ),
     transitionDuration: AppTokens.motionFast,
     pageBuilder: (dialogContext, animation, secondaryAnimation) {
       return Stack(
@@ -52,44 +55,10 @@ Future<void> _showDefaultRouteSelectorDialog(
                 ),
                 child: Material(
                   color: Colors.transparent,
-                  child: ClipRRect(
+                  child: AppFrostedContainer(
                     borderRadius: BorderRadius.circular(AppTokens.radiusSheet),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? AppTokens.surfaceCardDark.withValues(
-                                  alpha: AppTokens.alphaCardFrostedDark,
-                                )
-                              : AppTokens.surfaceCardLight.withValues(
-                                  alpha: AppTokens.alphaCardFrostedLight,
-                                ),
-                          borderRadius: BorderRadius.circular(
-                            AppTokens.radiusSheet,
-                          ),
-                          border: Border.all(
-                            color: isDark
-                                ? AppTokens.borderSubtleDark
-                                : AppTokens.borderSubtleLight,
-                            width: 1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(
-                                alpha: isDark
-                                    ? AppTokens.alphaBorderEmphasis
-                                    : AppTokens.alphaBorderSubtle,
-                              ),
-                              blurRadius: 32,
-                              offset: const Offset(0, -6),
-                            ),
-                          ],
-                        ),
-                        child: DefaultRouteSelectorContent(
-                          isTasksGroup: isTasksGroup,
-                        ),
-                      ),
+                    child: DefaultRouteSelectorContent(
+                      isTasksGroup: isTasksGroup,
                     ),
                   ),
                 ),
@@ -107,7 +76,7 @@ Future<void> _showDefaultRouteSelectorDialog(
       return FadeTransition(
         opacity: curved,
         child: ScaleTransition(
-          scale: Tween<double>(begin: 0.92, end: 1.0).animate(curved),
+          scale: Tween<double>(begin: 0.94, end: 1.0).animate(curved),
           alignment: Alignment.bottomCenter,
           child: child,
         ),
@@ -128,8 +97,15 @@ class DefaultRouteSelectorContent extends ConsumerStatefulWidget {
 
 class _DefaultRouteSelectorContentState
     extends ConsumerState<DefaultRouteSelectorContent> {
+  final ScrollController _scrollController = ScrollController();
   final Set<String> _expandedFolderIds = <String>{};
   bool _foldersInitialized = false;
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -194,11 +170,21 @@ class _DefaultRouteSelectorContentState
         ),
         const Divider(height: 1),
 
-        // 选项列表
+        // 选项列表（带滚动渐隐感知包装）
         Flexible(
-          child: widget.isTasksGroup
-              ? _buildTasksGroupTree(context, ref, currentDefault, l10n, isZh)
-              : _buildViewsGroupList(context, ref, currentDefault, l10n, isZh),
+          child: AppScrollFadeWrapper(
+            scrollController: _scrollController,
+            bottomRadius: AppTokens.radiusSheet,
+            child: widget.isTasksGroup
+                ? _buildTasksGroupTree(context, ref, currentDefault, l10n, isZh)
+                : _buildViewsGroupList(
+                    context,
+                    ref,
+                    currentDefault,
+                    l10n,
+                    isZh,
+                  ),
+          ),
         ),
       ],
     );
@@ -222,6 +208,7 @@ class _DefaultRouteSelectorContentState
     }
 
     return ListView(
+      controller: _scrollController,
       shrinkWrap: true,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       children: [
@@ -424,6 +411,7 @@ class _DefaultRouteSelectorContentState
     final fallbackSubtitle = isZh ? '默认兜底' : 'Default fallback';
 
     return ListView(
+      controller: _scrollController,
       shrinkWrap: true,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       children: [

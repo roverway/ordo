@@ -8,6 +8,9 @@ import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/app_breakpoints.dart';
+import '../../shared/widgets/app_frosted_container.dart';
+import '../../shared/widgets/app_modal_sheet.dart';
+import '../../shared/widgets/app_scroll_fade_wrapper.dart';
 import 'settings_providers.dart';
 
 /// 知序 Ordo 用户使用手册页面
@@ -201,88 +204,96 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
 
-    showModalBottomSheet<void>(
+    showAppModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: theme.colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: AppTokens.sheetTopBorderRadius,
-      ),
       builder: (ctx) {
-        return SafeArea(
-          child: DraggableScrollableSheet(
-            initialChildSize: 0.6,
-            minChildSize: 0.4,
-            maxChildSize: 0.85,
-            expand: false,
-            builder: (ctx, scrollController) {
-              return Column(
-                children: [
-                  Container(
-                    margin: const EdgeInsets.symmetric(vertical: 10),
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.outlineVariant.withValues(
-                        alpha: 0.6,
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.85,
+          expand: false,
+          builder: (ctx, scrollController) {
+            return AppFrostedContainer(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(AppTokens.radiusSheet),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(
+                        top: AppTokens.sheetGrabberMiniMarginTop,
+                        bottom: AppTokens.sheetGrabberMiniMarginBottom,
                       ),
-                      borderRadius: BorderRadius.circular(
-                        AppTokens.sheetGrabberRadius,
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 6,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.menu_book_outlined,
-                          size: 20,
-                          color: theme.colorScheme.primary,
+                      width: AppTokens.sheetGrabberMiniWidth,
+                      height: AppTokens.sheetGrabberMiniHeight,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: AppTokens.alphaTintStrong,
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          l10n.manualTOC,
-                          style: const TextStyle(
-                            fontSize: AppTokens.textSubtitleSize,
-                            fontWeight: FontWeight.w700,
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusPill,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 6,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.menu_book_outlined,
+                            size: 20,
+                            color: theme.colorScheme.primary,
                           ),
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          icon: const Icon(Icons.close, size: 20),
-                          onPressed: () => Navigator.of(ctx).pop(),
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          Text(
+                            l10n.manualTOC,
+                            style: const TextStyle(
+                              fontSize: AppTokens.textSubtitleSize,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            icon: const Icon(Icons.close, size: 20),
+                            onPressed: () => Navigator.of(ctx).pop(),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const Divider(height: 1),
-                  Expanded(
-                    child: ListView.builder(
-                      controller: scrollController,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      itemCount: _tocItems.length,
-                      itemBuilder: (context, index) {
-                        final item = _tocItems[index];
-                        final isSelected = item.id == _activeSectionId;
-                        return _TocListTile(
-                          item: item,
-                          isSelected: isSelected,
-                          onTap: () {
-                            Navigator.of(ctx).pop();
-                            _scrollToSection(item.id);
+                    const Divider(height: 1),
+                    Expanded(
+                      child: AppScrollFadeWrapper(
+                        scrollController: scrollController,
+                        child: ListView.builder(
+                          controller: scrollController,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          itemCount: _tocItems.length,
+                          itemBuilder: (context, index) {
+                            final item = _tocItems[index];
+                            final isSelected = item.id == _activeSectionId;
+                            return _TocListTile(
+                              item: item,
+                              isSelected: isSelected,
+                              onTap: () {
+                                Navigator.of(ctx).pop();
+                                _scrollToSection(item.id);
+                              },
+                            );
                           },
-                        );
-                      },
+                        ),
+                      ),
                     ),
-                  ),
-                ],
-              );
-            },
-          ),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
