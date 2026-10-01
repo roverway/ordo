@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:drift_flutter/drift_flutter.dart';
@@ -14,9 +15,19 @@ part 'database.g.dart';
 /// v4：新增 folders 表 + projects 新增 folderId 列（NULL = 未分组）；
 /// v5：新增 custom_views 表（docs/65-custom-views-and-panels.md §4.3）；
 /// v6：projects 新增 icon 列，folders 新增 icon 与 color 列；
-/// v7：tasks 新增 completedAt 列。
+/// v7：tasks 新增 completedAt 列；
+/// v8：tasks/task_tags 新增 5 个复合索引，新增 sync_tombstones 独立表并迁移历史 settings 墓碑。
 @DriftDatabase(
-  tables: [Projects, Folders, Tasks, Tags, TaskTags, Settings, CustomViews],
+  tables: [
+    Projects,
+    Folders,
+    Tasks,
+    Tags,
+    TaskTags,
+    Settings,
+    CustomViews,
+    SyncTombstones,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
@@ -29,7 +40,7 @@ class AppDatabase extends _$AppDatabase {
       AppDatabase(executor ?? NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -66,6 +77,66 @@ class AppDatabase extends _$AppDatabase {
       // v6 → v7：tasks 新增 completedAt 列（UTC 毫秒完成时间戳）。
       if (from < 7) {
         await m.addColumn(tasks, tasks.completedAt);
+      }
+      // v7 → v8（docs/96-code-review P1-1/P1-2）：
+      // 1. 为 tasks 与 task_tags 创建高频复合索引；
+      // 2. 新增 sync_tombstones 独立表；
+      // 3. 将 settings 表历史 'sync_tombstones' JSON 迁移入 sync_tombstones 表。
+      if (from < 8) {
+        await m.createTable(syncTombstones);
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_tasks_deleted_project_order ON tasks(deleted, project_id, sort_order)',
+        );
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_tasks_deleted_parent_order ON tasks(deleted, parent_id, sort_order)',
+        );
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_tasks_deleted_status_order ON tasks(deleted, status, sort_order)',
+        );
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_tasks_deleted_due ON tasks(deleted, end_at, sort_order)',
+        );
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_task_tags_tag_task ON task_tags(tag_id, task_id)',
+        );
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_sync_tombstones_updated_at ON sync_tombstones(updated_at)',
+        );
+
+        // 迁移 settings 表历史墓碑 JSON
+        final legacyRow = await customSelect(
+          "SELECT value FROM settings WHERE key = 'sync_tombstones'",
+        ).getSingleOrNull();
+        if (legacyRow != null) {
+          final rawJson = legacyRow.read<String>('value');
+          try {
+            final decoded = jsonDecode(rawJson);
+            if (decoded is List) {
+              for (final item in decoded) {
+                if (item is Map) {
+                  final entityType = item['type'] as String?;
+                  final entityId = item['id'] as String?;
+                  final updatedAt = item['updatedAt'] as int?;
+                  if (entityType != null &&
+                      entityType.isNotEmpty &&
+                      entityId != null &&
+                      entityId.isNotEmpty &&
+                      updatedAt != null) {
+                    await into(syncTombstones).insertOnConflictUpdate(
+                      SyncTombstonesCompanion.insert(
+                        entityType: entityType,
+                        entityId: entityId,
+                        updatedAt: updatedAt,
+                      ),
+                    );
+                  }
+                }
+              }
+            }
+          } catch (_) {
+            // 历史损坏数据安全降级忽略
+          }
+        }
       }
     },
     beforeOpen: (details) async {

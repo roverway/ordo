@@ -1150,8 +1150,21 @@ class TodoRepository {
 
   // ───────────────────────── 墓碑集合（同步引擎 D1/D2） ───────────────────────
 
-  /// 读取墓碑集合（settings `sync_tombstones`，崩溃安全：非 JSON/损坏视为空）。
+  /// 读取墓碑集合（优先从 sync_tombstones 独立表读取；若为空则兼容读取 settings 历史墓碑）。
   Future<List<TombstoneEntry>> readTombstones() async {
+    final rows = await database.select(database.syncTombstones).get();
+    if (rows.isNotEmpty) {
+      return rows
+          .map(
+            (r) => TombstoneEntry(
+              type: r.entityType,
+              id: r.entityId,
+              updatedAt: r.updatedAt,
+            ),
+          )
+          .toList();
+    }
+    // 兼容历史 settings 存储（若尚未迁移或测试场景）
     final raw = await settings.get(_kSyncTombstonesKey);
     if (raw == null || raw.isEmpty) return const [];
     try {
@@ -1181,10 +1194,11 @@ class TodoRepository {
   /// >90 天清理；清理仅影响墓碑集合，不影响本地 DB 与远端）。
   Future<void> pruneTombstones(int olderThan) async {
     await database.transaction(() async {
-      final kept = (await readTombstones())
-          .where((e) => e.updatedAt >= olderThan)
-          .toList();
-      await _writeTombstones(kept);
+      await (database.delete(
+        database.syncTombstones,
+      )..where((t) => t.updatedAt.isSmallerThanValue(olderThan))).go();
+      // 同步清理兼容 settings
+      await settings.remove(_kSyncTombstonesKey);
     });
   }
 
@@ -1374,30 +1388,35 @@ class TodoRepository {
   Future<void> _appendTombstones(Iterable<TombstoneEntry> entries) =>
       _mergeTombstonesInner(entries);
 
-  /// 合并墓碑条目核心实现（假定已在事务内）。
+  /// 合并墓碑条目核心实现（在事务内逐条执行 upsert）。
   Future<void> _mergeTombstonesInner(Iterable<TombstoneEntry> entries) async {
     final list = entries.toList();
     if (list.isEmpty) return;
-    final existing = await readTombstones();
-    final map = <String, TombstoneEntry>{
-      for (final e in existing) '${e.type}:${e.id}': e,
-    };
     for (final e in list) {
-      final key = '${e.type}:${e.id}';
-      final current = map[key];
-      if (current == null || e.updatedAt > current.updatedAt) {
-        map[key] = e;
+      if (e.id.isEmpty) continue;
+      // 检查已存墓碑并按 LWW 保留更大 updatedAt
+      final existing =
+          await (database.select(database.syncTombstones)..where(
+                (t) => t.entityType.equals(e.type) & t.entityId.equals(e.id),
+              ))
+              .getSingleOrNull();
+      if (existing == null) {
+        await database
+            .into(database.syncTombstones)
+            .insert(
+              SyncTombstonesCompanion.insert(
+                entityType: e.type,
+                entityId: e.id,
+                updatedAt: e.updatedAt,
+              ),
+            );
+      } else if (e.updatedAt > existing.updatedAt) {
+        await (database.update(database.syncTombstones)..where(
+              (t) => t.entityType.equals(e.type) & t.entityId.equals(e.id),
+            ))
+            .write(SyncTombstonesCompanion(updatedAt: Value(e.updatedAt)));
       }
     }
-    await _writeTombstones(map.values);
-  }
-
-  /// 整体覆盖墓碑集合。
-  Future<void> _writeTombstones(Iterable<TombstoneEntry> entries) {
-    return settings.set(
-      _kSyncTombstonesKey,
-      jsonEncode([for (final e in entries) e.toJson()]),
-    );
   }
 
   // ───────────────────────────── 校验辅助 ─────────────────────────────

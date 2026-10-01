@@ -123,6 +123,22 @@ class Folders extends Table {
 ///
 /// 参与同步：必须带 id / updatedAt / deleted 三字段（AGENTS.md §3-3）。
 /// 层级不落 level 字段，由 parentId 链推导（最大深度 3）。
+@TableIndex(
+  name: 'idx_tasks_deleted_project_order',
+  columns: {#deleted, #projectId, #sortOrder},
+)
+@TableIndex(
+  name: 'idx_tasks_deleted_parent_order',
+  columns: {#deleted, #parentId, #sortOrder},
+)
+@TableIndex(
+  name: 'idx_tasks_deleted_status_order',
+  columns: {#deleted, #status, #sortOrder},
+)
+@TableIndex(
+  name: 'idx_tasks_deleted_due',
+  columns: {#deleted, #endAt, #sortOrder},
+)
 class Tasks extends Table {
   TextColumn get id => text()();
   TextColumn get projectId => text().references(Projects, #id)();
@@ -184,6 +200,7 @@ class Tags extends Table {
 /// 任务-标签联表（docs/40-data-model.md §2.4）。
 ///
 /// **不参与同步**：快照中 tagIds 内嵌于 task 记录，合并时整体重建。
+@TableIndex(name: 'idx_task_tags_tag_task', columns: {#tagId, #taskId})
 class TaskTags extends Table {
   TextColumn get taskId => text().references(Tasks, #id)();
   TextColumn get tagId => text().references(Tags, #id)();
@@ -241,4 +258,22 @@ class CustomViews extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
+}
+
+/// 同步墓碑表（docs/96-code-review P1-1，替代 settings 巨型 JSON 存储）。
+///
+/// 存储物理删除的实体墓碑，供增量与全量同步导出；保留 90 天后修剪。
+@TableIndex(name: 'idx_sync_tombstones_updated_at', columns: {#updatedAt})
+class SyncTombstones extends Table {
+  /// 实体类型：'project' | 'task' | 'tag' | 'folder' | 'custom_view'。
+  TextColumn get entityType => text()();
+
+  /// 被删除实体 UUID。
+  TextColumn get entityId => text()();
+
+  /// 删除时刻（UTC 毫秒时间戳，LWW 依据）。
+  IntColumn get updatedAt => integer()();
+
+  @override
+  Set<Column> get primaryKey => {entityType, entityId};
 }

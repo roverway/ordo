@@ -75,12 +75,12 @@ void main() {
     await db.close();
   });
 
-  test('schemaVersion = 7', () {
-    expect(db.schemaVersion, 7);
+  test('schemaVersion = 8', () {
+    expect(db.schemaVersion, 8);
   });
 
   test(
-    'onCreate 建出全部 7 张表（含 tasks.priority / tasks.completed_at / projects.description / folders / custom_views）',
+    'onCreate 建出全部 8 张表（含 tasks.priority / tasks.completed_at / projects.description / folders / custom_views / sync_tombstones）',
     () async {
       final rows = await db
           .customSelect('SELECT name FROM sqlite_master WHERE type = \'table\'')
@@ -96,6 +96,7 @@ void main() {
           'task_tags',
           'settings',
           'custom_views',
+          'sync_tombstones',
         ]),
       );
 
@@ -701,5 +702,172 @@ void main() {
     final updated = await migratedRepo.tasks.getById('t1');
     expect(updated?.status, TaskStatus.done);
     expect(updated?.completedAt, isNotNull);
+  });
+
+  test('v7 → v8 真实迁移：复合物理索引创建、sync_tombstones 独立表创建及 settings 历史墓碑无损导入', () async {
+    final dbDir = Directory.systemTemp.createTempSync('migration_v7_v8_');
+    addTearDown(() => dbDir.deleteSync(recursive: true));
+    final dbPath = '${dbDir.path}/v7.sqlite';
+
+    final raw = sqlite3.open(dbPath);
+    raw.execute("""
+      CREATE TABLE folders (
+        id TEXT NOT NULL PRIMARY KEY,
+        name TEXT NOT NULL,
+        color INTEGER,
+        icon TEXT,
+        sort_order INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        deleted INTEGER NOT NULL DEFAULT 0
+      );
+    """);
+    raw.execute("""
+      CREATE TABLE projects (
+        id TEXT NOT NULL PRIMARY KEY,
+        name TEXT NOT NULL,
+        color INTEGER NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        icon TEXT,
+        folder_id TEXT REFERENCES folders (id),
+        sort_order INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        deleted INTEGER NOT NULL DEFAULT 0
+      );
+    """);
+    raw.execute("""
+      CREATE TABLE tasks (
+        id TEXT NOT NULL PRIMARY KEY,
+        project_id TEXT NOT NULL REFERENCES projects (id),
+        parent_id TEXT REFERENCES tasks (id),
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        notes TEXT NOT NULL,
+        start_at INTEGER,
+        end_at INTEGER,
+        status INTEGER NOT NULL,
+        completed_at INTEGER,
+        priority INTEGER NOT NULL DEFAULT 0,
+        sort_order INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        deleted INTEGER NOT NULL DEFAULT 0
+      );
+    """);
+    raw.execute("""
+      CREATE TABLE tags (
+        id TEXT NOT NULL PRIMARY KEY,
+        name TEXT NOT NULL,
+        color INTEGER NOT NULL,
+        sort_order INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        deleted INTEGER NOT NULL DEFAULT 0
+      );
+    """);
+    raw.execute("""
+      CREATE TABLE task_tags (
+        task_id TEXT NOT NULL REFERENCES tasks (id),
+        tag_id TEXT NOT NULL REFERENCES tags (id),
+        PRIMARY KEY (task_id, tag_id)
+      );
+    """);
+    raw.execute("""
+      CREATE TABLE settings (
+        key TEXT NOT NULL PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+    """);
+    raw.execute("""
+      CREATE TABLE custom_views (
+        id TEXT NOT NULL PRIMARY KEY,
+        name TEXT NOT NULL,
+        icon TEXT,
+        color INTEGER,
+        panels_json TEXT NOT NULL DEFAULT '[]',
+        sort_order INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        deleted INTEGER NOT NULL DEFAULT 0
+      );
+    """);
+    raw.execute("""
+      INSERT INTO projects VALUES ('p1', '旧项目', 4283215696, '旧描述', NULL, NULL, 0, 1000, 1000, 0);
+    """);
+    raw.execute("""
+      INSERT INTO tasks (id, project_id, parent_id, title, description, notes,
+        start_at, end_at, status, completed_at, priority, sort_order, created_at, updated_at, deleted)
+      VALUES ('t1', 'p1', NULL, '旧任务', '', '', NULL, NULL, 0, NULL, 0, 0, 1000, 1000, 0);
+    """);
+    raw.execute("""
+      INSERT INTO settings (key, value) VALUES ('sync_tombstones', '[{"type":"task","id":"t-deleted-1","updatedAt":1500},{"type":"project","id":"p-deleted-1","updatedAt":1600}]');
+    """);
+    raw.execute('PRAGMA user_version = 7');
+    raw.dispose();
+
+    // 2. 用 AppDatabase 打开同一个文件（触发 onUpgrade 7 → 8）
+    final migrated = AppDatabase(NativeDatabase(File(dbPath)));
+    addTearDown(() => migrated.close());
+
+    // 3. 断言验证物理索引已被自动创建
+    final taskIndexes = await migrated
+        .customSelect(
+          "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='tasks'",
+        )
+        .get();
+    final taskIndexNames = taskIndexes
+        .map((r) => r.data['name'] as String)
+        .toSet();
+    expect(taskIndexNames, contains('idx_tasks_deleted_project_order'));
+    expect(taskIndexNames, contains('idx_tasks_deleted_parent_order'));
+    expect(taskIndexNames, contains('idx_tasks_deleted_status_order'));
+    expect(taskIndexNames, contains('idx_tasks_deleted_due'));
+
+    final taskTagIndexes = await migrated
+        .customSelect(
+          "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='task_tags'",
+        )
+        .get();
+    final taskTagIndexNames = taskTagIndexes
+        .map((r) => r.data['name'] as String)
+        .toSet();
+    expect(taskTagIndexNames, contains('idx_task_tags_tag_task'));
+
+    // 4. 断言验证 sync_tombstones 独立表存在且历史墓碑已导入
+    final migratedRepo = TodoRepository(database: migrated);
+    final tombstones = await migratedRepo.readTombstones();
+    expect(tombstones.length, 2);
+    expect(
+      tombstones.any(
+        (t) => t.type == 'task' && t.id == 't-deleted-1' && t.updatedAt == 1500,
+      ),
+      isTrue,
+    );
+    expect(
+      tombstones.any(
+        (t) =>
+            t.type == 'project' && t.id == 'p-deleted-1' && t.updatedAt == 1600,
+      ),
+      isTrue,
+    );
+
+    // 5. 验证新方案下的墓碑合并与修剪功能
+    await migratedRepo.mergeTombstones([
+      TombstoneEntry(type: 'task', id: 't-deleted-1', updatedAt: 2000),
+      TombstoneEntry(type: 'tag', id: 'tag-deleted-1', updatedAt: 1800),
+    ]);
+    final updatedTombstones = await migratedRepo.readTombstones();
+    expect(updatedTombstones.length, 3);
+    final updatedT1 = updatedTombstones.firstWhere(
+      (t) => t.id == 't-deleted-1',
+    );
+    expect(updatedT1.updatedAt, 2000);
+
+    // 修剪 1700 之前的墓碑（p-deleted-1 应该被 prune）
+    await migratedRepo.pruneTombstones(1700);
+    final pruned = await migratedRepo.readTombstones();
+    expect(pruned.length, 2);
+    expect(pruned.any((t) => t.id == 'p-deleted-1'), isFalse);
   });
 }

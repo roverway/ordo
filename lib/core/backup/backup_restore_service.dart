@@ -216,7 +216,8 @@ class BackupRestoreService {
       await _db.delete(_db.folders).go();
       await _db.delete(_db.tags).go();
 
-      // 2. 清除设置中的历史同步墓碑与远端基准状态，确保不会被旧删除墓碑冲刷
+      // 2. 清除设置与墓碑表中的历史同步墓碑与远端基准状态，确保不会被旧删除墓碑冲刷
+      await _db.delete(_db.syncTombstones).go();
       await (_db.delete(_db.settings)..where(
             (s) => s.key.isIn([
               SyncSettingsKeys.tombstones,
