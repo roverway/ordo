@@ -91,7 +91,7 @@ IGNORE_PATHS = {
 }
 
 # 棘轮上限：当前基线 15 个，后续重构治理只许减少不许增加
-MAX_ALLOWED = 15
+MAX_ALLOWED = 14
 
 large_files = []
 for root, _, files in os.walk(os.path.join(repo_root, 'lib')):

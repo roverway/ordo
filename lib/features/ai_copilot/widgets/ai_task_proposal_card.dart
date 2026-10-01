@@ -3,7 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:ordo/core/ai/models/ai_task_parse_result.dart';
 import 'package:ordo/core/l10n/app_localizations.dart';
 import 'package:ordo/core/theme/app_tokens.dart';
-import 'proposal_substep_tile.dart';
+
+import 'proposal_action_bar.dart';
+import 'proposal_date_picker_sheets.dart';
+import 'proposal_metadata_badges.dart';
+import 'proposal_substeps_section.dart';
 
 /// Linear-style task proposal card rendered inside AI Copilot chat list.
 ///
@@ -141,18 +145,13 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
     if (!isInteractive) return;
     HapticFeedback.selectionClick();
 
-    // 3 -> 2 -> 1 -> 0 -> 3
-    final cur = widget.proposal.priority;
-    final int next;
-    if (cur == 3) {
-      next = 2;
-    } else if (cur == 2) {
-      next = 1;
-    } else if (cur == 1) {
-      next = 0;
-    } else {
-      next = 3;
-    }
+    // Cyclic sequence: P1 (3) -> P2 (2) -> P3 (1) -> None (0) -> P1 (3)
+    final next = switch (widget.proposal.priority) {
+      3 => 2,
+      2 => 1,
+      1 => 0,
+      _ => 3,
+    };
 
     final updated = widget.proposal.copyWith(priority: next);
     widget.onProposalChanged?.call(updated);
@@ -176,322 +175,19 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
 
   Future<void> _showDueDatePicker(BuildContext context) async {
     if (!isInteractive) return;
-    HapticFeedback.selectionClick();
-    final l10n = AppLocalizations.of(context);
-    final now = DateTime.now();
-
-    await showModalBottomSheet<void>(
+    await showProposalDueDatePicker(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (bottomSheetContext) {
-        final theme = Theme.of(bottomSheetContext);
-        final isDark = theme.brightness == Brightness.dark;
-        final sheetBg = isDark
-            ? AppTokens.surfaceCardDark
-            : AppTokens.surfaceCard;
-        final borderColor = isDark
-            ? AppTokens.borderSubtleDark
-            : AppTokens.borderSubtleLight;
-
-        return Container(
-          decoration: BoxDecoration(
-            color: sheetBg,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(AppTokens.radiusCard),
-            ),
-            border: Border.all(color: borderColor, width: 0.5),
-          ),
-          padding: const EdgeInsets.all(AppTokens.spaceMd),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? AppTokens.borderSubtleDark
-                        : AppTokens.borderSubtleLight,
-                    borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppTokens.spaceSm),
-              Text(
-                l10n.aiSetDueDate,
-                style: TextStyle(
-                  fontSize: AppTokens.textBodySize,
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: AppTokens.spaceSm),
-              Wrap(
-                spacing: AppTokens.spaceXs,
-                runSpacing: AppTokens.spaceXs,
-                children: [
-                  ActionChip(
-                    label: Text(l10n.aiPresetToday18),
-                    onPressed: () {
-                      Navigator.pop(bottomSheetContext);
-                      final dt = DateTime(now.year, now.month, now.day, 18, 0);
-                      _updateDueAt(dt.millisecondsSinceEpoch);
-                    },
-                  ),
-                  ActionChip(
-                    label: Text(l10n.aiPresetTonight21),
-                    onPressed: () {
-                      Navigator.pop(bottomSheetContext);
-                      final dt = DateTime(now.year, now.month, now.day, 21, 0);
-                      _updateDueAt(dt.millisecondsSinceEpoch);
-                    },
-                  ),
-                  ActionChip(
-                    label: Text(l10n.aiPresetTomorrow09),
-                    onPressed: () {
-                      Navigator.pop(bottomSheetContext);
-                      final dt = DateTime(
-                        now.year,
-                        now.month,
-                        now.day + 1,
-                        9,
-                        0,
-                      );
-                      _updateDueAt(dt.millisecondsSinceEpoch);
-                    },
-                  ),
-                  ActionChip(
-                    label: Text(l10n.aiPresetThisFriday18),
-                    onPressed: () {
-                      Navigator.pop(bottomSheetContext);
-                      final days = (DateTime.friday - now.weekday + 7) % 7;
-                      final targetDay = days == 0 ? 7 : days;
-                      final dt = DateTime(
-                        now.year,
-                        now.month,
-                        now.day + targetDay,
-                        18,
-                        0,
-                      );
-                      _updateDueAt(dt.millisecondsSinceEpoch);
-                    },
-                  ),
-                  ActionChip(
-                    label: Text(l10n.aiPresetNextMonday09),
-                    onPressed: () {
-                      Navigator.pop(bottomSheetContext);
-                      final days = (DateTime.monday - now.weekday + 7) % 7;
-                      final targetDay = days == 0 ? 7 : days;
-                      final dt = DateTime(
-                        now.year,
-                        now.month,
-                        now.day + targetDay,
-                        9,
-                        0,
-                      );
-                      _updateDueAt(dt.millisecondsSinceEpoch);
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppTokens.spaceSm),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  Navigator.pop(bottomSheetContext);
-                  final pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: widget.proposal.dueAt != null
-                        ? DateTime.fromMillisecondsSinceEpoch(
-                            widget.proposal.dueAt!,
-                          )
-                        : now,
-                    firstDate: now.subtract(const Duration(days: 365)),
-                    lastDate: now.add(const Duration(days: 3650)),
-                  );
-                  if (pickedDate == null || !context.mounted) return;
-                  final pickedTime = await showTimePicker(
-                    context: context,
-                    initialTime: const TimeOfDay(hour: 18, minute: 0),
-                  );
-                  if (!context.mounted) return;
-                  final hour = pickedTime?.hour ?? 18;
-                  final minute = pickedTime?.minute ?? 0;
-                  final finalDt = DateTime(
-                    pickedDate.year,
-                    pickedDate.month,
-                    pickedDate.day,
-                    hour,
-                    minute,
-                  );
-                  _updateDueAt(finalDt.millisecondsSinceEpoch);
-                },
-                icon: const Icon(Icons.edit_calendar_outlined, size: 16),
-                label: Text(l10n.aiCustomDateTime),
-              ),
-              if (widget.proposal.dueAt != null) ...[
-                const SizedBox(height: AppTokens.spaceXs),
-                TextButton.icon(
-                  onPressed: () {
-                    Navigator.pop(bottomSheetContext);
-                    _updateDueAt(null);
-                  },
-                  icon: const Icon(Icons.clear, size: 16),
-                  label: Text(l10n.aiClearDueDate),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTokens.colorDanger,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        );
-      },
+      initialDueAt: widget.proposal.dueAt,
+      onDateSelected: _updateDueAt,
     );
   }
 
   Future<void> _showStartDatePicker(BuildContext context) async {
     if (!isInteractive) return;
-    HapticFeedback.selectionClick();
-    final l10n = AppLocalizations.of(context);
-    final now = DateTime.now();
-
-    await showModalBottomSheet<void>(
+    await showProposalStartDatePicker(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (bottomSheetContext) {
-        final theme = Theme.of(bottomSheetContext);
-        final isDark = theme.brightness == Brightness.dark;
-        final sheetBg = isDark
-            ? AppTokens.surfaceCardDark
-            : AppTokens.surfaceCard;
-        final borderColor = isDark
-            ? AppTokens.borderSubtleDark
-            : AppTokens.borderSubtleLight;
-
-        return Container(
-          decoration: BoxDecoration(
-            color: sheetBg,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(AppTokens.radiusCard),
-            ),
-            border: Border.all(color: borderColor, width: 0.5),
-          ),
-          padding: const EdgeInsets.all(AppTokens.spaceMd),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? AppTokens.borderSubtleDark
-                        : AppTokens.borderSubtleLight,
-                    borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppTokens.spaceSm),
-              Text(
-                l10n.aiSetStartDate,
-                style: TextStyle(
-                  fontSize: AppTokens.textBodySize,
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: AppTokens.spaceSm),
-              Wrap(
-                spacing: AppTokens.spaceXs,
-                runSpacing: AppTokens.spaceXs,
-                children: [
-                  ActionChip(
-                    label: Text(l10n.aiPresetNow),
-                    onPressed: () {
-                      Navigator.pop(bottomSheetContext);
-                      _updateStartAt(now.millisecondsSinceEpoch);
-                    },
-                  ),
-                  ActionChip(
-                    label: Text(l10n.aiPresetToday14),
-                    onPressed: () {
-                      Navigator.pop(bottomSheetContext);
-                      final dt = DateTime(now.year, now.month, now.day, 14, 0);
-                      _updateStartAt(dt.millisecondsSinceEpoch);
-                    },
-                  ),
-                  ActionChip(
-                    label: Text(l10n.aiPresetTomorrow09),
-                    onPressed: () {
-                      Navigator.pop(bottomSheetContext);
-                      final dt = DateTime(
-                        now.year,
-                        now.month,
-                        now.day + 1,
-                        9,
-                        0,
-                      );
-                      _updateStartAt(dt.millisecondsSinceEpoch);
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppTokens.spaceSm),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  Navigator.pop(bottomSheetContext);
-                  final pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: widget.proposal.startAt != null
-                        ? DateTime.fromMillisecondsSinceEpoch(
-                            widget.proposal.startAt!,
-                          )
-                        : now,
-                    firstDate: now.subtract(const Duration(days: 365)),
-                    lastDate: now.add(const Duration(days: 3650)),
-                  );
-                  if (pickedDate == null || !context.mounted) return;
-                  final pickedTime = await showTimePicker(
-                    context: context,
-                    initialTime: const TimeOfDay(hour: 9, minute: 0),
-                  );
-                  if (!context.mounted) return;
-                  final hour = pickedTime?.hour ?? 9;
-                  final minute = pickedTime?.minute ?? 0;
-                  final finalDt = DateTime(
-                    pickedDate.year,
-                    pickedDate.month,
-                    pickedDate.day,
-                    hour,
-                    minute,
-                  );
-                  _updateStartAt(finalDt.millisecondsSinceEpoch);
-                },
-                icon: const Icon(Icons.edit_calendar_outlined, size: 16),
-                label: Text(l10n.aiCustomDateTime),
-              ),
-              if (widget.proposal.startAt != null) ...[
-                const SizedBox(height: AppTokens.spaceXs),
-                TextButton.icon(
-                  onPressed: () {
-                    Navigator.pop(bottomSheetContext);
-                    _updateStartAt(null);
-                  },
-                  icon: const Icon(Icons.clear, size: 16),
-                  label: Text(l10n.aiClearStartDate),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTokens.colorDanger,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        );
-      },
+      initialStartAt: widget.proposal.startAt,
+      onDateSelected: _updateStartAt,
     );
   }
 
@@ -602,24 +298,6 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
     });
   }
 
-  String _formatDateTime(int epochMs) {
-    final dt = DateTime.fromMillisecondsSinceEpoch(epochMs);
-    final month = dt.month.toString().padLeft(2, '0');
-    final day = dt.day.toString().padLeft(2, '0');
-    final hour = dt.hour.toString().padLeft(2, '0');
-    final minute = dt.minute.toString().padLeft(2, '0');
-    return '$month-$day $hour:$minute';
-  }
-
-  (String, Color) _priorityInfo(AppLocalizations l10n, int priority) {
-    return switch (priority) {
-      3 => (l10n.aiPriorityP1, AppTokens.colorPriorityHigh),
-      2 => (l10n.aiPriorityP2, AppTokens.colorPriorityMedium),
-      1 => (l10n.aiPriorityP3, AppTokens.colorPriorityLow),
-      _ => (l10n.aiPriorityNone, AppTokens.textMutedDark),
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -640,11 +318,6 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
     final secondaryTextColor = isDark
         ? AppTokens.textMutedDark
         : AppTokens.textMutedLight;
-
-    final (priorityLabel, priorityColor) = _priorityInfo(
-      l10n,
-      widget.proposal.priority,
-    );
 
     return Container(
       decoration: BoxDecoration(
@@ -901,456 +574,55 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
           const SizedBox(height: AppTokens.spaceSm),
 
           // Metadata badges: Priority, Start Time, Due Date, Tags
-          Wrap(
-            spacing: AppTokens.spaceXs,
-            runSpacing: AppTokens.spaceXs,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              // Priority badge (Interactive cyclic toggle)
-              InkWell(
-                borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
-                onTap: isInteractive ? _cyclePriority : null,
-                child: Tooltip(
-                  message: isInteractive
-                      ? l10n.aiTapToCyclePriority
-                      : priorityLabel,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppTokens.spaceXs,
-                      vertical: AppTokens.spaceMicro,
-                    ),
-                    decoration: BoxDecoration(
-                      color: priorityColor.withValues(
-                        alpha: AppTokens.alphaTintSoft,
-                      ),
-                      borderRadius: BorderRadius.circular(
-                        AppTokens.radiusMicro,
-                      ),
-                      border: Border.all(
-                        color: priorityColor.withValues(
-                          alpha: AppTokens.alphaBorderSubtle,
-                        ),
-                        width: 0.5,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: priorityColor,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: AppTokens.spaceXxs),
-                        Text(
-                          priorityLabel,
-                          style: TextStyle(
-                            fontSize: AppTokens.textMicroSize,
-                            fontWeight: AppTokens.textMicroWeight,
-                            color: priorityColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // Start date badge (Tap to set/change)
-              if (widget.proposal.startAt != null)
-                InkWell(
-                  borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
-                  onTap: () => _showStartDatePicker(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppTokens.spaceXs,
-                      vertical: AppTokens.spaceMicro,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppTokens.surfaceSubtleDark
-                          : AppTokens.surfaceSubtleLight,
-                      borderRadius: BorderRadius.circular(
-                        AppTokens.radiusMicro,
-                      ),
-                      border: Border.all(color: borderColor, width: 0.5),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.play_circle_outline,
-                          size: AppTokens.textMicroSize + 2,
-                          color: secondaryTextColor,
-                        ),
-                        const SizedBox(width: AppTokens.spaceXxs),
-                        Text(
-                          l10n.aiStartPrefix(
-                            _formatDateTime(widget.proposal.startAt!),
-                          ),
-                          style: TextStyle(
-                            fontSize: AppTokens.textMicroSize,
-                            fontWeight: AppTokens.textMicroWeight,
-                            color: secondaryTextColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else if (isInteractive)
-                InkWell(
-                  borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
-                  onTap: () => _showStartDatePicker(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppTokens.spaceXs,
-                      vertical: AppTokens.spaceMicro,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(
-                        AppTokens.radiusMicro,
-                      ),
-                      border: Border.all(
-                        color: borderColor,
-                        width: 0.5,
-                        style: BorderStyle.solid,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.play_arrow_outlined,
-                          size: 13,
-                          color: secondaryTextColor,
-                        ),
-                        const SizedBox(width: AppTokens.spaceXxs),
-                        Text(
-                          l10n.aiAddStartAction,
-                          style: TextStyle(
-                            fontSize: AppTokens.textMicroSize,
-                            color: secondaryTextColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-              // Due date badge (Tap to set/change)
-              if (widget.proposal.dueAt != null)
-                InkWell(
-                  borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
-                  onTap: () => _showDueDatePicker(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppTokens.spaceXs,
-                      vertical: AppTokens.spaceMicro,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppTokens.surfaceSubtleDark
-                          : AppTokens.surfaceSubtleLight,
-                      borderRadius: BorderRadius.circular(
-                        AppTokens.radiusMicro,
-                      ),
-                      border: Border.all(color: borderColor, width: 0.5),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.event_outlined,
-                          size: AppTokens.textMicroSize + 2,
-                          color: secondaryTextColor,
-                        ),
-                        const SizedBox(width: AppTokens.spaceXxs),
-                        Text(
-                          _formatDateTime(widget.proposal.dueAt!),
-                          style: TextStyle(
-                            fontSize: AppTokens.textMicroSize,
-                            fontWeight: AppTokens.textMicroWeight,
-                            color: secondaryTextColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else if (isInteractive)
-                InkWell(
-                  borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
-                  onTap: () => _showDueDatePicker(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppTokens.spaceXs,
-                      vertical: AppTokens.spaceMicro,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(
-                        AppTokens.radiusMicro,
-                      ),
-                      border: Border.all(color: borderColor, width: 0.5),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.event_available_outlined,
-                          size: 13,
-                          color: secondaryTextColor,
-                        ),
-                        const SizedBox(width: AppTokens.spaceXxs),
-                        Text(
-                          l10n.aiAddDueAction,
-                          style: TextStyle(
-                            fontSize: AppTokens.textMicroSize,
-                            color: secondaryTextColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-              // Tags
-              for (final tag in widget.proposal.tags)
-                Container(
-                  padding: const EdgeInsets.only(
-                    left: AppTokens.spaceXs,
-                    right: AppTokens.spaceXxs,
-                    top: AppTokens.spaceMicro,
-                    bottom: AppTokens.spaceMicro,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? AppTokens.surfaceSubtleDark
-                        : AppTokens.surfaceSubtleLight,
-                    borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
-                    border: Border.all(color: borderColor, width: 0.5),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '#$tag',
-                        style: TextStyle(
-                          fontSize: AppTokens.textMicroSize,
-                          fontWeight: AppTokens.textMicroWeight,
-                          color: secondaryTextColor,
-                        ),
-                      ),
-                      if (isInteractive) ...[
-                        const SizedBox(width: AppTokens.spaceXxs),
-                        InkWell(
-                          onTap: () => _removeTag(tag),
-                          child: Icon(
-                            Icons.close,
-                            size: 12,
-                            color: secondaryTextColor.withValues(
-                              alpha: AppTokens.alphaOverlayHeavy,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-
-              // Add Tag action chip
-              if (isInteractive)
-                InkWell(
-                  borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
-                  onTap: () => _promptAddTag(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppTokens.spaceXs,
-                      vertical: AppTokens.spaceMicro,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(
-                        AppTokens.radiusMicro,
-                      ),
-                      border: Border.all(color: borderColor, width: 0.5),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.tag, size: 13, color: secondaryTextColor),
-                        const SizedBox(width: AppTokens.spaceXxs),
-                        Text(
-                          l10n.aiAddTagAction,
-                          style: TextStyle(
-                            fontSize: AppTokens.textMicroSize,
-                            color: secondaryTextColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
+          ProposalMetadataBadges(
+            proposal: widget.proposal,
+            isInteractive: isInteractive,
+            onCyclePriority: _cyclePriority,
+            onPickStartDate: () => _showStartDatePicker(context),
+            onPickDueDate: () => _showDueDatePicker(context),
+            onRemoveTag: _removeTag,
+            onAddTag: () => _promptAddTag(context),
           ),
 
           // Substeps Section
-          if (widget.proposal.substeps.isNotEmpty || isInteractive) ...[
-            const SizedBox(height: AppTokens.spaceMd),
-            Divider(height: 1, thickness: 0.5, color: borderColor),
-            const SizedBox(height: AppTokens.spaceSm),
-            Row(
-              children: [
-                Text(
-                  l10n.aiSubstepsTitle,
-                  style: TextStyle(
-                    fontSize: AppTokens.textFootnoteSize,
-                    fontWeight: FontWeight.w600,
-                    color: secondaryTextColor,
-                  ),
-                ),
-                const SizedBox(width: AppTokens.spaceXs),
-                Text(
-                  '${widget.selectedSubstepIndices.length}/${widget.proposal.substeps.length}',
-                  style: TextStyle(
-                    fontSize: AppTokens.textMicroSize,
-                    color: secondaryTextColor,
-                  ),
-                ),
-                const Spacer(),
-                if (isInteractive)
-                  InkWell(
-                    borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
-                    onTap: _addSubstep,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppTokens.spaceXs,
-                        vertical: AppTokens.spaceMicro,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.add,
-                            size: 14,
-                            color: theme.colorScheme.primary,
-                          ),
-                          const SizedBox(width: AppTokens.spaceXxs),
-                          Text(
-                            l10n.aiAddSubstepAction,
-                            style: TextStyle(
-                              fontSize: AppTokens.textMicroSize,
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: AppTokens.spaceXs),
-            for (int i = 0; i < widget.proposal.substeps.length; i++) ...[
-              ProposalSubstepTile(
-                key: ValueKey(i),
-                index: i,
-                substep: widget.proposal.substeps[i],
-                isSelected: widget.selectedSubstepIndices.contains(i),
-                isInteractive: isInteractive,
-                initialEditing: _newlyAddedSubstepIndex == i,
-                primaryColor: theme.colorScheme.primary,
-                primaryTextColor: primaryTextColor,
-                secondaryTextColor: secondaryTextColor,
-                onToggle: (checked) {
-                  final updated = Set<int>.from(widget.selectedSubstepIndices);
-                  if (checked) {
-                    updated.add(i);
-                  } else {
-                    updated.remove(i);
-                  }
-                  widget.onSubstepsChanged?.call(updated);
-                },
-                onTitleSubmitted: (newTitle) {
-                  _editSubstep(i, newTitle);
-                  if (_newlyAddedSubstepIndex == i) {
-                    setState(() => _newlyAddedSubstepIndex = null);
-                  }
-                },
-                onDelete: () => _removeSubstep(i),
-              ),
-              if (i < widget.proposal.substeps.length - 1)
-                const SizedBox(height: AppTokens.spaceXxs),
-            ],
-          ],
+          ProposalSubstepsSection(
+            substeps: widget.proposal.substeps,
+            selectedSubstepIndices: widget.selectedSubstepIndices,
+            isInteractive: isInteractive,
+            newlyAddedSubstepIndex: _newlyAddedSubstepIndex,
+            borderColor: borderColor,
+            primaryTextColor: primaryTextColor,
+            secondaryTextColor: secondaryTextColor,
+            onAddSubstep: _addSubstep,
+            onToggleSubstep: (index, selected) {
+              final updated = Set<int>.from(widget.selectedSubstepIndices);
+              if (selected) {
+                updated.add(index);
+              } else {
+                updated.remove(index);
+              }
+              widget.onSubstepsChanged?.call(updated);
+            },
+            onEditSubstep: (index, newTitle) {
+              _editSubstep(index, newTitle);
+              if (_newlyAddedSubstepIndex == index) {
+                setState(() => _newlyAddedSubstepIndex = null);
+              }
+            },
+            onRemoveSubstep: _removeSubstep,
+          ),
 
           const SizedBox(height: AppTokens.spaceMd),
           Divider(height: 1, thickness: 0.5, color: borderColor),
           const SizedBox(height: AppTokens.spaceSm),
 
           // Bottom Action Bar
-          Row(
-            children: [
-              // Discard Action Button
-              if (!widget.isPersisted)
-                TextButton(
-                  onPressed: (!widget.isDiscarded && !widget.isPersisting)
-                      ? widget.onDiscard
-                      : null,
-                  style: TextButton.styleFrom(
-                    foregroundColor: secondaryTextColor,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppTokens.spaceSm,
-                      vertical: AppTokens.spaceXs,
-                    ),
-                    minimumSize: const Size(0, 36),
-                  ),
-                  child: Text(
-                    widget.isDiscarded
-                        ? l10n.aiDiscardedAction
-                        : l10n.aiDiscardAction,
-                    style: const TextStyle(
-                      fontSize: AppTokens.textFootnoteSize,
-                    ),
-                  ),
-                ),
-              const Spacer(),
-
-              // Confirm Action Button (hidden if discarded)
-              if (!widget.isDiscarded)
-                FilledButton(
-                  onPressed: (!widget.isPersisted && !widget.isPersisting)
-                      ? widget.onConfirm
-                      : null,
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppTokens.spaceMd,
-                      vertical: AppTokens.spaceXs,
-                    ),
-                    minimumSize: const Size(0, 36),
-                  ),
-                  child: widget.isPersisting
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(
-                          widget.isPersisted
-                              ? l10n.aiTaskAddedAction
-                              : l10n.aiAddTaskAction,
-                          style: const TextStyle(
-                            fontSize: AppTokens.textFootnoteSize,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                ),
-            ],
+          ProposalActionBar(
+            isPersisted: widget.isPersisted,
+            isPersisting: widget.isPersisting,
+            isDiscarded: widget.isDiscarded,
+            onConfirm: widget.onConfirm,
+            onDiscard: widget.onDiscard,
           ),
         ],
       ),
