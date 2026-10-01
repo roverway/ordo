@@ -590,14 +590,8 @@ class _CreateListFolderSheetState extends ConsumerState<CreateListFolderSheet> {
       indicatorRadius: BorderRadius.circular(AppTokens.radiusList),
       onChanged: (type) => _switchType(type),
       items: [
-        ModernSegmentItem(
-          value: CreateType.list,
-          label: l10n.createList,
-        ),
-        ModernSegmentItem(
-          value: CreateType.folder,
-          label: l10n.createFolder,
-        ),
+        ModernSegmentItem(value: CreateType.list, label: l10n.createList),
+        ModernSegmentItem(value: CreateType.folder, label: l10n.createFolder),
       ],
     );
   }

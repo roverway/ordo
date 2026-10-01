@@ -113,7 +113,9 @@ class _SubtaskRowTileState extends State<SubtaskRowTile> {
                 side: BorderSide(
                   color: isDone
                       ? theme.colorScheme.onSurface
-                      : theme.colorScheme.onSurface.withValues(alpha: AppTokens.alphaBorderEmphasis),
+                      : theme.colorScheme.onSurface.withValues(
+                          alpha: AppTokens.alphaBorderEmphasis,
+                        ),
                   width: 1.5,
                 ),
                 activeColor: theme.colorScheme.onSurface,
@@ -181,7 +183,10 @@ class _SubtaskRowTileState extends State<SubtaskRowTile> {
                                         color: theme
                                             .colorScheme
                                             .onSurfaceVariant
-                                            .withValues(alpha: AppTokens.alphaContentMuted),
+                                            .withValues(
+                                              alpha:
+                                                  AppTokens.alphaContentMuted,
+                                            ),
                                       )
                                     : theme.textTheme.bodyMedium?.copyWith(
                                         decoration: isDone

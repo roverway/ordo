@@ -212,7 +212,9 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
             decoration: InputDecoration(
               hintText: l10n.taskTitleHint,
               hintStyle: TextStyle(
-                color: colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaContentDisabled),
+                color: colorScheme.onSurfaceVariant.withValues(
+                  alpha: AppTokens.alphaContentDisabled,
+                ),
                 fontWeight: FontWeight.w700,
                 fontSize: AppTokens.textHeroSize,
               ),
@@ -330,7 +332,9 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
           decoration: InputDecoration(
             hintText: l10n.descriptionHint,
             hintStyle: TextStyle(
-              color: colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaContentDisabled),
+              color: colorScheme.onSurfaceVariant.withValues(
+                alpha: AppTokens.alphaContentDisabled,
+              ),
               fontSize: AppTokens.textBodySize,
             ),
             border: InputBorder.none,
@@ -370,7 +374,9 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: startAt != null || endAt != null
                         ? colorScheme.onSurface
-                        : colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaContentMuted),
+                        : colorScheme.onSurfaceVariant.withValues(
+                            alpha: AppTokens.alphaContentMuted,
+                          ),
                     fontSize: AppTokens.textFootnoteSize,
                     fontFeatures: AppTokens.fontTabular,
                   ),
@@ -407,8 +413,12 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                             ? colorScheme.surfaceContainerHighest.withValues(
                                 alpha: 0.5,
                               )
-                            : colorScheme.onSurface.withValues(alpha: AppTokens.alphaTintFaint),
-                        borderRadius: BorderRadius.circular(AppTokens.radiusList),
+                            : colorScheme.onSurface.withValues(
+                                alpha: AppTokens.alphaTintFaint,
+                              ),
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusList,
+                        ),
                       ),
                       padding: const EdgeInsets.all(2),
                       child: Row(
@@ -424,7 +434,9 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                               onTap: () => ref
                                   .read(taskFormProvider.notifier)
                                   .updatePriority(p),
-                              borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                              borderRadius: BorderRadius.circular(
+                                AppTokens.radiusChip,
+                              ),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 10,
@@ -434,17 +446,21 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                                   color: priority == p
                                       ? (p == TaskPriority.none
                                             ? colorScheme.surface
-                                            : priorityColor(
-                                                p,
-                                              ).withValues(alpha: AppTokens.alphaTintStrong))
+                                            : priorityColor(p).withValues(
+                                                alpha:
+                                                    AppTokens.alphaTintStrong,
+                                              ))
                                       : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                                  borderRadius: BorderRadius.circular(
+                                    AppTokens.radiusChip,
+                                  ),
                                   border:
                                       priority == p && p != TaskPriority.none
                                       ? Border.all(
-                                          color: priorityColor(
-                                            p,
-                                          ).withValues(alpha: AppTokens.alphaContentDisabled),
+                                          color: priorityColor(p).withValues(
+                                            alpha:
+                                                AppTokens.alphaContentDisabled,
+                                          ),
                                           width: 1,
                                         )
                                       : null,
@@ -549,7 +565,9 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
                               ),
                               decoration: BoxDecoration(
                                 color: colorScheme.surface,
-                                borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                                borderRadius: BorderRadius.circular(
+                                  AppTokens.radiusPill,
+                                ),
                                 border: Border.all(
                                   color: borderColor,
                                   width: 1,
@@ -934,7 +952,9 @@ class _DetailsRow extends StatelessWidget {
             Icon(
               Icons.chevron_right,
               size: 16,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaContentMuted),
+              color: colorScheme.onSurfaceVariant.withValues(
+                alpha: AppTokens.alphaContentMuted,
+              ),
             ),
           ],
         ),
@@ -997,7 +1017,9 @@ class TaskMetadataFooter extends ConsumerWidget {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: theme.textTheme.bodySmall?.copyWith(
-        color: colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaContentMuted),
+        color: colorScheme.onSurfaceVariant.withValues(
+          alpha: AppTokens.alphaContentMuted,
+        ),
         fontSize: AppTokens.textCaptionSize,
       ),
     );

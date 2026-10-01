@@ -109,8 +109,8 @@ class MarkdownListBlock extends MarkdownBlock {
 
   @override
   bool matchesQuery(String query) => items.any(
-        (item) => item.text.toLowerCase().contains(query.toLowerCase()),
-      );
+    (item) => item.text.toLowerCase().contains(query.toLowerCase()),
+  );
 }
 
 /// 表格块
@@ -181,10 +181,7 @@ class MarkdownInlineToken {
 String markdownSlugify(String input) {
   return input
       .toLowerCase()
-      .replaceAll(
-        RegExp(r'[\*\`_\[\]\(\)（）\.\:\：\,\，\?\？\/\#]'),
-        '',
-      )
+      .replaceAll(RegExp(r'[\*\`_\[\]\(\)（）\.\:\：\,\，\?\？\/\#]'), '')
       .replaceAll(RegExp(r'\s+'), '-')
       .trim();
 }
@@ -217,30 +214,18 @@ List<MarkdownInlineToken> tokenizeMarkdownInline(String input) {
         ),
       );
     } else if (match.group(4) != null) {
-      tokens.add(
-        MarkdownInlineToken(text: match.group(4)!, isBold: true),
-      );
+      tokens.add(MarkdownInlineToken(text: match.group(4)!, isBold: true));
     } else if (match.group(6) != null) {
-      tokens.add(
-        MarkdownInlineToken(text: match.group(6)!, isItalic: true),
-      );
+      tokens.add(MarkdownInlineToken(text: match.group(6)!, isItalic: true));
     } else if (match.group(8) != null) {
-      tokens.add(
-        MarkdownInlineToken(text: match.group(8)!, isCode: true),
-      );
+      tokens.add(MarkdownInlineToken(text: match.group(8)!, isCode: true));
     } else if (match.group(10) != null) {
       tokens.add(
-        MarkdownInlineToken(
-          text: match.group(10)!,
-          linkUrl: match.group(11)!,
-        ),
+        MarkdownInlineToken(text: match.group(10)!, linkUrl: match.group(11)!),
       );
     } else if (match.group(13) != null) {
       tokens.add(
-        MarkdownInlineToken(
-          text: match.group(13)!,
-          isStrikethrough: true,
-        ),
+        MarkdownInlineToken(text: match.group(13)!, isStrikethrough: true),
       );
     }
     lastIndex = match.end;
@@ -302,8 +287,9 @@ MarkdownTableBlock? parseMarkdownTable(List<String> lines) {
   }
 
   final headerTokens = headers.map(tokenizeMarkdownInline).toList();
-  final rowTokens =
-      rows.map((r) => r.map(tokenizeMarkdownInline).toList()).toList();
+  final rowTokens = rows
+      .map((r) => r.map(tokenizeMarkdownInline).toList())
+      .toList();
 
   return MarkdownTableBlock(
     headers: headers,
@@ -356,7 +342,8 @@ MarkdownParsedDocument parseMarkdownDocument(String content) {
         );
         blocks.add(headingBlock);
 
-        final isTocHeading = title.contains('目录') ||
+        final isTocHeading =
+            title.contains('目录') ||
             title.toLowerCase().contains('table of contents');
         if (level <= 3 && !isTocHeading) {
           tocItems.add(
@@ -510,9 +497,9 @@ class MarkdownContentView extends StatelessWidget {
     this.sectionKeys,
     this.compact = false,
   }) : assert(
-          content != null || parsedDocument != null,
-          'Either content or parsedDocument must be provided',
-        );
+         content != null || parsedDocument != null,
+         'Either content or parsedDocument must be provided',
+       );
 
   final String? content;
   final MarkdownParsedDocument? parsedDocument;
@@ -641,8 +628,9 @@ class MarkdownBlockWidget extends StatelessWidget {
         child: MarkdownInlineTextView(
           tokens: b.tokens,
           style: baseStyle.copyWith(
-            fontSize:
-                compact ? AppTokens.textBodySize : AppTokens.textSecondarySize,
+            fontSize: compact
+                ? AppTokens.textBodySize
+                : AppTokens.textSecondarySize,
             height: compact ? 1.45 : 1.65,
             color: colorScheme.onSurface.withValues(
               alpha: AppTokens.alphaOverlayHeavy,
@@ -701,9 +689,7 @@ class MarkdownBlockWidget extends StatelessWidget {
         decoration: BoxDecoration(
           color: calloutColor.withValues(alpha: AppTokens.alphaTintFaint),
           borderRadius: BorderRadius.circular(AppTokens.radiusCard),
-          border: Border(
-            left: BorderSide(color: calloutColor, width: 4),
-          ),
+          border: Border(left: BorderSide(color: calloutColor, width: 4)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -803,7 +789,9 @@ class MarkdownBlockWidget extends StatelessWidget {
       return Container(
         margin: EdgeInsets.symmetric(vertical: compact ? 6 : 10),
         decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaContentMuted),
+          color: colorScheme.surfaceContainerHighest.withValues(
+            alpha: AppTokens.alphaContentMuted,
+          ),
           borderRadius: BorderRadius.circular(AppTokens.radiusCard),
           border: Border.all(
             color: colorScheme.outlineVariant.withValues(
@@ -816,10 +804,14 @@ class MarkdownBlockWidget extends StatelessWidget {
           children: [
             if (b.language.isNotEmpty)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
-                  color:
-                      colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaCardFrostedLight),
+                  color: colorScheme.surfaceContainerHighest.withValues(
+                    alpha: AppTokens.alphaCardFrostedLight,
+                  ),
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(AppTokens.radiusCard),
                     topRight: Radius.circular(AppTokens.radiusCard),

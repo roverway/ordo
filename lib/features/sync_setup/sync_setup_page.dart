@@ -631,4 +631,3 @@ String _syncErrorText(AppLocalizations l10n, SyncErrorCode? errorCode) {
     null => l10n.syncStatusError,
   };
 }
-

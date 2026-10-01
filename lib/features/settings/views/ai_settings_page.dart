@@ -343,8 +343,9 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                         color: isDark
                             ? AppTokens.borderSubtleDark
                             : AppTokens.borderSubtleLight,
-                        borderRadius:
-                            BorderRadius.circular(AppTokens.radiusPill),
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusPill,
+                        ),
                       ),
                     ),
                   ),
@@ -353,7 +354,9 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                     children: [
                       Expanded(
                         child: Text(
-                          l10n.aiSelectModelTitle(_provider.localizedName(languageCode)),
+                          l10n.aiSelectModelTitle(
+                            _provider.localizedName(languageCode),
+                          ),
                           style: TextStyle(
                             fontSize: AppTokens.textTitleSize,
                             fontWeight: FontWeight.w600,
@@ -386,8 +389,9 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                         vertical: AppTokens.spaceSm,
                       ),
                       border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppTokens.radiusCard),
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusCard,
+                        ),
                       ),
                     ),
                     onChanged: (val) {
@@ -538,8 +542,9 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                         color: colorScheme.primary.withValues(
                           alpha: AppTokens.alphaTintSoft,
                         ),
-                        borderRadius:
-                            BorderRadius.circular(AppTokens.radiusMicro),
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusMicro,
+                        ),
                       ),
                       child: Icon(
                         getAiProviderIcon(_provider),
@@ -582,8 +587,9 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                           color: AppTokens.colorSuccess.withValues(
                             alpha: AppTokens.alphaTintSoft,
                           ),
-                          borderRadius:
-                              BorderRadius.circular(AppTokens.radiusPill),
+                          borderRadius: BorderRadius.circular(
+                            AppTokens.radiusPill,
+                          ),
                         ),
                         child: Text(
                           l10n.aiKeyConfigured,
@@ -843,8 +849,9 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                     ),
                     style: OutlinedButton.styleFrom(
                       shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppTokens.radiusButton),
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusButton,
+                        ),
                       ),
                       padding: const EdgeInsets.symmetric(
                         vertical: AppTokens.spaceSm,
@@ -873,8 +880,9 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
                     ),
                     style: FilledButton.styleFrom(
                       shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppTokens.radiusButton),
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusButton,
+                        ),
                       ),
                       padding: const EdgeInsets.symmetric(
                         vertical: AppTokens.spaceSm,
@@ -897,5 +905,4 @@ class _AiSettingsBodyState extends ConsumerState<AiSettingsBody> {
       ),
     );
   }
-
 }

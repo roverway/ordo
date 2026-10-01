@@ -219,9 +219,7 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
                 bottom: AppTokens.spaceXxs,
               ),
               decoration: BoxDecoration(
-                color: isDark
-                    ? AppTokens.slate600
-                    : AppTokens.slate300,
+                color: isDark ? AppTokens.slate600 : AppTokens.slate300,
                 borderRadius: BorderRadius.circular(
                   AppTokens.sheetGrabberRadius,
                 ),
@@ -259,9 +257,12 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: colorScheme.primary
-                            .withValues(alpha: AppTokens.alphaTintSoft),
-                        borderRadius: BorderRadius.circular(AppTokens.radiusItem),
+                        color: colorScheme.primary.withValues(
+                          alpha: AppTokens.alphaTintSoft,
+                        ),
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusItem,
+                        ),
                       ),
                       child: Text(
                         '已选 $activeCount 项',
@@ -655,7 +656,9 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
                           onTap: () {
                             setState(() => _tagMatchAll = !_tagMatchAll);
                           },
-                          borderRadius: BorderRadius.circular(AppTokens.radiusXs),
+                          borderRadius: BorderRadius.circular(
+                            AppTokens.radiusXs,
+                          ),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 4,
@@ -769,8 +772,9 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
                   borderRadius: BorderRadius.circular(AppTokens.radiusPill),
                 ),
                 elevation: 3,
-                shadowColor: colorScheme.primary
-                    .withValues(alpha: AppTokens.alphaBorderEmphasis),
+                shadowColor: colorScheme.primary.withValues(
+                  alpha: AppTokens.alphaBorderEmphasis,
+                ),
                 padding: const EdgeInsets.symmetric(horizontal: 20),
               ),
               child: Row(
@@ -822,9 +826,7 @@ class _FilterCriteriaFormState extends ConsumerState<_FilterCriteriaForm> {
             style: TextStyle(
               fontSize: AppTokens.textFootnoteSize,
               fontWeight: FontWeight.w700,
-              color: isDark
-                  ? AppTokens.textPrimaryDark
-                  : AppTokens.slate700,
+              color: isDark ? AppTokens.textPrimaryDark : AppTokens.slate700,
             ),
           ),
         ],

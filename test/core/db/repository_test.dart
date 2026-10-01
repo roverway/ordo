@@ -464,7 +464,11 @@ void main() {
       await repo.createTask(projectId: p2.id, title: 'rootA');
       final rootB = await repo.createTask(projectId: p2.id, title: 'rootB');
       // rootB 下有子任务 sub1 (sortOrder 0)
-      await repo.createTask(projectId: p2.id, parentId: rootB.id, title: 'sub1');
+      await repo.createTask(
+        projectId: p2.id,
+        parentId: rootB.id,
+        title: 'sub1',
+      );
 
       // 从 p1 移动任务 t 到 p2
       final t = await repo.createTask(projectId: p1.id, title: 't');

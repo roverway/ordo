@@ -1199,9 +1199,10 @@ class TodoRepository {
     final tags = await this.tags.getAll();
     final folders = await this.folders.getAll();
     final customViews = await this.customViews.getAll();
+    final allTaskTags = await this.tags.getAllTaskTags();
     final taskTagIds = <String, List<String>>{};
-    for (final t in tasks) {
-      taskTagIds[t.id] = await this.tags.tagIdsForTask(t.id);
+    for (final tt in allTaskTags) {
+      (taskTagIds[tt.taskId] ??= []).add(tt.tagId);
     }
     return RepositoryExportData(
       projects: projects,

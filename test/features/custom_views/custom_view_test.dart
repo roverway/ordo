@@ -730,7 +730,9 @@ void main() {
         await tester.tap(find.text('列表视图').first);
         await tester.pumpAndSettle();
 
-        final segmented = tester.widget<ModernSegmentedControl<String>>(segmentedFinder);
+        final segmented = tester.widget<ModernSegmentedControl<String>>(
+          segmentedFinder,
+        );
         expect(segmented.selectedValue, 'list');
       },
     );

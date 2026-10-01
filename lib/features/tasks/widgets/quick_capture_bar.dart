@@ -19,11 +19,7 @@ import 'task_create_sheet.dart';
 /// - Stage 1 极速捕捉：紧贴软键盘，支持连续回车发送，无需反复打开/关闭页面；
 /// - Stage 2 语法分词：输入文字时实时解析时间（明天/后天）、标签（#工作）、优先级（!高/!1），以微型胶囊 Chip 呈现实时反馈。
 class QuickCaptureBar extends ConsumerStatefulWidget {
-  const QuickCaptureBar({
-    super.key,
-    this.initialProjectId,
-    this.initialDate,
-  });
+  const QuickCaptureBar({super.key, this.initialProjectId, this.initialDate});
 
   final String? initialProjectId;
   final DateTime? initialDate;
@@ -221,21 +217,25 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
     try {
       final title = _cleanTitle(rawText);
       final repo = ref.read(todoRepositoryProvider);
-      final targetProjectId = _targetProjectId ?? widget.initialProjectId ?? inboxProjectId;
+      final targetProjectId =
+          _targetProjectId ?? widget.initialProjectId ?? inboxProjectId;
 
       // 解析标签 ID（若存在对应名称的标签）
       List<String>? tagIds;
       if (_parsedTagName != null) {
         final tagsAsync = ref.read(tagsStreamProvider);
         final existingTag = tagsAsync.value
-            ?.where((t) => t.name.toLowerCase() == _parsedTagName!.toLowerCase())
+            ?.where(
+              (t) => t.name.toLowerCase() == _parsedTagName!.toLowerCase(),
+            )
             .firstOrNull;
         if (existingTag != null) {
           tagIds = [existingTag.id];
         }
       }
 
-      final startAtMs = (_parsedDate ?? widget.initialDate)?.millisecondsSinceEpoch;
+      final startAtMs =
+          (_parsedDate ?? widget.initialDate)?.millisecondsSinceEpoch;
 
       final createdTask = await repo.createTask(
         title: title,
@@ -305,7 +305,9 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
                 ListTile(
                   leading: const Icon(Icons.inbox_outlined),
                   title: Text(l10n.inbox),
-                  trailing: (_targetProjectId == null || _targetProjectId == inboxProjectId)
+                  trailing:
+                      (_targetProjectId == null ||
+                          _targetProjectId == inboxProjectId)
                       ? Icon(Icons.check, color: cs.primary)
                       : null,
                   onTap: () => Navigator.of(ctx).pop(inboxProjectId),
@@ -394,7 +396,8 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
       context,
       projectId: _targetProjectId ?? widget.initialProjectId,
       initialPriority: _parsedPriority,
-      initialStartAt: (_parsedDate ?? widget.initialDate)?.millisecondsSinceEpoch,
+      initialStartAt:
+          (_parsedDate ?? widget.initialDate)?.millisecondsSinceEpoch,
     );
   }
 
@@ -417,9 +420,11 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
     final projects =
         ref.watch(projectsStreamProvider).value ?? const <Project>[];
     final selectedProject = projects
-        .where((p) =>
-            p.id ==
-            (_targetProjectId ?? widget.initialProjectId ?? inboxProjectId))
+        .where(
+          (p) =>
+              p.id ==
+              (_targetProjectId ?? widget.initialProjectId ?? inboxProjectId),
+        )
         .firstOrNull;
     final selectedProjectName = selectedProject?.name ?? l10n.inbox;
 
@@ -441,7 +446,11 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
         border: Border(top: BorderSide(color: borderColor, width: 1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? AppTokens.alphaBorderEmphasis : AppTokens.alphaBorderSubtle),
+            color: Colors.black.withValues(
+              alpha: isDark
+                  ? AppTokens.alphaBorderEmphasis
+                  : AppTokens.alphaBorderSubtle,
+            ),
             blurRadius: 24,
             offset: const Offset(0, -6),
           ),
@@ -613,7 +622,8 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
                     _buildQuickCapsule(
                       icon: Icons.folder_outlined,
                       label: selectedProjectName,
-                      isActive: _targetProjectId != null &&
+                      isActive:
+                          _targetProjectId != null &&
                           _targetProjectId != inboxProjectId,
                       activeColor: colorScheme.primary,
                       colorScheme: colorScheme,
@@ -701,7 +711,10 @@ class _QuickCaptureBarState extends ConsumerState<QuickCaptureBar> {
       decoration: BoxDecoration(
         color: color.withValues(alpha: AppTokens.alphaBorderSubtle),
         borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-        border: Border.all(color: color.withValues(alpha: AppTokens.alphaBorderEmphasis), width: 1),
+        border: Border.all(
+          color: color.withValues(alpha: AppTokens.alphaBorderEmphasis),
+          width: 1,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

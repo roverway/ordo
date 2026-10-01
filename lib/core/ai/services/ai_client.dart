@@ -10,7 +10,8 @@ class AiHttpResponse {
   const AiHttpResponse({
     required this.statusCode,
     required this.body,
-    this.headers = const {},  });
+    this.headers = const {},
+  });
 
   final int statusCode;
   final String body;
@@ -36,9 +37,8 @@ abstract class AiHttpClient {
 /// Production implementation of [AiHttpClient] using Dart's native `dart:io` [HttpClient]
 /// with connection pooling, Keep-Alive, and configurable idle timeout.
 class PooledAiHttpClient implements AiHttpClient {
-  PooledAiHttpClient({
-    Duration idleTimeout = const Duration(seconds: 30),
-  }) : _idleTimeout = idleTimeout;
+  PooledAiHttpClient({Duration idleTimeout = const Duration(seconds: 30)})
+    : _idleTimeout = idleTimeout;
 
   final Duration _idleTimeout;
   HttpClient? _cachedClient;

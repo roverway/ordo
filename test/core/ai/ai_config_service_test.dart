@@ -46,15 +46,24 @@ void main() {
 
   group('AiConfig & Provider defaults', () {
     test('Default provider has valid baseUrl and model', () {
-      expect(AiProviderType.deepseek.defaultBaseUrl, 'https://api.deepseek.com');
+      expect(
+        AiProviderType.deepseek.defaultBaseUrl,
+        'https://api.deepseek.com',
+      );
       expect(AiProviderType.deepseek.defaultModel, 'deepseek-chat');
       expect(AiProviderType.kimi.defaultBaseUrl, 'https://api.moonshot.cn/v1');
       expect(AiProviderType.kimi.defaultModel, 'moonshot-v1-8k');
-      expect(AiProviderType.qwen.defaultBaseUrl, contains('dashscope.aliyuncs.com'));
+      expect(
+        AiProviderType.qwen.defaultBaseUrl,
+        contains('dashscope.aliyuncs.com'),
+      );
       expect(AiProviderType.qwen.defaultModel, 'qwen-plus');
       expect(AiProviderType.glm.defaultBaseUrl, contains('bigmodel.cn'));
       expect(AiProviderType.openai.defaultBaseUrl, contains('api.openai.com'));
-      expect(AiProviderType.claude.defaultBaseUrl, contains('api.anthropic.com'));
+      expect(
+        AiProviderType.claude.defaultBaseUrl,
+        contains('api.anthropic.com'),
+      );
     });
 
     test('Masked API key handles long, short and null keys', () {
@@ -100,61 +109,73 @@ void main() {
       expect(config.apiKey, isNull);
     });
 
-    test('saveConfig isolates API key in secure store and non-sensitive in settingsDao', () async {
-      const configToSave = AiConfig(
-        provider: AiProviderType.glm,
-        baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
-        model: 'glm-4-flash',
-        apiKey: 'glm-secret-key-123456',
-      );
+    test(
+      'saveConfig isolates API key in secure store and non-sensitive in settingsDao',
+      () async {
+        const configToSave = AiConfig(
+          provider: AiProviderType.glm,
+          baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+          model: 'glm-4-flash',
+          apiKey: 'glm-secret-key-123456',
+        );
 
-      await configService.saveConfig(configToSave);
+        await configService.saveConfig(configToSave);
 
-      // Verify non-sensitive stored in Drift settingsDao
-      final allSettings = await settingsDao.getAll();
-      expect(allSettings['ai_provider'], 'glm');
-      expect(allSettings['ai_base_url'], 'https://open.bigmodel.cn/api/paas/v4');
-      expect(allSettings['ai_model'], 'glm-4-flash');
+        // Verify non-sensitive stored in Drift settingsDao
+        final allSettings = await settingsDao.getAll();
+        expect(allSettings['ai_provider'], 'glm');
+        expect(
+          allSettings['ai_base_url'],
+          'https://open.bigmodel.cn/api/paas/v4',
+        );
+        expect(allSettings['ai_model'], 'glm-4-flash');
 
-      // Verify API Key NOT in settingsDao
-      expect(allSettings.values.any((val) => val.contains('glm-secret-key')), isFalse);
-      expect(allSettings.containsKey('ai_api_key'), isFalse);
+        // Verify API Key NOT in settingsDao
+        expect(
+          allSettings.values.any((val) => val.contains('glm-secret-key')),
+          isFalse,
+        );
+        expect(allSettings.containsKey('ai_api_key'), isFalse);
 
-      // Verify API Key in secureStore
-      final secureKey = await secureStore.read('ai_api_key_glm');
-      expect(secureKey, 'glm-secret-key-123456');
+        // Verify API Key in secureStore
+        final secureKey = await secureStore.read('ai_api_key_glm');
+        expect(secureKey, 'glm-secret-key-123456');
 
-      // Now reload via configService
-      final loaded = await configService.loadConfig();
-      expect(loaded.provider, AiProviderType.glm);
-      expect(loaded.baseUrl, 'https://open.bigmodel.cn/api/paas/v4');
-      expect(loaded.model, 'glm-4-flash');
-      expect(loaded.apiKey, 'glm-secret-key-123456');
-      expect(loaded.maskedApiKey, 'gl****3456');
-    });
+        // Now reload via configService
+        final loaded = await configService.loadConfig();
+        expect(loaded.provider, AiProviderType.glm);
+        expect(loaded.baseUrl, 'https://open.bigmodel.cn/api/paas/v4');
+        expect(loaded.model, 'glm-4-flash');
+        expect(loaded.apiKey, 'glm-secret-key-123456');
+        expect(loaded.maskedApiKey, 'gl****3456');
+      },
+    );
 
-    test('saveConfig without changing apiKey preserves existing secure apiKey', () async {
-      const initial = AiConfig(
-        provider: AiProviderType.deepseek,
-        baseUrl: 'https://api.deepseek.com',
-        model: 'deepseek-chat',
-        apiKey: 'sk-initial-secret-key',
-      );
-      await configService.saveConfig(initial);
+    test(
+      'saveConfig without changing apiKey preserves existing secure apiKey',
+      () async {
+        const initial = AiConfig(
+          provider: AiProviderType.deepseek,
+          baseUrl: 'https://api.deepseek.com',
+          model: 'deepseek-chat',
+          apiKey: 'sk-initial-secret-key',
+        );
+        await configService.saveConfig(initial);
 
-      // Save new baseUrl without providing apiKey
-      const updated = AiConfig(
-        provider: AiProviderType.deepseek,
-        baseUrl: 'https://custom-proxy.deepseek.com',
-        model: 'deepseek-coder',
-      );
-      await configService.saveConfig(updated);
+        // Save new baseUrl without providing apiKey
+        const updated = AiConfig(
+          provider: AiProviderType.deepseek,
+          baseUrl: 'https://custom-proxy.deepseek.com',
+          model: 'deepseek-coder',
+        );
+        await configService.saveConfig(updated);
 
-      final loaded = await configService.loadConfig();
-      expect(loaded.baseUrl, 'https://custom-proxy.deepseek.com');
-      expect(loaded.model, 'deepseek-coder');
-      expect(loaded.apiKey, 'sk-initial-secret-key');
-    });
+        final loaded = await configService.loadConfig();
+        expect(loaded.baseUrl, 'https://custom-proxy.deepseek.com');
+        expect(loaded.model, 'deepseek-coder');
+        expect(loaded.apiKey, 'sk-initial-secret-key');
+      },
+    );
 
     test('clearApiKey removes key from secure storage', () async {
       const config = AiConfig(
@@ -173,41 +194,46 @@ void main() {
       expect(loaded.apiKey, isNull);
     });
 
-    test('supports independent multi-provider configuration and switching', () async {
-      // Configure DeepSeek
-      const deepseekConfig = AiConfig(
-        provider: AiProviderType.deepseek,
-        baseUrl: 'https://api.deepseek.com',
-        model: 'deepseek-chat',
-        apiKey: 'sk-deepseek-key-12345',
-      );
-      await configService.saveConfig(deepseekConfig);
+    test(
+      'supports independent multi-provider configuration and switching',
+      () async {
+        // Configure DeepSeek
+        const deepseekConfig = AiConfig(
+          provider: AiProviderType.deepseek,
+          baseUrl: 'https://api.deepseek.com',
+          model: 'deepseek-chat',
+          apiKey: 'sk-deepseek-key-12345',
+        );
+        await configService.saveConfig(deepseekConfig);
 
-      // Configure Kimi
-      const kimiConfig = AiConfig(
-        provider: AiProviderType.kimi,
-        baseUrl: 'https://api.moonshot.cn/v1',
-        model: 'moonshot-v1-32k',
-        apiKey: 'sk-kimi-key-67890',
-      );
-      await configService.saveConfig(kimiConfig);
+        // Configure Kimi
+        const kimiConfig = AiConfig(
+          provider: AiProviderType.kimi,
+          baseUrl: 'https://api.moonshot.cn/v1',
+          model: 'moonshot-v1-32k',
+          apiKey: 'sk-kimi-key-67890',
+        );
+        await configService.saveConfig(kimiConfig);
 
-      // Now active provider is Kimi
-      final active = await configService.loadConfig();
-      expect(active.provider, AiProviderType.kimi);
-      expect(active.model, 'moonshot-v1-32k');
-      expect(active.apiKey, 'sk-kimi-key-67890');
+        // Now active provider is Kimi
+        final active = await configService.loadConfig();
+        expect(active.provider, AiProviderType.kimi);
+        expect(active.model, 'moonshot-v1-32k');
+        expect(active.apiKey, 'sk-kimi-key-67890');
 
-      // Load DeepSeek profile explicitly without changing active provider
-      final loadedDeepSeek = await configService.loadConfig(AiProviderType.deepseek);
-      expect(loadedDeepSeek.provider, AiProviderType.deepseek);
-      expect(loadedDeepSeek.model, 'deepseek-chat');
-      expect(loadedDeepSeek.apiKey, 'sk-deepseek-key-12345');
+        // Load DeepSeek profile explicitly without changing active provider
+        final loadedDeepSeek = await configService.loadConfig(
+          AiProviderType.deepseek,
+        );
+        expect(loadedDeepSeek.provider, AiProviderType.deepseek);
+        expect(loadedDeepSeek.model, 'deepseek-chat');
+        expect(loadedDeepSeek.apiKey, 'sk-deepseek-key-12345');
 
-      // Both keys exist in secure store
-      expect(await configService.hasKeyFor(AiProviderType.deepseek), isTrue);
-      expect(await configService.hasKeyFor(AiProviderType.kimi), isTrue);
-      expect(await configService.hasKeyFor(AiProviderType.claude), isFalse);
-    });
+        // Both keys exist in secure store
+        expect(await configService.hasKeyFor(AiProviderType.deepseek), isTrue);
+        expect(await configService.hasKeyFor(AiProviderType.kimi), isTrue);
+        expect(await configService.hasKeyFor(AiProviderType.claude), isFalse);
+      },
+    );
   });
 }

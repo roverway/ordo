@@ -133,7 +133,9 @@ class _WallpaperPickerSheetState extends ConsumerState<WallpaperPickerSheet> {
           BoxShadow(
             color: Colors.black.withValues(alpha: AppTokens.alphaTintStrong),
             blurRadius: 20,
-            offset: isEffectiveDialog ? const Offset(0, 4) : const Offset(0, -2),
+            offset: isEffectiveDialog
+                ? const Offset(0, 4)
+                : const Offset(0, -2),
           ),
         ],
       ),

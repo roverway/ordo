@@ -110,7 +110,9 @@ class FilterChipsBar extends StatelessWidget {
           border: Border.all(
             color: isSelected
                 ? colorScheme.primary
-                : colorScheme.onSurface.withValues(alpha: AppTokens.alphaBorderSubtle),
+                : colorScheme.onSurface.withValues(
+                    alpha: AppTokens.alphaBorderSubtle,
+                  ),
             width: 1,
           ),
         ),
@@ -136,8 +138,12 @@ class FilterChipsBar extends StatelessWidget {
                   fontSize: AppTokens.textMicroSize,
                   fontWeight: FontWeight.w600,
                   color: isSelected
-                      ? colorScheme.onPrimary.withValues(alpha: AppTokens.alphaOverlayHeavy)
-                      : colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaScrim),
+                      ? colorScheme.onPrimary.withValues(
+                          alpha: AppTokens.alphaOverlayHeavy,
+                        )
+                      : colorScheme.onSurfaceVariant.withValues(
+                          alpha: AppTokens.alphaScrim,
+                        ),
                 ),
               ),
             ],

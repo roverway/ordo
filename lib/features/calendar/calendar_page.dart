@@ -48,10 +48,9 @@ class CalendarPage extends ConsumerWidget {
     final bucketsAsync = ref.watch(calendarBucketsProvider);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(pageContextScopeProvider.notifier).setCalendarDate(
-            state.selectedDate,
-            route: '/calendar',
-          );
+      ref
+          .read(pageContextScopeProvider.notifier)
+          .setCalendarDate(state.selectedDate, route: '/calendar');
     });
 
     return Scaffold(
@@ -68,14 +67,17 @@ class CalendarPage extends ConsumerWidget {
                 children: [
                   if (!isNarrow) ...[
                     FilledButton.icon(
-                      onPressed: () => _createTaskOnDay(context, ref, state.selectedDate),
+                      onPressed: () =>
+                          _createTaskOnDay(context, ref, state.selectedDate),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
                           vertical: 8,
                         ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                          borderRadius: BorderRadius.circular(
+                            AppTokens.radiusPill,
+                          ),
                         ),
                       ),
                       icon: const Icon(Icons.add_rounded, size: 18),
@@ -92,7 +94,8 @@ class CalendarPage extends ConsumerWidget {
                     IconButton(
                       tooltip: l10n.newTask,
                       icon: const Icon(Icons.add_rounded),
-                      onPressed: () => _createTaskOnDay(context, ref, state.selectedDate),
+                      onPressed: () =>
+                          _createTaskOnDay(context, ref, state.selectedDate),
                     ),
                   ],
                   IconButton(
@@ -169,7 +172,9 @@ class CalendarPage extends ConsumerWidget {
         VerticalDivider(
           width: 1,
           thickness: 1,
-          color: theme.colorScheme.outlineVariant.withValues(alpha: AppTokens.alphaBorderEmphasis),
+          color: theme.colorScheme.outlineVariant.withValues(
+            alpha: AppTokens.alphaBorderEmphasis,
+          ),
         ),
         Expanded(child: _CalendarAgendaList(state: state)),
       ],
@@ -506,7 +511,9 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
                   width: 34,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: colorScheme.onSurface.withValues(alpha: AppTokens.alphaTintStrong),
+                    color: colorScheme.onSurface.withValues(
+                      alpha: AppTokens.alphaTintStrong,
+                    ),
                     borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
                   ),
                 ),
@@ -515,7 +522,9 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
           Divider(
             height: 1,
             thickness: 1,
-            color: colorScheme.outlineVariant.withValues(alpha: AppTokens.alphaBorderEmphasis),
+            color: colorScheme.outlineVariant.withValues(
+              alpha: AppTokens.alphaBorderEmphasis,
+            ),
           ),
         ],
       ),
@@ -542,7 +551,9 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
           boxShadow: isActive
               ? [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: AppTokens.alphaTintFaint),
+                    color: Colors.black.withValues(
+                      alpha: AppTokens.alphaTintFaint,
+                    ),
                     blurRadius: 3,
                     offset: const Offset(0, 1),
                   ),
@@ -632,13 +643,16 @@ class _CalendarViewportState extends ConsumerState<_CalendarViewport> {
                     Expanded(
                       child: () {
                         final cellDay = days[w * 7 + c];
-                        final isSelected = cellDay.year == selected.year &&
+                        final isSelected =
+                            cellDay.year == selected.year &&
                             cellDay.month == selected.month &&
                             cellDay.day == selected.day;
-                        final isToday = cellDay.year == todayKey.year &&
+                        final isToday =
+                            cellDay.year == todayKey.year &&
                             cellDay.month == todayKey.month &&
                             cellDay.day == todayKey.day;
-                        final inMonth = state.mode != CalendarMode.month ||
+                        final inMonth =
+                            state.mode != CalendarMode.month ||
                             cellDay.month == selected.month;
                         return _DayCell(
                           day: cellDay,
@@ -726,9 +740,13 @@ class _DayCell extends StatelessWidget {
         border: Border.all(color: colorScheme.primary, width: 1.5),
       );
     } else if (!inMonth) {
-      numColor = colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaBorderEmphasis);
+      numColor = colorScheme.onSurfaceVariant.withValues(
+        alpha: AppTokens.alphaBorderEmphasis,
+      );
     } else if (isWeekend) {
-      numColor = colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaScrim);
+      numColor = colorScheme.onSurfaceVariant.withValues(
+        alpha: AppTokens.alphaScrim,
+      );
     } else {
       numColor = colorScheme.onSurface;
     }
@@ -744,15 +762,23 @@ class _DayCell extends StatelessWidget {
 
     Color subTextColor;
     if (isSelected && isToday) {
-      subTextColor = colorScheme.onPrimary.withValues(alpha: AppTokens.alphaOverlayHeavy);
+      subTextColor = colorScheme.onPrimary.withValues(
+        alpha: AppTokens.alphaOverlayHeavy,
+      );
     } else if (isSelected) {
-      subTextColor = colorScheme.onPrimaryContainer.withValues(alpha: AppTokens.alphaOverlayHeavy);
+      subTextColor = colorScheme.onPrimaryContainer.withValues(
+        alpha: AppTokens.alphaOverlayHeavy,
+      );
     } else if (!inMonth) {
-      subTextColor = colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaBorderEmphasis);
+      subTextColor = colorScheme.onSurfaceVariant.withValues(
+        alpha: AppTokens.alphaBorderEmphasis,
+      );
     } else if (decoration.isSpecialSubText) {
       subTextColor = colorScheme.primary;
     } else {
-      subTextColor = colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaScrim);
+      subTextColor = colorScheme.onSurfaceVariant.withValues(
+        alpha: AppTokens.alphaScrim,
+      );
     }
 
     return AspectRatio(
@@ -813,16 +839,25 @@ class _DayCell extends StatelessWidget {
                   top: 1,
                   right: 2,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 2.5, vertical: 0.5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 2.5,
+                      vertical: 0.5,
+                    ),
                     decoration: BoxDecoration(
                       color: decoration.isRestBadge
                           ? (isDark
-                              ? Colors.redAccent.withValues(alpha: AppTokens.alphaBorderEmphasis)
-                              : Colors.red.withValues(alpha: AppTokens.alphaBorderSubtle))
+                                ? Colors.redAccent.withValues(
+                                    alpha: AppTokens.alphaBorderEmphasis,
+                                  )
+                                : Colors.red.withValues(
+                                    alpha: AppTokens.alphaBorderSubtle,
+                                  ))
                           : (isDark
-                              ? colorScheme.surfaceContainerHighest
-                              : colorScheme.surfaceContainerHigh),
-                      borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
+                                ? colorScheme.surfaceContainerHighest
+                                : colorScheme.surfaceContainerHigh),
+                      borderRadius: BorderRadius.circular(
+                        AppTokens.radiusMicro,
+                      ),
                     ),
                     child: Text(
                       decoration.badgeText!,
@@ -830,7 +865,9 @@ class _DayCell extends StatelessWidget {
                         fontSize: AppTokens.textCalendarCellMicro,
                         fontWeight: FontWeight.w700,
                         color: decoration.isRestBadge
-                            ? (isDark ? Colors.redAccent.shade100 : Colors.red.shade700)
+                            ? (isDark
+                                  ? Colors.redAccent.shade100
+                                  : Colors.red.shade700)
                             : colorScheme.onSurfaceVariant,
                         height: 1.1,
                       ),
@@ -883,7 +920,9 @@ class _DayCell extends StatelessWidget {
       height: 4.5,
       margin: const EdgeInsets.symmetric(horizontal: 1),
       decoration: BoxDecoration(
-        color: isDone ? color.withValues(alpha: AppTokens.alphaBorderEmphasis) : color,
+        color: isDone
+            ? color.withValues(alpha: AppTokens.alphaBorderEmphasis)
+            : color,
         shape: BoxShape.circle,
       ),
     );
@@ -1075,7 +1114,8 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
                                 : theme.colorScheme.onSurface,
                           ),
                         ),
-                        if (widget.state.agendaScope == CalendarAgendaScope.day &&
+                        if (widget.state.agendaScope ==
+                                CalendarAgendaScope.day &&
                             dayDecoration.agendaDescription != null)
                           Text(
                             dayDecoration.agendaDescription!,
@@ -1084,7 +1124,8 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
                           ),
-                        if (widget.state.agendaScope == CalendarAgendaScope.day &&
+                        if (widget.state.agendaScope ==
+                                CalendarAgendaScope.day &&
                             dayDecoration.badgeText != null)
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -1094,12 +1135,23 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
                             decoration: BoxDecoration(
                               color: dayDecoration.isRestBadge
                                   ? (isDark
-                                      ? Colors.redAccent.withValues(alpha: AppTokens.alphaBorderEmphasis)
-                                      : Colors.red.withValues(alpha: AppTokens.alphaBorderSubtle))
+                                        ? Colors.redAccent.withValues(
+                                            alpha:
+                                                AppTokens.alphaBorderEmphasis,
+                                          )
+                                        : Colors.red.withValues(
+                                            alpha: AppTokens.alphaBorderSubtle,
+                                          ))
                                   : (isDark
-                                      ? theme.colorScheme.surfaceContainerHighest
-                                      : theme.colorScheme.surfaceContainerHigh),
-                              borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
+                                        ? theme
+                                              .colorScheme
+                                              .surfaceContainerHighest
+                                        : theme
+                                              .colorScheme
+                                              .surfaceContainerHigh),
+                              borderRadius: BorderRadius.circular(
+                                AppTokens.radiusMicro,
+                              ),
                             ),
                             child: Text(
                               dayDecoration.badgeText!,
@@ -1107,7 +1159,9 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
                                 fontSize: AppTokens.textCalendarCellMicro,
                                 fontWeight: FontWeight.w700,
                                 color: dayDecoration.isRestBadge
-                                    ? (isDark ? Colors.redAccent.shade100 : Colors.red.shade700)
+                                    ? (isDark
+                                          ? Colors.redAccent.shade100
+                                          : Colors.red.shade700)
                                     : theme.colorScheme.onSurfaceVariant,
                               ),
                             ),
@@ -1196,7 +1250,9 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
                 AppTokens.spaceMd,
                 0,
                 AppTokens.spaceMd,
-                AppBreakpoints.isNarrow(context) ? 130 : AppTokens.spaceXl, // 留出底部防遮挡安全边距
+                AppBreakpoints.isNarrow(context)
+                    ? 130
+                    : AppTokens.spaceXl, // 留出底部防遮挡安全边距
               ),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate((context, index) {
@@ -1257,9 +1313,7 @@ class _CalendarAgendaListState extends ConsumerState<_CalendarAgendaList> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
         decoration: BoxDecoration(
-          color: isActive
-              ? colorScheme.primary
-              : Colors.transparent,
+          color: isActive ? colorScheme.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(AppTokens.radiusPill),
           border: Border.all(
             color: isActive

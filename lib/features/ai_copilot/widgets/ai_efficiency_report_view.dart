@@ -409,10 +409,7 @@ class AiEfficiencyReportView extends StatelessWidget {
               ],
             )
           else if (analysisMarkdown != null)
-            MarkdownContentView(
-              content: analysisMarkdown!,
-              compact: true,
-            ),
+            MarkdownContentView(content: analysisMarkdown!, compact: true),
         ],
       ),
     );

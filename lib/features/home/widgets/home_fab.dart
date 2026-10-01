@@ -51,10 +51,12 @@ class HomeDoubleFab extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final capsuleBg =
-        isDark ? AppTokens.surfaceCardDark : AppTokens.surfaceCardLight;
-    final borderColor =
-        isDark ? AppTokens.borderSubtleDark : AppTokens.borderSubtleLight;
+    final capsuleBg = isDark
+        ? AppTokens.surfaceCardDark
+        : AppTokens.surfaceCardLight;
+    final borderColor = isDark
+        ? AppTokens.borderSubtleDark
+        : AppTokens.borderSubtleLight;
     final dividerColor = isDark
         ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
         : Colors.black.withValues(alpha: AppTokens.alphaTintFaint);
@@ -62,7 +64,9 @@ class HomeDoubleFab extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       elevation: AppTokens.elevationFab,
-      shadowColor: Colors.black.withValues(alpha: AppTokens.alphaCheckboxFrostedSurfaceDark),
+      shadowColor: Colors.black.withValues(
+        alpha: AppTokens.alphaCheckboxFrostedSurfaceDark,
+      ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTokens.radiusPill),
       ),
@@ -147,10 +151,7 @@ class HomeDoubleFab extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppTokens.radiusPill),
                 ),
                 onPressed: _triggerNative,
-                child: const Icon(
-                  Icons.add,
-                  size: AppTokens.expandArrowSize,
-                ),
+                child: const Icon(Icons.add, size: AppTokens.expandArrowSize),
               ),
             ],
           ),

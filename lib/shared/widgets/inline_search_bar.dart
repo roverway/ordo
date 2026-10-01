@@ -78,7 +78,9 @@ class _InlineSearchBarState extends State<InlineSearchBar> {
                       color: _isFocused
                           ? colorScheme.surface
                           : (isDark
-                                ? colorScheme.onSurface.withValues(alpha: AppTokens.alphaTintFaint)
+                                ? colorScheme.onSurface.withValues(
+                                    alpha: AppTokens.alphaTintFaint,
+                                  )
                                 : colorScheme.onSurface.withValues(
                                     alpha: 0.06,
                                   )),
@@ -136,7 +138,9 @@ class _InlineSearchBarState extends State<InlineSearchBar> {
                               widget.controller.clear();
                               widget.onClear();
                             },
-                            borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                            borderRadius: BorderRadius.circular(
+                              AppTokens.radiusPill,
+                            ),
                             child: Container(
                               width: 26,
                               height: 26,

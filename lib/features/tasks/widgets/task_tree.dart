@@ -152,7 +152,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
         return NotificationListener<ScrollNotification>(
           onNotification: (notification) {
             if (notification is ScrollUpdateNotification) {
-              if (notification.metrics.pixels < -60 && !_hasTriggeredSpotlight) {
+              if (notification.metrics.pixels < -60 &&
+                  !_hasTriggeredSpotlight) {
                 _hasTriggeredSpotlight = true;
                 HapticFeedback.mediumImpact();
                 context.push('/search');
@@ -176,42 +177,47 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
             ),
-            padding: EdgeInsets.fromLTRB(20, AppTokens.spaceXs, 20, AppBreakpoints.isNarrow(context) ? 130 : AppTokens.spaceXl),
-          itemCount: roots.length + (_draggingTaskId != null ? 1 : 0),
-          itemBuilder: (context, index) {
-            // 拖拽进行时在列表末尾追加"回到 1 级"落点（FR-TSK-07）。
-            if (index >= roots.length) {
-              return _buildRootDropZone(
-                context,
-                visibleTasks,
-                repo,
-                l10n,
-                childrenIndexAll,
+            padding: EdgeInsets.fromLTRB(
+              20,
+              AppTokens.spaceXs,
+              20,
+              AppBreakpoints.isNarrow(context) ? 130 : AppTokens.spaceXl,
+            ),
+            itemCount: roots.length + (_draggingTaskId != null ? 1 : 0),
+            itemBuilder: (context, index) {
+              // 拖拽进行时在列表末尾追加"回到 1 级"落点（FR-TSK-07）。
+              if (index >= roots.length) {
+                return _buildRootDropZone(
+                  context,
+                  visibleTasks,
+                  repo,
+                  l10n,
+                  childrenIndexAll,
+                );
+              }
+              final root = roots[index];
+              // B 批（des-4 需求 1）：一级卡片逐项错落入场——仅首次构建播放，
+              // 数据刷新/拖拽重建不重放（StaggeredFadeSlide 一次性 controller）；
+              // 子行随卡片一起进入，不叠加重复错落。
+              return StaggeredFadeSlide(
+                index: index,
+                child: _buildCard(
+                  context,
+                  root,
+                  childrenOf,
+                  repo,
+                  expandState,
+                  // 派生计数/进度/拖拽落位均基于**全量**任务集索引（计数不随
+                  // 「隐藏已完成任务」变化；treeNodes 仍用过滤后的可见集）。
+                  childrenIndexAll: childrenIndexAll,
+                  byIdAll: byIdAll,
+                ),
               );
-            }
-            final root = roots[index];
-            // B 批（des-4 需求 1）：一级卡片逐项错落入场——仅首次构建播放，
-            // 数据刷新/拖拽重建不重放（StaggeredFadeSlide 一次性 controller）；
-            // 子行随卡片一起进入，不叠加重复错落。
-            return StaggeredFadeSlide(
-              index: index,
-              child: _buildCard(
-                context,
-                root,
-                childrenOf,
-                repo,
-                expandState,
-                // 派生计数/进度/拖拽落位均基于**全量**任务集索引（计数不随
-                // 「隐藏已完成任务」变化；treeNodes 仍用过滤后的可见集）。
-                childrenIndexAll: childrenIndexAll,
-                byIdAll: byIdAll,
-              ),
-            );
-          },
-        ),
-      );
-    },
-    loading: () => const LoadingView(),
+            },
+          ),
+        );
+      },
+      loading: () => const LoadingView(),
       error: (e, st) {
         logAsyncError(e, st);
         return ErrorView(
@@ -459,7 +465,9 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
               borderRadius: BorderRadius.circular(AppTokens.radiusList),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: AppTokens.alphaTintStrong),
+                  color: Colors.black.withValues(
+                    alpha: AppTokens.alphaTintStrong,
+                  ),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -719,8 +727,12 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
             padding: const EdgeInsets.all(AppTokens.spaceMd),
             decoration: BoxDecoration(
               color: active
-                  ? colorScheme.primaryContainer.withValues(alpha: AppTokens.alphaContentDisabled)
-                  : colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaBorderEmphasis),
+                  ? colorScheme.primaryContainer.withValues(
+                      alpha: AppTokens.alphaContentDisabled,
+                    )
+                  : colorScheme.surfaceContainerHighest.withValues(
+                      alpha: AppTokens.alphaBorderEmphasis,
+                    ),
               borderRadius: BorderRadius.circular(AppTokens.radiusList),
               border: Border.all(
                 color: active
@@ -844,13 +856,16 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
                 }
               }
             },
-            isSelected: ref.watch(desktopSelectedTaskIdProvider) == node.task.id,
+            isSelected:
+                ref.watch(desktopSelectedTaskIdProvider) == node.task.id,
             onTap: () {
               if (AppBreakpoints.isDualPane(context)) {
                 if (ref.read(taskFormProvider.notifier).hasChanges) {
                   ref.read(taskFormProvider.notifier).save();
                 }
-                ref.read(desktopSelectedTaskIdProvider.notifier).select(node.task.id);
+                ref
+                    .read(desktopSelectedTaskIdProvider.notifier)
+                    .select(node.task.id);
               } else {
                 openTaskEdit(context, taskId: node.task.id);
               }

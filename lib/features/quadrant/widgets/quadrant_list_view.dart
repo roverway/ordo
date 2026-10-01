@@ -83,7 +83,9 @@ class QuadrantListView extends ConsumerWidget {
               final velocity = details.primaryVelocity ?? 0;
               if (velocity < -200) {
                 // 向左滑：切换到下一个象限
-                final next = focusTab == null ? QuadrantType.urgentImportant : _nextQuadrant(focusTab);
+                final next = focusTab == null
+                    ? QuadrantType.urgentImportant
+                    : _nextQuadrant(focusTab);
                 if (next != null) {
                   HapticFeedback.selectionClick();
                   focusTabNotifier.setTab(next);
@@ -152,7 +154,6 @@ class QuadrantListView extends ConsumerWidget {
       ],
     );
   }
-
 
   QuadrantType? _nextQuadrant(QuadrantType current) {
     switch (current) {

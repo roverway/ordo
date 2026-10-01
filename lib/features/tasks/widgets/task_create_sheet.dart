@@ -271,7 +271,9 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: AppTokens.alphaBorderEmphasis),
+              color: Colors.black.withValues(
+                alpha: AppTokens.alphaBorderEmphasis,
+              ),
               blurRadius: 40,
               offset: const Offset(0, -10),
             ),
@@ -292,7 +294,9 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                   width: 36,
                   height: 4.5,
                   decoration: BoxDecoration(
-                    color: colorScheme.onSurfaceVariant.withValues(alpha: AppTokens.alphaContentDisabled),
+                    color: colorScheme.onSurfaceVariant.withValues(
+                      alpha: AppTokens.alphaContentDisabled,
+                    ),
                     borderRadius: BorderRadius.circular(AppTokens.radiusMicro),
                   ),
                 ),
@@ -559,11 +563,15 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                               decoration: BoxDecoration(
                                 color: isDark
                                     ? colorScheme.surfaceContainerHighest
-                                          .withValues(alpha: AppTokens.alphaContentMuted)
+                                          .withValues(
+                                            alpha: AppTokens.alphaContentMuted,
+                                          )
                                     : colorScheme.onSurface.withValues(
                                         alpha: 0.05,
                                       ),
-                                borderRadius: BorderRadius.circular(AppTokens.radiusList),
+                                borderRadius: BorderRadius.circular(
+                                  AppTokens.radiusList,
+                                ),
                               ),
                               padding: const EdgeInsets.all(2),
                               child: Row(
@@ -579,7 +587,9 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                       onTap: () => ref
                                           .read(taskFormProvider.notifier)
                                           .updatePriority(p),
-                                      borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                                      borderRadius: BorderRadius.circular(
+                                        AppTokens.radiusChip,
+                                      ),
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 10,
@@ -591,7 +601,10 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                                     ? colorScheme.surface
                                                     : priorityColor(
                                                         p,
-                                                      ).withValues(alpha: AppTokens.alphaTintStrong))
+                                                      ).withValues(
+                                                        alpha: AppTokens
+                                                            .alphaTintStrong,
+                                                      ))
                                               : Colors.transparent,
                                           borderRadius: BorderRadius.circular(
                                             6,
@@ -600,9 +613,11 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                               priority == p &&
                                                   p != TaskPriority.none
                                               ? Border.all(
-                                                  color: priorityColor(
-                                                    p,
-                                                  ).withValues(alpha: AppTokens.alphaContentDisabled),
+                                                  color: priorityColor(p)
+                                                      .withValues(
+                                                        alpha: AppTokens
+                                                            .alphaContentDisabled,
+                                                      ),
                                                   width: 1,
                                                 )
                                               : null,
@@ -634,7 +649,9 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                       // 5. 标签行（与任务编辑页完全一致）
                       InkWell(
                         onTap: () => showTaskTagPicker(context, ref),
-                        borderRadius: BorderRadius.circular(AppTokens.radiusList),
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusList,
+                        ),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                             vertical: 10,
@@ -665,8 +682,12 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                       style: theme.textTheme.bodyMedium
                                           ?.copyWith(
                                             color: colorScheme.onSurfaceVariant
-                                                .withValues(alpha: AppTokens.alphaContentMuted),
-                                            fontSize: AppTokens.textFootnoteSize,
+                                                .withValues(
+                                                  alpha: AppTokens
+                                                      .alphaContentMuted,
+                                                ),
+                                            fontSize:
+                                                AppTokens.textFootnoteSize,
                                           ),
                                     )
                                   else
@@ -684,7 +705,9 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                               decoration: BoxDecoration(
                                                 color: colorScheme.surface,
                                                 borderRadius:
-                                                    BorderRadius.circular(AppTokens.radiusPill),
+                                                    BorderRadius.circular(
+                                                      AppTokens.radiusPill,
+                                                    ),
                                                 border: Border.all(
                                                   color: borderColor,
                                                   width: 1,
@@ -720,7 +743,8 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                                         ?.copyWith(
                                                           color: colorScheme
                                                               .onSurfaceVariant,
-                                                          fontSize: AppTokens.textMicroSize,
+                                                          fontSize: AppTokens
+                                                              .textMicroSize,
                                                         ),
                                                   ),
                                                 ],
@@ -780,7 +804,9 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                     fontSize: AppTokens.textMicroSize,
                                     fontFeatures: AppTokens.fontTabular,
                                     color: colorScheme.onSurfaceVariant
-                                        .withValues(alpha: AppTokens.alphaScrim),
+                                        .withValues(
+                                          alpha: AppTokens.alphaScrim,
+                                        ),
                                   ),
                                 ),
                             ],
@@ -815,7 +841,9 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                       color: _subtaskRows[i].isDone
                                           ? colorScheme.onSurface
                                           : colorScheme.surface,
-                                      borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                                      borderRadius: BorderRadius.circular(
+                                        AppTokens.radiusChip,
+                                      ),
                                       border: Border.all(
                                         color: _subtaskRows[i].isDone
                                             ? colorScheme.onSurface
@@ -851,7 +879,8 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                           child: Text(
                                             _subtaskRows[i].controller.text,
                                             style: TextStyle(
-                                              fontSize: AppTokens.textSecondarySize,
+                                              fontSize:
+                                                  AppTokens.textSecondarySize,
                                               fontWeight: FontWeight.w500,
                                               height: 1.4,
                                               decoration: _subtaskRows[i].isDone
@@ -859,7 +888,10 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                                   : null,
                                               color: _subtaskRows[i].isDone
                                                   ? colorScheme.onSurfaceVariant
-                                                        .withValues(alpha: AppTokens.alphaContentMuted)
+                                                        .withValues(
+                                                          alpha: AppTokens
+                                                              .alphaContentMuted,
+                                                        )
                                                   : colorScheme.onSurface,
                                             ),
                                           ),
@@ -875,7 +907,8 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                           // 整层 maxHeight 翻转重新展开）。
                                           maxLines: null,
                                           style: TextStyle(
-                                            fontSize: AppTokens.textSecondarySize,
+                                            fontSize:
+                                                AppTokens.textSecondarySize,
                                             fontWeight: FontWeight.w500,
                                             height: 1.4,
                                             decoration: _subtaskRows[i].isDone
@@ -883,7 +916,10 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                                 : null,
                                             color: _subtaskRows[i].isDone
                                                 ? colorScheme.onSurfaceVariant
-                                                      .withValues(alpha: AppTokens.alphaContentMuted)
+                                                      .withValues(
+                                                        alpha: AppTokens
+                                                            .alphaContentMuted,
+                                                      )
                                                 : colorScheme.onSurface,
                                           ),
                                           decoration: InputDecoration(
@@ -891,8 +927,12 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                             hintStyle: TextStyle(
                                               color: colorScheme
                                                   .onSurfaceVariant
-                                                  .withValues(alpha: AppTokens.alphaContentDisabled),
-                                              fontSize: AppTokens.textSecondarySize,
+                                                  .withValues(
+                                                    alpha: AppTokens
+                                                        .alphaContentDisabled,
+                                                  ),
+                                              fontSize:
+                                                  AppTokens.textSecondarySize,
                                             ),
                                             border: InputBorder.none,
                                             enabledBorder: InputBorder.none,
@@ -909,7 +949,9 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                         ),
                                 ),
                                 InkWell(
-                                  borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                                  borderRadius: BorderRadius.circular(
+                                    AppTokens.radiusChip,
+                                  ),
                                   onTap: () => setState(() {
                                     _subtaskRows[i].focusNode.removeListener(
                                       _onFocusChange,
@@ -926,7 +968,10 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                       Icons.close,
                                       size: 14,
                                       color: colorScheme.onSurfaceVariant
-                                          .withValues(alpha: AppTokens.alphaContentDisabled),
+                                          .withValues(
+                                            alpha:
+                                                AppTokens.alphaContentDisabled,
+                                          ),
                                     ),
                                   ),
                                 ),
@@ -938,7 +983,9 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                         Padding(
                           padding: const EdgeInsets.only(top: 2),
                           child: InkWell(
-                            borderRadius: BorderRadius.circular(AppTokens.radiusList),
+                            borderRadius: BorderRadius.circular(
+                              AppTokens.radiusList,
+                            ),
                             onTap: _addSubtaskAndFocus,
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
@@ -951,10 +998,15 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                     width: 20,
                                     height: 20,
                                     decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                                      borderRadius: BorderRadius.circular(
+                                        AppTokens.radiusChip,
+                                      ),
                                       border: Border.all(
                                         color: colorScheme.onSurfaceVariant
-                                            .withValues(alpha: AppTokens.alphaBorderEmphasis),
+                                            .withValues(
+                                              alpha:
+                                                  AppTokens.alphaBorderEmphasis,
+                                            ),
                                         width: 1.2,
                                       ),
                                     ),
@@ -962,7 +1014,9 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                       Icons.add,
                                       size: 12,
                                       color: colorScheme.onSurfaceVariant
-                                          .withValues(alpha: AppTokens.alphaContentMuted),
+                                          .withValues(
+                                            alpha: AppTokens.alphaContentMuted,
+                                          ),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -972,7 +1026,10 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
                                       style: TextStyle(
                                         fontSize: AppTokens.textSecondarySize,
                                         color: colorScheme.onSurfaceVariant
-                                            .withValues(alpha: AppTokens.alphaContentDisabled),
+                                            .withValues(
+                                              alpha: AppTokens
+                                                  .alphaContentDisabled,
+                                            ),
                                       ),
                                     ),
                                   ),
@@ -1092,7 +1149,9 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
         padding: const EdgeInsets.symmetric(horizontal: 11),
         decoration: BoxDecoration(
           color: isDark
-              ? colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaBorderEmphasis)
+              ? colorScheme.surfaceContainerHighest.withValues(
+                  alpha: AppTokens.alphaBorderEmphasis,
+                )
               : AppTokens.surfaceSubtleLight,
           borderRadius: BorderRadius.circular(AppTokens.radiusPill),
           border: Border.all(color: borderColor, width: 1),
@@ -1146,7 +1205,9 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
           borderRadius: BorderRadius.circular(AppTokens.radiusPill),
           border: Border.all(
             color: hasValue
-                ? colorScheme.primary.withValues(alpha: AppTokens.alphaBorderEmphasis)
+                ? colorScheme.primary.withValues(
+                    alpha: AppTokens.alphaBorderEmphasis,
+                  )
                 : borderColor,
             width: 1,
           ),

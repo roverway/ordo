@@ -215,29 +215,30 @@ void main() {
       expect(find.text('glm-4-flash'), findsOneWidget);
     });
 
-    testWidgets('Action buttons (测试连接, 保存配置) are placed side-by-side in a single Row', (
-      tester,
-    ) async {
-      await _pumpAiSettingsPage(
-        tester,
-        repo: repo,
-        secureStore: secureStore,
-        httpClient: httpClient,
-      );
+    testWidgets(
+      'Action buttons (测试连接, 保存配置) are placed side-by-side in a single Row',
+      (tester) async {
+        await _pumpAiSettingsPage(
+          tester,
+          repo: repo,
+          secureStore: secureStore,
+          httpClient: httpClient,
+        );
 
-      final testBtn = find.text('测试连接');
-      final saveBtn = find.text('保存配置');
+        final testBtn = find.text('测试连接');
+        final saveBtn = find.text('保存配置');
 
-      expect(testBtn, findsOneWidget);
-      expect(saveBtn, findsOneWidget);
+        expect(testBtn, findsOneWidget);
+        expect(saveBtn, findsOneWidget);
 
-      final testCenter = tester.getCenter(testBtn);
-      final saveCenter = tester.getCenter(saveBtn);
+        final testCenter = tester.getCenter(testBtn);
+        final saveCenter = tester.getCenter(saveBtn);
 
-      // They must share approximately the same Y-coordinate (within 2px) and test button is to the left of save button
-      expect((testCenter.dy - saveCenter.dy).abs(), lessThan(2.0));
-      expect(testCenter.dx, lessThan(saveCenter.dx));
-    });
+        // They must share approximately the same Y-coordinate (within 2px) and test button is to the left of save button
+        expect((testCenter.dy - saveCenter.dy).abs(), lessThan(2.0));
+        expect(testCenter.dx, lessThan(saveCenter.dx));
+      },
+    );
 
     testWidgets('Switching to Kimi and Alibaba Qwen updates presets properly', (
       tester,
@@ -269,82 +270,86 @@ void main() {
       expect(find.text('qwen-plus'), findsOneWidget);
     });
 
-    testWidgets('Probe models button triggers model discovery and opens picker', (
-      tester,
-    ) async {
-      httpClient.responseStatus = 200;
-      httpClient.responseBody = jsonEncode({
-        'data': [
-          {'id': 'custom-probed-model-v1'},
-          {'id': 'custom-probed-model-v2'},
-        ],
-      });
+    testWidgets(
+      'Probe models button triggers model discovery and opens picker',
+      (tester) async {
+        httpClient.responseStatus = 200;
+        httpClient.responseBody = jsonEncode({
+          'data': [
+            {'id': 'custom-probed-model-v1'},
+            {'id': 'custom-probed-model-v2'},
+          ],
+        });
 
-      await _pumpAiSettingsPage(
-        tester,
-        repo: repo,
-        secureStore: secureStore,
-        httpClient: httpClient,
-      );
-
-      // Input API Key first so probe is allowed
-      await tester.enterText(
-        find.widgetWithText(TextField, 'API Key'),
-        'sk-test-probe-key',
-      );
-      await tester.pumpAndSettle();
-
-      // Tap probe models button
-      await tester.tap(find.byIcon(Icons.radar_outlined));
-      await tester.pumpAndSettle();
-
-      // Verify model picker sheet is displayed with probed model
-      expect(find.text('选择模型 (DeepSeek)'), findsOneWidget);
-      expect(find.text('custom-probed-model-v1'), findsOneWidget);
-
-      // Tap probed model to select it
-      await tester.tap(find.text('custom-probed-model-v1'));
-      await tester.pumpAndSettle();
-
-      // Verify model textfield is updated
-      expect(find.text('custom-probed-model-v1'), findsOneWidget);
-    });
-
-    testWidgets('renders properly under English locale with no hardcoded Chinese', (
-      tester,
-    ) async {
-      await _pumpAiSettingsPage(
-        tester,
-        repo: repo,
-        secureStore: secureStore,
-        httpClient: httpClient,
-        locale: const Locale('en'),
-      );
-
-      // Verify English labels
-      expect(find.text('DeepSeek'), findsOneWidget);
-      expect(find.text('https://api.deepseek.com'), findsOneWidget);
-      expect(find.text('deepseek-chat'), findsOneWidget);
-      expect(find.text('Test Connection'), findsOneWidget);
-      expect(find.text('Save Settings'), findsOneWidget);
-      expect(find.text('AI Assistant Settings'), findsOneWidget);
-      expect(find.text('Provider'), findsOneWidget);
-      expect(find.text('Model Name'), findsOneWidget);
-
-      // Assert no Chinese text in widget tree
-      final textWidgets = tester.widgetList<Text>(find.byType(Text));
-      final chineseRegex = RegExp(r'[一-龥]');
-      for (final widget in textWidgets) {
-        final text = widget.data ?? widget.textSpan?.toPlainText() ?? '';
-        expect(
-          chineseRegex.hasMatch(text),
-          isFalse,
-          reason: 'Found unexpected Chinese text in English locale: "$text"',
+        await _pumpAiSettingsPage(
+          tester,
+          repo: repo,
+          secureStore: secureStore,
+          httpClient: httpClient,
         );
-      }
-    });
 
-    testWidgets('MCP External Integration switch can be toggled on/off', (tester) async {
+        // Input API Key first so probe is allowed
+        await tester.enterText(
+          find.widgetWithText(TextField, 'API Key'),
+          'sk-test-probe-key',
+        );
+        await tester.pumpAndSettle();
+
+        // Tap probe models button
+        await tester.tap(find.byIcon(Icons.radar_outlined));
+        await tester.pumpAndSettle();
+
+        // Verify model picker sheet is displayed with probed model
+        expect(find.text('选择模型 (DeepSeek)'), findsOneWidget);
+        expect(find.text('custom-probed-model-v1'), findsOneWidget);
+
+        // Tap probed model to select it
+        await tester.tap(find.text('custom-probed-model-v1'));
+        await tester.pumpAndSettle();
+
+        // Verify model textfield is updated
+        expect(find.text('custom-probed-model-v1'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'renders properly under English locale with no hardcoded Chinese',
+      (tester) async {
+        await _pumpAiSettingsPage(
+          tester,
+          repo: repo,
+          secureStore: secureStore,
+          httpClient: httpClient,
+          locale: const Locale('en'),
+        );
+
+        // Verify English labels
+        expect(find.text('DeepSeek'), findsOneWidget);
+        expect(find.text('https://api.deepseek.com'), findsOneWidget);
+        expect(find.text('deepseek-chat'), findsOneWidget);
+        expect(find.text('Test Connection'), findsOneWidget);
+        expect(find.text('Save Settings'), findsOneWidget);
+        expect(find.text('AI Assistant Settings'), findsOneWidget);
+        expect(find.text('Provider'), findsOneWidget);
+        expect(find.text('Model Name'), findsOneWidget);
+
+        // Assert no Chinese text in widget tree
+        final textWidgets = tester.widgetList<Text>(find.byType(Text));
+        final chineseRegex = RegExp(r'[一-龥]');
+        for (final widget in textWidgets) {
+          final text = widget.data ?? widget.textSpan?.toPlainText() ?? '';
+          expect(
+            chineseRegex.hasMatch(text),
+            isFalse,
+            reason: 'Found unexpected Chinese text in English locale: "$text"',
+          );
+        }
+      },
+    );
+
+    testWidgets('MCP External Integration switch can be toggled on/off', (
+      tester,
+    ) async {
       await _pumpAiSettingsPage(
         tester,
         repo: repo,

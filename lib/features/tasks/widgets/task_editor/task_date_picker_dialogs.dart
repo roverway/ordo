@@ -194,7 +194,9 @@ class DatePresetChip extends StatelessWidget {
       ),
       backgroundColor: isDark
           ? AppTokens.surfaceCardDark
-          : colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaBorderEmphasis),
+          : colorScheme.surfaceContainerHighest.withValues(
+              alpha: AppTokens.alphaBorderEmphasis,
+            ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTokens.radiusChip),
         side: BorderSide(
@@ -414,10 +416,7 @@ class _CompactDateTimePickerSheetState
                         fontWeight: AppTokens.textTitleWeight,
                       ),
                     ),
-                    TextButton(
-                      onPressed: _confirm,
-                      child: Text(l10n.done),
-                    ),
+                    TextButton(onPressed: _confirm, child: Text(l10n.done)),
                   ],
                 ),
                 SizedBox(
@@ -450,8 +449,10 @@ class _CompactDateTimePickerSheetState
   }
 
   Widget _timeChip(String label, TimeOfDay? time) {
-    final isSelected = (_selectedTime == null && time == null) ||
-        (_selectedTime?.hour == time?.hour && _selectedTime?.minute == time?.minute);
+    final isSelected =
+        (_selectedTime == null && time == null) ||
+        (_selectedTime?.hour == time?.hour &&
+            _selectedTime?.minute == time?.minute);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     return ChoiceChip(
@@ -460,7 +461,9 @@ class _CompactDateTimePickerSheetState
       onSelected: (_) {
         setState(() => _selectedTime = time);
       },
-      selectedColor: colorScheme.primary.withValues(alpha: AppTokens.alphaTintSoft),
+      selectedColor: colorScheme.primary.withValues(
+        alpha: AppTokens.alphaTintSoft,
+      ),
       labelStyle: TextStyle(
         fontSize: AppTokens.textCaptionSize,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,

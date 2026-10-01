@@ -33,9 +33,7 @@ const List<String> _excludedDirs = <String>[
 ];
 
 /// 白名单文件：动效统一入口，其内部需要定义时长常量。
-const List<String> _excludedFiles = <String>[
-  'lib/core/utils/motion.dart',
-];
+const List<String> _excludedFiles = <String>['lib/core/utils/motion.dart'];
 
 /// 一条守卫规则。
 class _Rule {
@@ -260,4 +258,5 @@ String _pad(String s, int width) {
 }
 
 /// 截断过长行。
-String _truncate(String s, int max) => s.length <= max ? s : '${s.substring(0, max)}…';
+String _truncate(String s, int max) =>
+    s.length <= max ? s : '${s.substring(0, max)}…';

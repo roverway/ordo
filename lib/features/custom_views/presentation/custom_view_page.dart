@@ -93,12 +93,20 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
     final viewAsync = ref.watch(customViewDetailProvider(widget.viewId));
 
     return viewAsync.when(
-      loading: () =>
-          const Scaffold(backgroundColor: Colors.transparent, body: Center(child: CircularProgressIndicator())),
-      error: (err, _) => Scaffold(backgroundColor: Colors.transparent, body: Center(child: Text(err.toString()))),
+      loading: () => const Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (err, _) => Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(child: Text(err.toString())),
+      ),
       data: (CustomView? view) {
         if (view == null) {
-          return Scaffold(backgroundColor: Colors.transparent, body: Center(child: Text(l10n.noCustomViews)));
+          return Scaffold(
+            backgroundColor: Colors.transparent,
+            body: Center(child: Text(l10n.noCustomViews)),
+          );
         }
 
         final panels = ref.watch(customViewPanelsProvider(widget.viewId));
@@ -133,7 +141,9 @@ class _CustomViewPageState extends ConsumerState<CustomViewPage> {
                           ),
                           border: Border.all(
                             color: isDark
-                                ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
+                                ? Colors.white.withValues(
+                                    alpha: AppTokens.alphaTintFaint,
+                                  )
                                 : theme.colorScheme.outlineVariant.withValues(
                                     alpha: 0.35,
                                   ),

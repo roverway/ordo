@@ -50,6 +50,7 @@ abstract final class AppTokens {
 
   /// Four quadrants signature accent — vivid sky blue / cyan.
   static const Color colorNavQuadrant = Color(0xFF0284C7);
+
   /// Q4 quadrant accent — slate neutral gray.
   static const Color colorQuadrantQ4 = Color(0xFF64748B);
 
@@ -379,6 +380,7 @@ abstract final class AppTokens {
 
   /// Overlay / sheet animations.
   static const Duration motionSlow = Duration(milliseconds: 350);
+
   /// 脉冲呼吸动效循环周期（AI 思考脉冲等循环动画）
   static const Duration motionPulse = Duration(milliseconds: 1400);
 

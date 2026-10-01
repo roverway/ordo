@@ -16,10 +16,8 @@ class _FakeAiHttpClient implements AiHttpClient {
   )
   handler;
 
-  final Future<AiHttpResponse> Function(
-    Uri uri,
-    Map<String, String> headers,
-  )? getHandler;
+  final Future<AiHttpResponse> Function(Uri uri, Map<String, String> headers)?
+  getHandler;
 
   final List<({Uri uri, Map<String, String> headers, String body})>
   recordedRequests = [];
@@ -286,7 +284,8 @@ void main() {
 
     test('fetchModels parses OpenAI style models JSON payload', () async {
       final fakeClient = _FakeAiHttpClient(
-        (uri, headers, body) async => const AiHttpResponse(statusCode: 200, body: '{}'),
+        (uri, headers, body) async =>
+            const AiHttpResponse(statusCode: 200, body: '{}'),
         getHandler: (uri, headers) async {
           return AiHttpResponse(
             statusCode: 200,

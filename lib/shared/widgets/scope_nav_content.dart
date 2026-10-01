@@ -37,8 +37,10 @@ String resolveCurrentRoute(BuildContext context) {
 enum ScopeNavFilter {
   /// 全部项（桌面端完整侧边栏使用）
   all,
+
   /// 仅任务清单组（今日、收件箱、各项目清单与文件夹）
   tasksOnly,
+
   /// 仅特殊视图组（四象限、日历、项目概览、自定义视图）
   viewsOnly,
 }
@@ -240,7 +242,8 @@ class _ScopeNavContentState extends ConsumerState<ScopeNavContent> {
                   for (final folder in folders) ...[
                     () {
                       final fProjects =
-                          grouping.folderProjects[folder.id] ?? const <Project>[];
+                          grouping.folderProjects[folder.id] ??
+                          const <Project>[];
                       final fUncompleted = ref.watch(
                         folderUncompletedCountProvider(folder.id),
                       );

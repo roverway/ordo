@@ -120,14 +120,18 @@ class PanelColumn extends ConsumerWidget {
                                 Icons.inbox_outlined,
                                 size: 36,
                                 color: theme.colorScheme.onSurfaceVariant
-                                    .withValues(alpha: AppTokens.alphaBorderEmphasis),
+                                    .withValues(
+                                      alpha: AppTokens.alphaBorderEmphasis,
+                                    ),
                               ),
                               const SizedBox(height: AppTokens.spaceXs),
                               Text(
                                 l10n.noTasksInPanel,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant
-                                      .withValues(alpha: AppTokens.alphaContentMuted),
+                                      .withValues(
+                                        alpha: AppTokens.alphaContentMuted,
+                                      ),
                                 ),
                               ),
                             ],
@@ -369,7 +373,9 @@ class PanelColumn extends ConsumerWidget {
                         color: theme.colorScheme.primary.withValues(
                           alpha: 0.12,
                         ),
-                        borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusChip,
+                        ),
                       ),
                       child: Icon(
                         Icons.view_column_outlined,
@@ -397,7 +403,9 @@ class PanelColumn extends ConsumerWidget {
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surfaceContainerHighest
                             .withValues(alpha: AppTokens.alphaContentMuted),
-                        borderRadius: BorderRadius.circular(AppTokens.radiusPill),
+                        borderRadius: BorderRadius.circular(
+                          AppTokens.radiusPill,
+                        ),
                       ),
                       child: Text(
                         count.toString(),
@@ -518,7 +526,9 @@ class PanelColumn extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
         decoration: BoxDecoration(
           color: isActive
-              ? (AppTokens.colorPriorityHigh.withValues(alpha: AppTokens.alphaBorderSubtle))
+              ? (AppTokens.colorPriorityHigh.withValues(
+                  alpha: AppTokens.alphaBorderSubtle,
+                ))
               : Colors.transparent,
           borderRadius: BorderRadius.circular(AppTokens.radiusChip),
         ),
@@ -666,7 +676,9 @@ class PanelColumn extends ConsumerWidget {
           child: Container(
             height: 38,
             padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppTokens.radiusItem)),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppTokens.radiusItem),
+            ),
             child: Row(
               children: [
                 Icon(Icons.add, size: 16, color: mutedColor),
@@ -932,8 +944,12 @@ class KanbanTaskCard extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: BoxDecoration(
         color: isOverdue
-            ? AppTokens.colorOverdue.withValues(alpha: AppTokens.alphaBorderSubtle)
-            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaContentMuted),
+            ? AppTokens.colorOverdue.withValues(
+                alpha: AppTokens.alphaBorderSubtle,
+              )
+            : theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: AppTokens.alphaContentMuted,
+              ),
         borderRadius: BorderRadius.circular(AppTokens.radiusChip),
       ),
       child: Row(

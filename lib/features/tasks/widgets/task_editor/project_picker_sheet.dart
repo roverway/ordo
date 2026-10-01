@@ -223,20 +223,20 @@ class _ProjectPickerSheetState extends ConsumerState<ProjectPickerSheet> {
                       ),
                     )
                   : (_query.isNotEmpty
-                      ? _buildSearchResults(
-                          context: context,
-                          l10n: l10n,
-                          theme: theme,
-                          allProjects: allProjects,
-                          grouping: groupingAsync.value,
-                        )
-                      : _buildHierarchicalList(
-                          context: context,
-                          l10n: l10n,
-                          theme: theme,
-                          borderColor: borderColor,
-                          grouping: groupingAsync.value,
-                        )),
+                        ? _buildSearchResults(
+                            context: context,
+                            l10n: l10n,
+                            theme: theme,
+                            allProjects: allProjects,
+                            grouping: groupingAsync.value,
+                          )
+                        : _buildHierarchicalList(
+                            context: context,
+                            l10n: l10n,
+                            theme: theme,
+                            borderColor: borderColor,
+                            grouping: groupingAsync.value,
+                          )),
             ),
 
             const Divider(height: 1),

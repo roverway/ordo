@@ -267,10 +267,16 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                         width: 52,
                         height: 52,
                         decoration: BoxDecoration(
-                          color: Color(_color).withValues(alpha: AppTokens.alphaBorderSubtle),
-                          borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                          color: Color(
+                            _color,
+                          ).withValues(alpha: AppTokens.alphaBorderSubtle),
+                          borderRadius: BorderRadius.circular(
+                            AppTokens.radiusCard,
+                          ),
                           border: Border.all(
-                            color: Color(_color).withValues(alpha: AppTokens.alphaBorderEmphasis),
+                            color: Color(
+                              _color,
+                            ).withValues(alpha: AppTokens.alphaBorderEmphasis),
                             width: 1.0,
                           ),
                         ),
@@ -291,7 +297,8 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                             style: TextStyle(
                               fontSize: AppTokens.textSectionLabelSize,
                               fontWeight: AppTokens.textSectionLabelWeight,
-                              letterSpacing: AppTokens.textSectionLabelLetterSpacing,
+                              letterSpacing:
+                                  AppTokens.textSectionLabelLetterSpacing,
                               color: theme.colorScheme.onSurfaceVariant
                                   .withValues(alpha: AppTokens.alphaScrim),
                             ),
@@ -370,9 +377,9 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                             boxShadow: _color == preset
                                 ? [
                                     BoxShadow(
-                                      color: Color(
-                                        preset,
-                                      ).withValues(alpha: AppTokens.alphaContentDisabled),
+                                      color: Color(preset).withValues(
+                                        alpha: AppTokens.alphaContentDisabled,
+                                      ),
                                       blurRadius: 6,
                                       spreadRadius: 1,
                                     ),
@@ -667,7 +674,9 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
                                 Icons.drag_indicator,
                                 size: 17,
                                 color: theme.colorScheme.onSurfaceVariant
-                                    .withValues(alpha: AppTokens.alphaBorderEmphasis),
+                                    .withValues(
+                                      alpha: AppTokens.alphaBorderEmphasis,
+                                    ),
                               ),
                             ),
                           ),
@@ -828,9 +837,8 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
         decoration: BoxDecoration(
-          color: Theme.of(
-            context,
-          ).colorScheme.surfaceContainerHighest.withValues(alpha: AppTokens.alphaContentDisabled),
+          color: Theme.of(context).colorScheme.surfaceContainerHighest
+              .withValues(alpha: AppTokens.alphaContentDisabled),
           borderRadius: BorderRadius.circular(AppTokens.radiusPill),
         ),
         child: Text(
@@ -850,9 +858,9 @@ class _CustomViewEditorPageState extends ConsumerState<CustomViewEditorPage> {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
           decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).colorScheme.primary.withValues(alpha: AppTokens.alphaBorderSubtle),
+            color: Theme.of(context).colorScheme.primary.withValues(
+              alpha: AppTokens.alphaBorderSubtle,
+            ),
             borderRadius: BorderRadius.circular(AppTokens.radiusPill),
           ),
           child: Text(

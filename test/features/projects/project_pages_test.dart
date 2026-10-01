@@ -168,10 +168,7 @@ void main() {
     });
 
     testWidgets('顶部 Hero 区域固定在滚动视图外', (tester) async {
-      final projects = List.generate(
-        15,
-        (i) => _project('p$i', '项目 $i'),
-      );
+      final projects = List.generate(15, (i) => _project('p$i', '项目 $i'));
 
       await _pump(
         tester,
@@ -197,7 +194,6 @@ void main() {
 
       expect(find.byType(PageHeroHeader), findsOneWidget);
     });
-
 
     testWidgets('按文件夹分组展示：文件夹分组头 + 卡片 + 未分组区（D5）', (tester) async {
       final projects = [

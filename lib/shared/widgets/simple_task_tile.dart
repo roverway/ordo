@@ -146,10 +146,10 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
           color: widget.isSelected
               ? colorScheme.primary.withValues(alpha: AppTokens.alphaTintSoft)
               : (_hovered
-                  ? colorScheme.onSurface.withValues(
-                      alpha: AppTokens.alphaTintFaint,
-                    )
-                  : Colors.transparent),
+                    ? colorScheme.onSurface.withValues(
+                        alpha: AppTokens.alphaTintFaint,
+                      )
+                    : Colors.transparent),
           borderRadius: widget.isSelected
               ? BorderRadius.circular(AppTokens.radiusList)
               : null,
@@ -224,7 +224,9 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                             Padding(
                               padding: const EdgeInsets.only(top: 6),
                               child: Opacity(
-                                opacity: effectiveDone ? AppTokens.alphaContentMuted : 1.0,
+                                opacity: effectiveDone
+                                    ? AppTokens.alphaContentMuted
+                                    : 1.0,
                                 child: Wrap(
                                   spacing: 8,
                                   runSpacing: 4,
@@ -255,7 +257,8 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                                 ?.copyWith(
                                                   color: colorScheme
                                                       .onSurfaceVariant,
-                                                  fontSize: AppTokens.textCaptionSize,
+                                                  fontSize:
+                                                      AppTokens.textCaptionSize,
                                                 ),
                                           ),
                                         ],
@@ -271,9 +274,13 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                             style: theme.textTheme.bodySmall
                                                 ?.copyWith(
                                                   color: Color(tag.color)
-                                                      .withValues(alpha: AppTokens.alphaScrim),
+                                                      .withValues(
+                                                        alpha: AppTokens
+                                                            .alphaScrim,
+                                                      ),
                                                   fontWeight: FontWeight.w600,
-                                                  fontSize: AppTokens.textMicroSize,
+                                                  fontSize:
+                                                      AppTokens.textMicroSize,
                                                 ),
                                           ),
                                           Text(
@@ -282,7 +289,8 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                                 ?.copyWith(
                                                   color: Color(tag.color),
                                                   fontWeight: FontWeight.w500,
-                                                  fontSize: AppTokens.textMicroSize,
+                                                  fontSize:
+                                                      AppTokens.textMicroSize,
                                                 ),
                                           ),
                                         ],
@@ -312,7 +320,8 @@ class _SimpleTaskTileState extends State<SimpleTaskTile> {
                                                   fontWeight: widget.isOverdue
                                                       ? FontWeight.w600
                                                       : FontWeight.normal,
-                                                  fontSize: AppTokens.textCaptionSize,
+                                                  fontSize:
+                                                      AppTokens.textCaptionSize,
                                                   fontFeatures:
                                                       AppTokens.fontTabular,
                                                 ),

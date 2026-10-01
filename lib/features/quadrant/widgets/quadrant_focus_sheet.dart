@@ -82,7 +82,9 @@ class QuadrantFocusSheet extends ConsumerWidget {
           BoxShadow(
             color: Colors.black.withValues(alpha: AppTokens.alphaTintStrong),
             blurRadius: 36,
-            offset: isEffectiveDialog ? const Offset(0, 4) : const Offset(0, -10),
+            offset: isEffectiveDialog
+                ? const Offset(0, 4)
+                : const Offset(0, -10),
           ),
         ],
       ),

@@ -266,7 +266,8 @@ class _ScopeSwitcherSheetState extends ConsumerState<ScopeSwitcherSheet> {
                                         alpha: AppTokens.alphaTransparent,
                                       ),
                                       sheetBg.withValues(
-                                        alpha: AppTokens.alphaOverlayNearlyOpaque,
+                                        alpha:
+                                            AppTokens.alphaOverlayNearlyOpaque,
                                       ),
                                     ],
                                   ),

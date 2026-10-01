@@ -367,17 +367,31 @@ void main() {
 
       // 点击大标题打开 ScopeSwitcherSheet
       await tester.tap(
-        find.descendant(
-          of: find.byType(PageHeroHeader),
-          matching: find.byType(InkWell),
-        ).first,
+        find
+            .descendant(
+              of: find.byType(PageHeroHeader),
+              matching: find.byType(InkWell),
+            )
+            .first,
       );
       await tester.pumpAndSettle();
 
       // 弹层已显示
       expect(find.byType(ScopeSwitcherSheet), findsOneWidget);
-      expect(find.descendant(of: find.byType(ScopeSwitcherSheet), matching: find.text('今日')), findsOneWidget);
-      expect(find.descendant(of: find.byType(ScopeSwitcherSheet), matching: find.text('收件箱')), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(ScopeSwitcherSheet),
+          matching: find.text('今日'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(ScopeSwitcherSheet),
+          matching: find.text('收件箱'),
+        ),
+        findsOneWidget,
+      );
 
       // 点击背景遮罩 → 弹层正常关闭
       await tester.tapAt(const Offset(20, 20));
@@ -560,7 +574,10 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.descendant(of: find.byType(AppSidebar), matching: find.text('收件箱')),
+        find.descendant(
+          of: find.byType(AppSidebar),
+          matching: find.text('收件箱'),
+        ),
         findsOneWidget,
       );
     },

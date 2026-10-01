@@ -40,7 +40,9 @@ class TaskListPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(pageContextScopeProvider.notifier).setFromTaskScope(
+      ref
+          .read(pageContextScopeProvider.notifier)
+          .setFromTaskScope(
             scope,
             route: switch (scope) {
               ProjectTaskScope(:final projectId) => '/projects/$projectId',

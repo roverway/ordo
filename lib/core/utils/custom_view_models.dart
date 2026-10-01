@@ -19,7 +19,6 @@ enum DateScopeEnum {
   completedToday,
 }
 
-
 /// 完成时间筛选范围枚举。
 enum CompletedScopeEnum {
   all,
@@ -688,7 +687,6 @@ bool matchesFilter(
 
   return true;
 }
-
 
 /// 纯函数：对面板内的任务列表进行排序。
 List<Task> sortPanelTasks(

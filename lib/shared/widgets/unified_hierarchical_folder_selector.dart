@@ -39,9 +39,7 @@ class HierarchicalChip extends StatelessWidget {
 
     final Color border = isSelected
         ? colorScheme.primary
-        : (isDark
-              ? AppTokens.borderSubtleNeutralDark
-              : AppTokens.slate200);
+        : (isDark ? AppTokens.borderSubtleNeutralDark : AppTokens.slate200);
 
     final Color fg = isSelected
         ? colorScheme.onPrimary
@@ -63,7 +61,9 @@ class HierarchicalChip extends StatelessWidget {
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: colorScheme.primary.withValues(alpha: AppTokens.alphaTintStrong),
+                      color: colorScheme.primary.withValues(
+                        alpha: AppTokens.alphaTintStrong,
+                      ),
                       blurRadius: 4,
                       offset: const Offset(0, 1.5),
                     ),
@@ -187,12 +187,8 @@ class _UnifiedHierarchicalFolderContainerState
             id: 'unassigned',
             title: widget.unassignedTitle,
             iconData: widget.unassignedIcon,
-            iconColor: isDark
-                ? AppTokens.textMutedDark
-                : AppTokens.slate600,
-            iconBg: isDark
-                ? AppTokens.surfaceSubtleDark
-                : AppTokens.slate100,
+            iconColor: isDark ? AppTokens.textMutedDark : AppTokens.slate600,
+            iconBg: isDark ? AppTokens.surfaceSubtleDark : AppTokens.slate100,
             projects: widget.unassignedProjects,
           ),
           if (widget.folders.isNotEmpty)
@@ -277,7 +273,9 @@ class _UnifiedHierarchicalFolderContainerState
                           height: 24,
                           decoration: BoxDecoration(
                             color: iconBg,
-                            borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                            borderRadius: BorderRadius.circular(
+                              AppTokens.radiusChip,
+                            ),
                           ),
                           alignment: Alignment.center,
                           child: Icon(iconData, size: 14, color: iconColor),
@@ -323,8 +321,12 @@ class _UnifiedHierarchicalFolderContainerState
                             decoration: BoxDecoration(
                               color: allSelected
                                   ? colorScheme.primary
-                                  : colorScheme.primary.withValues(alpha: AppTokens.alphaTintSoft),
-                              borderRadius: BorderRadius.circular(AppTokens.radiusList),
+                                  : colorScheme.primary.withValues(
+                                      alpha: AppTokens.alphaTintSoft,
+                                    ),
+                              borderRadius: BorderRadius.circular(
+                                AppTokens.radiusList,
+                              ),
                             ),
                             child: Text(
                               allSelected

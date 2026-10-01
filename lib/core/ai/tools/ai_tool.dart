@@ -24,11 +24,7 @@ class AiToolContext {
 
 /// Result returned from executing an [AiTool].
 class AiToolResult {
-  const AiToolResult({
-    required this.success,
-    this.data,
-    this.error,
-  });
+  const AiToolResult({required this.success, this.data, this.error});
 
   factory AiToolResult.ok(Map<String, dynamic> data) =>
       AiToolResult(success: true, data: data);
@@ -41,10 +37,10 @@ class AiToolResult {
   final String? error;
 
   Map<String, dynamic> toJson() => {
-        'success': success,
-        if (data != null) 'data': data,
-        if (error != null) 'error': error,
-      };
+    'success': success,
+    if (data != null) 'data': data,
+    if (error != null) 'error': error,
+  };
 }
 
 /// Abstract base class for AI tools compatible with both Model Context Protocol (MCP)

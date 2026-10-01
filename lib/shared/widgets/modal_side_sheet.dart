@@ -25,7 +25,9 @@ Future<T?> showModalSideSheet<T>({
     context: context,
     barrierDismissible: barrierDismissible,
     barrierLabel: l10n.cancel,
-    barrierColor: barrierColor ?? Colors.black.withValues(alpha: AppTokens.alphaBorderEmphasis),
+    barrierColor:
+        barrierColor ??
+        Colors.black.withValues(alpha: AppTokens.alphaBorderEmphasis),
     transitionDuration: transitionDuration,
     pageBuilder: (dialogContext, animation, secondaryAnimation) {
       return Align(

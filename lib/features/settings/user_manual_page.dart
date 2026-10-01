@@ -326,16 +326,13 @@ class _UserManualPageState extends ConsumerState<UserManualPage> {
                       });
                     }
                   } else {
-                    _searchDebounceTimer = Timer(
-                      AppTokens.motionFast,
-                      () {
-                        if (mounted && _searchQuery != trimmed) {
-                          setState(() {
-                            _searchQuery = trimmed;
-                          });
-                        }
-                      },
-                    );
+                    _searchDebounceTimer = Timer(AppTokens.motionFast, () {
+                      if (mounted && _searchQuery != trimmed) {
+                        setState(() {
+                          _searchQuery = trimmed;
+                        });
+                      }
+                    });
                   }
                 },
               )

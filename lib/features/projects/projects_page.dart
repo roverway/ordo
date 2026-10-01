@@ -227,7 +227,9 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
                                           .folderProjects[folder.id]
                                           ?.length ??
                                       0,
-                                  isExpanded: !_collapsedFolderIds.contains(folder.id),
+                                  isExpanded: !_collapsedFolderIds.contains(
+                                    folder.id,
+                                  ),
                                   onToggle: () => _toggleFolder(folder.id),
                                 ),
                                 if (!_collapsedFolderIds.contains(folder.id))
@@ -248,7 +250,9 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
                                 _FolderSectionHeader(
                                   title: l10n.ungrouped,
                                   count: ungrouped.length,
-                                  isExpanded: !_collapsedFolderIds.contains('ungrouped'),
+                                  isExpanded: !_collapsedFolderIds.contains(
+                                    'ungrouped',
+                                  ),
                                   onToggle: () => _toggleFolder('ungrouped'),
                                 ),
                                 if (!_collapsedFolderIds.contains('ungrouped'))
@@ -278,7 +282,9 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
                                         .folderProjects[folder.id]
                                         ?.length ??
                                     0,
-                                isExpanded: !_collapsedFolderIds.contains(folder.id),
+                                isExpanded: !_collapsedFolderIds.contains(
+                                  folder.id,
+                                ),
                                 onToggle: () => _toggleFolder(folder.id),
                               ),
                             ),
@@ -299,8 +305,8 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
                                     ),
                                 delegate: SliverChildBuilderDelegate(
                                   (context, idx) {
-                                    final project =
-                                        grouping.folderProjects[folder.id]![idx];
+                                    final project = grouping
+                                        .folderProjects[folder.id]![idx];
                                     return StaggeredFadeSlide(
                                       index: cardIndex++,
                                       child: ProjectCard(
@@ -325,7 +331,9 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
                               child: _FolderSectionHeader(
                                 title: l10n.ungrouped,
                                 count: ungrouped.length,
-                                isExpanded: !_collapsedFolderIds.contains('ungrouped'),
+                                isExpanded: !_collapsedFolderIds.contains(
+                                  'ungrouped',
+                                ),
                                 onToggle: () => _toggleFolder('ungrouped'),
                               ),
                             ),
@@ -353,8 +361,9 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
                                     index: cardIndex++,
                                     child: ProjectCard(
                                       project: project,
-                                      onTap: () =>
-                                          context.push('/projects/${project.id}'),
+                                      onTap: () => context.push(
+                                        '/projects/${project.id}',
+                                      ),
                                     ),
                                   );
                                 }, childCount: ungrouped.length),

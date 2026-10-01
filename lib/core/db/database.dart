@@ -8,12 +8,13 @@ part 'database.g.dart';
 
 /// 应用数据库（docs/30-architecture.md §2）。
 ///
-/// schemaVersion = 6；迁移用 `MigrationStrategy.onUpgrade` 逐步执行
+/// schemaVersion = 7；迁移用 `MigrationStrategy.onUpgrade` 逐步执行
 /// （docs/40-data-model.md §8）。v2：tasks 新增 priority 列；
 /// v3：projects 新增 description 列（默认 ''）；
 /// v4：新增 folders 表 + projects 新增 folderId 列（NULL = 未分组）；
 /// v5：新增 custom_views 表（docs/65-custom-views-and-panels.md §4.3）；
-/// v6：projects 新增 icon 列，folders 新增 icon 与 color 列。
+/// v6：projects 新增 icon 列，folders 新增 icon 与 color 列；
+/// v7：tasks 新增 completedAt 列。
 @DriftDatabase(
   tables: [Projects, Folders, Tasks, Tags, TaskTags, Settings, CustomViews],
 )
@@ -70,6 +71,10 @@ class AppDatabase extends _$AppDatabase {
     beforeOpen: (details) async {
       // 开启外键约束（Drift 默认关闭，需应用层显式开启）。
       await customStatement('PRAGMA foreign_keys = ON');
+      // 开启 WAL 模式与并发防锁配置（docs/96-code-review P0-1）
+      await customStatement('PRAGMA journal_mode = WAL');
+      await customStatement('PRAGMA busy_timeout = 5000');
+      await customStatement('PRAGMA synchronous = NORMAL');
     },
   );
 }

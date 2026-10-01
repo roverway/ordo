@@ -216,7 +216,9 @@ class _SnapshotHistorySheetState extends ConsumerState<SnapshotHistorySheet> {
               alpha: AppTokens.alphaBorderEmphasis,
             ),
             blurRadius: 16,
-            offset: isEffectiveDialog ? const Offset(0, 4) : const Offset(0, -2),
+            offset: isEffectiveDialog
+                ? const Offset(0, 4)
+                : const Offset(0, -2),
           ),
         ],
       ),

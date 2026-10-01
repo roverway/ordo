@@ -43,30 +43,18 @@ class FloatingMinimalDock extends ConsumerWidget {
       );
     }
     if (path == '/inbox') {
-      return const PageContextScope(
-        projectId: inboxProjectId,
-        route: '/inbox',
-      );
+      return const PageContextScope(projectId: inboxProjectId, route: '/inbox');
     }
     if (path.startsWith('/projects/') && path != '/projects') {
       final pid = path.replaceFirst('/projects/', '');
-      return PageContextScope(
-        projectId: pid,
-        route: path,
-      );
+      return PageContextScope(projectId: pid, route: path);
     }
     if (path.startsWith('/calendar')) {
       try {
         final cal = ref.read(calendarStateProvider);
-        return PageContextScope(
-          focusedDate: cal.selectedDate,
-          route: path,
-        );
+        return PageContextScope(focusedDate: cal.selectedDate, route: path);
       } catch (_) {
-        return PageContextScope(
-          focusedDate: DateTime.now(),
-          route: path,
-        );
+        return PageContextScope(focusedDate: DateTime.now(), route: path);
       }
     }
     return PageContextScope(route: path);

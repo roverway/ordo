@@ -75,7 +75,9 @@ Future<String?> showCustomViewIconPicker(
                   height: 48,
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? Color(color).withValues(alpha: AppTokens.alphaTintStrong)
+                        ? Color(
+                            color,
+                          ).withValues(alpha: AppTokens.alphaTintStrong)
                         : (isDark
                               ? theme.colorScheme.surfaceContainerHigh
                               : theme.colorScheme.surfaceContainerLowest),
@@ -91,7 +93,9 @@ Future<String?> showCustomViewIconPicker(
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: Color(color).withValues(alpha: AppTokens.alphaBorderEmphasis),
+                              color: Color(color).withValues(
+                                alpha: AppTokens.alphaBorderEmphasis,
+                              ),
                               blurRadius: 6,
                               offset: const Offset(0, 2),
                             ),

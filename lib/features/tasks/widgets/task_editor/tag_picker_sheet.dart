@@ -159,7 +159,9 @@ class _TagPickerSheetState extends ConsumerState<TagPickerSheet> {
                                 shape: BoxShape.circle,
                               ),
                             ),
-                      selectedColor: Color(tag.color).withValues(alpha: AppTokens.alphaTintStrong),
+                      selectedColor: Color(
+                        tag.color,
+                      ).withValues(alpha: AppTokens.alphaTintStrong),
                       visualDensity: VisualDensity.compact,
                     );
                   }).toList(),

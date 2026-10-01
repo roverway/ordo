@@ -120,7 +120,9 @@ class SubtaskList extends StatelessWidget {
                         width: 20,
                         height: 20,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(AppTokens.radiusChip),
+                          borderRadius: BorderRadius.circular(
+                            AppTokens.radiusChip,
+                          ),
                           border: Border.all(
                             color: colorScheme.onSurfaceVariant.withValues(
                               alpha: 0.4,

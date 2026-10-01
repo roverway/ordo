@@ -52,9 +52,10 @@ Page<void> _slideFadePage(
 
       final fadeIn = CurvedAnimation(parent: animation, curve: curve);
 
-      final fadeOut = Tween<double>(begin: 1.0, end: 0.5).animate(
-        CurvedAnimation(parent: secondaryAnimation, curve: curve),
-      );
+      final fadeOut = Tween<double>(
+        begin: 1.0,
+        end: 0.5,
+      ).animate(CurvedAnimation(parent: secondaryAnimation, curve: curve));
       final slideOut = Tween<Offset>(
         begin: Offset.zero,
         end: const Offset(-0.25, 0),
@@ -66,10 +67,7 @@ Page<void> _slideFadePage(
           opacity: fadeOut,
           child: SlideTransition(
             position: slideIn,
-            child: FadeTransition(
-              opacity: fadeIn,
-              child: child,
-            ),
+            child: FadeTransition(opacity: fadeIn, child: child),
           ),
         ),
       );
@@ -109,12 +107,14 @@ Page<void> _responsiveMainPage(
       final scaleIn = Tween<double>(begin: 0.985, end: 1.0).animate(fadeIn);
 
       // 退出页面的淡出与微缩放（1.0 -> 0.985）
-      final fadeOut = Tween<double>(begin: 1.0, end: 0.0).animate(
-        CurvedAnimation(parent: secondaryAnimation, curve: curve),
-      );
-      final scaleOut = Tween<double>(begin: 1.0, end: 0.985).animate(
-        CurvedAnimation(parent: secondaryAnimation, curve: curve),
-      );
+      final fadeOut = Tween<double>(
+        begin: 1.0,
+        end: 0.0,
+      ).animate(CurvedAnimation(parent: secondaryAnimation, curve: curve));
+      final scaleOut = Tween<double>(
+        begin: 1.0,
+        end: 0.985,
+      ).animate(CurvedAnimation(parent: secondaryAnimation, curve: curve));
 
       return FadeTransition(
         opacity: fadeIn,
@@ -122,10 +122,7 @@ Page<void> _responsiveMainPage(
           scale: scaleIn,
           child: FadeTransition(
             opacity: fadeOut,
-            child: ScaleTransition(
-              scale: scaleOut,
-              child: child,
-            ),
+            child: ScaleTransition(scale: scaleOut, child: child),
           ),
         ),
       );

@@ -526,10 +526,9 @@ void main() {
     controller.add(buildCalendarBuckets([], state));
     await tester.pumpAndSettle();
 
-    final dayFinder = find.ancestor(
-      of: find.text('当日'),
-      matching: find.byType(Container),
-    ).first;
+    final dayFinder = find
+        .ancestor(of: find.text('当日'), matching: find.byType(Container))
+        .first;
     final container = tester.widget<Container>(dayFinder);
     final decoration = container.decoration as BoxDecoration?;
     expect(decoration?.color, isNotNull);

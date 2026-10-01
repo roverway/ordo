@@ -88,8 +88,6 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
       text: widget.proposal.description ?? '',
     );
     _descFocusNode = FocusNode();
-
-
   }
 
   @override
@@ -559,7 +557,6 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
     );
     final updated = widget.proposal.copyWith(substeps: updatedList);
     widget.onProposalChanged?.call(updated);
-
   }
 
   void _removeSubstep(int index) {
@@ -1359,5 +1356,4 @@ class _AiTaskProposalCardState extends State<AiTaskProposalCard> {
       ),
     );
   }
-
 }

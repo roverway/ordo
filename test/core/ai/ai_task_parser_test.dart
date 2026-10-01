@@ -90,8 +90,10 @@ void main() {
       },
     );
 
-    test('robustly handles trailing explanation with brackets and special characters', () {
-      const raw = '''
+    test(
+      'robustly handles trailing explanation with brackets and special characters',
+      () {
+        const raw = '''
 解析结果如下：
 {
   "title": "购买日用品",
@@ -100,13 +102,14 @@ void main() {
 }
 请注意：格式说明中不要包含 {} 符号，以及示例说明 "test";
 ''';
-      final extracted = AiTaskParser.extractJsonPayload(raw);
-      expect(extracted, isNotNull);
-      final decoded = jsonDecode(extracted!) as Map<String, dynamic>;
-      expect(decoded['title'], '购买日用品');
-      expect(decoded['priority'], 1);
-      expect((decoded['subtasks'] as List).length, 2);
-    });
+        final extracted = AiTaskParser.extractJsonPayload(raw);
+        expect(extracted, isNotNull);
+        final decoded = jsonDecode(extracted!) as Map<String, dynamic>;
+        expect(decoded['title'], '购买日用品');
+        expect(decoded['priority'], 1);
+        expect((decoded['subtasks'] as List).length, 2);
+      },
+    );
 
     test('returns null when no JSON object is found', () {
       const raw = '今天天气不错，我只是随口一说。';

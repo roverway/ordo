@@ -271,63 +271,63 @@ void main() {
       expect(find.text('今日'), findsOneWidget);
     });
 
-    testWidgets('SearchPage: cancel button is removed, back button and centered input exist', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            locale: Locale('zh'),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: SearchPage(),
+    testWidgets(
+      'SearchPage: cancel button is removed, back button and centered input exist',
+      (tester) async {
+        await tester.pumpWidget(
+          const ProviderScope(
+            child: MaterialApp(
+              locale: Locale('zh'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: SearchPage(),
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      // 验证取消按钮已不复存在
-      expect(find.text('取消'), findsNothing);
-      // 验证左侧返回按钮存在
-      expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
-      // 验证居中搜索输入框存在
-      expect(find.byType(TextField), findsOneWidget);
-    });
+        // 验证取消按钮已不复存在
+        expect(find.text('取消'), findsNothing);
+        // 验证左侧返回按钮存在
+        expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+        // 验证居中搜索输入框存在
+        expect(find.byType(TextField), findsOneWidget);
+      },
+    );
 
-    testWidgets('TaskFilterBar: renders linear style filter chips with no magic numbers', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            locale: const Locale('zh'),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: Scaffold(
-              body: TaskFilterBar(
-                status: null,
-                tagId: null,
-                range: TimeRange.all,
-                tags: const [],
-                onStatusChanged: (_) {},
-                onTagChanged: (_) {},
-                onTimeRangeChanged: (_) {},
-                onClear: () {},
+    testWidgets(
+      'TaskFilterBar: renders linear style filter chips with no magic numbers',
+      (tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            child: MaterialApp(
+              locale: const Locale('zh'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(
+                body: TaskFilterBar(
+                  status: null,
+                  tagId: null,
+                  range: TimeRange.all,
+                  tags: const [],
+                  onStatusChanged: (_) {},
+                  onTagChanged: (_) {},
+                  onTimeRangeChanged: (_) {},
+                  onClear: () {},
+                ),
               ),
             ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      // 验证各状态芯片渲染
-      expect(find.text('状态'), findsOneWidget);
-      expect(find.text('标签'), findsOneWidget);
-      expect(find.text('时间段'), findsOneWidget);
-      // 未激活态时不显示清除按钮
-      expect(find.text('清除筛选'), findsNothing);
-    });
+        // 验证各状态芯片渲染
+        expect(find.text('状态'), findsOneWidget);
+        expect(find.text('标签'), findsOneWidget);
+        expect(find.text('时间段'), findsOneWidget);
+        // 未激活态时不显示清除按钮
+        expect(find.text('清除筛选'), findsNothing);
+      },
+    );
   });
 }
-
-
