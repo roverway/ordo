@@ -3,6 +3,11 @@
 .DS_Store
 Thumbs.db
 
+# Python 缓存
+__pycache__/
+*.py[cod]
+*$py.class
+
 # Flutter/Dart 构建产物
 .dart_tool/
 .pub-cache/

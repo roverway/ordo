@@ -5,7 +5,7 @@
 # 包含 3 道守卫：
 # 1. 架构分层守卫：禁止 core 层反向依赖 features 层，禁止 db 层反向依赖 sync 层
 # 2. 代码格式守卫：强制 dart format 校验
-# 3. 巨型文件守卫：预警/监控 > 800 行的 UI/逻辑单文件
+# 3. 巨型文件守卫：棘轮硬阻断 > 800 行的 UI/逻辑单文件（当前基线 15 个，只减不增）
 # ==============================================================================
 set -e
 
@@ -71,10 +71,11 @@ echo "✅ Dart 格式规范检查通过！"
 
 echo ""
 echo "=========================================="
-echo "🛡️  [Quality Gate 3/3] 巨型文件健康度巡检..."
+echo "🛡️  [Quality Gate 3/3] 巨型文件健康度巡检（棘轮守卫）..."
 echo "=========================================="
 python3 - << 'EOF'
 import os
+import sys
 
 repo_root = '.'
 # 忽略生成的本地化代码和用户手册长文本
@@ -84,6 +85,9 @@ IGNORE_PATHS = {
     'lib/core/l10n/app_localizations_zh.dart',
     'lib/features/settings/user_manual_page.dart',
 }
+
+# 棘轮上限：当前基线 15 个，后续重构治理只许减少不许增加
+MAX_ALLOWED = 15
 
 large_files = []
 for root, _, files in os.walk(os.path.join(repo_root, 'lib')):
@@ -101,12 +105,18 @@ for root, _, files in os.walk(os.path.join(repo_root, 'lib')):
                     large_files.append((rel_path, line_count))
 
 large_files.sort(key=lambda x: x[1], reverse=True)
-print(f"ℹ️  当前 lib/ 下超过 800 行的业务/UI 文件共 {len(large_files)} 个（纳入后续重构治理目标）：")
+print(f"ℹ️  当前 lib/ 下超过 800 行的业务/UI 文件共 {len(large_files)} 个（棘轮基准上限: {MAX_ALLOWED}）：")
 for p, l in large_files[:10]:
     print(f"   - {p} ({l} 行)")
 if len(large_files) > 10:
     print(f"   ... 及其余 {len(large_files) - 10} 个文件")
-print("✅ 巨型文件健康度巡检完成。")
+
+if len(large_files) > MAX_ALLOWED:
+    print(f"\n❌ [棘轮违规] 巨型文件数量 ({len(large_files)}) 超过允许上限 ({MAX_ALLOWED})！")
+    print(f"   严禁新增 >800 行单文件。请拆分子组件或下沉业务逻辑至独立模块。")
+    sys.exit(1)
+
+print(f"✅ 巨型文件棘轮守卫通过：当前 {len(large_files)}/{MAX_ALLOWED}，未发生破窗增长。")
 EOF
 
 echo ""
