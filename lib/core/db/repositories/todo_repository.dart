@@ -1405,15 +1405,35 @@ class TodoRepository {
     }
     if (deduped.isEmpty) return;
 
-    // 批量读出当前已存在的所有相关墓碑进行 LWW 比较
-    final existingRows = await database.select(database.syncTombstones).get();
-    final existingMap = {
-      for (final r in existingRows)
-        '${r.entityType}:${r.entityId}': r.updatedAt,
-    };
+    // 按需分批查询已存在的墓碑进行 LWW 比较（避免全表扫描千行级历史墓碑）
+    final entryList = deduped.values.toList();
+    final existingMap = <String, int>{};
+
+    const batchSize = 50;
+    for (var i = 0; i < entryList.length; i += batchSize) {
+      final batch = entryList.sublist(
+        i,
+        i + batchSize > entryList.length ? entryList.length : i + batchSize,
+      );
+
+      final query = database.select(database.syncTombstones)
+        ..where((t) {
+          Expression<bool>? predicate;
+          for (final e in batch) {
+            final match = t.entityType.equals(e.type) & t.entityId.equals(e.id);
+            predicate = predicate == null ? match : (predicate | match);
+          }
+          return predicate ?? const Constant(false);
+        });
+
+      final rows = await query.get();
+      for (final r in rows) {
+        existingMap['${r.entityType}:${r.entityId}'] = r.updatedAt;
+      }
+    }
 
     final toUpsert = <SyncTombstonesCompanion>[];
-    for (final entry in deduped.values) {
+    for (final entry in entryList) {
       final oldUpdatedAt = existingMap['${entry.type}:${entry.id}'];
       if (oldUpdatedAt == null || entry.updatedAt > oldUpdatedAt) {
         toUpsert.add(
@@ -1428,12 +1448,16 @@ class TodoRepository {
 
     if (toUpsert.isEmpty) return;
 
-    // 统一使用原子 insertOnConflictUpdate 写入
-    for (final companion in toUpsert) {
-      await database
-          .into(database.syncTombstones)
-          .insertOnConflictUpdate(companion);
-    }
+    // 统一使用 batch 进行批量原子 upsert 写入
+    await database.batch((b) {
+      for (final companion in toUpsert) {
+        b.insert(
+          database.syncTombstones,
+          companion,
+          onConflict: DoUpdate((_) => companion),
+        );
+      }
+    });
   }
 
   // ───────────────────────────── 校验辅助 ─────────────────────────────
