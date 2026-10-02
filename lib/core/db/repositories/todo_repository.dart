@@ -183,6 +183,9 @@ class TodoRepository {
 
   final AppDatabase database;
 
+  /// Underlying drift [AppDatabase] instance.
+  AppDatabase get db => database;
+
   late final ProjectDao projects = ProjectDao(database);
   late final FolderDao folders = FolderDao(database);
   late final TaskDao tasks = TaskDao(database);

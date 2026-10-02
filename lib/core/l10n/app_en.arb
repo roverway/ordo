@@ -1447,5 +1447,45 @@
   "aiMcpSecurityHint": "Listens strictly on loopback interface (127.0.0.1); inaccessible from external network",
   "@aiMcpSecurityHint": {
     "description": "MCP loopback security notice"
+  },
+  "aiMcpApiKeyLabel": "API Key",
+  "@aiMcpApiKeyLabel": {
+    "description": "MCP API key field label"
+  },
+  "aiMcpApiKeyCopied": "API Key copied to clipboard",
+  "@aiMcpApiKeyCopied": {
+    "description": "MCP API key copied toast"
+  },
+  "aiMcpApiKeyRegenerate": "Regenerate Key",
+  "@aiMcpApiKeyRegenerate": {
+    "description": "MCP API key regenerate button"
+  },
+  "aiMcpApiKeyRegenerateConfirm": "Regenerating will invalidate the previous key immediately. Continue?",
+  "@aiMcpApiKeyRegenerateConfirm": {
+    "description": "MCP API key regenerate confirmation message"
+  },
+  "aiMcpAuthToggle": "Require API Key Auth",
+  "@aiMcpAuthToggle": {
+    "description": "MCP API key authentication toggle label"
+  },
+  "aiMcpWriteModeLabel": "Task Write Mode",
+  "@aiMcpWriteModeLabel": {
+    "description": "MCP write mode selector label"
+  },
+  "aiMcpWriteModeDirect": "Direct Write",
+  "@aiMcpWriteModeDirect": {
+    "description": "Direct write mode option"
+  },
+  "aiMcpWriteModeReview": "Review Queue",
+  "@aiMcpWriteModeReview": {
+    "description": "Review queue write mode option"
+  },
+  "aiMcpWriteModeDirectDesc": "External AI clients persist tasks immediately to the database (direct with valid key)",
+  "@aiMcpWriteModeDirectDesc": {
+    "description": "Direct write mode explanation"
+  },
+  "aiMcpWriteModeReviewDesc": "External AI calls stage proposals into the review queue for confirmation",
+  "@aiMcpWriteModeReviewDesc": {
+    "description": "Review queue mode explanation"
   }
 }

@@ -1863,4 +1863,34 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiMcpSecurityHint => '仅监听本机回环地址 (127.0.0.1)，外部网络无法访问，确保本地数据安全';
+
+  @override
+  String get aiMcpApiKeyLabel => '访问密钥 (API Key)';
+
+  @override
+  String get aiMcpApiKeyCopied => 'API Key 已复制到剪贴板';
+
+  @override
+  String get aiMcpApiKeyRegenerate => '重新生成密钥';
+
+  @override
+  String get aiMcpApiKeyRegenerateConfirm => '重新生成将使已接入该密钥的客户端立即失效，确定要重新生成吗？';
+
+  @override
+  String get aiMcpAuthToggle => '要求 API Key 鉴权';
+
+  @override
+  String get aiMcpWriteModeLabel => '任务写入模式';
+
+  @override
+  String get aiMcpWriteModeDirect => '直接写入';
+
+  @override
+  String get aiMcpWriteModeReview => '提案审核';
+
+  @override
+  String get aiMcpWriteModeDirectDesc => 'AI 外部调用时立即保存任务到数据库（支持 key 鉴权直通）';
+
+  @override
+  String get aiMcpWriteModeReviewDesc => 'AI 外部调用暂存入审核队列，待批量确认后再写入';
 }

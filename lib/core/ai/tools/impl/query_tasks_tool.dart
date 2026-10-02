@@ -20,7 +20,7 @@ class QueryTasksTool extends AiTool {
   String get description =>
       'Query tasks with multi-dimensional filters: date range, completion status, priority, '
       'project, tags, text keywords, or completed timeframe (yesterday, today, thisWeek, lastWeek). '
-      'Always call this when the user asks about their tasks, schedule, completed tasks, overdue items, or progress.';
+      'Supports field projection (fields) and cursor pagination.';
 
   @override
   Map<String, dynamic> get inputSchema => {
@@ -51,7 +51,7 @@ class QueryTasksTool extends AiTool {
           'customRange',
         ],
         'description':
-            'Filter tasks completed within a specific timeframe: "today", "yesterday", "thisWeek", "lastWeek", or "customRange". Useful for answering "what did I complete yesterday/this week".',
+            'Filter tasks completed within a specific timeframe: "today", "yesterday", "thisWeek", "lastWeek", or "customRange".',
       },
       'completedAfter': {
         'type': 'string',
@@ -96,7 +96,18 @@ class QueryTasksTool extends AiTool {
       },
       'limit': {
         'type': 'integer',
-        'description': 'Maximum number of tasks to return (default: 30).',
+        'description':
+            'Maximum number of tasks to return (default: 30, max: 200).',
+      },
+      'cursor': {
+        'type': 'string',
+        'description': 'Pagination cursor (0-based integer offset string).',
+      },
+      'fields': {
+        'type': 'array',
+        'items': {'type': 'string'},
+        'description':
+            'Optional field projection to reduce token usage (e.g. ["id", "title", "status", "dueDate"]).',
       },
     },
   };
@@ -158,7 +169,10 @@ class QueryTasksTool extends AiTool {
         const <String>[];
 
     final searchQuery = arguments['searchQuery']?.toString();
-    final limit = (arguments['limit'] as num?)?.toInt() ?? 30;
+    final rawLimit = (arguments['limit'] as num?)?.toInt() ?? 30;
+    final limit = rawLimit.clamp(1, 200);
+
+    final offset = int.tryParse(arguments['cursor']?.toString() ?? '') ?? 0;
 
     // Map completedScope and completion range
     CompletedScopeEnum completedScope = CompletedScopeEnum.all;
@@ -207,11 +221,18 @@ class QueryTasksTool extends AiTool {
       nowUtcMs: context.currentNowUtcMs,
     );
 
-    // 5. Serialize matched tasks with complete metadata (completion time, subtask stats, etc.)
+    // 5. Serialize matched tasks with complete metadata and field projection
+    final requestedFields = (arguments['fields'] as List?)
+        ?.map((e) => e.toString())
+        .toSet();
+
     final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
-    final limited = matchedTasks.take(limit).map((Task t) {
+    final pagedTasks = matchedTasks.skip(offset).take(limit);
+
+    final serialized = pagedTasks.map((Task t) {
       final proj = projectsById[t.projectId];
-      final taskTags = (export.taskTagIds[t.id] ?? [])
+      final currentTagIds = export.taskTagIds[t.id] ?? [];
+      final taskTags = currentTagIds
           .map((id) => tagsById[id]?.name)
           .whereType<String>()
           .toList();
@@ -257,14 +278,16 @@ class QueryTasksTool extends AiTool {
 
       final isDone = effectiveStatus == TaskStatus.done;
 
-      return {
+      final fullMap = <String, dynamic>{
         'id': t.id,
         'title': t.title,
         if (t.description.isNotEmpty) 'description': t.description,
         'status': effectiveStatus.name,
         'priority': t.priority.name,
-        if (proj != null) 'project': proj.name,
+        'projectId': t.projectId,
+        'projectName': proj?.name ?? 'Inbox',
         if (taskTags.isNotEmpty) 'tags': taskTags,
+        if (currentTagIds.isNotEmpty) 'tagIds': currentTagIds,
         'startDate': ?startStr,
         'dueDate': ?dueStr,
         'isCompleted': isDone,
@@ -284,12 +307,30 @@ class QueryTasksTool extends AiTool {
         },
         if (t.parentId != null) 'parentId': t.parentId,
       };
+
+      if (requestedFields == null || requestedFields.isEmpty) {
+        return fullMap;
+      }
+
+      // Filter by requested fields (always keep id and title)
+      final filtered = <String, dynamic>{'id': t.id, 'title': t.title};
+      for (final f in requestedFields) {
+        if (fullMap.containsKey(f)) {
+          filtered[f] = fullMap[f];
+        }
+      }
+      return filtered;
     }).toList();
+
+    final nextOffset = offset + serialized.length;
+    final hasMore = nextOffset < matchedTasks.length;
 
     return AiToolResult.ok({
       'totalMatched': matchedTasks.length,
-      'returnedCount': limited.length,
-      'tasks': limited,
+      'returnedCount': serialized.length,
+      'offset': offset,
+      if (hasMore) 'nextCursor': nextOffset.toString(),
+      'tasks': serialized,
     });
   }
 }

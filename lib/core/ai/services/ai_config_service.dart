@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../db/db_providers.dart';
 import '../../db/daos/settings_dao.dart';
 import '../../security/secure_store.dart';
+import '../../utils/uuid.dart';
 import '../models/ai_config.dart';
 import 'ai_client.dart';
 
@@ -13,6 +14,9 @@ abstract final class AiSettingsKeys {
   static const String model = 'ai_model';
   static const String mcpEnabled = 'ai_mcp_enabled';
   static const String mcpPort = 'ai_mcp_port';
+  static const String mcpApiKey = 'ai_mcp_api_key';
+  static const String mcpAuthEnabled = 'ai_mcp_auth_enabled';
+  static const String mcpWriteMode = 'ai_mcp_write_mode';
 
   /// Per-provider specific settings keys
   static String baseUrlFor(AiProviderType p) => 'ai_base_url_${p.id}';
@@ -166,6 +170,62 @@ class AiConfigService {
   /// Sets the configured MCP Server port.
   Future<void> setMcpPort(int port) async {
     await _settingsDao.set(AiSettingsKeys.mcpPort, port.toString());
+  }
+
+  /// Checks whether MCP API Key authentication is enabled (default: true).
+  Future<bool> isMcpAuthEnabled() async {
+    final val = await _settingsDao.get(AiSettingsKeys.mcpAuthEnabled);
+    return val == null ? true : val == 'true';
+  }
+
+  /// Sets whether MCP API Key authentication is enabled.
+  Future<void> setMcpAuthEnabled(bool enabled) async {
+    await _settingsDao.set(
+      AiSettingsKeys.mcpAuthEnabled,
+      enabled ? 'true' : 'false',
+    );
+  }
+
+  /// Gets the configured MCP API Key, generating a new one if none exists.
+  Future<String> getMcpApiKey() async {
+    var val = await _settingsDao.get(AiSettingsKeys.mcpApiKey);
+    if (val == null || val.trim().isEmpty) {
+      val = generateMcpApiKey();
+      await _settingsDao.set(AiSettingsKeys.mcpApiKey, val);
+    }
+    return val;
+  }
+
+  /// Sets the configured MCP API Key.
+  Future<void> setMcpApiKey(String key) async {
+    await _settingsDao.set(AiSettingsKeys.mcpApiKey, key.trim());
+  }
+
+  /// Generates and persists a new random MCP API Key.
+  Future<String> regenerateMcpApiKey() async {
+    final newKey = generateMcpApiKey();
+    await _settingsDao.set(AiSettingsKeys.mcpApiKey, newKey);
+    return newKey;
+  }
+
+  /// Helper to generate a secure random API key string.
+  static String generateMcpApiKey() {
+    final randomPart = newUuid().replaceAll('-', '');
+    return 'ordo_sk_$randomPart';
+  }
+
+  /// Gets the configured MCP Write Mode ('direct' or 'review', defaults to 'direct').
+  Future<String> getMcpWriteMode() async {
+    final val = await _settingsDao.get(AiSettingsKeys.mcpWriteMode);
+    return (val == 'review') ? 'review' : 'direct';
+  }
+
+  /// Sets the MCP Write Mode ('direct' or 'review').
+  Future<void> setMcpWriteMode(String mode) async {
+    await _settingsDao.set(
+      AiSettingsKeys.mcpWriteMode,
+      mode == 'review' ? 'review' : 'direct',
+    );
   }
 
   /// Tests connectivity and authentication using [AiClient].

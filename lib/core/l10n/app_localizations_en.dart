@@ -1910,4 +1910,37 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiMcpSecurityHint =>
       'Listens strictly on loopback interface (127.0.0.1); inaccessible from external network';
+
+  @override
+  String get aiMcpApiKeyLabel => 'API Key';
+
+  @override
+  String get aiMcpApiKeyCopied => 'API Key copied to clipboard';
+
+  @override
+  String get aiMcpApiKeyRegenerate => 'Regenerate Key';
+
+  @override
+  String get aiMcpApiKeyRegenerateConfirm =>
+      'Regenerating will invalidate the previous key immediately. Continue?';
+
+  @override
+  String get aiMcpAuthToggle => 'Require API Key Auth';
+
+  @override
+  String get aiMcpWriteModeLabel => 'Task Write Mode';
+
+  @override
+  String get aiMcpWriteModeDirect => 'Direct Write';
+
+  @override
+  String get aiMcpWriteModeReview => 'Review Queue';
+
+  @override
+  String get aiMcpWriteModeDirectDesc =>
+      'External AI clients persist tasks immediately to the database (direct with valid key)';
+
+  @override
+  String get aiMcpWriteModeReviewDesc =>
+      'External AI calls stage proposals into the review queue for confirmation';
 }

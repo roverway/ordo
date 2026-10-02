@@ -1,8 +1,10 @@
+import 'package:ordo/core/db/repositories/todo_repository.dart';
+import '../../services/ai_task_executor.dart';
 import '../ai_tool.dart';
 import 'ai_date_parser.dart';
 
-/// Tool for proposing creation of a task with optional subtasks, tags, dates, and priorities.
-/// Generates a structured proposal for user confirmation (Human-in-the-loop).
+/// Tool for creating tasks or staging task proposals.
+/// Supports both Direct Write (automated) and Proposal Queue (human-in-the-loop).
 class CreateTasksTool extends AiTool {
   const CreateTasksTool();
 
@@ -11,8 +13,9 @@ class CreateTasksTool extends AiTool {
 
   @override
   String get description =>
-      'Proposes creating one or more tasks/subtasks with properties like title, priority, due date, '
-      'tags, and breakdown steps. Call this whenever the user wants to add, schedule, or break down a task.';
+      'Creates a new task or stages a task proposal with optional subtasks, tags, dates, priority, '
+      'and target project. In direct mode, executes immediately and returns taskId. In proposal mode, '
+      'stages to the review queue and returns proposalId.';
 
   @override
   Map<String, dynamic> get inputSchema => {
@@ -56,6 +59,17 @@ class CreateTasksTool extends AiTool {
         'items': {'type': 'string'},
         'description': 'List of breakdown subtask titles in sequential order.',
       },
+      'mode': {
+        'type': 'string',
+        'enum': ['auto', 'direct', 'proposal'],
+        'description':
+            'Execution mode: "direct" writes to DB immediately, "proposal" stages to review queue, "auto" uses server default.',
+      },
+      'idempotencyKey': {
+        'type': 'string',
+        'description':
+            'Optional client token to prevent duplicate task creations on retries.',
+      },
     },
     'required': ['title'],
   };
@@ -67,7 +81,11 @@ class CreateTasksTool extends AiTool {
   ) async {
     final title = arguments['title']?.toString().trim();
     if (title == null || title.isEmpty) {
-      return AiToolResult.failure('Task title cannot be empty.');
+      return AiToolResult.failure(
+        'Task title cannot be empty.',
+        code: 'INVALID_ARGUMENT',
+        hint: 'Provide a non-empty string for "title"',
+      );
     }
 
     final description = arguments['description']?.toString().trim();
@@ -76,6 +94,19 @@ class CreateTasksTool extends AiTool {
 
     final startAt = AiDateParser.parseToUtcMs(arguments['startDate']);
     final dueAt = AiDateParser.parseToUtcMs(arguments['dueDate']);
+
+    final rawProjectId = arguments['projectId']?.toString().trim();
+    if (rawProjectId != null && rawProjectId.isNotEmpty) {
+      final project = await context.repository.projects.getById(rawProjectId);
+      if (project == null || project.deleted != 0) {
+        return AiToolResult.failure(
+          'Project with ID "$rawProjectId" does not exist.',
+          code: 'PROJECT_NOT_FOUND',
+          hint: 'Call get_metadata to list valid projects.',
+          details: {'projectId': rawProjectId},
+        );
+      }
+    }
 
     final tags =
         (arguments['tags'] as List?)
@@ -96,17 +127,84 @@ class CreateTasksTool extends AiTool {
       (i) => {'title': rawSubsteps[i], 'sortOrder': i},
     );
 
+    final payload = <String, dynamic>{
+      'title': title,
+      if (description != null && description.isNotEmpty)
+        'description': description,
+      'priority': priority,
+      'startAt': startAt,
+      'dueAt': dueAt,
+      if (rawProjectId != null && rawProjectId.isNotEmpty)
+        'projectId': rawProjectId,
+      'tags': tags,
+      'substeps': substeps,
+    };
+
+    final requestedMode = arguments['mode']?.toString().trim();
+    final isDirect =
+        requestedMode == 'direct' ||
+        (requestedMode != 'proposal' && context.writeMode == 'direct');
+
+    if (isDirect) {
+      try {
+        final task = await AiTaskExecutor.executeCreateTask(
+          repository: context.repository,
+          payload: payload,
+          nowUtcMs: context.nowUtcMs,
+          locale: context.locale,
+        );
+
+        return AiToolResult.ok({
+          'ok': true,
+          'status': 'created',
+          'taskId': task.id,
+          'task': {
+            'id': task.id,
+            'title': task.title,
+            'projectId': task.projectId,
+            'priority': task.priority.index,
+            'status': task.status.name,
+            'startAt': task.startAt,
+            'dueAt': task.endAt,
+            'createdAt': task.createdAt,
+          },
+          'requiresConfirmation': false,
+          'message': 'Task "${task.title}" created successfully.',
+        });
+      } on RepositoryException catch (e) {
+        return AiToolResult.failure(e.message, code: 'REPOSITORY_ERROR');
+      } catch (e) {
+        return AiToolResult.failure(
+          'Failed to create task: $e',
+          code: 'EXECUTION_ERROR',
+        );
+      }
+    }
+
+    // Proposal staging mode
+    final idempotencyKey = arguments['idempotencyKey']?.toString().trim();
+    if (context.proposalRepository != null) {
+      final proposal = await context.proposalRepository!.createProposal(
+        type: 'create',
+        payload: payload,
+        idempotencyKey: idempotencyKey,
+      );
+
+      return AiToolResult.ok({
+        'ok': true,
+        'status': 'pending',
+        'proposalId': proposal.id,
+        'proposal': payload,
+        'staged': proposal.toJson(),
+        'requiresConfirmation': true,
+        'message':
+            'Task proposal staged. Call confirm_proposals to commit or reject_proposals to discard.',
+      });
+    }
+
+    // Fallback in-memory proposal for in-app copilot without proposalRepository
     return AiToolResult.ok({
-      'proposal': {
-        'title': title,
-        if (description != null && description.isNotEmpty)
-          'description': description,
-        'priority': priority,
-        'startAt': ?startAt,
-        'dueAt': ?dueAt,
-        'tags': tags,
-        'substeps': substeps,
-      },
+      'proposal': payload,
       'requiresConfirmation': true,
       'message': 'Task proposal prepared for user confirmation.',
     });

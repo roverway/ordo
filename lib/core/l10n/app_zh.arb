@@ -1447,5 +1447,45 @@
   "aiMcpSecurityHint": "仅监听本机回环地址 (127.0.0.1)，外部网络无法访问，确保本地数据安全",
   "@aiMcpSecurityHint": {
     "description": "MCP loopback security notice"
+  },
+  "aiMcpApiKeyLabel": "访问密钥 (API Key)",
+  "@aiMcpApiKeyLabel": {
+    "description": "MCP API key field label"
+  },
+  "aiMcpApiKeyCopied": "API Key 已复制到剪贴板",
+  "@aiMcpApiKeyCopied": {
+    "description": "MCP API key copied toast"
+  },
+  "aiMcpApiKeyRegenerate": "重新生成密钥",
+  "@aiMcpApiKeyRegenerate": {
+    "description": "MCP API key regenerate button"
+  },
+  "aiMcpApiKeyRegenerateConfirm": "重新生成将使已接入该密钥的客户端立即失效，确定要重新生成吗？",
+  "@aiMcpApiKeyRegenerateConfirm": {
+    "description": "MCP API key regenerate confirmation message"
+  },
+  "aiMcpAuthToggle": "要求 API Key 鉴权",
+  "@aiMcpAuthToggle": {
+    "description": "MCP API key authentication toggle label"
+  },
+  "aiMcpWriteModeLabel": "任务写入模式",
+  "@aiMcpWriteModeLabel": {
+    "description": "MCP write mode selector label"
+  },
+  "aiMcpWriteModeDirect": "直接写入",
+  "@aiMcpWriteModeDirect": {
+    "description": "Direct write mode option"
+  },
+  "aiMcpWriteModeReview": "提案审核",
+  "@aiMcpWriteModeReview": {
+    "description": "Review queue write mode option"
+  },
+  "aiMcpWriteModeDirectDesc": "AI 外部调用时立即保存任务到数据库（支持 key 鉴权直通）",
+  "@aiMcpWriteModeDirectDesc": {
+    "description": "Direct write mode explanation"
+  },
+  "aiMcpWriteModeReviewDesc": "AI 外部调用暂存入审核队列，待批量确认后再写入",
+  "@aiMcpWriteModeReviewDesc": {
+    "description": "Review queue mode explanation"
   }
 }

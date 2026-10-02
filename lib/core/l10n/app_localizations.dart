@@ -3578,6 +3578,66 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'仅监听本机回环地址 (127.0.0.1)，外部网络无法访问，确保本地数据安全'**
   String get aiMcpSecurityHint;
+
+  /// MCP API key field label
+  ///
+  /// In zh, this message translates to:
+  /// **'访问密钥 (API Key)'**
+  String get aiMcpApiKeyLabel;
+
+  /// MCP API key copied toast
+  ///
+  /// In zh, this message translates to:
+  /// **'API Key 已复制到剪贴板'**
+  String get aiMcpApiKeyCopied;
+
+  /// MCP API key regenerate button
+  ///
+  /// In zh, this message translates to:
+  /// **'重新生成密钥'**
+  String get aiMcpApiKeyRegenerate;
+
+  /// MCP API key regenerate confirmation message
+  ///
+  /// In zh, this message translates to:
+  /// **'重新生成将使已接入该密钥的客户端立即失效，确定要重新生成吗？'**
+  String get aiMcpApiKeyRegenerateConfirm;
+
+  /// MCP API key authentication toggle label
+  ///
+  /// In zh, this message translates to:
+  /// **'要求 API Key 鉴权'**
+  String get aiMcpAuthToggle;
+
+  /// MCP write mode selector label
+  ///
+  /// In zh, this message translates to:
+  /// **'任务写入模式'**
+  String get aiMcpWriteModeLabel;
+
+  /// Direct write mode option
+  ///
+  /// In zh, this message translates to:
+  /// **'直接写入'**
+  String get aiMcpWriteModeDirect;
+
+  /// Review queue write mode option
+  ///
+  /// In zh, this message translates to:
+  /// **'提案审核'**
+  String get aiMcpWriteModeReview;
+
+  /// Direct write mode explanation
+  ///
+  /// In zh, this message translates to:
+  /// **'AI 外部调用时立即保存任务到数据库（支持 key 鉴权直通）'**
+  String get aiMcpWriteModeDirectDesc;
+
+  /// Review queue mode explanation
+  ///
+  /// In zh, this message translates to:
+  /// **'AI 外部调用暂存入审核队列，待批量确认后再写入'**
+  String get aiMcpWriteModeReviewDesc;
 }
 
 class _AppLocalizationsDelegate

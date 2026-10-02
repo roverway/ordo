@@ -17,6 +17,7 @@ import '../tools/ai_tool_registry.dart';
 /// Security: Binds strictly to [InternetAddress.loopbackIPv4] (`127.0.0.1`)
 /// so that only local client applications (e.g. Cursor, Claude Desktop, local scripts)
 /// can communicate with this service. CORS is constrained to localhost or non-browser callers.
+/// Optional API Key validation protects against unauthorized local port access.
 class McpServer {
   McpServer({
     required AiToolRegistry registry,
@@ -24,6 +25,8 @@ class McpServer {
     this.serverName = 'ordo-tasks',
     this.serverVersion = '1.0.0',
     this.protocolVersion = '2024-11-05',
+    this.apiKeyProvider,
+    this.isAuthEnabledProvider,
   }) : _registry = registry,
        _contextProvider = contextProvider;
 
@@ -32,6 +35,8 @@ class McpServer {
   final String serverName;
   final String serverVersion;
   final String protocolVersion;
+  final String? Function()? apiKeyProvider;
+  final bool Function()? isAuthEnabledProvider;
 
   HttpServer? _server;
   int? _port;
@@ -164,6 +169,7 @@ class McpServer {
         'protocolVersion': protocolVersion,
         'toolsCount': _registry.allTools.length,
         'endpoint': endpointUrl,
+        'authRequired': isAuthEnabledProvider?.call() ?? false,
       };
       await _safeSendJson(response, statusInfo);
       return;
@@ -175,9 +181,42 @@ class McpServer {
       return;
     }
 
-    // Read and parse JSON-RPC payload
+    // Validate API Key authentication if enabled
+    final authEnabled = isAuthEnabledProvider?.call() ?? false;
+    if (authEnabled) {
+      final expectedKey = apiKeyProvider?.call();
+      if (expectedKey != null && expectedKey.isNotEmpty) {
+        final authHeader = request.headers.value('authorization');
+        final xApiKey = request.headers.value('x-api-key');
+        String? providedKey;
+        if (xApiKey != null && xApiKey.isNotEmpty) {
+          providedKey = xApiKey.trim();
+        } else if (authHeader != null &&
+            authHeader.toLowerCase().startsWith('bearer ')) {
+          providedKey = authHeader.substring(7).trim();
+        }
+
+        if (providedKey == null || providedKey != expectedKey) {
+          response.statusCode = HttpStatus.unauthorized;
+          await _writeJsonRpcError(
+            response,
+            id: null,
+            code: -32001,
+            message:
+                'Unauthorized: Invalid or missing API Key. Pass x-api-key or Authorization: Bearer <key>',
+          );
+          return;
+        }
+      }
+    }
+
+    // Read and parse JSON-RPC payload with timeout to avoid lingering hung sockets
     try {
-      final bodyString = await utf8.decoder.bind(request).join();
+      final bodyString = await utf8.decoder
+          .bind(request)
+          .join()
+          .timeout(const Duration(seconds: 10));
+
       if (bodyString.trim().isEmpty) {
         await _writeJsonRpcError(
           response,
@@ -215,6 +254,13 @@ class McpServer {
           message: 'Invalid Request: expected JSON object or array',
         );
       }
+    } on TimeoutException {
+      await _writeJsonRpcError(
+        response,
+        id: null,
+        code: -32603,
+        message: 'Request body read timeout after 10s',
+      );
     } on FormatException {
       await _writeJsonRpcError(
         response,
@@ -297,13 +343,38 @@ class McpServer {
             context,
           );
 
+          if (!toolResult.success) {
+            return _buildRpcSuccess(
+              id: id,
+              result: {
+                'content': [
+                  {
+                    'type': 'text',
+                    'text': jsonEncode({
+                      'isError': true,
+                      'error': {
+                        'code': toolResult.errorCode ?? 'EXECUTION_FAILED',
+                        'message': toolResult.error,
+                        if (toolResult.errorHint != null)
+                          'hint': toolResult.errorHint,
+                        if (toolResult.errorDetails != null)
+                          'details': toolResult.errorDetails,
+                      },
+                    }),
+                  },
+                ],
+                'isError': true,
+              },
+            );
+          }
+
           return _buildRpcSuccess(
             id: id,
             result: {
               'content': [
                 {'type': 'text', 'text': jsonEncode(toolResult.data)},
               ],
-              'isError': !toolResult.success,
+              'isError': false,
             },
           );
 
@@ -350,10 +421,7 @@ class McpServer {
     required int code,
     required String message,
   }) async {
-    await _safeSendJson(
-      response,
-      _buildRpcError(id: id, code: code, message: message),
-      statusCode: HttpStatus.ok,
-    );
+    final errorPayload = _buildRpcError(id: id, code: code, message: message);
+    await _safeSendJson(response, errorPayload, statusCode: HttpStatus.ok);
   }
 }

@@ -37,7 +37,7 @@ void main() {
 
       // OpenAI format
       final openAiTools = registry.toOpenAiTools();
-      expect(openAiTools.length, 4);
+      expect(openAiTools.length, 11);
       final queryToolSpec = openAiTools.firstWhere(
         (t) => t['function']['name'] == 'query_tasks',
       );
@@ -46,7 +46,7 @@ void main() {
 
       // Claude format
       final claudeTools = registry.toClaudeTools();
-      expect(claudeTools.length, 4);
+      expect(claudeTools.length, 11);
       final claudeQuerySpec = claudeTools.firstWhere(
         (t) => t['name'] == 'query_tasks',
       );

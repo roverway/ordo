@@ -8,13 +8,20 @@ import '../../../core/theme/app_tokens.dart';
 import '../../../shared/widgets/settings_card.dart';
 
 /// Settings card for MCP (Model Context Protocol) external integration.
-class AiMcpServerCard extends ConsumerWidget {
+class AiMcpServerCard extends ConsumerStatefulWidget {
   const AiMcpServerCard({super.key, required this.isDark});
 
   final bool isDark;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AiMcpServerCard> createState() => _AiMcpServerCardState();
+}
+
+class _AiMcpServerCardState extends ConsumerState<AiMcpServerCard> {
+  bool _revealApiKey = false;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -83,7 +90,7 @@ class AiMcpServerCard extends ConsumerWidget {
           const SizedBox(height: AppTokens.spaceSm),
           Divider(
             height: 1,
-            color: isDark
+            color: widget.isDark
                 ? AppTokens.borderSubtleDark
                 : AppTokens.borderSubtleLight,
           ),
@@ -148,12 +155,12 @@ class AiMcpServerCard extends ConsumerWidget {
                 vertical: AppTokens.spaceXs,
               ),
               decoration: BoxDecoration(
-                color: isDark
+                color: widget.isDark
                     ? AppTokens.surfaceSubtleDark
                     : AppTokens.surfaceSubtleLight,
                 borderRadius: BorderRadius.circular(AppTokens.radiusCard),
                 border: Border.all(
-                  color: isDark
+                  color: widget.isDark
                       ? AppTokens.borderSubtleDark
                       : AppTokens.borderSubtleLight,
                 ),
@@ -197,6 +204,184 @@ class AiMcpServerCard extends ConsumerWidget {
               ),
             ),
           ],
+          // --- API Key & Authentication Section ---
+          const SizedBox(height: AppTokens.spaceSm),
+          Row(
+            children: [
+              Text(
+                l10n.aiMcpAuthToggle,
+                style: TextStyle(
+                  fontSize: AppTokens.textFootnoteSize,
+                  fontWeight: FontWeight.w500,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const Spacer(),
+              Transform.scale(
+                scale: 0.8,
+                child: Switch(
+                  activeTrackColor: colorScheme.primary,
+                  activeThumbColor: colorScheme.onPrimary,
+                  value: mcpState.isAuthEnabled,
+                  onChanged: (val) {
+                    HapticFeedback.selectionClick();
+                    ref.read(mcpServerStateProvider.notifier).toggleAuth(val);
+                  },
+                ),
+              ),
+            ],
+          ),
+          if (mcpState.isAuthEnabled && mcpState.apiKey != null) ...[
+            const SizedBox(height: AppTokens.spaceMicro),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTokens.spaceSm,
+                vertical: AppTokens.spaceMicro,
+              ),
+              decoration: BoxDecoration(
+                color: widget.isDark
+                    ? AppTokens.surfaceSubtleDark
+                    : AppTokens.surfaceSubtleLight,
+                borderRadius: BorderRadius.circular(AppTokens.radiusCard),
+                border: Border.all(
+                  color: widget.isDark
+                      ? AppTokens.borderSubtleDark
+                      : AppTokens.borderSubtleLight,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.key_outlined,
+                    size: 16,
+                    color: colorScheme.primary,
+                  ),
+                  const SizedBox(width: AppTokens.spaceXs),
+                  Expanded(
+                    child: SelectableText(
+                      _revealApiKey
+                          ? mcpState.apiKey!
+                          : '••••••••••••••••••••••••••••••••',
+                      style: const TextStyle(
+                        fontFamily: AppTokens.fontMonoFamily,
+                        fontSize: AppTokens.textFootnoteSize,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      _revealApiKey
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      size: 16,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () {
+                      setState(() {
+                        _revealApiKey = !_revealApiKey;
+                      });
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.copy_outlined, size: 16),
+                    tooltip: l10n.aiMcpApiKeyCopied,
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      Clipboard.setData(ClipboardData(text: mcpState.apiKey!));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(l10n.aiMcpApiKeyCopied),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh_outlined, size: 16),
+                    tooltip: l10n.aiMcpApiKeyRegenerate,
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: Text(l10n.aiMcpApiKeyRegenerate),
+                          content: Text(l10n.aiMcpApiKeyRegenerateConfirm),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(false),
+                              child: Text(
+                                MaterialLocalizations.of(ctx).cancelButtonLabel,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(true),
+                              child: Text(
+                                MaterialLocalizations.of(ctx).okButtonLabel,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed == true) {
+                        await ref
+                            .read(mcpServerStateProvider.notifier)
+                            .regenerateApiKey();
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+          // --- Write Mode Section ---
+          const SizedBox(height: AppTokens.spaceSm),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.aiMcpWriteModeLabel,
+                style: TextStyle(
+                  fontSize: AppTokens.textFootnoteSize,
+                  fontWeight: FontWeight.w500,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: AppTokens.spaceXs),
+              SegmentedButton<String>(
+                segments: [
+                  ButtonSegment<String>(
+                    value: 'direct',
+                    label: Text(l10n.aiMcpWriteModeDirect),
+                    icon: const Icon(Icons.flash_on_outlined, size: 16),
+                  ),
+                  ButtonSegment<String>(
+                    value: 'review',
+                    label: Text(l10n.aiMcpWriteModeReview),
+                    icon: const Icon(Icons.rate_review_outlined, size: 16),
+                  ),
+                ],
+                selected: {mcpState.writeMode},
+                onSelectionChanged: (Set<String> newSelection) {
+                  HapticFeedback.selectionClick();
+                  ref
+                      .read(mcpServerStateProvider.notifier)
+                      .setWriteMode(newSelection.first);
+                },
+              ),
+              const SizedBox(height: AppTokens.spaceMicro),
+              Text(
+                mcpState.writeMode == 'direct'
+                    ? l10n.aiMcpWriteModeDirectDesc
+                    : l10n.aiMcpWriteModeReviewDesc,
+                style: TextStyle(
+                  fontSize: AppTokens.textMicroSize,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
           if (mcpState.errorMessage != null) ...[
             const SizedBox(height: AppTokens.spaceXs),
             Container(

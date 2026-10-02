@@ -1,7 +1,14 @@
 import 'ai_tool.dart';
+import 'impl/aggregate_tasks_tool.dart';
+import 'impl/confirm_proposals_tool.dart';
+import 'impl/create_tasks_bulk_tool.dart';
 import 'impl/create_tasks_tool.dart';
+import 'impl/delete_tasks_tool.dart';
 import 'impl/get_metadata_tool.dart';
+import 'impl/get_task_tool.dart';
+import 'impl/list_proposals_tool.dart';
 import 'impl/query_tasks_tool.dart';
+import 'impl/reject_proposals_tool.dart';
 import 'impl/update_task_tool.dart';
 
 /// Central registry managing all AI Tools, handling schema conversions and dispatching calls.
@@ -20,6 +27,13 @@ class AiToolRegistry {
     const GetMetadataTool(),
     const CreateTasksTool(),
     const UpdateTaskTool(),
+    const CreateTasksBulkTool(),
+    const ListProposalsTool(),
+    const ConfirmProposalsTool(),
+    const RejectProposalsTool(),
+    const GetTaskTool(),
+    const DeleteTasksTool(),
+    const AggregateTasksTool(),
   ]);
 
   final Map<String, AiTool> _tools = {};
@@ -58,12 +72,18 @@ class AiToolRegistry {
   ) async {
     final tool = _tools[name];
     if (tool == null) {
-      return AiToolResult.failure('Tool "$name" not found in registry');
+      return AiToolResult.failure(
+        'Tool "$name" not found in registry',
+        code: 'TOOL_NOT_FOUND',
+      );
     }
     try {
       return await tool.execute(arguments, context);
     } catch (e, stack) {
-      return AiToolResult.failure('Failed to execute tool "$name": $e\n$stack');
+      return AiToolResult.failure(
+        'Failed to execute tool "$name": $e\n$stack',
+        code: 'TOOL_EXECUTION_EXCEPTION',
+      );
     }
   }
 }
