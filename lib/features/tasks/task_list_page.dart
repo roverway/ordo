@@ -1,6 +1,6 @@
+import '../../shared/widgets/spotlight_pull_scope.dart';
 import '../../shared/widgets/app_shell.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' as intl;
@@ -156,8 +156,6 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
   bool _isSearchOpen = false;
   final _searchController = TextEditingController();
   String _searchQuery = '';
-  double _spotlightOverscroll = 0.0;
-  bool _hasTriggeredSpotlight = false;
 
   @override
   void dispose() {
@@ -360,30 +358,8 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
 
         // 任务列表滚动区
         Expanded(
-          child: NotificationListener<ScrollNotification>(
-            onNotification: (notification) {
-              if (notification is ScrollUpdateNotification) {
-                if (notification.metrics.pixels < -60 &&
-                    !_hasTriggeredSpotlight) {
-                  _hasTriggeredSpotlight = true;
-                  HapticFeedback.mediumImpact();
-                  context.push('/search');
-                }
-              } else if (notification is OverscrollNotification) {
-                if (notification.overscroll < 0) {
-                  _spotlightOverscroll -= notification.overscroll;
-                  if (_spotlightOverscroll > 60 && !_hasTriggeredSpotlight) {
-                    _hasTriggeredSpotlight = true;
-                    HapticFeedback.mediumImpact();
-                    context.push('/search');
-                  }
-                }
-              } else if (notification is ScrollEndNotification) {
-                _spotlightOverscroll = 0.0;
-                _hasTriggeredSpotlight = false;
-              }
-              return false;
-            },
+          child: SpotlightPullScope(
+            onTrigger: () => context.push('/search'),
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(
                 parent: BouncingScrollPhysics(),

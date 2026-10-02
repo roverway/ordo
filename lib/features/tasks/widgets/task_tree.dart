@@ -1,5 +1,5 @@
+import '../../../shared/widgets/spotlight_pull_scope.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -44,8 +44,6 @@ class TaskTree extends ConsumerStatefulWidget {
 
 class _TaskTreeState extends ConsumerState<TaskTree> {
   String? _draggingTaskId;
-  double _spotlightOverscroll = 0.0;
-  bool _hasTriggeredSpotlight = false;
   String? _dragTargetId;
   bool _isInvalidDragTarget = false;
 
@@ -149,33 +147,8 @@ class _TaskTreeState extends ConsumerState<TaskTree> {
         final childrenOf = _indexDirectChildren(treeNodes);
         final repo = ref.read(todoRepositoryProvider);
 
-        return NotificationListener<ScrollNotification>(
-          onNotification: (notification) {
-            if (notification is ScrollUpdateNotification) {
-              if (notification.metrics.pixels <
-                      -AppTokens.spotlightTriggerThreshold &&
-                  !_hasTriggeredSpotlight) {
-                _hasTriggeredSpotlight = true;
-                HapticFeedback.mediumImpact();
-                context.push('/search');
-              }
-            } else if (notification is OverscrollNotification) {
-              if (notification.overscroll < 0) {
-                _spotlightOverscroll -= notification.overscroll;
-                if (_spotlightOverscroll >
-                        AppTokens.spotlightTriggerThreshold &&
-                    !_hasTriggeredSpotlight) {
-                  _hasTriggeredSpotlight = true;
-                  HapticFeedback.mediumImpact();
-                  context.push('/search');
-                }
-              }
-            } else if (notification is ScrollEndNotification) {
-              _spotlightOverscroll = 0.0;
-              _hasTriggeredSpotlight = false;
-            }
-            return false;
-          },
+        return SpotlightPullScope(
+          onTrigger: () => context.push('/search'),
           child: ListView.builder(
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),

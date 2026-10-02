@@ -1490,5 +1490,7 @@
   "aiMcpWriteModeReviewDesc": "External AI calls stage proposals into the review queue for confirmation",
   "@aiMcpWriteModeReviewDesc": {
     "description": "Review queue mode explanation"
-  }
+  },
+  "pullDownToSearch": "Pull down to search",
+  "releaseToSearch": "Release to search"
 }

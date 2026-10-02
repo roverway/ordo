@@ -179,7 +179,7 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
     final borderColor = isDark
         ? AppTokens.borderSubtleDark
         : AppTokens.borderSubtleLight;
-    final timeText = formatTaskTimeDisplay(startAt, endAt, l10n);
+    final timeText = formatFullTaskDateRange(startAt, endAt, l10n);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -363,13 +363,13 @@ class _TaskEditorState extends ConsumerState<TaskEditor> {
           ),
           child: Column(
             children: [
-              // 1. 日期行
+              // 1. 起止时间行
               _DetailsRow(
                 icon: Icons.calendar_today_outlined,
-                label: l10n.dateAndReminder,
+                label: l10n.taskDateRange,
                 value: Text(
                   startAt != null || endAt != null
-                      ? formatTaskTimeDisplay(startAt, endAt, l10n)
+                      ? formatFullTaskDateRange(startAt, endAt, l10n)
                       : l10n.notSet,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: startAt != null || endAt != null

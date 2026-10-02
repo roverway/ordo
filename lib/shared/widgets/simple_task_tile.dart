@@ -365,13 +365,16 @@ class _SimpleTaskTileState extends State<SimpleTaskTile>
                                             children: [
                                               Icon(
                                                 Icons.access_time,
-                                                size: 13,
+                                                size:
+                                                    AppTokens.iconSizeTaskMeta,
                                                 color: widget.isOverdue
                                                     ? AppTokens.colorOverdue
                                                     : colorScheme
                                                           .onSurfaceVariant,
                                               ),
-                                              const SizedBox(width: 4),
+                                              const SizedBox(
+                                                width: AppTokens.spaceXxs,
+                                              ),
                                               Text(
                                                 timeText,
                                                 style: theme.textTheme.bodySmall

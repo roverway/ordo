@@ -110,4 +110,55 @@ void main() {
       expect(res, "Jan 1, 2020 – Jan 2, 2020");
     });
   });
+
+  group('formatFullTaskDateRange', () {
+    final d1 = DateTime(2020, 1, 1);
+    final d1WithTimeStart = DateTime(2020, 1, 1, 9, 0);
+    final d1WithTimeEnd = DateTime(2020, 1, 1, 18, 0);
+    final d2 = DateTime(2020, 1, 3);
+    final d2WithTimeEnd = DateTime(2020, 1, 3, 18, 0);
+
+    test('startAt 与 endAt 均为空 → 空串', () {
+      expect(formatFullTaskDateRange(null, null, l10n), '');
+    });
+
+    test('仅 startAt 带时刻 → 显示单点完整时间', () {
+      expect(
+        formatFullTaskDateRange(_ms(d1WithTimeStart), null, l10n),
+        'Jan 1, 2020 09:00',
+      );
+    });
+
+    test('仅 endAt 带时刻 → 显示单点完整时间', () {
+      expect(
+        formatFullTaskDateRange(null, _ms(d1WithTimeEnd), l10n),
+        'Jan 1, 2020 18:00',
+      );
+    });
+
+    test('同一天均带不同时刻 → 共享日期并展示时刻区间', () {
+      expect(
+        formatFullTaskDateRange(_ms(d1WithTimeStart), _ms(d1WithTimeEnd), l10n),
+        'Jan 1, 2020 09:00 – 18:00',
+      );
+    });
+
+    test('同一天均无时刻（全天） → 仅显示一次日期', () {
+      expect(formatFullTaskDateRange(_ms(d1), _ms(d1), l10n), 'Jan 1, 2020');
+    });
+
+    test('跨天均带时刻 → 完整显示两侧起止日期与时刻', () {
+      expect(
+        formatFullTaskDateRange(_ms(d1WithTimeStart), _ms(d2WithTimeEnd), l10n),
+        'Jan 1, 2020 09:00 – Jan 3, 2020 18:00',
+      );
+    });
+
+    test('跨天无时刻 → 显示两侧起止日期', () {
+      expect(
+        formatFullTaskDateRange(_ms(d1), _ms(d2), l10n),
+        'Jan 1, 2020 – Jan 3, 2020',
+      );
+    });
+  });
 }

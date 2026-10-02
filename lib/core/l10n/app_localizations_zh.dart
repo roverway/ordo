@@ -1902,4 +1902,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiMcpWriteModeReviewDesc => 'AI 外部调用暂存入审核队列，待批量确认后再写入';
+
+  @override
+  String get pullDownToSearch => '继续下拉搜索';
+
+  @override
+  String get releaseToSearch => '松手进入搜索';
 }

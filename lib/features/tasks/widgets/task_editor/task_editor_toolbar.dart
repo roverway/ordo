@@ -39,7 +39,7 @@ class TaskEditorToolbar extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _ToolbarAction(
-            tooltip: l10n.dateAndReminder,
+            tooltip: l10n.taskDateRange,
             icon: Icons.calendar_today_outlined,
             active: hasDate,
             onTap: () => showTaskDatePicker(context, ref),

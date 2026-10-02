@@ -3656,6 +3656,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'AI 外部调用暂存入审核队列，待批量确认后再写入'**
   String get aiMcpWriteModeReviewDesc;
+
+  /// No description provided for @pullDownToSearch.
+  ///
+  /// In zh, this message translates to:
+  /// **'继续下拉搜索'**
+  String get pullDownToSearch;
+
+  /// No description provided for @releaseToSearch.
+  ///
+  /// In zh, this message translates to:
+  /// **'松手进入搜索'**
+  String get releaseToSearch;
 }
 
 class _AppLocalizationsDelegate

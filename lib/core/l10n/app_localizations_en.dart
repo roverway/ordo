@@ -1952,4 +1952,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiMcpWriteModeReviewDesc =>
       'External AI calls stage proposals into the review queue for confirmation';
+
+  @override
+  String get pullDownToSearch => 'Pull down to search';
+
+  @override
+  String get releaseToSearch => 'Release to search';
 }

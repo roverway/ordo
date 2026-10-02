@@ -588,28 +588,51 @@ class _TaskRowState extends State<TaskRow> with SingleTickerProviderStateMixin {
                                                     ),
                                                   ),
 
-                                                // 3. 结构化时间（tabular 数字字体，逾期自动标红）
+                                                // 3. 结构化时间（带时间图标，tabular 数字字体，逾期自动标红）
                                                 if (dateText.isNotEmpty)
-                                                  Text(
-                                                    dateText,
-                                                    style: theme
-                                                        .textTheme
-                                                        .bodySmall
-                                                        ?.copyWith(
-                                                          color: isOverdue
-                                                              ? AppTokens
-                                                                    .colorOverdue
-                                                              : colorScheme
-                                                                    .onSurfaceVariant,
-                                                          fontSize: AppTokens
-                                                              .textCaptionSize,
-                                                          fontWeight: isOverdue
-                                                              ? FontWeight.w600
-                                                              : FontWeight.w400,
-                                                          fontFeatures:
-                                                              AppTokens
-                                                                  .fontTabular,
-                                                        ),
+                                                  Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Icon(
+                                                        Icons.access_time,
+                                                        size: AppTokens
+                                                            .iconSizeTaskMeta,
+                                                        color: isOverdue
+                                                            ? AppTokens
+                                                                  .colorOverdue
+                                                            : colorScheme
+                                                                  .onSurfaceVariant,
+                                                      ),
+                                                      const SizedBox(
+                                                        width:
+                                                            AppTokens.spaceXxs,
+                                                      ),
+                                                      Text(
+                                                        dateText,
+                                                        style: theme
+                                                            .textTheme
+                                                            .bodySmall
+                                                            ?.copyWith(
+                                                              color: isOverdue
+                                                                  ? AppTokens
+                                                                        .colorOverdue
+                                                                  : colorScheme
+                                                                        .onSurfaceVariant,
+                                                              fontSize: AppTokens
+                                                                  .textCaptionSize,
+                                                              fontWeight:
+                                                                  isOverdue
+                                                                  ? FontWeight
+                                                                        .w600
+                                                                  : FontWeight
+                                                                        .w400,
+                                                              fontFeatures:
+                                                                  AppTokens
+                                                                      .fontTabular,
+                                                            ),
+                                                      ),
+                                                    ],
                                                   ),
 
                                                 // 4. 相对时间（橙色强调）

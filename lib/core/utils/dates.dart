@@ -115,6 +115,82 @@ String formatDateRange(int? startAt, int? endAt, AppLocalizations l10n) {
 }
 
 /// 格式化任务行中的时间/日期展示（支持「10:00」、「昨天 18:00」、「8月31日 14:00」等）。
+/// 格式化任务的完整起止时间范围（用于任务编辑页与详情展示）。
+///
+/// - 均为空：返回空字符串（调用方回退至「未设置」）。
+/// - 仅设置其一：返回该项的完整日期与时间（如有设置具体时刻）。
+/// - 同一天：若均有具体时刻且不同，展示「M月d日 HH:mm – HH:mm」；相同时刻展示「M月d日 HH:mm」；无时刻展示「M月d日」。
+/// - 跨天：展示「M月d日 HH:mm – M月d日 HH:mm」（无时刻时省略具体时刻）。
+String formatFullTaskDateRange(
+  int? startAt,
+  int? endAt,
+  AppLocalizations l10n,
+) {
+  if (startAt == null && endAt == null) return '';
+
+  if (startAt == null) {
+    return _formatSingleDateTime(endAt!, l10n);
+  }
+  if (endAt == null) {
+    return _formatSingleDateTime(startAt, l10n);
+  }
+
+  final start = DateTime.fromMillisecondsSinceEpoch(
+    startAt,
+    isUtc: true,
+  ).toLocal();
+  final end = DateTime.fromMillisecondsSinceEpoch(endAt, isUtc: true).toLocal();
+
+  final sameDay =
+      start.year == end.year &&
+      start.month == end.month &&
+      start.day == end.day;
+
+  final startHasTime = start.hour != 0 || start.minute != 0;
+  final endHasTime = end.hour != 0 || end.minute != 0;
+
+  final startTime =
+      '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
+  final endTime =
+      '${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
+
+  if (sameDay) {
+    final datePart = formatDueDate(startAt, l10n);
+    if (startHasTime && endHasTime) {
+      if (startTime == endTime) {
+        return '$datePart $startTime';
+      }
+      return '$datePart $startTime – $endTime';
+    }
+    if (startHasTime) {
+      return '$datePart $startTime';
+    }
+    if (endHasTime) {
+      return '$datePart $endTime';
+    }
+    return datePart;
+  }
+
+  final startStr = startHasTime
+      ? '${formatDueDate(startAt, l10n)} $startTime'
+      : formatDueDate(startAt, l10n);
+  final endStr = endHasTime
+      ? '${formatDueDate(endAt, l10n)} $endTime'
+      : formatDueDate(endAt, l10n);
+
+  return '$startStr – $endStr';
+}
+
+String _formatSingleDateTime(int utcMs, AppLocalizations l10n) {
+  final dt = DateTime.fromMillisecondsSinceEpoch(utcMs, isUtc: true).toLocal();
+  final datePart = formatDueDate(utcMs, l10n);
+  final hasTime = dt.hour != 0 || dt.minute != 0;
+  if (!hasTime) return datePart;
+  final timePart =
+      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  return '$datePart $timePart';
+}
+
 String formatTaskTimeDisplay(int? startAt, int? endAt, AppLocalizations l10n) {
   final targetMs = endAt ?? startAt;
   if (targetMs == null) return '';

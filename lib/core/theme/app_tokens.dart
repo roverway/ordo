@@ -764,5 +764,27 @@ abstract final class AppTokens {
   static const List<ThemePalettePreset> themePalettes = defaultThemePalettes;
 
   /// 下拉唤起全局搜索（Spotlight）的阻尼触发阈值（120dp，杜绝轻微上滑误触）。
+  /// 下拉唤起全局搜索（Spotlight）的屏幕高度比例阈值（拉到超过屏幕上方 25% 的高度再触发）。
+  static const double spotlightTriggerFraction = 0.25;
+
+  /// 下拉唤起全局搜索（Spotlight）的最小阻尼触发阈值（160dp 保底）。
+  static const double spotlightMinTriggerHeight = 160.0;
+
+  /// 下拉搜索弹性提示开始淡入的最小下拉距离（dp）。
+  static const double spotlightPromptMinPull = 12.0;
+
+  /// 下拉搜索弹性提示图标尺寸。
+  static const double spotlightPromptIconSize = 14.0;
+
+  /// 下拉搜索微型进度环尺寸。
+  static const double spotlightProgressRingSize = 13.0;
+
+  /// 下拉搜索弹性提示最大下移位移（dp）。
+  static const double spotlightPromptMaxTranslateY = 56.0;
+
+  /// 任务列表行时间元数据前置图标尺寸。
+  static const double iconSizeTaskMeta = 13.0;
+
+  /// 下拉唤起全局搜索（Spotlight）的阻尼触发阈值（保留兼容）。
   static const double spotlightTriggerThreshold = 120.0;
 }
