@@ -16,7 +16,7 @@ class ModernCheckbox extends StatefulWidget {
     super.key,
     required this.checked,
     this.onChanged,
-    this.size = 22.0,
+    this.size = AppTokens.checkboxSize,
     this.borderRadius = AppTokens.checkboxRadius,
     this.fillColor,
     this.tapTargetSize = AppTokens.checkboxTapTargetSize,
@@ -151,7 +151,12 @@ class _ModernCheckboxState extends State<ModernCheckbox>
           decoration: BoxDecoration(
             color: currentBg,
             borderRadius: BorderRadius.circular(widget.borderRadius),
-            border: Border.all(color: currentBorder, width: 1.5),
+            border: Border.all(
+              color: currentBorder,
+              width: widget.size <= AppTokens.checkboxSize
+                  ? AppTokens.checkboxBorderWidth
+                  : 1.5,
+            ),
           ),
           child: t > 0.01
               ? CustomPaint(
@@ -162,7 +167,9 @@ class _ModernCheckboxState extends State<ModernCheckbox>
                         : (widget.fillColor != null
                               ? Colors.white
                               : theme.colorScheme.onPrimary),
-                    strokeWidth: 2.2,
+                    strokeWidth: widget.size <= AppTokens.checkboxSize
+                        ? AppTokens.checkboxCheckmarkStrokeWidth
+                        : 2.2,
                   ),
                 )
               : null,

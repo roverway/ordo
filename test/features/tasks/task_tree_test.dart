@@ -498,8 +498,8 @@ void main() {
       ]);
       final rootBox = boxOf(tester, 'Root');
       final childBox = boxOf(tester, 'Child');
-      expect(rootBox.borderRadius, 6.0);
-      expect(childBox.borderRadius, 6.0);
+      expect(rootBox.borderRadius, AppTokens.checkboxRadius);
+      expect(childBox.borderRadius, AppTokens.checkboxRadius);
     });
 
     testWidgets('行尾无拖拽把手（用户打磨要求：恢复整行拖拽，把手已删除）', (tester) async {

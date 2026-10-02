@@ -79,9 +79,9 @@
 | `textHeroSize/Weight` | 31 / w700（letterSpacing −0.775，行高 1.1） | 页面大标题头部（PageHeroHeader） |
 | `textHeadingSize/Weight` | 22 / w600 | 页标题（AppBar） |
 | `textTitleSize/Weight` | 18 / w600 | 节标题 |
-| `textTaskL1Size/Weight` | 16 / w600 | 一级任务标题 |
+| `textTaskL1Size/Weight` | 15 / w600 | 一级任务标题（字阶统一到 15，保留 w600） |
 | `textTaskL2Size/Weight` | 15 / w500 | 二级任务标题 |
-| `textTaskL3Size/Weight` | 15 / w500 | 三级任务标题（与二级任务统一） |
+| `textTaskL3Size/Weight` | 15 / w500 | 三级任务标题（与一、二级任务统一字阶） |
 | `textBodySize/Weight` | 15 / w400（行高 1.45） | 正文 |
 | `textFootnoteSize/Weight` | 13 / w400 | 辅助说明层 |
 | `textCaptionSize/Weight` | 12 / w400（行高 1.35） | 元信息说明 |

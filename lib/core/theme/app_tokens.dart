@@ -217,13 +217,20 @@ abstract final class AppTokens {
   static const double radiusPill = 999;
 
   /// Checkbox border radius (ModernCheckbox & theme).
-  static const double checkboxRadius = 6.0;
+  /// 尺寸微调至与 15dp 标题字阶一致后，圆角微调为 4.0dp，保持优雅的 squircle 视觉比例。
+  static const double checkboxRadius = 4.0;
 
   /// Checkbox 边框圆角（别名）。
-  static const double radiusCheckbox = 6.0;
+  static const double radiusCheckbox = 4.0;
 
-  /// Checkbox 默认尺寸（20dp）。
-  static const double checkboxSize = 20.0;
+  /// Checkbox 视觉尺寸（严格对齐任务标题字阶 15dp）。
+  static const double checkboxSize = 15.0;
+
+  /// Checkbox 边框宽度（15dp 尺寸下采用 1.2dp 微描边）。
+  static const double checkboxBorderWidth = 1.2;
+
+  /// Checkbox 打勾对勾描边粗细（15dp 尺寸下采用 1.8dp，精细锐利）。
+  static const double checkboxCheckmarkStrokeWidth = 1.8;
 
   /// 项目色彩微圆点直径（7dp）。
   static const double projectDotSize = 7.0;
@@ -635,17 +642,23 @@ abstract final class AppTokens {
   /// 用户打磨要求 2：24 → 20 适度收紧）。
   static const double treeIndentLevel = 20;
 
-  /// 一级任务标题字阶
-  static const double textTaskL1Size = 16;
+  /// 一级任务标题字阶（统一到二级任务字阶 15dp，保留 w600 字重）
+  static const double textTaskL1Size = 15;
   static const FontWeight textTaskL1Weight = FontWeight.w600;
 
   /// 二级任务标题字阶
   static const double textTaskL2Size = 15;
   static const FontWeight textTaskL2Weight = FontWeight.w500;
 
-  /// 三级任务标题字阶（统一到二级任务样式）
+  /// 三级任务标题字阶（统一到二级任务字阶 15dp，保留 w500 字重）
   static const double textTaskL3Size = 15;
   static const FontWeight textTaskL3Weight = FontWeight.w500;
+
+  /// 任务项垂直内边距（相邻任务间距由 10dp 适度收紧至 6dp，更紧凑自然）。
+  static const double taskRowPaddingVertical = 6.0;
+
+  /// 紧凑任务项（如树内子任务）垂直内边距（4dp）。
+  static const double taskRowCompactPaddingVertical = 4.0;
 
   /// 行尾展开/折叠箭头尺寸（61 §4.5，比 AppBar/树内 [expandArrowSize] 20 稍小）。
   static const double expandArrowSizeRow = 16;

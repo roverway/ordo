@@ -127,8 +127,8 @@ class QuadrantTaskTile extends ConsumerWidget {
                     onChanged: onToggleDone != null
                         ? (_) => onToggleDone()
                         : null,
-                    size: 16.0,
-                    borderRadius: AppTokens.sheetGrabberRadius * 2, // 4dp
+                    size: AppTokens.checkboxSize,
+                    borderRadius: AppTokens.checkboxRadius,
                     tapTargetSize: AppTokens.checkboxTapTargetSize,
                   ),
                   const SizedBox(width: AppTokens.spaceXs),

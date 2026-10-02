@@ -487,7 +487,6 @@ class _SearchResultRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final isDone = task.status == TaskStatus.done;
     final filter = ref.watch(searchFilterProvider);
 
@@ -543,7 +542,7 @@ class _SearchResultRow extends ConsumerWidget {
     );
 
     Widget row = Padding(
-      padding: const EdgeInsets.only(bottom: AppTokens.spaceXs),
+      padding: const EdgeInsets.only(bottom: AppTokens.spaceXxs),
       child: TaskSwipeWrapper(
         task: task,
         hasChildren: false,
@@ -553,33 +552,27 @@ class _SearchResultRow extends ConsumerWidget {
     );
 
     if (depth > 0) {
-      row = Padding(
-        padding: EdgeInsets.only(
-          left: ((depth - 1) * AppTokens.spaceLg + AppTokens.spaceMd).clamp(
-            0.0,
-            AppTokens.spaceXl * 3,
-          ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(
-                top: AppTokens.spaceSm,
-                right: AppTokens.spaceXxs,
-              ),
-              child: Icon(
-                Icons.subdirectory_arrow_right_rounded,
-                size: AppTokens.iconSizeSmall,
-                color: colorScheme.onSurfaceVariant.withValues(
-                  alpha: AppTokens.alphaContentMuted,
-                ),
-              ),
+      final isDark = theme.brightness == Brightness.dark;
+      final borderColor = isDark
+          ? AppTokens.borderSubtleDark
+          : AppTokens.borderSubtleLight;
+
+      Widget wrapped = row;
+      for (int i = 0; i < depth; i++) {
+        wrapped = Padding(
+          padding: const EdgeInsets.only(left: AppTokens.treeGuideLineIndent),
+          child: Container(
+            padding: const EdgeInsets.only(
+              left: AppTokens.treeChildrenLeftPadding,
             ),
-            Expanded(child: row),
-          ],
-        ),
-      );
+            decoration: BoxDecoration(
+              border: Border(left: BorderSide(color: borderColor, width: 1)),
+            ),
+            child: wrapped,
+          ),
+        );
+      }
+      return wrapped;
     }
 
     return row;

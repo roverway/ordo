@@ -164,6 +164,14 @@ class _SimpleTaskTileState extends State<SimpleTaskTile>
         ? AppTokens.borderSubtleDark
         : AppTokens.borderSubtleLight;
 
+    final titleLineHeight =
+        MediaQuery.textScalerOf(context).scale(AppTokens.textTaskL2Size) * 1.35;
+    final titleTopPad =
+        ((AppTokens.checkboxTapTargetSize - titleLineHeight) / 2).clamp(
+          0.0,
+          AppTokens.spaceXs,
+        );
+
     return SizeTransition(
       sizeFactor: _collapseFactor,
       axisAlignment: 0.0,
@@ -202,7 +210,7 @@ class _SimpleTaskTileState extends State<SimpleTaskTile>
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 0,
-                    vertical: 10,
+                    vertical: AppTokens.taskRowPaddingVertical,
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -215,7 +223,7 @@ class _SimpleTaskTileState extends State<SimpleTaskTile>
                                 child: ModernCheckbox(
                                   checked: effectiveDone,
                                   onChanged: null,
-                                  size: 20,
+                                  size: AppTokens.checkboxSize,
                                   tapTargetSize:
                                       AppTokens.checkboxTapTargetSize,
                                 ),
@@ -223,7 +231,7 @@ class _SimpleTaskTileState extends State<SimpleTaskTile>
                             : ModernCheckbox(
                                 checked: effectiveDone,
                                 onChanged: (val) => _handleToggle(val),
-                                size: 20,
+                                size: AppTokens.checkboxSize,
                                 tapTargetSize: AppTokens.checkboxTapTargetSize,
                               ),
                       ),
@@ -232,7 +240,7 @@ class _SimpleTaskTileState extends State<SimpleTaskTile>
                       // 标题 + 属性元数据
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.only(top: 2.0),
+                          padding: EdgeInsets.only(top: titleTopPad),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [

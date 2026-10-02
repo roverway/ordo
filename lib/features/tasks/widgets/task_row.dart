@@ -215,7 +215,10 @@ class _TaskRowState extends State<TaskRow> with SingleTickerProviderStateMixin {
   /// 行内边距：左 [AppTokens.spaceXxs]、右 [AppTokens.spaceXxs]、垂直 padding 为 0。
   /// 层级缩进由外部 TaskTree 的树状连接器统一提供。
   EdgeInsets _contentPadding() {
-    return const EdgeInsets.symmetric(vertical: 10);
+    final v = widget.style == TaskRowStyle.compact
+        ? AppTokens.taskRowCompactPaddingVertical
+        : AppTokens.taskRowPaddingVertical;
+    return EdgeInsets.symmetric(vertical: v);
   }
 
   @override
@@ -375,9 +378,7 @@ class _TaskRowState extends State<TaskRow> with SingleTickerProviderStateMixin {
                                   ? ModernCheckbox(
                                       checked: isDone,
                                       onChanged: (val) => _handleToggle(val),
-                                      size: widget.style == TaskRowStyle.compact
-                                          ? 20
-                                          : 22,
+                                      size: AppTokens.checkboxSize,
                                       tapTargetSize:
                                           AppTokens.checkboxTapTargetSize,
                                     )
@@ -386,10 +387,7 @@ class _TaskRowState extends State<TaskRow> with SingleTickerProviderStateMixin {
                                       child: ModernCheckbox(
                                         checked: isDone,
                                         onChanged: null,
-                                        size:
-                                            widget.style == TaskRowStyle.compact
-                                            ? 20
-                                            : 22,
+                                        size: AppTokens.checkboxSize,
                                         tapTargetSize:
                                             AppTokens.checkboxTapTargetSize,
                                       ),
