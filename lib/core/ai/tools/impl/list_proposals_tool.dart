@@ -5,6 +5,12 @@ class ListProposalsTool extends AiTool {
   const ListProposalsTool();
 
   @override
+  bool get isReadOnly => true;
+
+  @override
+  bool get isIdempotent => true;
+
+  @override
   String get name => 'list_proposals';
 
   @override

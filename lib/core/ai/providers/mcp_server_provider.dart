@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../db/db_providers.dart';
@@ -85,6 +86,7 @@ final mcpServerProvider = Provider<McpServer>((ref) {
       proposalRepository: proposalRepo,
       writeMode: runtime.writeMode,
       nowUtcMs: DateTime.now().toUtc().millisecondsSinceEpoch,
+      locale: Platform.localeName.toLowerCase().startsWith('zh') ? 'zh' : 'en',
     ),
   );
 

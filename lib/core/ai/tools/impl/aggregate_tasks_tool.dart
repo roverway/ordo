@@ -7,6 +7,12 @@ class AggregateTasksTool extends AiTool {
   const AggregateTasksTool();
 
   @override
+  bool get isReadOnly => true;
+
+  @override
+  bool get isIdempotent => true;
+
+  @override
   String get name => 'aggregate_tasks';
 
   @override

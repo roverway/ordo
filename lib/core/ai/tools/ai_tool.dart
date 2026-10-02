@@ -119,12 +119,30 @@ abstract class AiTool {
     };
   }
 
+  /// Whether this tool only reads data without modifying state.
+  bool get isReadOnly => false;
+
+  /// Whether this tool performs destructive or irreversible operations (e.g. deletion).
+  bool get isDestructive => false;
+
+  /// Whether repeated calls with identical arguments produce the same side-effects.
+  bool get isIdempotent => false;
+
+  /// MCP tool annotations dictionary conforming to Model Context Protocol specification.
+  Map<String, dynamic> get annotations => {
+    'readOnlyHint': isReadOnly,
+    'destructiveHint': isDestructive,
+    'idempotentHint': isIdempotent,
+    'openWorldHint': false,
+  };
+
   /// Converts this tool specification into Model Context Protocol (MCP) definition format.
   Map<String, dynamic> toMcpDefinition() {
     return {
       'name': name,
       'description': description,
       'inputSchema': inputSchema,
+      'annotations': annotations,
     };
   }
 }

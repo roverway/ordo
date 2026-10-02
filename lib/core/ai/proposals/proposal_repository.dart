@@ -152,6 +152,51 @@ class ProposalRepository {
     );
   }
 
+  /// Records a direct execution result under [idempotencyKey] for deduplication.
+  Future<void> recordDirectExecution({
+    required String type,
+    required String idempotencyKey,
+    required Map<String, dynamic> result,
+    Duration ttl = const Duration(hours: 24),
+  }) async {
+    await ensureInitialized();
+    final now = DateTime.now().toUtc().millisecondsSinceEpoch;
+    final expiresAt = now + ttl.inMilliseconds;
+    final id = "dx_${newUuid().replaceAll("-", "").substring(0, 16)}";
+    await _db.customStatement(
+      '''INSERT OR REPLACE INTO task_proposals (id, type, status, payload, idempotency_key, created_at, expires_at, processed_at) VALUES (?, ?, 'direct_executed', ?, ?, ?, ?, ?)''',
+      [id, type, jsonEncode(result), idempotencyKey, now, expiresAt, now],
+    );
+  }
+
+  /// Checks if an idempotency key was already executed or staged.
+  Future<Map<String, dynamic>?> getExecutionByIdempotencyKey(
+    String idempotencyKey,
+  ) async {
+    await ensureInitialized();
+    final now = DateTime.now().toUtc().millisecondsSinceEpoch;
+    final row = await _db
+        .customSelect(
+          "SELECT * FROM task_proposals WHERE idempotency_key = ? AND expires_at > ? LIMIT 1",
+          variables: [
+            Variable.withString(idempotencyKey),
+            Variable.withInt(now),
+          ],
+        )
+        .getSingleOrNull();
+
+    if (row == null) return null;
+    final data = row.data;
+    final payloadJson = data["payload"] as String;
+    try {
+      final dynamic decoded = jsonDecode(payloadJson);
+      if (decoded is Map<String, dynamic>) {
+        return Map<String, dynamic>.from(decoded)..["isReplayed"] = true;
+      }
+    } catch (_) {}
+    return null;
+  }
+
   /// Fetches a proposal by ID.
   Future<TaskProposal?> getProposal(String id) async {
     await ensureInitialized();

@@ -1,15 +1,24 @@
+import 'package:intl/intl.dart';
+import 'package:ordo/core/utils/derived.dart';
 import '../ai_tool.dart';
 
-/// Tool for retrieving deep details of a single task including subtask tree and tags.
+/// Tool for retrieving deep details of a single task including recursive subtask tree and tags.
 class GetTaskTool extends AiTool {
   const GetTaskTool();
+
+  @override
+  bool get isReadOnly => true;
+
+  @override
+  bool get isIdempotent => true;
 
   @override
   String get name => 'get_task';
 
   @override
   String get description =>
-      'Retrieves complete details of a single task by ID, including its full subtask hierarchy, tags, and project name.';
+      'Retrieves complete details of a single task by ID, including its recursive subtask tree, '
+      'tags, project metadata, and derived completion status.';
 
   @override
   Map<String, dynamic> get inputSchema => {
@@ -47,10 +56,51 @@ class GetTaskTool extends AiTool {
 
     final project = await context.repository.projects.getById(task.projectId);
     final tags = await context.repository.tags.tagsForTask(taskId);
-    final subtasks = await context.repository.tasks.getDirectChildren(
-      task.projectId,
-      taskId,
-    );
+
+    // Recursively build subtask tree
+    final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
+    Future<List<Map<String, dynamic>>> buildChildrenTree(
+      String parentId,
+      int depth,
+    ) async {
+      if (depth > 5) return [];
+      final directChildren = await context.repository.tasks.getDirectChildren(
+        task.projectId,
+        parentId,
+      );
+      final result = <Map<String, dynamic>>[];
+      for (final child in directChildren) {
+        final subchildren = await buildChildrenTree(child.id, depth + 1);
+        result.add({
+          'id': child.id,
+          'title': child.title,
+          'status': child.status.name,
+          'priority': child.priority.index,
+          'priorityLevel': child.priority.name,
+          'sortOrder': child.sortOrder,
+          'startAt': child.startAt,
+          'dueAt': child.endAt,
+          'dueDate': child.endAt != null
+              ? dateFormat.format(
+                  DateTime.fromMillisecondsSinceEpoch(
+                    child.endAt!,
+                    isUtc: true,
+                  ).toLocal(),
+                )
+              : null,
+          if (subchildren.isNotEmpty) 'subtasks': subchildren,
+        });
+      }
+      return result;
+    }
+
+    final directChildrenTasks = await context.repository.tasks
+        .getDirectChildren(task.projectId, task.id);
+    final effectiveStatus = directChildrenTasks.isEmpty
+        ? task.status
+        : derivedStatus(task, directChildrenTasks);
+
+    final subtasksTree = await buildChildrenTree(task.id, 0);
 
     return AiToolResult.ok({
       'task': {
@@ -58,30 +108,46 @@ class GetTaskTool extends AiTool {
         'title': task.title,
         'description': task.description,
         'notes': task.notes,
-        'status': task.status.name,
+        'status': effectiveStatus.name,
+        'rawStatus': task.status.name,
         'priority': task.priority.index,
+        'priorityLevel': task.priority.name,
         'projectId': task.projectId,
         'projectName': project?.name ?? 'Inbox',
         'parentId': task.parentId,
         'startAt': task.startAt,
+        'startDate': task.startAt != null
+            ? dateFormat.format(
+                DateTime.fromMillisecondsSinceEpoch(
+                  task.startAt!,
+                  isUtc: true,
+                ).toLocal(),
+              )
+            : null,
         'dueAt': task.endAt,
+        'dueDate': task.endAt != null
+            ? dateFormat.format(
+                DateTime.fromMillisecondsSinceEpoch(
+                  task.endAt!,
+                  isUtc: true,
+                ).toLocal(),
+              )
+            : null,
         'completedAt': task.completedAt,
+        'completedDate': task.completedAt != null
+            ? dateFormat.format(
+                DateTime.fromMillisecondsSinceEpoch(
+                  task.completedAt!,
+                  isUtc: true,
+                ).toLocal(),
+              )
+            : null,
         'createdAt': task.createdAt,
         'updatedAt': task.updatedAt,
         'tags': tags
             .map((t) => {'id': t.id, 'name': t.name, 'color': t.color})
             .toList(),
-        'subtasks': subtasks
-            .map(
-              (s) => {
-                'id': s.id,
-                'title': s.title,
-                'status': s.status.name,
-                'priority': s.priority.index,
-                'sortOrder': s.sortOrder,
-              },
-            )
-            .toList(),
+        'subtasks': subtasksTree,
       },
     });
   }

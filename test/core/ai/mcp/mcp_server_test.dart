@@ -97,7 +97,7 @@ void main() {
 
       expect(data['status'], 'ok');
       expect(data['server'], 'ordo-tasks');
-      expect(data['toolsCount'], 11);
+      expect(data['toolsCount'], 13);
     });
 
     test('supports CORS preflight OPTIONS request', () async {
@@ -190,7 +190,7 @@ void main() {
   });
 
   group('McpServer Tools Protocol & Execution', () {
-    test('handles tools/list returning 11 standard tools', () async {
+    test('handles tools/list returning 13 standard tools', () async {
       final res = await sendRpcRequest({
         'jsonrpc': '2.0',
         'id': 2,
@@ -199,7 +199,7 @@ void main() {
 
       expect(res['id'], 2);
       final tools = res['result']['tools'] as List;
-      expect(tools.length, 11);
+      expect(tools.length, 13);
 
       final names = tools.map((t) => t['name']).toSet();
       expect(

@@ -229,13 +229,36 @@ class McpServer {
 
       final dynamic decoded = jsonDecode(bodyString);
       if (decoded is List) {
+        if (decoded.isEmpty) {
+          await _writeJsonRpcError(
+            response,
+            id: null,
+            code: -32600,
+            message: 'Invalid Request: empty batch',
+          );
+          return;
+        }
         // Batch requests
         final responses = <Map<String, dynamic>>[];
         for (final item in decoded) {
           if (item is Map<String, dynamic>) {
             final res = await _processSingleRpc(item);
             if (res != null) responses.add(res);
+          } else {
+            responses.add({
+              'jsonrpc': '2.0',
+              'id': null,
+              'error': {
+                'code': -32600,
+                'message': 'Invalid Request: batch item must be an object',
+              },
+            });
           }
+        }
+        if (responses.isEmpty) {
+          response.statusCode = HttpStatus.accepted;
+          await _safeClose(response);
+          return;
         }
         await _safeSendJson(response, responses);
       } else if (decoded is Map<String, dynamic>) {
@@ -243,7 +266,7 @@ class McpServer {
         if (result != null) {
           await _safeSendJson(response, result);
         } else {
-          response.statusCode = HttpStatus.noContent;
+          response.statusCode = HttpStatus.accepted;
           await _safeClose(response);
         }
       } else {
@@ -298,10 +321,16 @@ class McpServer {
     try {
       switch (method) {
         case 'initialize':
+          final initParams = request['params'] as Map<String, dynamic>?;
+          final clientVersion = initParams?['protocolVersion']?.toString();
+          final effectiveVersion =
+              (clientVersion == '2025-03-26' || clientVersion == '2024-11-05')
+              ? clientVersion!
+              : protocolVersion;
           return _buildRpcSuccess(
             id: id,
             result: {
-              'protocolVersion': protocolVersion,
+              'protocolVersion': effectiveVersion,
               'serverInfo': {'name': serverName, 'version': serverVersion},
               'capabilities': {
                 'tools': {'listChanged': false},
@@ -332,7 +361,15 @@ class McpServer {
             );
           }
 
-          final toolName = params['name'] as String;
+          final rawName = params['name'];
+          if (rawName is! String) {
+            return _buildRpcError(
+              id: id,
+              code: -32602,
+              message: 'Invalid params: "name" must be a string',
+            );
+          }
+          final toolName = rawName;
           final arguments =
               (params['arguments'] as Map<String, dynamic>?) ?? {};
           final context = _contextProvider();

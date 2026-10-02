@@ -3,10 +3,12 @@ import 'impl/aggregate_tasks_tool.dart';
 import 'impl/confirm_proposals_tool.dart';
 import 'impl/create_tasks_bulk_tool.dart';
 import 'impl/create_tasks_tool.dart';
+import 'impl/daily_briefing_tool.dart';
 import 'impl/delete_tasks_tool.dart';
 import 'impl/get_metadata_tool.dart';
 import 'impl/get_task_tool.dart';
 import 'impl/list_proposals_tool.dart';
+import 'impl/manage_tags_tool.dart';
 import 'impl/query_tasks_tool.dart';
 import 'impl/reject_proposals_tool.dart';
 import 'impl/update_task_tool.dart';
@@ -21,13 +23,15 @@ class AiToolRegistry {
     }
   }
 
-  /// Creates a registry initialized with all built-in standard tools.
+  /// Creates a registry initialized with all built-in standard tools (13 tools).
   factory AiToolRegistry.standard() => AiToolRegistry([
     const QueryTasksTool(),
     const GetMetadataTool(),
+    const DailyBriefingTool(),
     const CreateTasksTool(),
     const UpdateTaskTool(),
     const CreateTasksBulkTool(),
+    const ManageTagsTool(),
     const ListProposalsTool(),
     const ConfirmProposalsTool(),
     const RejectProposalsTool(),
@@ -79,10 +83,20 @@ class AiToolRegistry {
     }
     try {
       return await tool.execute(arguments, context);
-    } catch (e, stack) {
+    } on TypeError catch (e) {
+      // Sanitized error without leaking Dart runtime stack traces (resolves §5.7)
       return AiToolResult.failure(
-        'Failed to execute tool "$name": $e\n$stack',
-        code: 'TOOL_EXECUTION_EXCEPTION',
+        'Invalid argument type for tool "$name": ${e.toString().split('\n').first}',
+        code: 'INVALID_ARGUMENT',
+        hint:
+            'Please verify argument types against the tool input schema definition.',
+      );
+    } on FormatException catch (e) {
+      return AiToolResult.failure(e.message, code: 'INVALID_ARGUMENT');
+    } catch (e) {
+      return AiToolResult.failure(
+        'Tool execution error for "$name": $e',
+        code: 'EXECUTION_ERROR',
       );
     }
   }

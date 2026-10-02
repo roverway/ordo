@@ -3,45 +3,65 @@ import 'package:ordo/core/ai/tools/impl/ai_date_parser.dart';
 
 void main() {
   group('AiDateParser', () {
-    test('parses int and num epoch timestamps directly', () {
-      expect(AiDateParser.parseToUtcMs(1727611200000), 1727611200000);
-      expect(AiDateParser.parseToUtcMs(1727611200000.0), 1727611200000);
-      expect(AiDateParser.parseToUtcMs('1727611200000'), 1727611200000);
+    test('parses relative dates: today, tomorrow, yesterday, EOD', () {
+      final now = DateTime.utc(2026, 10, 2, 12, 0, 0);
+      final nowMs = now.millisecondsSinceEpoch;
+
+      final todayMs = AiDateParser.parseToUtcMsStrict('today', nowUtcMs: nowMs);
+      expect(todayMs, isNotNull);
+
+      final tomorrowMs = AiDateParser.parseToUtcMsStrict(
+        'tomorrow',
+        nowUtcMs: nowMs,
+      );
+      expect(tomorrowMs, isNotNull);
+      expect(tomorrowMs! > todayMs!, isTrue);
+
+      final yesterdayMs = AiDateParser.parseToUtcMsStrict(
+        'yesterday',
+        nowUtcMs: nowMs,
+      );
+      expect(yesterdayMs, isNotNull);
+      expect(yesterdayMs! < todayMs, isTrue);
+
+      final in3Days = AiDateParser.parseToUtcMsStrict(
+        'in 3 days',
+        nowUtcMs: nowMs,
+      );
+      expect(in3Days, isNotNull);
     });
 
-    test('parses standard ISO 8601 strings', () {
-      final iso = '2026-09-29T12:00:00Z';
-      final expected = DateTime.parse(iso).toUtc().millisecondsSinceEpoch;
-      expect(AiDateParser.parseToUtcMs(iso), expected);
+    test('rejects invalid calendar dates strictly', () {
+      expect(
+        () => AiDateParser.parseToUtcMsStrict('2026-02-30'),
+        throwsFormatException,
+      );
+
+      expect(
+        () => AiDateParser.parseToUtcMsStrict('not-a-date'),
+        throwsFormatException,
+      );
+
+      expect(
+        () => AiDateParser.parseToUtcMsStrict('2026-13-01'),
+        throwsFormatException,
+      );
     });
 
-    test('parses yyyy-MM-dd HH:mm formatted strings', () {
-      final parsed = AiDateParser.parseToUtcMs('2026-09-29 15:30');
-      expect(parsed, isNotNull);
-      final dt = DateTime.fromMillisecondsSinceEpoch(parsed!, isUtc: false);
-      expect(dt.year, 2026);
-      expect(dt.month, 9);
-      expect(dt.day, 29);
-      expect(dt.hour, 15);
-      expect(dt.minute, 30);
+    test('parses standard ISO and yyyy-MM-dd correctly', () {
+      final ms = AiDateParser.parseToUtcMsStrict('2026-10-05 18:30');
+      expect(ms, isNotNull);
+
+      final isoMs = AiDateParser.parseToUtcMsStrict('2026-10-05T18:30:00.000Z');
+      expect(isoMs, isNotNull);
     });
 
-    test('parses yyyy-MM-dd date-only strings', () {
-      final parsed = AiDateParser.parseToUtcMs('2026-10-01');
-      expect(parsed, isNotNull);
-      final dt = DateTime.fromMillisecondsSinceEpoch(parsed!, isUtc: false);
-      expect(dt.year, 2026);
-      expect(dt.month, 10);
-      expect(dt.day, 1);
-    });
-
-    test('returns null for empty, null, or special markers', () {
-      expect(AiDateParser.parseToUtcMs(null), isNull);
-      expect(AiDateParser.parseToUtcMs(''), isNull);
-      expect(AiDateParser.parseToUtcMs('   '), isNull);
-      expect(AiDateParser.parseToUtcMs('none'), isNull);
-      expect(AiDateParser.parseToUtcMs('clear'), isNull);
-      expect(AiDateParser.parseToUtcMs('invalid_string'), isNull);
+    test('returns null on null or clear keywords', () {
+      expect(AiDateParser.parseToUtcMsStrict(null), isNull);
+      expect(AiDateParser.parseToUtcMsStrict(''), isNull);
+      expect(AiDateParser.parseToUtcMsStrict('null'), isNull);
+      expect(AiDateParser.parseToUtcMsStrict('none'), isNull);
+      expect(AiDateParser.parseToUtcMsStrict('clear'), isNull);
     });
   });
 }
