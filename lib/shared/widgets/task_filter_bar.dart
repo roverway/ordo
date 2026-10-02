@@ -296,10 +296,14 @@ class _LinearFilterChip<T> extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final topOffset = position.dy + size.height + 6.0;
-    const menuWidth = 170.0;
+    const menuMinWidth = 96.0;
+    const menuMaxWidth = 148.0;
     final leftOffset = position.dx.clamp(
-      AppTokens.spaceMd,
-      mediaQuery.size.width - menuWidth - AppTokens.spaceMd,
+      AppTokens.spaceSm,
+      (mediaQuery.size.width - menuMaxWidth - AppTokens.spaceSm).clamp(
+        AppTokens.spaceSm,
+        double.infinity,
+      ),
     );
 
     showGeneralDialog<void>(
@@ -323,78 +327,79 @@ class _LinearFilterChip<T> extends StatelessWidget {
                 alignment: Alignment.topLeft,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(
-                    minWidth: menuWidth,
-                    maxWidth: 240,
+                    minWidth: menuMinWidth,
+                    maxWidth: menuMaxWidth,
                     maxHeight: 320,
                   ),
                   child: Material(
                     color: Colors.transparent,
                     child: AppFrostedContainer(
-                      borderRadius: BorderRadius.circular(
-                        AppTokens.radiusSheet,
-                      ),
+                      borderRadius: BorderRadius.circular(AppTokens.radiusCard),
                       padding: const EdgeInsets.symmetric(
-                        vertical: AppTokens.spaceXs,
+                        vertical: AppTokens.spaceXxs,
                       ),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            for (final entry in entries)
-                              InkWell(
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  Navigator.of(dialogContext).pop();
-                                  onChanged(entry.key);
-                                },
-                                borderRadius: BorderRadius.circular(
-                                  AppTokens.radiusButton,
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: AppTokens.spaceMd,
-                                    vertical: AppTokens.spaceSm,
+                      child: IntrinsicWidth(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              for (final entry in entries)
+                                InkWell(
+                                  onTap: () {
+                                    HapticFeedback.selectionClick();
+                                    Navigator.of(dialogContext).pop();
+                                    onChanged(entry.key);
+                                  },
+                                  borderRadius: BorderRadius.circular(
+                                    AppTokens.radiusList,
                                   ),
-                                  color: entry.key == value
-                                      ? colorScheme.primary.withValues(
-                                          alpha: AppTokens.alphaTintFaint,
-                                        )
-                                      : Colors.transparent,
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          entry.value,
-                                          style: TextStyle(
-                                            fontSize:
-                                                AppTokens.textSecondarySize,
-                                            fontWeight: entry.key == value
-                                                ? FontWeight.w600
-                                                : FontWeight.w400,
-                                            color: entry.key == value
-                                                ? colorScheme.primary
-                                                : colorScheme.onSurface,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppTokens.spaceSm,
+                                      vertical: AppTokens.spaceXs,
+                                    ),
+                                    color: entry.key == value
+                                        ? colorScheme.primary.withValues(
+                                            alpha: AppTokens.alphaTintFaint,
+                                          )
+                                        : Colors.transparent,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            entry.value,
+                                            style: TextStyle(
+                                              fontSize:
+                                                  AppTokens.textCaptionSize,
+                                              fontWeight: entry.key == value
+                                                  ? FontWeight.w600
+                                                  : FontWeight.w400,
+                                              color: entry.key == value
+                                                  ? colorScheme.primary
+                                                  : colorScheme.onSurface,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                      ),
-                                      if (entry.key == value) ...[
-                                        const SizedBox(
-                                          width: AppTokens.spaceXs,
-                                        ),
-                                        Icon(
-                                          Icons.check_rounded,
-                                          size: AppTokens.iconSizeSmall,
-                                          color: colorScheme.primary,
-                                        ),
+                                        if (entry.key == value) ...[
+                                          const SizedBox(
+                                            width: AppTokens.spaceXs,
+                                          ),
+                                          Icon(
+                                            Icons.check_rounded,
+                                            size: AppTokens.iconSizeSmall,
+                                            color: colorScheme.primary,
+                                          ),
+                                        ],
                                       ],
-                                    ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),

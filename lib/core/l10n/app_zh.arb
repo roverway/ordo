@@ -68,6 +68,7 @@
   "taskDescription": "描述",
   "taskNotes": "备注",
   "taskStartTime": "开始时间",
+  "taskDateRange": "起止时间",
   "taskEndTime": "截止时间",
   "taskStatus": "状态",
   "taskTags": "标签",

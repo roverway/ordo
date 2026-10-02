@@ -218,6 +218,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get taskStartTime => 'Start time';
 
   @override
+  String get taskDateRange => 'Date & Time';
+
+  @override
   String get taskEndTime => 'Due time';
 
   @override

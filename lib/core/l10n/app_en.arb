@@ -68,6 +68,7 @@
   "taskDescription": "Description",
   "taskNotes": "Notes",
   "taskStartTime": "Start time",
+  "taskDateRange": "Date & Time",
   "taskEndTime": "Due time",
   "taskStatus": "Status",
   "taskTags": "Tags",

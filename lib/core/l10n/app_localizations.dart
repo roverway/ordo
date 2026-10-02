@@ -506,6 +506,12 @@ abstract class AppLocalizations {
   /// **'开始时间'**
   String get taskStartTime;
 
+  /// No description provided for @taskDateRange.
+  ///
+  /// In zh, this message translates to:
+  /// **'起止时间'**
+  String get taskDateRange;
+
   /// No description provided for @taskEndTime.
   ///
   /// In zh, this message translates to:

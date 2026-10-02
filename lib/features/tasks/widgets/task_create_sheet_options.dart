@@ -59,33 +59,17 @@ class TaskCreatePillRow extends ConsumerWidget {
             isDark: isDark,
           ),
 
-          const SizedBox(width: 8),
+          const SizedBox(width: AppTokens.spaceSm),
 
-          // 开始时间 Pill
-          _buildTimePill(
+          // 起止时间 Pill
+          _buildSchedulePill(
             context: context,
             ref: ref,
-            currentValue: startAt,
-            label: startAt != null
-                ? l10n.startPrefix(formatTaskTimeDisplay(startAt, null, l10n))
-                : l10n.startTime,
+            hasValue: startAt != null || endAt != null,
+            label: (startAt != null || endAt != null)
+                ? formatScheduleDisplay(startAt, endAt, l10n)
+                : l10n.taskDateRange,
             icon: Icons.calendar_today_outlined,
-            borderColor: borderColor,
-            colorScheme: colorScheme,
-            isDark: isDark,
-          ),
-
-          const SizedBox(width: 8),
-
-          // 结束时间 / 截止时间 Pill
-          _buildTimePill(
-            context: context,
-            ref: ref,
-            currentValue: endAt,
-            label: endAt != null
-                ? l10n.duePrefix(formatTaskTimeDisplay(null, endAt, l10n))
-                : l10n.endTime,
-            icon: Icons.flag_outlined,
             borderColor: borderColor,
             colorScheme: colorScheme,
             isDark: isDark,
@@ -136,18 +120,16 @@ class TaskCreatePillRow extends ConsumerWidget {
     );
   }
 
-  Widget _buildTimePill({
+  Widget _buildSchedulePill({
     required BuildContext context,
     required WidgetRef ref,
-    required int? currentValue,
+    required bool hasValue,
     required String label,
     required IconData icon,
     required Color borderColor,
     required ColorScheme colorScheme,
     required bool isDark,
   }) {
-    final hasValue = currentValue != null;
-
     return GestureDetector(
       onTap: () => showTaskDatePicker(context, ref),
       child: Container(
@@ -158,7 +140,7 @@ class TaskCreatePillRow extends ConsumerWidget {
               ? colorScheme.primary.withValues(alpha: AppTokens.alphaTintSoft)
               : (isDark
                     ? colorScheme.surfaceContainerHighest.withValues(
-                        alpha: 0.25,
+                        alpha: AppTokens.alphaBorderEmphasis,
                       )
                     : AppTokens.surfaceSubtleLight),
           borderRadius: BorderRadius.circular(AppTokens.radiusPill),

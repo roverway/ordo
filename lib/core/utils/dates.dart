@@ -42,6 +42,54 @@ String formatDateTime(int utcMs) {
       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 }
 
+/// Format a UTC millisecond timestamp as a human-readable due date and time string.
+///
+/// Example: "今天 18:00" or "Oct 2 18:00".
+String formatDueDateWithTime(int utcMs, AppLocalizations l10n) {
+  final dt = DateTime.fromMillisecondsSinceEpoch(utcMs, isUtc: true).toLocal();
+  final datePart = formatDueDate(utcMs, l10n);
+  final timePart =
+      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  return '$datePart $timePart';
+}
+
+/// Format start and end UTC milliseconds for concise schedule display on pills.
+///
+/// - Both null: returns empty string (caller falls back to "起止时间").
+/// - Only one set: returns date with time (e.g. "今天 18:00").
+/// - Both set on same local day: returns "今天 09:00–18:00" or "10月2日 09:00–18:00".
+/// - Both set on different local days: returns "10月2日 – 10月3日".
+String formatScheduleDisplay(int? startAt, int? endAt, AppLocalizations l10n) {
+  if (startAt == null && endAt == null) return '';
+  if (startAt == null) return formatDueDateWithTime(endAt!, l10n);
+  if (endAt == null) return formatDueDateWithTime(startAt, l10n);
+
+  final start = DateTime.fromMillisecondsSinceEpoch(
+    startAt,
+    isUtc: true,
+  ).toLocal();
+  final end = DateTime.fromMillisecondsSinceEpoch(endAt, isUtc: true).toLocal();
+  final sameDay =
+      start.year == end.year &&
+      start.month == end.month &&
+      start.day == end.day;
+
+  final startTime =
+      '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
+  final endTime =
+      '${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
+
+  if (sameDay) {
+    final datePart = formatDueDate(startAt, l10n);
+    if (startTime == endTime) {
+      return '$datePart $endTime';
+    }
+    return '$datePart $startTime–$endTime';
+  }
+
+  return '${formatDueDate(startAt, l10n)} – ${formatDueDate(endAt, l10n)}';
+}
+
 /// Format an optional start/end UTC millisecond pair as a localized date range.
 ///
 /// - Both null → empty string.

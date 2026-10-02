@@ -83,4 +83,31 @@ void main() {
       expect(formatRelativeStart(_ms(tomorrow), l10n), '');
     });
   });
+
+  group("formatDueDateWithTime & formatScheduleDisplay", () {
+    final d1 = DateTime(2020, 1, 1, 9, 30);
+    final d2 = DateTime(2020, 1, 1, 18, 0);
+    final d3 = DateTime(2020, 1, 2, 10, 0);
+
+    test("formatDueDateWithTime 包含日期与具体时间", () {
+      final res = formatDueDateWithTime(_ms(d1), l10n);
+      expect(res.contains("Jan 1, 2020"), isTrue);
+      expect(res.contains("09:30"), isTrue);
+    });
+
+    test("formatScheduleDisplay 双方为 null 返回空串", () {
+      expect(formatScheduleDisplay(null, null, l10n), "");
+    });
+
+    test("formatScheduleDisplay 同一天显示时间段", () {
+      final res = formatScheduleDisplay(_ms(d1), _ms(d2), l10n);
+      expect(res.contains("Jan 1, 2020"), isTrue);
+      expect(res.contains("09:30–18:00"), isTrue);
+    });
+
+    test("formatScheduleDisplay 跨天显示起止日期", () {
+      final res = formatScheduleDisplay(_ms(d1), _ms(d3), l10n);
+      expect(res, "Jan 1, 2020 – Jan 2, 2020");
+    });
+  });
 }

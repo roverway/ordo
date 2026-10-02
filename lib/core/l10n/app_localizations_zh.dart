@@ -215,6 +215,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get taskStartTime => '开始时间';
 
   @override
+  String get taskDateRange => '起止时间';
+
+  @override
   String get taskEndTime => '截止时间';
 
   @override

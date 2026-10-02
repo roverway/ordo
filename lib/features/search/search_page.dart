@@ -442,7 +442,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final projects =
         ref.watch(projectsStreamProvider).value ?? const <Project>[];
     final projectsMap = {for (final p in projects) p.id: p};
-    final allTasksMap = {for (final t in allTasks) t.id: t};
+    final resultsMap = {for (final t in results) t.id: t};
     final query = ref.watch(searchQueryProvider);
     final filter = ref.watch(searchFilterProvider);
 
@@ -457,7 +457,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       itemBuilder: (context, index) {
         final task = results[index];
         final project = projectsMap[task.projectId];
-        final depth = filter.isTreeMode ? _computeDepth(task, allTasksMap) : 0;
+        final depth = filter.isTreeMode ? _computeDepth(task, resultsMap) : 0;
         return _SearchResultRow(
           key: ValueKey('search_row_${task.id}'),
           task: task,
@@ -555,7 +555,10 @@ class _SearchResultRow extends ConsumerWidget {
     if (depth > 0) {
       row = Padding(
         padding: EdgeInsets.only(
-          left: (depth * AppTokens.spaceSm).clamp(0.0, AppTokens.spaceXl * 2),
+          left: ((depth - 1) * AppTokens.spaceLg + AppTokens.spaceMd).clamp(
+            0.0,
+            AppTokens.spaceXl * 3,
+          ),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,

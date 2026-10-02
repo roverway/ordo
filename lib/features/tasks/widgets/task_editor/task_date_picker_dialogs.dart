@@ -348,7 +348,7 @@ class _TaskDateRangePickerSheetState
                       title: l10n.taskStartTime,
                       icon: Icons.play_circle_outline,
                       valueText: formState.startAt != null
-                          ? formatDueDate(formState.startAt!, l10n)
+                          ? formatDueDateWithTime(formState.startAt!, l10n)
                           : l10n.noStartTime,
                       hasValue: formState.startAt != null,
                       isSelected: _isEditingStart,
@@ -374,7 +374,7 @@ class _TaskDateRangePickerSheetState
                       title: l10n.taskEndTime,
                       icon: Icons.flag_outlined,
                       valueText: formState.endAt != null
-                          ? formatDueDate(formState.endAt!, l10n)
+                          ? formatDueDateWithTime(formState.endAt!, l10n)
                           : l10n.noDueDate,
                       hasValue: formState.endAt != null,
                       isSelected: !_isEditingStart,

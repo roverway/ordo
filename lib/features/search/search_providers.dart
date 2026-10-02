@@ -309,61 +309,92 @@ final searchResultsProvider = StreamProvider<List<Task>>((ref) async* {
     searchQuery: query.trim().isEmpty ? null : query.trim(),
   );
 
-  List<Task> list;
   if (filter.isTreeMode) {
-    list = TaskQueryEngine.filterTree(
+    final list = TaskQueryEngine.filterTree(
       tasks: all,
       criteria: criteria,
       projectsById: projectsMap,
       taskTagIdsMap: taskTagIdsMap,
       nowUtcMs: DateTime.now().toUtc().millisecondsSinceEpoch,
     );
+    yield sortTasksAsTree(list, sort);
   } else {
-    list = TaskQueryEngine.filterFlat(
+    final list = TaskQueryEngine.filterFlat(
       tasks: all,
       criteria: criteria,
       projectsById: projectsMap,
       taskTagIdsMap: taskTagIdsMap,
       nowUtcMs: DateTime.now().toUtc().millisecondsSinceEpoch,
     );
+    final sortedList = List<Task>.from(list);
+    sortedList.sort((a, b) => compareTasksByPrinciple(a, b, sort));
+    yield sortedList;
+  }
+});
+
+/// 根据用户选定的排序原则对两个任务进行比较。
+int compareTasksByPrinciple(Task a, Task b, SearchSortPrinciple sort) {
+  switch (sort) {
+    case SearchSortPrinciple.dueDate:
+      final aTime = a.endAt ?? a.startAt;
+      final bTime = b.endAt ?? b.startAt;
+      if (aTime == null && bTime == null) {
+        return b.updatedAt.compareTo(a.updatedAt);
+      }
+      if (aTime == null) return 1;
+      if (bTime == null) return -1;
+      final cmp = aTime.compareTo(bTime);
+      return cmp != 0 ? cmp : b.updatedAt.compareTo(a.updatedAt);
+    case SearchSortPrinciple.priority:
+      final cmp = b.priority.index.compareTo(a.priority.index);
+      return cmp != 0 ? cmp : b.updatedAt.compareTo(a.updatedAt);
+    case SearchSortPrinciple.createdAt:
+      final cmp = b.createdAt.compareTo(a.createdAt);
+      return cmp != 0 ? cmp : b.updatedAt.compareTo(a.updatedAt);
+    case SearchSortPrinciple.title:
+      final cmp = a.title.toLowerCase().compareTo(b.title.toLowerCase());
+      return cmp != 0 ? cmp : b.updatedAt.compareTo(a.updatedAt);
+  }
+}
+
+/// 将过滤后的任务集合按树形拓扑结构（深度优先先序遍历 DFS）排序。
+///
+/// 保证：
+/// 1. 根节点与各级同层级子任务均遵循用户选定的 [SearchSortPrinciple] 排序原则；
+/// 2. 父任务必然先于子任务出现，子任务深度优先紧随其后；
+/// 3. 若任务的 parentId 不在当前可见集合中，自动提升为可见根任务展示；
+/// 4. 彻底消除扁平排序与层级树状展示的冲突。
+List<Task> sortTasksAsTree(List<Task> tasks, SearchSortPrinciple sort) {
+  if (tasks.isEmpty) return const [];
+
+  final byId = {for (final t in tasks) t.id: t};
+  final childrenIndex = <String?, List<Task>>{};
+
+  for (final task in tasks) {
+    final effectiveParentId =
+        (task.parentId != null && byId.containsKey(task.parentId))
+        ? task.parentId
+        : null;
+    childrenIndex.putIfAbsent(effectiveParentId, () => []).add(task);
   }
 
-  final sortedList = List<Task>.from(list);
-  if (!filter.isTreeMode) {
-    switch (sort) {
-      case SearchSortPrinciple.dueDate:
-        sortedList.sort((a, b) {
-          final aTime = a.endAt ?? a.startAt;
-          final bTime = b.endAt ?? b.startAt;
-          if (aTime == null && bTime == null) {
-            return b.updatedAt.compareTo(a.updatedAt);
-          }
-          if (aTime == null) return 1;
-          if (bTime == null) return -1;
-          final cmp = aTime.compareTo(bTime);
-          return cmp != 0 ? cmp : b.updatedAt.compareTo(a.updatedAt);
-        });
-        break;
-      case SearchSortPrinciple.priority:
-        sortedList.sort((a, b) {
-          final cmp = b.priority.index.compareTo(a.priority.index);
-          return cmp != 0 ? cmp : b.updatedAt.compareTo(a.updatedAt);
-        });
-        break;
-      case SearchSortPrinciple.createdAt:
-        sortedList.sort((a, b) {
-          final cmp = b.createdAt.compareTo(a.createdAt);
-          return cmp != 0 ? cmp : b.updatedAt.compareTo(a.updatedAt);
-        });
-        break;
-      case SearchSortPrinciple.title:
-        sortedList.sort((a, b) {
-          final cmp = a.title.toLowerCase().compareTo(b.title.toLowerCase());
-          return cmp != 0 ? cmp : b.updatedAt.compareTo(a.updatedAt);
-        });
-        break;
+  final roots = childrenIndex[null] ?? <Task>[];
+  roots.sort((a, b) => compareTasksByPrinciple(a, b, sort));
+
+  final result = <Task>[];
+
+  void walk(Task node) {
+    result.add(node);
+    final children = childrenIndex[node.id] ?? <Task>[];
+    children.sort((a, b) => compareTasksByPrinciple(a, b, sort));
+    for (final child in children) {
+      walk(child);
     }
   }
 
-  yield sortedList;
-});
+  for (final root in roots) {
+    walk(root);
+  }
+
+  return result;
+}

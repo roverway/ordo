@@ -215,21 +215,6 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
     final screenHeight = MediaQuery.sizeOf(context).height;
     final targetMaxHeight = screenHeight;
 
-    final rawTopInset = MediaQuery.viewPaddingOf(context).top;
-    final view = View.maybeOf(context);
-    final engineTopInset = view != null
-        ? (view.viewPadding.top / view.devicePixelRatio)
-        : 0.0;
-    final physicalTopInset = rawTopInset > 0 ? rawTopInset : engineTopInset;
-    final isMobile =
-        theme.platform == TargetPlatform.android ||
-        theme.platform == TargetPlatform.iOS;
-    final effectiveStatusBarHeight = physicalTopInset > 0
-        ? physicalTopInset
-        : (isMobile ? 36.0 : 0.0);
-
-    final topClearance = isFocused ? (effectiveStatusBarHeight + 10.0) : 0.0;
-
     final sheetRadius = BorderRadius.vertical(
       top: Radius.circular(
         isFocused ? AppTokens.radiusDialog : AppTokens.radiusSheet,
@@ -251,27 +236,23 @@ class _TaskCreateSheetState extends ConsumerState<TaskCreateSheet>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── 顶部状态栏安全距离（聚焦全屏时生效） ──
-              if (isFocused)
-                SizedBox(height: topClearance)
-              else
-                // ── 拖拽手柄（非全屏时显示，对齐 ScopeSwitcherSheet 28x3 胶囊） ──
-                Center(
-                  child: Container(
-                    margin: const EdgeInsets.only(
-                      top: AppTokens.sheetGrabberMiniMarginTop,
-                      bottom: AppTokens.sheetGrabberMiniMarginBottom,
+              // ── 拖拽手柄（对齐 ScopeSwitcherSheet 28x3 胶囊） ──
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(
+                    top: AppTokens.sheetGrabberMiniMarginTop,
+                    bottom: AppTokens.sheetGrabberMiniMarginBottom,
+                  ),
+                  width: AppTokens.sheetGrabberMiniWidth,
+                  height: AppTokens.sheetGrabberMiniHeight,
+                  decoration: BoxDecoration(
+                    color: colorScheme.onSurface.withValues(
+                      alpha: AppTokens.alphaTintStrong,
                     ),
-                    width: AppTokens.sheetGrabberMiniWidth,
-                    height: AppTokens.sheetGrabberMiniHeight,
-                    decoration: BoxDecoration(
-                      color: colorScheme.onSurface.withValues(
-                        alpha: AppTokens.alphaTintStrong,
-                      ),
-                      borderRadius: BorderRadius.circular(AppTokens.radiusPill),
-                    ),
+                    borderRadius: BorderRadius.circular(AppTokens.radiusPill),
                   ),
                 ),
+              ),
 
               // ── 顶部栏：关闭 X / 标题 / 保存 ──
               Padding(
