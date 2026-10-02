@@ -224,6 +224,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get taskEndTime => 'Due time';
 
   @override
+  String get allDay => 'All-day';
+
+  @override
+  String get startTimePoint => 'Start time point';
+
+  @override
+  String get dueTimePoint => 'Due time point';
+
+  @override
   String get taskStatus => 'Status';
 
   @override

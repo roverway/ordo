@@ -221,6 +221,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get taskEndTime => '截止时间';
 
   @override
+  String get allDay => '全天';
+
+  @override
+  String get startTimePoint => '开始时间点';
+
+  @override
+  String get dueTimePoint => '截止时间点';
+
+  @override
   String get taskStatus => '状态';
 
   @override

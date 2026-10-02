@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' as intl;
 
+import '../../../../core/l10n/app_localizations.dart';
 import '../../../../core/theme/app_tokens.dart';
+import '../../../../core/utils/dates.dart';
 
 /// 内联日历视图组件
 class InlineCalendarView extends StatelessWidget {
@@ -28,6 +31,8 @@ class InlineCalendarView extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
+    final isZh = l10n.localeName.startsWith('zh');
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -48,8 +53,10 @@ class InlineCalendarView extends StatelessWidget {
         ? DateTime(endDt!.year, endDt!.month, endDt!.day)
         : null;
 
-    final monthTitle = '${focusedMonth.year}年 ${focusedMonth.month}月';
-    final weekdays = const ['一', '二', '三', '四', '五', '六', '日'];
+    final monthTitle = intl.DateFormat.yMMMM(
+      l10n.localeName,
+    ).format(focusedMonth);
+    final weekdays = getWeekdayShorts(isZh: isZh);
 
     return Container(
       padding: const EdgeInsets.all(AppTokens.spaceSm),
@@ -232,6 +239,7 @@ class InlineTimeBar extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     final hasTime =
         activeDt != null && (activeDt!.hour != 0 || activeDt!.minute != 0);
@@ -270,7 +278,7 @@ class InlineTimeBar extends StatelessWidget {
                   ),
                   const SizedBox(width: AppTokens.spaceXxs),
                   Text(
-                    isStart ? '开始时间点' : '截止时间点',
+                    isStart ? l10n.startTimePoint : l10n.dueTimePoint,
                     style: TextStyle(
                       fontSize: AppTokens.textCaptionSize,
                       fontWeight: FontWeight.w500,
@@ -323,7 +331,7 @@ class InlineTimeBar extends StatelessWidget {
               children: [
                 _timeChip(
                   context,
-                  label: '全天',
+                  label: l10n.allDay,
                   time: null,
                   isSelected: !hasTime,
                   onTap: () => onSelectTime(null),

@@ -518,6 +518,24 @@ abstract class AppLocalizations {
   /// **'截止时间'**
   String get taskEndTime;
 
+  /// No description provided for @allDay.
+  ///
+  /// In zh, this message translates to:
+  /// **'全天'**
+  String get allDay;
+
+  /// No description provided for @startTimePoint.
+  ///
+  /// In zh, this message translates to:
+  /// **'开始时间点'**
+  String get startTimePoint;
+
+  /// No description provided for @dueTimePoint.
+  ///
+  /// In zh, this message translates to:
+  /// **'截止时间点'**
+  String get dueTimePoint;
+
   /// No description provided for @taskStatus.
   ///
   /// In zh, this message translates to:

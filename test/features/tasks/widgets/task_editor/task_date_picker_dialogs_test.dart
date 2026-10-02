@@ -246,6 +246,10 @@ void main() {
       await tester.pumpWidget(buildTestHarness(container));
       await tester.pumpAndSettle();
 
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(TaskDateRangePickerSheet)),
+      );
+
       // 滚动到 14:00 时间段芯片并点击
       final chip14 = find.text('14:00');
       expect(chip14, findsOneWidget);
@@ -264,7 +268,7 @@ void main() {
       expect(dt.minute, 0);
 
       // 滚动到 全天 芯片并点击
-      final chipAllDay = find.text('全天');
+      final chipAllDay = find.text(l10n.allDay);
       expect(chipAllDay, findsOneWidget);
       await tester.ensureVisible(chipAllDay);
       await tester.pumpAndSettle();
@@ -322,6 +326,84 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(TaskDateRangePickerSheet), findsNothing);
+    });
+  });
+
+  group('TaskDateRangePickerSheet 双语国际化与文本显示测试', () {
+    testWidgets('中文环境完整显示中文文案且不泄漏英文', (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            locale: Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(body: TaskDateRangePickerSheet()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(TaskDateRangePickerSheet)),
+      );
+
+      expect(l10n.localeName.startsWith('zh'), isTrue);
+      expect(find.text(l10n.allDay), findsOneWidget);
+      expect(find.text(l10n.dueTimePoint), findsOneWidget);
+      expect(find.text('一'), findsWidgets);
+      expect(find.text('五'), findsWidgets);
+      expect(find.text('日'), findsWidgets);
+    });
+
+    testWidgets('英文环境完整显示英文文案且零中文泄漏（零硬编码中文残留）', (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            locale: Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(body: TaskDateRangePickerSheet()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(TaskDateRangePickerSheet)),
+      );
+
+      expect(l10n.localeName.startsWith('en'), isTrue);
+      expect(find.text('All-day'), findsOneWidget);
+      expect(find.text('Due time point'), findsOneWidget);
+      expect(find.text('Mon'), findsWidgets);
+      expect(find.text('Fri'), findsWidgets);
+      expect(find.text('Sun'), findsWidgets);
+
+      final chineseRegex = RegExp(r'[\u4e00-\u9fa5]');
+      final allTextWidgets = tester.widgetList<Text>(
+        find.descendant(
+          of: find.byType(TaskDateRangePickerSheet),
+          matching: find.byType(Text),
+        ),
+      );
+
+      final leakedChinese = <String>[];
+      for (final textWidget in allTextWidgets) {
+        final text =
+            textWidget.data ?? textWidget.textSpan?.toPlainText() ?? '';
+        if (chineseRegex.hasMatch(text)) {
+          leakedChinese.add(text);
+        }
+      }
+      expect(leakedChinese, isEmpty, reason: '英文模式下不应泄漏任何中文文案: $leakedChinese');
     });
   });
 }
