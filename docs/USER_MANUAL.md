@@ -54,6 +54,7 @@
   - [9.3 Multi-Language Support (Simplified Chinese / English)](#93-multi-language-support-simplified-chinese--english)
   - [9.4 Gestures & Desktop Shortcuts](#94-gestures--desktop-shortcuts)
 - [10. Frequently Asked Questions (FAQ)](#10-frequently-asked-questions-faq)
+- [11. AI Assistant & MCP External Integration](#11-ai-assistant--mcp-external-integration)
 
 ---
 
@@ -465,6 +466,24 @@ To prevent micro-management paralysis. If a subtask at level 3 requires further 
 
 #### Q6: Will custom background wallpapers sync across devices via WebDAV/S3?
 **No, and this is intentional**. Screen aspect ratios, resolutions, and file paths vary drastically between mobile, tablet, and desktop operating systems. Keeping wallpaper configurations local guarantees zero broken image paths and lets you choose wide desktop wallpapers on PC while enjoying vertical wallpapers on your phone.
+
+---
+
+---
+
+## 11. AI Assistant & MCP External Integration
+
+Ordo comes with built-in support for the standard **Model Context Protocol (MCP)**, allowing external AI clients (such as Cursor, Claude Desktop, Cline, and Windsurf) to securely query and manage your personal tasks on the local loopback interface (`127.0.0.1`).
+
+### 11.1 Key Highlights
+- **Local-First & Secure**: Listens exclusively on `127.0.0.1` with pre-shared API Key authentication (`x-api-key` / `Bearer` token).
+- **Dual Write Execution**:
+  - **Direct Write Mode**: External AI tools can immediately create, update, or breakdown tasks with valid key authorization.
+  - **Proposal Review Queue**: Safely stages AI task operations in a review queue (`task_proposals`) for manual or batch confirmation.
+- **11 Standard Tools**: From deep hierarchy retrieval (`get_task`) to bulk imports with dry-run verification (`create_tasks_bulk`) and native database grouping (`aggregate_tasks`).
+
+For step-by-step setup guides, client configuration snippets, and complete API specifications, please refer to the dedicated guide:  
+👉 **[Ordo MCP Integration & User Guide (MCP_USER_GUIDE.md)](./MCP_USER_GUIDE.md)**
 
 ---
 
