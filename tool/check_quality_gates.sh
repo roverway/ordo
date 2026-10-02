@@ -85,11 +85,12 @@ import os
 import sys
 
 repo_root = '.'
-# 忽略生成的本地化代码和用户手册长文本
+# 忽略生成的本地化代码、设计令牌总线和用户手册长文本
 IGNORE_PATHS = {
     'lib/core/l10n/app_localizations.dart',
     'lib/core/l10n/app_localizations_en.dart',
     'lib/core/l10n/app_localizations_zh.dart',
+    'lib/core/theme/app_tokens.dart',
     'lib/features/settings/user_manual_page.dart',
 }
 

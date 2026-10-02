@@ -787,4 +787,30 @@ abstract final class AppTokens {
 
   /// 下拉唤起全局搜索（Spotlight）的阻尼触发阈值（保留兼容）。
   static const double spotlightTriggerThreshold = 120.0;
+
+  // ── 移动端悬浮双岛底栏（Floating Minimal Dock）──
+
+  /// 悬浮底栏容器高度（标准 56dp，带来更宽裕的视觉呼吸感与更大图标展示）。
+  static const double dockHeight = 56.0;
+
+  /// 悬浮底栏各功能图标项外层触控容器尺寸（44×44dp，符合 iOS 人机交互最小触控标准）。
+  static const double dockItemSize = 44.0;
+
+  /// 悬浮底栏导航图标尺寸（24dp，清晰醒目，对齐现代系统导航栏规范）。
+  static const double dockIconSize = 24.0;
+
+  /// 悬浮底栏 AI 星芒图标尺寸（22dp）。
+  static const double dockAiIconSize = 22.0;
+
+  /// 悬浮底栏快速新建按钮尺寸（40dp，微光光晕不截断，垂直居中呼吸感充足）。
+  static const double dockFabSize = 40.0;
+
+  /// 悬浮底栏快速新建按钮内部加号图标尺寸（24dp）。
+  static const double dockFabIconSize = 24.0;
+
+  /// 悬浮底栏双岛分割细线高度（20dp）。
+  static const double dockDividerHeight = 20.0;
+
+  /// 悬浮底栏提示消息（SnackBar Toast）底部间距（84dp，避让 56dp 悬浮坞及底部安全区）。
+  static const double dockToastBottomMargin = 84.0;
 }

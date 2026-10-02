@@ -180,7 +180,7 @@ class FloatingMinimalDock extends ConsumerWidget {
             dockBg: dockBg,
             borderColor: borderColor,
             isDark: isDark,
-            padding: const EdgeInsets.symmetric(horizontal: 6),
+            padding: const EdgeInsets.symmetric(horizontal: AppTokens.spaceXs),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -203,7 +203,7 @@ class FloatingMinimalDock extends ConsumerWidget {
                   ),
                 ),
 
-                const SizedBox(width: 4),
+                const SizedBox(width: AppTokens.spaceXxs),
 
                 // 1.2 特殊视图按钮 (长按直接设当前页为默认)
                 _buildNavItem(
@@ -224,7 +224,7 @@ class FloatingMinimalDock extends ConsumerWidget {
                   ),
                 ),
 
-                const SizedBox(width: 4),
+                const SizedBox(width: AppTokens.spaceXxs),
 
                 // 1.3 设置按钮
                 _buildNavItem(
@@ -241,7 +241,7 @@ class FloatingMinimalDock extends ConsumerWidget {
                   },
                 ),
 
-                const SizedBox(width: 4),
+                const SizedBox(width: AppTokens.spaceXxs),
 
                 // 1.4 搜索按钮
                 _buildNavItem(
@@ -261,13 +261,13 @@ class FloatingMinimalDock extends ConsumerWidget {
             ),
           ),
 
-          const SizedBox(width: AppTokens.spaceSm), // 左右两部分紧靠，中间 8dp 间距
+          const SizedBox(width: AppTokens.spaceSm), // 左右两部分紧靠，中间留呼吸间距
           // 右岛：AI 功能与快速新建一体式胶囊
           _buildIslandContainer(
             dockBg: dockBg,
             borderColor: borderColor,
             isDark: isDark,
-            padding: const EdgeInsets.symmetric(horizontal: 5),
+            padding: const EdgeInsets.symmetric(horizontal: AppTokens.spaceXs),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -275,23 +275,22 @@ class FloatingMinimalDock extends ConsumerWidget {
                 Tooltip(
                   message: l10n.aiCopilot,
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(AppTokens.radiusButton),
+                    customBorder: const CircleBorder(),
                     onTap: () {
                       HapticFeedback.lightImpact();
                       AiCopilotSheet.show(context);
                     },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppTokens.spaceSm,
-                        vertical: AppTokens.spaceXs,
-                      ),
+                    child: Container(
+                      width: AppTokens.dockItemSize,
+                      height: AppTokens.dockItemSize,
+                      alignment: Alignment.center,
                       child: ShaderMask(
                         shaderCallback: (bounds) => const LinearGradient(
                           colors: [AppTokens.colorInbox, Colors.cyanAccent],
                         ).createShader(bounds),
                         child: const Icon(
                           Icons.auto_awesome,
-                          size: 18,
+                          size: AppTokens.dockAiIconSize,
                           color: Colors.white,
                         ),
                       ),
@@ -302,8 +301,10 @@ class FloatingMinimalDock extends ConsumerWidget {
                 // 胶囊中段微光细分割线
                 Container(
                   width: 1.0,
-                  height: 18.0,
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  height: AppTokens.dockDividerHeight,
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: AppTokens.spaceXxs,
+                  ),
                   color: isDark
                       ? Colors.white.withValues(alpha: AppTokens.alphaTintFaint)
                       : Colors.black.withValues(
@@ -311,10 +312,10 @@ class FloatingMinimalDock extends ConsumerWidget {
                         ),
                 ),
 
-                // 快速新建按钮 (缩小至 34dp 直径，光晕完整柔和散发，不被 48dp 操作栏截断)
+                // 快速新建按钮 (40dp 直径，光晕完整柔和散发，不被 56dp 操作栏截断)
                 SizedBox(
-                  width: 34,
-                  height: 34,
+                  width: AppTokens.dockFabSize,
+                  height: AppTokens.dockFabSize,
                   child: FloatingActionButton.small(
                     heroTag: 'dock_quick_add_fab_hero',
                     tooltip: l10n.newTask,
@@ -342,8 +343,8 @@ class FloatingMinimalDock extends ConsumerWidget {
                       );
                     },
                     child: Container(
-                      width: 34,
-                      height: 34,
+                      width: AppTokens.dockFabSize,
+                      height: AppTokens.dockFabSize,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: colorScheme.primary,
@@ -363,7 +364,7 @@ class FloatingMinimalDock extends ConsumerWidget {
                       alignment: Alignment.center,
                       child: Icon(
                         Icons.add_rounded,
-                        size: 20,
+                        size: AppTokens.dockFabIconSize,
                         color: colorScheme.onPrimary,
                       ),
                     ),
@@ -385,7 +386,7 @@ class FloatingMinimalDock extends ConsumerWidget {
     required Widget child,
   }) {
     return Container(
-      height: 48,
+      height: AppTokens.dockHeight,
       decoration: BoxDecoration(
         color: dockBg,
         borderRadius: BorderRadius.circular(AppTokens.radiusPill),
@@ -405,7 +406,10 @@ class FloatingMinimalDock extends ConsumerWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppTokens.radiusPill),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          filter: ImageFilter.blur(
+            sigmaX: AppTokens.blurFrostedGlass,
+            sigmaY: AppTokens.blurFrostedGlass,
+          ),
           child: Material(
             color: Colors.transparent,
             child: Padding(padding: padding, child: child),
@@ -425,14 +429,14 @@ class FloatingMinimalDock extends ConsumerWidget {
     return Tooltip(
       message: tooltip,
       child: InkWell(
-        borderRadius: BorderRadius.circular(AppTokens.radiusButton),
+        customBorder: const CircleBorder(),
         onTap: onTap,
         onLongPress: onLongPress,
         child: Container(
-          width: 38,
-          height: 38,
+          width: AppTokens.dockItemSize,
+          height: AppTokens.dockItemSize,
           alignment: Alignment.center,
-          child: Icon(icon, color: color, size: 20),
+          child: Icon(icon, color: color, size: AppTokens.dockIconSize),
         ),
       ),
     );
@@ -541,7 +545,11 @@ class FloatingMinimalDock extends ConsumerWidget {
           borderRadius: BorderRadius.circular(AppTokens.radiusButton),
         ),
         duration: const Duration(seconds: 2),
-        margin: const EdgeInsets.only(bottom: 76, left: 24, right: 24),
+        margin: const EdgeInsets.only(
+          bottom: AppTokens.dockToastBottomMargin,
+          left: AppTokens.spaceXl,
+          right: AppTokens.spaceXl,
+        ),
       ),
     );
   }
